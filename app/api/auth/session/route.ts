@@ -1,10 +1,9 @@
-import { redirect } from "next/navigation"
+import { NextResponse } from "next/server"
 import { getSessionUserId } from "@/lib/session"
 import { findUserById } from "@/lib/store"
 
-export default async function Page() {
+export async function GET() {
   const userId = await getSessionUserId()
   const user = findUserById(userId)
-
-  redirect(user ? "/dashboard" : "/login")
+  return NextResponse.json({ user })
 }
