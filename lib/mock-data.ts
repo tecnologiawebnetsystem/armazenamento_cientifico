@@ -16,6 +16,16 @@ import type {
  * formatos definidos em `lib/types.ts`.
  */
 
+export const organizationAreas: string[] = [
+  "CENPES - Exploração e Produção",
+  "CENPES - Meio Ambiente",
+  "CENPES - Geociências",
+  "CENPES - Química Analítica",
+  "Refino - Inovação",
+  "Engenharia de Poços",
+  "TIC - Governança de Dados",
+]
+
 export const users: User[] = [
   {
     id: "u-admin",
@@ -25,7 +35,6 @@ export const users: User[] = [
     area: "TIC - Governança de Dados",
     role: "admin",
     criadoEm: "2023-02-10T09:00:00.000Z",
-    avatarUrl: "/avatars/ana-beatriz.jpg",
   },
   {
     id: "u-gestor",
@@ -35,7 +44,6 @@ export const users: User[] = [
     area: "CENPES - Exploração e Produção",
     role: "gestor",
     criadoEm: "2023-03-05T09:00:00.000Z",
-    avatarUrl: "/avatars/carlos-eduardo.jpg",
   },
   {
     id: "u-participante",
@@ -45,7 +53,6 @@ export const users: User[] = [
     area: "CENPES - Geociências",
     role: "participante",
     criadoEm: "2023-04-20T09:00:00.000Z",
-    avatarUrl: "/avatars/fernanda-ribeiro.jpg",
   },
   {
     id: "u-visualizador",
@@ -55,7 +62,6 @@ export const users: User[] = [
     area: "Engenharia de Poços",
     role: "visualizador",
     criadoEm: "2023-05-15T09:00:00.000Z",
-    avatarUrl: "/avatars/joao-pedro.jpg",
   },
   {
     id: "u-005",

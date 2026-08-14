@@ -82,7 +82,7 @@ export function getProject(id: string) {
 export function createProject(data: {
   nome: string
   areaResponsavel: string
-  gestorId: string
+  gestorId?: string
   descricao: string
   participantesIds: string[]
 }) {

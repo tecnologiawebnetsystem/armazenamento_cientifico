@@ -96,7 +96,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <div className="flex items-center gap-2 rounded-md px-2 py-1.5 group-data-[collapsible=icon]:justify-center">
               <Avatar className="size-7">
-                <AvatarImage src={user?.avatarUrl || "/placeholder-user.jpg"} alt={user?.nome ?? ""} />
+                {user?.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={user.nome} /> : null}
                 <AvatarFallback className="text-xs">{user ? initials(user.nome) : ""}</AvatarFallback>
               </Avatar>
               <div className="flex min-w-0 flex-col leading-tight group-data-[collapsible=icon]:hidden">
