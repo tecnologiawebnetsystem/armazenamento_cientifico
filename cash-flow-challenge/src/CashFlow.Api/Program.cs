@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using CashFlow.Api.Middleware;
 using CashFlow.Application;
 using CashFlow.Infrastructure;
@@ -7,7 +8,11 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    // Enums are exposed as their string names (e.g. "Credit"/"Debit")
+    // instead of raw numeric values, which is both more readable in the
+    // Swagger UI and less brittle for API consumers.
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
