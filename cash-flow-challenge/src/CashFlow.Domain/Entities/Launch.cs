@@ -20,7 +20,13 @@ public sealed class Launch : AggregateRoot
     public DateOnly LaunchDate { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
 
-    // Required by EF Core materialization.
+    // Required by the EF Core materializer.
+    private Launch()
+    {
+        Description = string.Empty;
+        Amount = null!;
+    }
+
     private Launch(Guid id, string description, Money amount, LaunchType type, DateOnly launchDate, DateTime createdAtUtc)
         : base(id)
     {

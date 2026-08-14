@@ -4,61 +4,72 @@ using CashFlow.Domain.Enums;
 namespace CashFlow.Domain.Entities;
 
 /// <summary>
-/// The consolidated balance for a single calendar date. This is a
-/// derived/projected entity: it is always fully recomputed from the
-/// <see cref="Launch"/> records for its date, which makes consolidation
-/// idempotent and safe to retry or replay after a failure.
+/// Saldo consolidado de uma data específica. É uma entidade derivada/projetada:
+/// sempre recalculada por completo a partir dos <see cref="Launch"/> daquela data,
+/// o que torna a consolidação idempotente e segura de repetir após uma falha
+/// (requisito não funcional de resiliência do desafio).
+///
+/// Os totais aqui são <see cref="decimal"/> puros - e não <see cref="ValueObjects.Money"/> -
+/// porque, diferente do valor de um lançamento individual, eles podem legitimamente
+/// ser zero (dia sem lançamentos) ou o saldo de fechamento pode ser negativo
+/// (débitos maiores que créditos).
 /// </summary>
 public sealed class DailyBalance : Entity
 {
-    public DateOnly Date { get; private set; }
+    public DateOnly ReferenceDate { get; private set; }
     public decimal TotalCredits { get; private set; }
     public decimal TotalDebits { get; private set; }
-    public decimal Balance { get; private set; }
+    public decimal ClosingBalance { get; private set; }
     public ConsolidationStatus Status { get; private set; }
     public DateTime? ConsolidatedAtUtc { get; private set; }
     public int FailedAttempts { get; private set; }
-
-    // Required by EF Core materialization.
-    private DailyBalance(
-        Guid id,
-        DateOnly date,
-        decimal totalCredits,
-        decimal totalDebits,
-        decimal balance,
-        ConsolidationStatus status,
-        DateTime? consolidatedAtUtc,
-        int failedAttempts)
-        : base(id)
-    {
-        Date = date;
-        TotalCredits = totalCredits;
-        TotalDebits = totalDebits;
-        Balance = balance;
-        Status = status;
-        ConsolidatedAtUtc = consolidatedAtUtc;
-        FailedAttempts = failedAttempts;
-    }
-
-    public static DailyBalance CreatePending(DateOnly date) =>
-        new(Guid.NewGuid(), date, 0m, 0m, 0m, ConsolidationStatus.Pending, consolidatedAtUtc: null, failedAttempts: 0);
+    public string? FailureReason { get; private set; }
 
     /// <summary>
-    /// Applies the result of a full recomputation for this date.
-    /// Consolidation always replaces the previous totals entirely - it never
-    /// increments them - so re-running it (e.g. after a retry) is safe.
+    /// Token de concorrência otimista (mapeado como rowversion pelo EF Core).
+    /// Evita que duas consolidações concorrentes para a mesma data se
+    /// sobrescrevam silenciosamente sob alta carga.
     /// </summary>
-    public void Consolidate(decimal totalCredits, decimal totalDebits, DateTime nowUtc)
+    public byte[]? RowVersion { get; private set; }
+
+    // Necessário para materialização pelo EF Core.
+    private DailyBalance()
+    {
+    }
+
+    private DailyBalance(Guid id, DateOnly referenceDate)
+        : base(id)
+    {
+        ReferenceDate = referenceDate;
+        TotalCredits = 0m;
+        TotalDebits = 0m;
+        ClosingBalance = 0m;
+        Status = ConsolidationStatus.Pending;
+    }
+
+    public static DailyBalance CreatePending(DateOnly referenceDate) =>
+        new(Guid.NewGuid(), referenceDate);
+
+    /// <summary>
+    /// Aplica o resultado de um recálculo completo para esta data. A consolidação
+    /// sempre substitui os totais anteriores por completo - nunca os incrementa -
+    /// então executá-la novamente (ex.: após um retry) é seguro (idempotente).
+    /// </summary>
+    public void Consolidate(decimal totalCredits, decimal totalDebits, DateTime consolidatedAtUtc)
     {
         TotalCredits = totalCredits;
         TotalDebits = totalDebits;
-        Balance = totalCredits - totalDebits;
+        ClosingBalance = totalCredits - totalDebits;
         Status = ConsolidationStatus.Consolidated;
-        ConsolidatedAtUtc = nowUtc;
+        ConsolidatedAtUtc = consolidatedAtUtc;
         FailedAttempts = 0;
+        FailureReason = null;
     }
 
-    public void MarkAsFailed() => Status = ConsolidationStatus.Failed;
-
-    public void IncrementFailedAttempts() => FailedAttempts++;
+    public void MarkAsFailed(string reason)
+    {
+        Status = ConsolidationStatus.Failed;
+        FailedAttempts++;
+        FailureReason = reason;
+    }
 }

@@ -8,6 +8,15 @@ public abstract class Entity
 {
     public Guid Id { get; protected init; }
 
+    /// <summary>
+    /// Parameterless constructor required by the EF Core materializer.
+    /// Not intended for direct use by application code - always create
+    /// entities through their named factory methods (e.g. <c>Launch.Create</c>).
+    /// </summary>
+    protected Entity()
+    {
+    }
+
     protected Entity(Guid id)
     {
         if (id == Guid.Empty)

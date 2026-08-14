@@ -11,6 +11,10 @@ public abstract class AggregateRoot : Entity
 {
     private readonly List<IDomainEvent> _domainEvents = [];
 
+    protected AggregateRoot()
+    {
+    }
+
     protected AggregateRoot(Guid id) : base(id)
     {
     }
