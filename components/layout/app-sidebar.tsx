@@ -2,7 +2,8 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { FlaskConicalIcon, LogOutIcon } from "lucide-react"
+import { LogOutIcon } from "lucide-react"
+import { LogoMark } from "@/components/brand/logo-mark"
 import {
   Sidebar,
   SidebarContent,
@@ -52,8 +53,8 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<Link href="/dashboard" />}>
-              <div className="flex size-8 items-center justify-center rounded-md bg-sidebar-primary">
-                <FlaskConicalIcon className="size-4 text-sidebar-primary-foreground" />
+              <div className="flex size-8 items-center justify-center rounded-md bg-sidebar-primary-foreground/5">
+                <LogoMark className="size-6" />
               </div>
               <div className="flex flex-col gap-0.5 leading-none">
                 <span className="font-semibold">Armazenamento Científico</span>
