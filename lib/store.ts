@@ -1,13 +1,25 @@
 import {
   accessRequests as seedAccessRequests,
+  activityLogs as seedActivityLogs,
   defaultPermissionMatrix,
+  defaultPlatformSettings,
   files as seedFiles,
   projectMembers as seedProjectMembers,
   projects as seedProjects,
   testCredentials,
   users as seedUsers,
 } from "@/lib/mock-data"
-import type { AccessRequest, FileNode, PermissionMatrixEntry, Project, ProjectMember, User } from "@/lib/types"
+import type {
+  AccessRequest,
+  ActivityAction,
+  ActivityLog,
+  FileNode,
+  PermissionMatrixEntry,
+  PlatformSettings,
+  Project,
+  ProjectMember,
+  User,
+} from "@/lib/types"
 
 /**
  * Store singleton em memória usado por todas as API Routes mock.
@@ -28,6 +40,8 @@ declare global {
         files: FileNode[]
         accessRequests: AccessRequest[]
         permissionMatrix: PermissionMatrixEntry[]
+        settings: PlatformSettings
+        activityLogs: ActivityLog[]
       }
     | undefined
 }
@@ -40,6 +54,8 @@ function createStore() {
     files: structuredClone(seedFiles),
     accessRequests: structuredClone(seedAccessRequests),
     permissionMatrix: structuredClone(defaultPermissionMatrix),
+    settings: structuredClone(defaultPlatformSettings),
+    activityLogs: structuredClone(seedActivityLogs),
   }
 }
 
@@ -92,4 +108,24 @@ export function getEffectiveProjectRole(userId: string, projectId: string): stri
 
 export function isProjectMember(userId: string, projectId: string): boolean {
   return getEffectiveProjectRole(userId, projectId) !== null
+}
+
+/** Registra uma ação na trilha de auditoria da plataforma. */
+export function logActivity(
+  userId: string,
+  acao: ActivityAction,
+  entidade: string,
+  entidadeId: string,
+  detalhes: string,
+) {
+  const store = getStore()
+  store.activityLogs.unshift({
+    id: genId("log"),
+    userId,
+    acao,
+    entidade,
+    entidadeId,
+    detalhes,
+    criadoEm: new Date().toISOString(),
+  })
 }

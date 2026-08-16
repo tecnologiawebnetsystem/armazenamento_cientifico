@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getSessionUserId } from "@/lib/session"
-import { findUserById, genId, getStore } from "@/lib/store"
+import { findUserById, genId, getStore, logActivity } from "@/lib/store"
 
 export async function GET() {
   const userId = await getSessionUserId()
@@ -37,6 +37,14 @@ export async function POST(request: Request) {
   }
 
   store.accessRequests.unshift(accessRequest)
+
+  logActivity(
+    user.id,
+    "criar-solicitacao-acesso",
+    "solicitacao-acesso",
+    accessRequest.id,
+    `Solicitou acesso (${accessRequest.tipo}) ao projeto ${accessRequest.projetoId}.`,
+  )
 
   return NextResponse.json({ request: accessRequest }, { status: 201 })
 }

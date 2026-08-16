@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getSessionUserId } from "@/lib/session"
-import { findUserById, getStore } from "@/lib/store"
+import { findUserById, getStore, logActivity } from "@/lib/store"
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -17,8 +17,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ message: "Sem permissão para editar este item." }, { status: 403 })
   }
 
+  const nomeAnterior = file.nome
   const body = await request.json()
   Object.assign(file, body, { atualizadoEm: new Date().toISOString() })
+
+  if (typeof body.parentId !== "undefined") {
+    logActivity(user.id, "mover-item", "arquivo", file.id, `Moveu "${file.nome}" para outra pasta.`)
+  } else if (body.nome && body.nome !== nomeAnterior) {
+    logActivity(user.id, "renomear-item", "arquivo", file.id, `Renomeou "${nomeAnterior}" para "${body.nome}".`)
+  }
 
   return NextResponse.json({ file })
 }
@@ -51,6 +58,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   store.files = store.files.filter((f) => !idsToRemove.has(f.id))
+
+  logActivity(user.id, "excluir-item", "arquivo", id, `Excluiu "${file.nome}".`)
 
   return new NextResponse(null, { status: 204 })
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getSessionUserId } from "@/lib/session"
-import { findUserById, genId, getStore } from "@/lib/store"
+import { findUserById, genId, getStore, logActivity } from "@/lib/store"
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -27,6 +27,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     compartilhadoEm: new Date().toISOString(),
   })
 
+  const targetUser = store.users.find((u) => u.id === targetUserId)
+  logActivity(
+    user.id,
+    "compartilhar-item",
+    "arquivo",
+    file.id,
+    `Compartilhou "${file.nome}" com ${targetUser?.nome ?? targetUserId} (${nivel}).`,
+  )
+
   return NextResponse.json({ file })
 }
 
@@ -47,6 +56,15 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
   const targetUserId = new URL(request.url).searchParams.get("userId")
   file.compartilhamentos = file.compartilhamentos.filter((s) => s.userId !== targetUserId)
+
+  const targetUser = store.users.find((u) => u.id === targetUserId)
+  logActivity(
+    user.id,
+    "remover-compartilhamento",
+    "arquivo",
+    file.id,
+    `Removeu o compartilhamento de "${file.nome}" com ${targetUser?.nome ?? targetUserId}.`,
+  )
 
   return NextResponse.json({ file })
 }

@@ -1,7 +1,9 @@
 import type {
   AccessRequest,
+  ActivityLog,
   FileNode,
   PermissionMatrixEntry,
+  PlatformSettings,
   Project,
   ProjectMember,
   Role,
@@ -73,6 +75,11 @@ export function getSession() {
 
 export function getProjects() {
   return request<{ projects: Project[] }>("/api/projects")
+}
+
+/** Lista minimalista de todos os projetos da plataforma (para seleção em Solicitar Acesso). */
+export function getAllProjectsDirectory() {
+  return request<{ projects: Pick<Project, "id" | "nome" | "areaResponsavel">[] }>("/api/projects?all=true")
 }
 
 export function getProject(id: string) {
@@ -222,6 +229,25 @@ export function updatePermissionMatrix(matrix: PermissionMatrixEntry[]) {
     method: "PUT",
     body: JSON.stringify({ matrix }),
   })
+}
+
+/* -------------------------------- Settings -------------------------------- */
+
+export function getSettings() {
+  return request<{ settings: PlatformSettings }>("/api/settings")
+}
+
+export function updateSettings(data: Partial<PlatformSettings>) {
+  return request<{ settings: PlatformSettings }>("/api/settings", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  })
+}
+
+/* ------------------------------ Activity logs ------------------------------ */
+
+export function getActivityLogs() {
+  return request<{ logs: (ActivityLog & { user: User | null })[] }>("/api/activity-logs")
 }
 
 export { ApiError }

@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { navGroups } from "@/lib/nav-config"
 
 function pageTitleFor(pathname: string) {
@@ -24,9 +25,12 @@ export function AppTopbar() {
       <SidebarTrigger />
       <Separator orientation="vertical" className="mr-2 h-4" />
       <h1 className="text-sm font-medium text-foreground">{pageTitleFor(pathname)}</h1>
-      <Badge variant="outline" className="ml-auto border-warning/40 bg-warning/10 text-warning">
-        Ambiente local · dados de demonstração
-      </Badge>
+      <div className="ml-auto flex items-center gap-2">
+        <Badge variant="outline" className="border-warning/40 bg-warning/10 text-warning">
+          Ambiente local · dados de demonstração
+        </Badge>
+        <ThemeToggle />
+      </div>
     </header>
   )
 }

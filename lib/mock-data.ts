@@ -1,7 +1,9 @@
 import type {
   AccessRequest,
+  ActivityLog,
   FileNode,
   PermissionMatrixEntry,
+  PlatformSettings,
   Project,
   ProjectMember,
   User,
@@ -372,6 +374,43 @@ export const defaultPermissionMatrix: PermissionMatrixEntry[] = [
     excluirArquivos: false,
     compartilharArquivos: false,
     aprovarSolicitacoes: false,
+  },
+]
+
+export const defaultPlatformSettings: PlatformSettings = {
+  areasOrganizacionais: organizationAreas,
+  cotaArmazenamentoPadraoMb: 51_200,
+  diasExpiracaoSolicitacaoAcesso: 30,
+  mensagemAvisoAmbiente: "Ambiente local · dados de demonstração",
+}
+
+export const activityLogs: ActivityLog[] = [
+  {
+    id: "log-001",
+    userId: "u-admin",
+    acao: "atualizar-matriz-permissoes",
+    entidade: "permissao",
+    entidadeId: "matriz-global",
+    detalhes: "Ajustou a matriz de alçadas padrão da plataforma.",
+    criadoEm: "2024-10-15T13:00:00.000Z",
+  },
+  {
+    id: "log-002",
+    userId: "u-admin",
+    acao: "aprovar-solicitacao",
+    entidade: "solicitacao-acesso",
+    entidadeId: "ar-002",
+    detalhes: "Aprovou solicitação de acesso de João Pedro Martins ao projeto PRJ-2024-002.",
+    criadoEm: "2024-10-22T15:00:00.000Z",
+  },
+  {
+    id: "log-003",
+    userId: "u-admin",
+    acao: "negar-solicitacao",
+    entidade: "solicitacao-acesso",
+    entidadeId: "ar-003",
+    detalhes: "Negou solicitação de alteração de permissão de Marina Costa Pereira.",
+    criadoEm: "2024-10-02T11:00:00.000Z",
   },
 ]
 

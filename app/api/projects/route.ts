@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server"
 import { getSessionUserId } from "@/lib/session"
-import { findUserById, getStore } from "@/lib/store"
+import { findUserById, getStore, logActivity } from "@/lib/store"
 
-export async function GET() {
+export async function GET(request: Request) {
   const userId = await getSessionUserId()
   const user = findUserById(userId)
   if (!user) return NextResponse.json({ message: "Não autenticado." }, { status: 401 })
 
   const store = getStore()
+  const { searchParams } = new URL(request.url)
+
+  // Diretório minimalista de todos os projetos, usado para o usuário
+  // selecionar a que projeto deseja solicitar acesso (não expõe dados sensíveis).
+  if (searchParams.get("all") === "true") {
+    const projects = store.projects.map((p) => ({ id: p.id, nome: p.nome, areaResponsavel: p.areaResponsavel }))
+    return NextResponse.json({ projects })
+  }
 
   const visibleProjects =
     user.role === "admin"
@@ -59,6 +67,8 @@ export async function POST(request: Request) {
       adicionadoEm: now,
     })
   }
+
+  logActivity(user.id, "criar-projeto", "projeto", id, `Criou o projeto "${project.nome}".`)
 
   return NextResponse.json({ project: { ...project, participantesIds } }, { status: 201 })
 }

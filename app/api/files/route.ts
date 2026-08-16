@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getSessionUserId } from "@/lib/session"
-import { findUserById, genId, getStore } from "@/lib/store"
+import { findUserById, genId, getStore, logActivity } from "@/lib/store"
 import type { FileNode } from "@/lib/types"
 
 function buildBreadcrumb(store: ReturnType<typeof getStore>, parentId: string | null): FileNode[] {
@@ -70,6 +70,14 @@ export async function POST(request: Request) {
   }
 
   store.files.push(file)
+
+  logActivity(
+    user.id,
+    file.tipo === "pasta" ? "criar-pasta" : "enviar-arquivo",
+    "arquivo",
+    file.id,
+    `${file.tipo === "pasta" ? "Criou a pasta" : "Enviou o arquivo"} "${file.nome}".`,
+  )
 
   return NextResponse.json({ file }, { status: 201 })
 }
