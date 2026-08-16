@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useRef, useState } from "react"
+import useSWR from "swr"
 import { toast } from "sonner"
 import {
   FolderIcon,
@@ -24,12 +25,16 @@ import {
   Loader2Icon,
   UsersIcon,
   XIcon,
+  FolderInputIcon,
+  SearchIcon,
+  SearchXIcon,
 } from "lucide-react"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import {
   Breadcrumb,
@@ -79,6 +84,7 @@ import { shareLevelLabel } from "@/hooks/use-permissions"
 import {
   createFileNode,
   deleteFileNode,
+  getAllFolders,
   shareFileNode,
   unshareFileNode,
   updateFileNode,
@@ -128,11 +134,21 @@ function FileTypeIcon({ file, className }: { file: FileNode; className?: string 
   return <FileIcon className={iconClassName} />
 }
 
+type FileAction = {
+  key: string
+  icon: typeof EyeIcon
+  label: string
+  onClick: () => void
+  variant?: "destructive"
+  separator?: boolean
+}
+
 export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string; canWrite: boolean }) {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null)
   const { files, breadcrumb, isLoading, refresh } = useFiles(projectId, currentFolderId)
   const { members } = useProjectMembers(projectId)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [search, setSearch] = useState("")
 
   const [isUploading, setIsUploading] = useState(false)
   const [newFolderOpen, setNewFolderOpen] = useState(false)
@@ -153,10 +169,30 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
   const [shareLevel, setShareLevel] = useState<ShareLevel>("leitura")
   const [isSharing, setIsSharing] = useState(false)
 
+  const [moveTarget, setMoveTarget] = useState<FileNode | null>(null)
+  const [moveDestination, setMoveDestination] = useState<string>("root")
+  const [isMoving, setIsMoving] = useState(false)
+  const { data: allFoldersData } = useSWR(
+    moveTarget ? ["all-folders", projectId] : null,
+    () => getAllFolders(projectId),
+  )
+
   const shareableMembers = useMemo(
     () => members.filter((m) => !shareTarget?.compartilhamentos.some((s) => s.userId === m.userId)),
     [members, shareTarget],
   )
+
+  const moveDestinationOptions = useMemo(() => {
+    if (!moveTarget || !allFoldersData) return []
+    // não é possível mover uma pasta para dentro de si mesma
+    return allFoldersData.files.filter((f) => f.id !== moveTarget.id)
+  }, [allFoldersData, moveTarget])
+
+  const visibleFiles = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return files
+    return files.filter((f) => f.nome.toLowerCase().includes(q))
+  }, [files, search])
 
   function memberById(userId: string) {
     return members.find((m) => m.userId === userId)?.user
@@ -265,12 +301,29 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
     }
   }
 
+  async function handleMove() {
+    if (!moveTarget) return
+    setIsMoving(true)
+    try {
+      const parentId = moveDestination === "root" ? null : moveDestination
+      await updateFileNode(moveTarget.id, { parentId })
+      toast.success(`"${moveTarget.nome}" movido.`)
+      refresh()
+      setMoveTarget(null)
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Não foi possível mover o item."
+      toast.error(message)
+    } finally {
+      setIsMoving(false)
+    }
+  }
+
   function handleDownload(file: FileNode) {
     toast.info(`Simulação: em um ambiente real, o download de "${file.nome}" seria iniciado agora.`)
   }
 
   /** Ações disponíveis para um item — compartilhadas entre o menu de contexto (clique direito) e o menu "⋮". */
-  function getFileActions(f: FileNode) {
+  function getFileActions(f: FileNode): FileAction[] {
     return [
       f.tipo === "arquivo" && {
         key: "view",
@@ -294,6 +347,15 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
         },
       },
       canWrite && {
+        key: "move",
+        icon: FolderInputIcon,
+        label: "Mover",
+        onClick: () => {
+          setMoveTarget(f)
+          setMoveDestination(f.parentId ?? "root")
+        },
+      },
+      canWrite && {
         key: "share",
         icon: Share2Icon,
         label: "Compartilhar",
@@ -307,14 +369,7 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
         variant: "destructive" as const,
         separator: true,
       },
-    ].filter(Boolean) as Array<{
-      key: string
-      icon: typeof EyeIcon
-      label: string
-      onClick: () => void
-      variant?: "destructive"
-      separator?: boolean
-    }>
+    ].filter(Boolean) as FileAction[]
   }
 
   return (
@@ -350,33 +405,46 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
         )}
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              {currentFolderId === null ? (
-                <BreadcrumbPage>Raiz</BreadcrumbPage>
-              ) : (
-                <BreadcrumbLink render={<button type="button" />} onClick={() => setCurrentFolderId(null)}>
-                  Raiz
-                </BreadcrumbLink>
-              )}
-            </BreadcrumbItem>
-            {breadcrumb.map((node, i) => (
-              <span key={node.id} className="contents">
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  {i === breadcrumb.length - 1 ? (
-                    <BreadcrumbPage>{node.nome}</BreadcrumbPage>
-                  ) : (
-                    <BreadcrumbLink render={<button type="button" />} onClick={() => setCurrentFolderId(node.id)}>
-                      {node.nome}
-                    </BreadcrumbLink>
-                  )}
-                </BreadcrumbItem>
-              </span>
-            ))}
-          </BreadcrumbList>
-        </Breadcrumb>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                {currentFolderId === null ? (
+                  <BreadcrumbPage>Raiz</BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink render={<button type="button" />} onClick={() => setCurrentFolderId(null)}>
+                    Raiz
+                  </BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+              {breadcrumb.map((node, i) => (
+                <span key={node.id} className="contents">
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    {i === breadcrumb.length - 1 ? (
+                      <BreadcrumbPage>{node.nome}</BreadcrumbPage>
+                    ) : (
+                      <BreadcrumbLink render={<button type="button" />} onClick={() => setCurrentFolderId(node.id)}>
+                        {node.nome}
+                      </BreadcrumbLink>
+                    )}
+                  </BreadcrumbItem>
+                </span>
+              ))}
+            </BreadcrumbList>
+          </Breadcrumb>
+
+          <InputGroup className="w-full sm:w-64">
+            <InputGroupAddon>
+              <SearchIcon />
+            </InputGroupAddon>
+            <InputGroupInput
+              placeholder="Buscar nesta pasta..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </InputGroup>
+        </div>
 
         {isLoading ? (
           <div className="flex flex-col gap-2">
@@ -384,69 +452,71 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
               <Skeleton key={i} className="h-12 rounded-lg" />
             ))}
           </div>
-        ) : files.length === 0 ? (
+        ) : visibleFiles.length === 0 ? (
           <Empty>
             <EmptyHeader>
               <EmptyMedia variant="icon">
-                <FoldersIcon />
+                {search.trim() ? <SearchXIcon /> : <FoldersIcon />}
               </EmptyMedia>
-              <EmptyTitle>Nenhum arquivo aqui</EmptyTitle>
+              <EmptyTitle>{search.trim() ? "Nenhum resultado" : "Nenhum arquivo aqui"}</EmptyTitle>
               <EmptyDescription>
-                {canWrite ? "Envie arquivos ou crie pastas para começar." : "Esta pasta ainda não possui conteúdo."}
+                {search.trim()
+                  ? "Nenhum item corresponde à busca nesta pasta."
+                  : canWrite
+                    ? "Envie arquivos ou crie pastas para começar."
+                    : "Esta pasta ainda não possui conteúdo."}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (
           <div className="flex flex-col divide-y divide-border rounded-lg border border-border">
-            {files.map((f) => {
+            {visibleFiles.map((f) => {
               const actions = getFileActions(f)
               return (
                 <ContextMenu key={f.id}>
-                  <ContextMenuTrigger className="contents">
-                    <div className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50">
-                      <FileTypeIcon file={f} />
-                      {f.tipo === "pasta" ? (
-                        <button
-                          type="button"
-                          onClick={() => setCurrentFolderId(f.id)}
-                          className="min-w-0 flex-1 truncate text-left text-sm font-medium text-foreground hover:underline"
-                        >
-                          {f.nome}
-                        </button>
-                      ) : (
-                        <span className="min-w-0 flex-1 truncate text-sm text-foreground">{f.nome}</span>
-                      )}
-                      {f.compartilhamentos.length > 0 && (
-                        <Badge variant="outline" className="gap-1 border-primary/30 bg-primary/10 text-primary">
-                          <Share2Icon className="size-3" />
-                          {f.compartilhamentos.length}
-                        </Badge>
-                      )}
-                      <span className="hidden w-20 shrink-0 text-right text-xs text-muted-foreground sm:block">
-                        {f.tipo === "arquivo" ? formatBytes(f.tamanho) : "—"}
-                      </span>
-                      <span className="hidden w-24 shrink-0 text-right text-xs text-muted-foreground sm:block">
-                        {formatDate(f.atualizadoEm)}
-                      </span>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          render={<Button variant="ghost" size="icon" className="size-8 shrink-0" />}
-                        >
-                          <MoreVerticalIcon className="size-4" />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {actions.map((action) => (
-                            <span key={action.key} className="contents">
-                              {action.separator && <DropdownMenuSeparator />}
-                              <DropdownMenuItem variant={action.variant} onClick={action.onClick}>
-                                <action.icon />
-                                {action.label}
-                              </DropdownMenuItem>
-                            </span>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                  <ContextMenuTrigger
+                    render={<div className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50" />}
+                  >
+                    <FileTypeIcon file={f} />
+                    {f.tipo === "pasta" ? (
+                      <button
+                        type="button"
+                        onClick={() => setCurrentFolderId(f.id)}
+                        className="min-w-0 flex-1 truncate text-left text-sm font-medium text-foreground hover:underline"
+                      >
+                        {f.nome}
+                      </button>
+                    ) : (
+                      <span className="min-w-0 flex-1 truncate text-sm text-foreground">{f.nome}</span>
+                    )}
+                    {f.compartilhamentos.length > 0 && (
+                      <Badge variant="outline" className="gap-1 border-primary/30 bg-primary/10 text-primary">
+                        <Share2Icon className="size-3" />
+                        {f.compartilhamentos.length}
+                      </Badge>
+                    )}
+                    <span className="hidden w-20 shrink-0 text-right text-xs text-muted-foreground sm:block">
+                      {f.tipo === "arquivo" ? formatBytes(f.tamanho) : "—"}
+                    </span>
+                    <span className="hidden w-24 shrink-0 text-right text-xs text-muted-foreground sm:block">
+                      {formatDate(f.atualizadoEm)}
+                    </span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="size-8 shrink-0" />}>
+                        <MoreVerticalIcon className="size-4" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {actions.map((action) => (
+                          <span key={action.key} className="contents">
+                            {action.separator && <DropdownMenuSeparator />}
+                            <DropdownMenuItem variant={action.variant} onClick={action.onClick}>
+                              <action.icon />
+                              {action.label}
+                            </DropdownMenuItem>
+                          </span>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </ContextMenuTrigger>
                   <ContextMenuContent>
                     {actions.map((action) => (
@@ -521,6 +591,47 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
         </DialogContent>
       </Dialog>
 
+      {/* Mover */}
+      <Dialog open={moveTarget !== null} onOpenChange={(open) => !open && setMoveTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mover "{moveTarget?.nome}"</DialogTitle>
+            <DialogDescription>Escolha a pasta de destino.</DialogDescription>
+          </DialogHeader>
+          <Select value={moveDestination} onValueChange={(v) => setMoveDestination(v ?? "root")}>
+            <SelectTrigger className="w-full">
+              <SelectValue>
+                {(value: string) =>
+                  value === "root" ? "Raiz" : moveDestinationOptions.find((f) => f.id === value)?.nome ?? value
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="root">Raiz</SelectItem>
+                {moveDestinationOptions.map((folder) => (
+                  <SelectItem key={folder.id} value={folder.id}>
+                    {folder.nome}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMoveTarget(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleMove}
+              disabled={isMoving || (moveTarget?.parentId ?? "root") === moveDestination}
+            >
+              {isMoving && <Loader2Icon data-icon="inline-start" className="animate-spin" />}
+              Mover
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Excluir */}
       <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
@@ -554,7 +665,9 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
               {previewTarget && <FileTypeIcon file={previewTarget} className="size-5 text-primary" />}
               <span className="truncate">{previewTarget?.nome}</span>
             </DialogTitle>
-            <DialogDescription>Pré-visualização de conteúdo não disponível neste ambiente de demonstração.</DialogDescription>
+            <DialogDescription>
+              Pré-visualização de conteúdo não disponível neste ambiente de demonstração.
+            </DialogDescription>
           </DialogHeader>
           {previewTarget && (
             <div className="flex flex-col gap-2 rounded-lg border border-border p-3 text-sm">
@@ -649,7 +762,7 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
                 </Select>
                 <Select value={shareLevel} onValueChange={(v) => setShareLevel((v as ShareLevel) ?? "leitura")}>
                   <SelectTrigger className="w-40 shrink-0">
-                    <SelectValue />
+                    <SelectValue>{(value: ShareLevel) => shareLevelLabel(value)}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
