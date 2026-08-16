@@ -34,10 +34,10 @@ export async function GET(request: Request) {
   }
 
   if (allFolders) {
-    const folders = store.files
+    const files = store.files
       .filter((f) => f.projectId === projectId && f.tipo === "pasta")
       .sort((a, b) => a.nome.localeCompare(b.nome))
-    return NextResponse.json({ files: folders, breadcrumb: [] })
+    return NextResponse.json({ files })
   }
 
   const files = store.files

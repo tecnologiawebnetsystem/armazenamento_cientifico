@@ -47,6 +47,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -262,6 +269,54 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
     toast.info(`Simulação: em um ambiente real, o download de "${file.nome}" seria iniciado agora.`)
   }
 
+  /** Ações disponíveis para um item — compartilhadas entre o menu de contexto (clique direito) e o menu "⋮". */
+  function getFileActions(f: FileNode) {
+    return [
+      f.tipo === "arquivo" && {
+        key: "view",
+        icon: EyeIcon,
+        label: "Visualizar",
+        onClick: () => setPreviewTarget(f),
+      },
+      f.tipo === "arquivo" && {
+        key: "download",
+        icon: DownloadIcon,
+        label: "Baixar",
+        onClick: () => handleDownload(f),
+      },
+      canWrite && {
+        key: "rename",
+        icon: PencilIcon,
+        label: "Renomear",
+        onClick: () => {
+          setRenameTarget(f)
+          setRenameValue(f.nome)
+        },
+      },
+      canWrite && {
+        key: "share",
+        icon: Share2Icon,
+        label: "Compartilhar",
+        onClick: () => setShareTarget(f),
+      },
+      canWrite && {
+        key: "delete",
+        icon: Trash2Icon,
+        label: "Excluir",
+        onClick: () => setDeleteTarget(f),
+        variant: "destructive" as const,
+        separator: true,
+      },
+    ].filter(Boolean) as Array<{
+      key: string
+      icon: typeof EyeIcon
+      label: string
+      onClick: () => void
+      variant?: "destructive"
+      separator?: boolean
+    }>
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -343,79 +398,70 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
           </Empty>
         ) : (
           <div className="flex flex-col divide-y divide-border rounded-lg border border-border">
-            {files.map((f) => (
-              <div key={f.id} className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50">
-                <FileTypeIcon file={f} />
-                {f.tipo === "pasta" ? (
-                  <button
-                    type="button"
-                    onClick={() => setCurrentFolderId(f.id)}
-                    className="min-w-0 flex-1 truncate text-left text-sm font-medium text-foreground hover:underline"
-                  >
-                    {f.nome}
-                  </button>
-                ) : (
-                  <span className="min-w-0 flex-1 truncate text-sm text-foreground">{f.nome}</span>
-                )}
-                {f.compartilhamentos.length > 0 && (
-                  <Badge variant="outline" className="gap-1 border-primary/30 bg-primary/10 text-primary">
-                    <Share2Icon className="size-3" />
-                    {f.compartilhamentos.length}
-                  </Badge>
-                )}
-                <span className="hidden w-20 shrink-0 text-right text-xs text-muted-foreground sm:block">
-                  {f.tipo === "arquivo" ? formatBytes(f.tamanho) : "—"}
-                </span>
-                <span className="hidden w-24 shrink-0 text-right text-xs text-muted-foreground sm:block">
-                  {formatDate(f.atualizadoEm)}
-                </span>
-                <DropdownMenu>
-                  <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="size-8 shrink-0" />}>
-                    <MoreVerticalIcon className="size-4" />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {f.tipo === "arquivo" && (
-                      <DropdownMenuItem onClick={() => setPreviewTarget(f)}>
-                        <EyeIcon />
-                        Visualizar
-                      </DropdownMenuItem>
-                    )}
-                    {f.tipo === "arquivo" && (
-                      <DropdownMenuItem onClick={() => handleDownload(f)}>
-                        <DownloadIcon />
-                        Baixar
-                      </DropdownMenuItem>
-                    )}
-                    {canWrite && (
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setRenameTarget(f)
-                          setRenameValue(f.nome)
-                        }}
-                      >
-                        <PencilIcon />
-                        Renomear
-                      </DropdownMenuItem>
-                    )}
-                    {canWrite && (
-                      <DropdownMenuItem onClick={() => setShareTarget(f)}>
-                        <Share2Icon />
-                        Compartilhar
-                      </DropdownMenuItem>
-                    )}
-                    {canWrite && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem variant="destructive" onClick={() => setDeleteTarget(f)}>
-                          <Trash2Icon />
-                          Excluir
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            ))}
+            {files.map((f) => {
+              const actions = getFileActions(f)
+              return (
+                <ContextMenu key={f.id}>
+                  <ContextMenuTrigger className="contents">
+                    <div className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50">
+                      <FileTypeIcon file={f} />
+                      {f.tipo === "pasta" ? (
+                        <button
+                          type="button"
+                          onClick={() => setCurrentFolderId(f.id)}
+                          className="min-w-0 flex-1 truncate text-left text-sm font-medium text-foreground hover:underline"
+                        >
+                          {f.nome}
+                        </button>
+                      ) : (
+                        <span className="min-w-0 flex-1 truncate text-sm text-foreground">{f.nome}</span>
+                      )}
+                      {f.compartilhamentos.length > 0 && (
+                        <Badge variant="outline" className="gap-1 border-primary/30 bg-primary/10 text-primary">
+                          <Share2Icon className="size-3" />
+                          {f.compartilhamentos.length}
+                        </Badge>
+                      )}
+                      <span className="hidden w-20 shrink-0 text-right text-xs text-muted-foreground sm:block">
+                        {f.tipo === "arquivo" ? formatBytes(f.tamanho) : "—"}
+                      </span>
+                      <span className="hidden w-24 shrink-0 text-right text-xs text-muted-foreground sm:block">
+                        {formatDate(f.atualizadoEm)}
+                      </span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          render={<Button variant="ghost" size="icon" className="size-8 shrink-0" />}
+                        >
+                          <MoreVerticalIcon className="size-4" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {actions.map((action) => (
+                            <span key={action.key} className="contents">
+                              {action.separator && <DropdownMenuSeparator />}
+                              <DropdownMenuItem variant={action.variant} onClick={action.onClick}>
+                                <action.icon />
+                                {action.label}
+                              </DropdownMenuItem>
+                            </span>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent>
+                    {actions.map((action) => (
+                      <span key={action.key} className="contents">
+                        {action.separator && <ContextMenuSeparator />}
+                        <ContextMenuItem variant={action.variant} onClick={action.onClick}>
+                          <action.icon />
+                          {action.label}
+                        </ContextMenuItem>
+                      </span>
+                    ))}
+                  </ContextMenuContent>
+                </ContextMenu>
+              )
+            })}
           </div>
         )}
       </CardContent>

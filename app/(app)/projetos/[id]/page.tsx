@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation"
 import { getSessionUserId } from "@/lib/session"
-import { findUserById, getStore, getEffectiveProjectRole } from "@/lib/store"
+import { findUserById, getStore, getEffectiveProjectRole, getPermissionsForRole } from "@/lib/store"
 import { ProjectStatusBadge } from "@/components/projects/project-status-badge"
 import { ProjectDetailTabs } from "@/components/projects/project-detail-tabs"
 
@@ -23,6 +23,9 @@ export default async function ProjetoDetalhePage({ params }: { params: Promise<{
   const canDelete = user.role === "admin"
   const canManageMembers = canEdit
 
+  const rolePerms = effectiveRole ? getPermissionsForRole(effectiveRole) : null
+  const canWriteFiles = user.role === "admin" || !!rolePerms?.uploadArquivos
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
@@ -40,6 +43,7 @@ export default async function ProjetoDetalhePage({ params }: { params: Promise<{
         canEdit={canEdit}
         canDelete={canDelete}
         canManageMembers={canManageMembers}
+        canWriteFiles={canWriteFiles}
       />
     </div>
   )

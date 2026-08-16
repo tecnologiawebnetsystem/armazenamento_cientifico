@@ -147,6 +147,7 @@ export function getAllFolders(projectId: string) {
   return request<{ files: FileNode[] }>(`/api/files?projectId=${projectId}&allFolders=true`)
 }
 
+
 export function createFileNode(data: {
   projectId: string
   parentId: string | null
