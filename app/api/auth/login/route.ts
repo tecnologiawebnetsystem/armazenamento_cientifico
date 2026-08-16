@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { findUserByCredentials } from "@/lib/store"
+import { findUserByCredentials, logActivity } from "@/lib/store"
 import { setSessionUserId } from "@/lib/session"
 
 export async function POST(request: Request) {
@@ -16,6 +16,8 @@ export async function POST(request: Request) {
   }
 
   await setSessionUserId(user.id)
+
+  logActivity(user.id, "login", "sessao", user.id, `${user.nome} entrou na plataforma.`)
 
   return NextResponse.json({ user })
 }

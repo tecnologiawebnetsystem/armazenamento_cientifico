@@ -98,3 +98,45 @@ export interface PermissionMatrixEntry {
 }
 
 export interface SessionUser extends User {}
+
+/** Parâmetros administráveis da plataforma (administração > parâmetros). */
+export interface PlatformSettings {
+  areasOrganizacionais: string[]
+  cotaArmazenamentoPadraoMb: number
+  diasExpiracaoSolicitacaoAcesso: number
+  mensagemAvisoAmbiente: string
+}
+
+/** Ação registrada na trilha de auditoria da plataforma. */
+export type ActivityAction =
+  | "login"
+  | "logout"
+  | "criar-projeto"
+  | "editar-projeto"
+  | "excluir-projeto"
+  | "adicionar-membro"
+  | "atualizar-membro"
+  | "remover-membro"
+  | "criar-pasta"
+  | "enviar-arquivo"
+  | "renomear-item"
+  | "mover-item"
+  | "excluir-item"
+  | "compartilhar-item"
+  | "remover-compartilhamento"
+  | "criar-solicitacao-acesso"
+  | "aprovar-solicitacao"
+  | "negar-solicitacao"
+  | "atualizar-papel-usuario"
+  | "atualizar-matriz-permissoes"
+  | "atualizar-parametros"
+
+export interface ActivityLog {
+  id: string
+  userId: string
+  acao: ActivityAction
+  entidade: string
+  entidadeId: string
+  detalhes: string
+  criadoEm: string
+}

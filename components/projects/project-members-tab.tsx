@@ -115,7 +115,7 @@ export function ProjectMembersTab({ projectId, canManage }: { projectId: string;
                   <DialogDescription>Selecione um usuário e defina o papel dele neste projeto.</DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col gap-4">
-                  <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                  <Select value={selectedUserId} onValueChange={(v) => setSelectedUserId(v ?? "")}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Selecione um usuário" />
                     </SelectTrigger>

@@ -1,7 +1,9 @@
 import type {
   AccessRequest,
+  ActivityLog,
   FileNode,
   PermissionMatrixEntry,
+  PlatformSettings,
   Project,
   ProjectMember,
   Role,
@@ -75,6 +77,11 @@ export function getProjects() {
   return request<{ projects: Project[] }>("/api/projects")
 }
 
+/** Lista minimalista de todos os projetos da plataforma (para seleção em Solicitar Acesso). */
+export function getAllProjectsDirectory() {
+  return request<{ projects: Pick<Project, "id" | "nome" | "areaResponsavel">[] }>("/api/projects?all=true")
+}
+
 export function getProject(id: string) {
   return request<{ project: Project }>(`/api/projects/${id}`)
 }
@@ -134,6 +141,12 @@ export function getFiles(projectId: string, parentId: string | null) {
   if (parentId) params.set("parentId", parentId)
   return request<{ files: FileNode[]; breadcrumb: FileNode[] }>(`/api/files?${params.toString()}`)
 }
+
+/** Lista todas as pastas do projeto (sem filtrar por parentId), usada no diálogo de mover item. */
+export function getAllFolders(projectId: string) {
+  return request<{ files: FileNode[] }>(`/api/files?projectId=${projectId}&allFolders=true`)
+}
+
 
 export function createFileNode(data: {
   projectId: string
@@ -222,6 +235,25 @@ export function updatePermissionMatrix(matrix: PermissionMatrixEntry[]) {
     method: "PUT",
     body: JSON.stringify({ matrix }),
   })
+}
+
+/* -------------------------------- Settings -------------------------------- */
+
+export function getSettings() {
+  return request<{ settings: PlatformSettings }>("/api/settings")
+}
+
+export function updateSettings(data: Partial<PlatformSettings>) {
+  return request<{ settings: PlatformSettings }>("/api/settings", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  })
+}
+
+/* ------------------------------ Activity logs ------------------------------ */
+
+export function getActivityLogs() {
+  return request<{ logs: (ActivityLog & { user: User | null })[] }>("/api/activity-logs")
 }
 
 export { ApiError }

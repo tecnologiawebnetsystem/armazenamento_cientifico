@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getSessionUserId } from "@/lib/session"
-import { findUserById, getStore } from "@/lib/store"
+import { findUserById, getStore, logActivity } from "@/lib/store"
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -36,6 +36,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       })
     }
   }
+
+  logActivity(
+    user.id,
+    status === "aprovado" ? "aprovar-solicitacao" : "negar-solicitacao",
+    "solicitacao-acesso",
+    accessRequest.id,
+    `${status === "aprovado" ? "Aprovou" : "Negou"} a solicitação de acesso ao projeto ${accessRequest.projetoId}.`,
+  )
 
   return NextResponse.json({ request: accessRequest })
 }

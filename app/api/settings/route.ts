@@ -8,28 +8,22 @@ export async function GET() {
   if (!user) return NextResponse.json({ message: "Não autenticado." }, { status: 401 })
 
   const store = getStore()
-  return NextResponse.json({ matrix: store.permissionMatrix })
+  return NextResponse.json({ settings: store.settings })
 }
 
-export async function PUT(request: Request) {
+export async function PATCH(request: Request) {
   const userId = await getSessionUserId()
   const user = findUserById(userId)
   if (!user) return NextResponse.json({ message: "Não autenticado." }, { status: 401 })
   if (user.role !== "admin") {
-    return NextResponse.json({ message: "Apenas administradores podem alterar alçadas." }, { status: 403 })
+    return NextResponse.json({ message: "Apenas administradores podem alterar parâmetros." }, { status: 403 })
   }
 
-  const { matrix } = await request.json()
+  const body = await request.json()
   const store = getStore()
-  store.permissionMatrix = matrix
+  store.settings = { ...store.settings, ...body }
 
-  logActivity(
-    user.id,
-    "atualizar-matriz-permissoes",
-    "permissao",
-    "matriz-global",
-    "Atualizou a matriz de alçadas padrão da plataforma.",
-  )
+  logActivity(user.id, "atualizar-parametros", "parametros", "global", "Atualizou os parâmetros da plataforma.")
 
-  return NextResponse.json({ matrix: store.permissionMatrix })
+  return NextResponse.json({ settings: store.settings })
 }
