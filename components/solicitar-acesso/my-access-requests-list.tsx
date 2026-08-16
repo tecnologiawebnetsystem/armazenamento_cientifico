@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { useAccessRequests } from "@/hooks/use-access-requests"
+import { useSession } from "@/hooks/use-session"
 import { roleLabel } from "@/hooks/use-permissions"
 import type { AccessRequestStatus } from "@/lib/types"
 
@@ -36,7 +37,9 @@ function StatusBadge({ status }: { status: AccessRequestStatus }) {
 }
 
 export function MyAccessRequestsList() {
-  const { requests, isLoading } = useAccessRequests()
+  const { requests: allRequests, isLoading } = useAccessRequests()
+  const { user } = useSession()
+  const requests = user ? allRequests.filter((r) => r.usuarioId === user.id) : []
 
   return (
     <Card>

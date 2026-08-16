@@ -92,7 +92,7 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
 
             <Field>
               <FieldLabel htmlFor="gestor">Gestor responsável</FieldLabel>
-              <Select value={gestorId} onValueChange={setGestorId}>
+              <Select value={gestorId} onValueChange={(v) => setGestorId(v ?? "")}>
                 <SelectTrigger id="gestor" className="w-full">
                   <SelectValue placeholder={usersLoading ? "Carregando..." : "Selecione um gestor"} />
                 </SelectTrigger>

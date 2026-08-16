@@ -61,7 +61,7 @@ export function AccessRequestForm() {
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="projeto">Projeto</FieldLabel>
-              <Select value={projetoId} onValueChange={setProjetoId}>
+              <Select value={projetoId} onValueChange={(v) => setProjetoId(v ?? "")}>
                 <SelectTrigger id="projeto" className="w-full">
                   <SelectValue placeholder="Selecione o projeto" />
                 </SelectTrigger>
