@@ -5,6 +5,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { useSettings } from "@/hooks/use-settings"
 import { navGroups } from "@/lib/nav-config"
 
 function pageTitleFor(pathname: string) {
@@ -19,6 +20,7 @@ function pageTitleFor(pathname: string) {
 
 export function AppTopbar() {
   const pathname = usePathname()
+  const { settings } = useSettings()
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-4">
@@ -27,7 +29,7 @@ export function AppTopbar() {
       <h1 className="text-sm font-medium text-foreground">{pageTitleFor(pathname)}</h1>
       <div className="ml-auto flex items-center gap-2">
         <Badge variant="outline" className="border-warning/40 bg-warning/10 text-warning">
-          Ambiente local · dados de demonstração
+          {settings?.mensagemAvisoAmbiente ?? "Ambiente local · dados de demonstração"}
         </Badge>
         <ThemeToggle />
       </div>
