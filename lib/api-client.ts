@@ -142,6 +142,11 @@ export function getFiles(projectId: string, parentId: string | null) {
   return request<{ files: FileNode[]; breadcrumb: FileNode[] }>(`/api/files?${params.toString()}`)
 }
 
+/** Lista todas as pastas do projeto (sem filtrar por parentId), usada no diálogo de mover item. */
+export function getAllFolders(projectId: string) {
+  return request<{ files: FileNode[] }>(`/api/files?projectId=${projectId}&allFolders=true`)
+}
+
 export function createFileNode(data: {
   projectId: string
   parentId: string | null

@@ -23,6 +23,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const projectId = searchParams.get("projectId")
   const parentId = searchParams.get("parentId")
+  const allFolders = searchParams.get("allFolders") === "true"
 
   if (!projectId) return NextResponse.json({ message: "projectId é obrigatório." }, { status: 400 })
 
@@ -30,6 +31,13 @@ export async function GET(request: Request) {
   const isMember = store.projectMembers.some((m) => m.projectId === projectId && m.userId === user.id)
   if (user.role !== "admin" && !isMember) {
     return NextResponse.json({ message: "Sem acesso a este projeto." }, { status: 403 })
+  }
+
+  if (allFolders) {
+    const folders = store.files
+      .filter((f) => f.projectId === projectId && f.tipo === "pasta")
+      .sort((a, b) => a.nome.localeCompare(b.nome))
+    return NextResponse.json({ files: folders, breadcrumb: [] })
   }
 
   const files = store.files

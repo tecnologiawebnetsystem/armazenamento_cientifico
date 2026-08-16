@@ -3,7 +3,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ProjectInfoTab } from "@/components/projects/project-info-tab"
 import { ProjectMembersTab } from "@/components/projects/project-members-tab"
-import { ProjectFilesPreview } from "@/components/projects/project-files-preview"
+import { ProjectFileExplorer } from "@/components/projects/project-file-explorer"
 import { useProject } from "@/hooks/use-project"
 import type { Project } from "@/lib/types"
 
@@ -13,12 +13,14 @@ export function ProjectDetailTabs({
   canEdit,
   canDelete,
   canManageMembers,
+  canWriteFiles,
 }: {
   projectId: string
   initialProject: Project
   canEdit: boolean
   canDelete: boolean
   canManageMembers: boolean
+  canWriteFiles: boolean
 }) {
   const { project, refresh } = useProject(projectId)
   const current = project ?? initialProject
@@ -31,7 +33,7 @@ export function ProjectDetailTabs({
         <TabsTrigger value="informacoes">Informações</TabsTrigger>
       </TabsList>
       <TabsContent value="arquivos" className="mt-4">
-        <ProjectFilesPreview projectId={projectId} />
+        <ProjectFileExplorer projectId={projectId} canWrite={canWriteFiles} />
       </TabsContent>
       <TabsContent value="membros" className="mt-4">
         <ProjectMembersTab projectId={projectId} canManage={canManageMembers} />
