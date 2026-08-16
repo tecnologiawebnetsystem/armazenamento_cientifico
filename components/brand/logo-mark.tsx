@@ -1,24 +1,38 @@
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 
 /**
- * Marca da plataforma: hexágono estilizado (referência ao selo Petrobras)
- * em verde institucional com núcleo em amarelo.
+ * Marca da plataforma: ícone institucional Petrobras (verde e amarelo).
  */
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 40 40"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={cn("size-8", className)}
-      role="img"
-      aria-label="Símbolo da plataforma"
-    >
-      <path
-        d="M20 2 L36 11 V29 L20 38 L4 29 V11 Z"
-        className="fill-primary"
+    <span className={cn("relative inline-block size-8 overflow-hidden rounded-md bg-white p-1", className)}>
+      <Image
+        src="/images/petrobras-logo.png"
+        alt="Símbolo da Petrobras"
+        fill
+        sizes="40px"
+        className="object-contain p-0.5"
+        priority
       />
-      <path d="M20 10 L28 14.5 V23.5 L20 28 L12 23.5 V14.5 Z" className="fill-accent" />
-    </svg>
+    </span>
+  )
+}
+
+/**
+ * Logotipo completo (ícone + wordmark) para cabeçalhos e telas de login.
+ */
+export function LogoFull({ className }: { className?: string }) {
+  return (
+    <span className={cn("relative inline-block h-9 w-44 overflow-hidden rounded-md bg-white px-2 py-1", className)}>
+      <Image
+        src="/images/petrobras-full-logo.png"
+        alt="Petrobras"
+        fill
+        sizes="220px"
+        className="object-contain object-left p-1"
+        priority
+      />
+    </span>
   )
 }
