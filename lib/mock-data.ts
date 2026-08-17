@@ -31,7 +31,7 @@ export const organizationAreas: string[] = [
 export const users: User[] = [
   {
     id: "u-admin",
-    nome: "Kleber Goncalves",
+    nome: "Ana Beatriz Souza",
     email: "admin@petrobras.com",
     cargo: "Administradora da Plataforma",
     area: "TIC - Governança de Dados",
@@ -40,8 +40,8 @@ export const users: User[] = [
   },
   {
     id: "u-gestor",
-    nome: "Fabio Junio",
-    email: "gerente@petrobras.com",
+    nome: "Carlos Eduardo Lima",
+    email: "gestor@petrobras.com",
     cargo: "Gestor de Pesquisa e Desenvolvimento",
     area: "CENPES - Exploração e Produção",
     role: "gestor",
@@ -49,7 +49,7 @@ export const users: User[] = [
   },
   {
     id: "u-participante",
-    nome: "Jefferson Breno",
+    nome: "Fernanda Ribeiro Alves",
     email: "participante@petrobras.com",
     cargo: "Pesquisadora Sênior",
     area: "CENPES - Geociências",
@@ -58,7 +58,7 @@ export const users: User[] = [
   },
   {
     id: "u-visualizador",
-    nome: "Raisa Cananéia",
+    nome: "João Pedro Martins",
     email: "visualizador@petrobras.com",
     cargo: "Analista Técnico",
     area: "Engenharia de Poços",
@@ -417,7 +417,7 @@ export const activityLogs: ActivityLog[] = [
 /** Credenciais de teste — apenas para ambiente local/mock. */
 export const testCredentials: Record<string, { userId: string; senha: string }> = {
   "admin@petrobras.com": { userId: "u-admin", senha: "admin123" },
-  "gerente@petrobras.com": { userId: "u-gestor", senha: "gestor123" },
-  "patrocinador@petrobras.com": { userId: "u-participante", senha: "participante123" },
-  "solicitante@petrobras.com": { userId: "u-visualizador", senha: "visualizador123" },
+  "gestor@petrobras.com": { userId: "u-gestor", senha: "gestor123" },
+  "participante@petrobras.com": { userId: "u-participante", senha: "participante123" },
+  "visualizador@petrobras.com": { userId: "u-visualizador", senha: "visualizador123" },
 }
