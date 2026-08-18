@@ -31,7 +31,7 @@ export const organizationAreas: string[] = [
 export const users: User[] = [
   {
     id: "u-admin",
-    nome: "Ana Beatriz Souza",
+    nome: "Kleber Goncalves",
     email: "admin@petrobras.com",
     cargo: "Administradora da Plataforma",
     area: "TIC - Governança de Dados",
@@ -40,7 +40,7 @@ export const users: User[] = [
   },
   {
     id: "u-gestor",
-    nome: "Carlos Eduardo Lima",
+    nome: "Fabio Junio",
     email: "gestor@petrobras.com",
     cargo: "Gestor de Pesquisa e Desenvolvimento",
     area: "CENPES - Exploração e Produção",
@@ -49,7 +49,7 @@ export const users: User[] = [
   },
   {
     id: "u-participante",
-    nome: "Fernanda Ribeiro Alves",
+    nome: "Jefferson Breno",
     email: "participante@petrobras.com",
     cargo: "Pesquisadora Sênior",
     area: "CENPES - Geociências",
@@ -58,7 +58,7 @@ export const users: User[] = [
   },
   {
     id: "u-visualizador",
-    nome: "João Pedro Martins",
+    nome: "Raisa Cananeia",
     email: "visualizador@petrobras.com",
     cargo: "Analista Técnico",
     area: "Engenharia de Poços",
@@ -67,7 +67,7 @@ export const users: User[] = [
   },
   {
     id: "u-005",
-    nome: "Marina Costa Pereira",
+    nome: "Selma Minto",
     email: "marina.pereira@petrobras.com",
     cargo: "Pesquisadora",
     area: "CENPES - Química Analítica",
@@ -76,7 +76,7 @@ export const users: User[] = [
   },
   {
     id: "u-006",
-    nome: "Rafael Nogueira Dias",
+    nome: "Sylvia Regina",
     email: "rafael.dias@petrobras.com",
     cargo: "Engenheiro de Processos",
     area: "Refino - Inovação",

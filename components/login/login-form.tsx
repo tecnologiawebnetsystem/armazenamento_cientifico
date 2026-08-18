@@ -14,7 +14,7 @@ const DEMO_ACCOUNTS = [
   { label: "Administrador", email: "admin@petrobras.com" },
   { label: "Gerente", email: "gestor@petrobras.com" },
   { label: "Patrocinador", email: "participante@petrobras.com" },
-  { label: "Visualizador", email: "visualizador@petrobras.com" },
+  { label: "Auditor", email: "visualizador@petrobras.com" },
 ]
 
 export function LoginForm() {
