@@ -13,7 +13,7 @@ import { login, ApiError } from "@/lib/api-client"
 const DEMO_ACCOUNTS = [
   { label: "Administrador", email: "admin@petrobras.com" },
   { label: "Gerente", email: "gestor@petrobras.com" },
-  { label: "Participante", email: "participante@petrobras.com" },
+  { label: "Patrocinador", email: "participante@petrobras.com" },
   { label: "Visualizador", email: "visualizador@petrobras.com" },
 ]
 
