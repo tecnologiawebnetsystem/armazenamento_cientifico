@@ -28,7 +28,7 @@ export default async function LoginPage() {
           <LogoMark className="size-9" />
           <div className="flex flex-col leading-tight">
             <span className="font-semibold tracking-tight">Armazenamento Científico</span>
-            <span className="text-xs text-sidebar-foreground/70">CENPES · Petrobras</span>
+            <span className="text-xs text-sidebar-foreground/70">Petrobras</span>
           </div>
         </div>
 
