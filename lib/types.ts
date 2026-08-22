@@ -7,7 +7,14 @@
  * preservar exatamente estes formatos de request/response.
  */
 
-export type Role = "admin" | "gestor" | "participante" | "visualizador"
+/**
+ * Perfis de acesso da plataforma:
+ * - `admin`        → Administrador (governança total da plataforma)
+ * - `gerente`      → Gerente do Projeto (conduz o projeto no dia a dia)
+ * - `patrocinador` → Patrocinador (aprova acessos e acompanha resultados)
+ * - `auditor`      → Auditor (somente leitura + trilha de auditoria)
+ */
+export type Role = "admin" | "gerente" | "patrocinador" | "auditor"
 
 export type ShareLevel = "leitura" | "edicao" | "proprietario"
 
@@ -35,12 +42,30 @@ export interface ProjectMember {
 }
 
 export interface Project {
+  /** Chave técnica interna (surrogate key). */
   id: string
   nome: string
+  /** Código/identificador único de negócio informado no cadastro. */
+  codigo: string
+  /** Área (gerência) responsável pelo projeto. */
   areaResponsavel: string
-  gestorId: string
+  /** Gestores do projeto — um projeto pode ter mais de um gerente. */
+  gestoresIds: string[]
+  /** Grupo do Azure AD com permissão de escrita. */
+  grupoAdEscrita: string
+  /** Grupo do Azure AD com permissão de leitura. */
+  grupoAdLeitura: string
+  /** Role do Identidade com permissão de escrita. */
+  roleIdentidadeEscrita: string
+  /** Role do Identidade com permissão de leitura. */
+  roleIdentidadeLeitura: string
+  /** Número da tarefa do ServiceNow (Snow) que originou a demanda. */
+  numeroTarefaSnow: string
+  /** Nome da pasta mãe do projeto no repositório de arquivos. */
+  pastaMae: string
   descricao: string
   status: ProjectStatus
+  /** Data de criação do projeto (informada no cadastro). */
   criadoEm: string
   atualizadoEm: string
   /** Preenchido pela API a partir de ProjectMember. */

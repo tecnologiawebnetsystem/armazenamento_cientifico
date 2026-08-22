@@ -4,7 +4,7 @@ import { defaultPermissionMatrix } from "@/lib/mock-data"
 /**
  * Modelo de permissões em dois níveis:
  *
- * 1. Papel no projeto (admin/gestor/participante/visualizador) definido pelo
+ * 1. Papel no projeto (admin/gerente/patrocinador/auditor) definido pelo
  *    administrador — controla ações estruturais (criar, excluir, gerenciar
  *    membros, aprovar solicitações).
  * 2. Compartilhamento por pasta/arquivo (leitura/edição/proprietário) —
@@ -15,8 +15,8 @@ export function getRolePermissions(role: Role, matrix: PermissionMatrixEntry[] =
 }
 
 export function canEditFile(projectRole: Role, shareLevel: ShareLevel | null) {
-  if (projectRole === "admin" || projectRole === "gestor") return true
-  if (projectRole === "visualizador") return false
+  if (projectRole === "admin" || projectRole === "gerente") return true
+  if (projectRole === "auditor") return false
   if (!shareLevel) return true
   return shareLevel === "edicao" || shareLevel === "proprietario"
 }
@@ -36,11 +36,28 @@ export function roleLabel(role: Role) {
   switch (role) {
     case "admin":
       return "Administrador"
-    case "gestor":
-      return "Gestor"
-    case "participante":
-      return "Participante"
-    case "visualizador":
-      return "Visualizador"
+    case "gerente":
+      return "Gerente do Projeto"
+    case "patrocinador":
+      return "Patrocinador"
+    case "auditor":
+      return "Auditor"
   }
 }
+
+/** Descrição curta de cada perfil, usada em selects e telas administrativas. */
+export function roleDescription(role: Role) {
+  switch (role) {
+    case "admin":
+      return "Governança total da plataforma, usuários e parâmetros."
+    case "gerente":
+      return "Conduz o projeto: membros, arquivos e compartilhamentos."
+    case "patrocinador":
+      return "Acompanha resultados e aprova solicitações de acesso."
+    case "auditor":
+      return "Somente leitura, com acesso à trilha de auditoria."
+  }
+}
+
+/** Todos os perfis disponíveis, na ordem hierárquica de exibição. */
+export const allRoles: Role[] = ["admin", "patrocinador", "gerente", "auditor"]
