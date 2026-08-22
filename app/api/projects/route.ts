@@ -17,10 +17,18 @@ export async function GET(request: Request) {
     return NextResponse.json({ projects })
   }
 
-  const visibleProjects =
-    user.role === "admin"
-      ? store.projects
-      : store.projects.filter((p) => store.projectMembers.some((m) => m.projectId === p.id && m.userId === user.id))
+  // Regras de visibilidade:
+  // - admin e patrocinador enxergam TODOS os projetos (mapas) da plataforma.
+  // - demais papéis (gerente, participante, etc.) enxergam apenas os projetos
+  //   em que participam como membro OU dos quais são gestores.
+  const canSeeAll = user.role === "admin" || user.role === "patrocinador"
+  const visibleProjects = canSeeAll
+    ? store.projects
+    : store.projects.filter(
+        (p) =>
+          p.gestoresIds?.includes(user.id) ||
+          store.projectMembers.some((m) => m.projectId === p.id && m.userId === user.id),
+      )
 
   const projects = visibleProjects.map((p) => ({
     ...p,

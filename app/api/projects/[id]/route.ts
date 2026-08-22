@@ -12,8 +12,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const project = store.projects.find((p) => p.id === id)
   if (!project) return NextResponse.json({ message: "Projeto não encontrado." }, { status: 404 })
 
-  const isMember = store.projectMembers.some((m) => m.projectId === id && m.userId === user.id)
-  if (user.role !== "admin" && !isMember) {
+  // admin e patrocinador acessam qualquer projeto; demais precisam ser membros
+  // ou gestores do projeto.
+  const canSeeAll = user.role === "admin" || user.role === "patrocinador"
+  const isMember =
+    store.projectMembers.some((m) => m.projectId === id && m.userId === user.id) ||
+    project.gestoresIds?.includes(user.id)
+  if (!canSeeAll && !isMember) {
     return NextResponse.json({ message: "Sem acesso a este projeto." }, { status: 403 })
   }
 
@@ -32,8 +37,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const project = store.projects.find((p) => p.id === id)
   if (!project) return NextResponse.json({ message: "Projeto não encontrado." }, { status: 404 })
 
-  const role = store.projectMembers.find((m) => m.projectId === id && m.userId === user.id)?.papel
-  if (user.role !== "admin" && role !== "gerente") {
+  const memberRole = store.projectMembers.find((m) => m.projectId === id && m.userId === user.id)?.papel
+  const isGestor = project.gestoresIds?.includes(user.id) || memberRole === "gerente" || memberRole === "gestor"
+  if (user.role !== "admin" && !isGestor) {
     return NextResponse.json({ message: "Sem permissão para editar este projeto." }, { status: 403 })
   }
 
