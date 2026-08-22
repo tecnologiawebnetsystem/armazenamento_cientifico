@@ -52,84 +52,84 @@
 }
 
 :root {
-    /* Base neutra clara, tons petróleo */
-    --background: oklch(0.98 0.003 197);
-    --foreground: oklch(0.2 0.02 200);
+    /* Base neutra clara com leve tom esverdeado Petrobras */
+    --background: oklch(0.985 0.004 150);
+    --foreground: oklch(0.2 0.025 155);
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.2 0.02 200);
+    --card-foreground: oklch(0.2 0.025 155);
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.2 0.02 200);
-    /* Verde Petrobras oficial #008542 */
-    --primary: oklch(0.5 0.142 152);
+    --popover-foreground: oklch(0.2 0.025 155);
+    /* Verde Petrobras vibrante #009C3B */
+    --primary: oklch(0.575 0.155 151);
     --primary-foreground: oklch(0.99 0 0);
-    --secondary: oklch(0.94 0.006 200);
-    --secondary-foreground: oklch(0.25 0.02 200);
-    --muted: oklch(0.95 0.006 200);
-    --muted-foreground: oklch(0.48 0.02 200);
-    /* Amarelo Petrobras oficial #FDC82F como acento */
-    --accent: oklch(0.86 0.165 88);
-    --accent-foreground: oklch(0.28 0.05 70);
+    --secondary: oklch(0.95 0.012 152);
+    --secondary-foreground: oklch(0.26 0.03 155);
+    --muted: oklch(0.955 0.008 152);
+    --muted-foreground: oklch(0.48 0.025 155);
+    /* Amarelo dourado Petrobras #FDB913 como acento */
+    --accent: oklch(0.82 0.17 82);
+    --accent-foreground: oklch(0.28 0.06 70);
     --destructive: oklch(0.577 0.22 27);
-    --border: oklch(0.9 0.008 200);
-    --input: oklch(0.9 0.008 200);
-    --ring: oklch(0.5 0.142 152);
-    --success: oklch(0.54 0.142 152);
+    --border: oklch(0.9 0.01 152);
+    --input: oklch(0.9 0.01 152);
+    --ring: oklch(0.575 0.155 151);
+    --success: oklch(0.575 0.155 151);
     --success-foreground: oklch(0.99 0 0);
-    --warning: oklch(0.8 0.16 90);
-    --warning-foreground: oklch(0.22 0.03 90);
-    --chart-1: oklch(0.5 0.142 152);
-    --chart-2: oklch(0.86 0.165 88);
-    --chart-3: oklch(0.6 0.08 200);
-    --chart-4: oklch(0.4 0.03 200);
-    --chart-5: oklch(0.7 0.02 200);
+    --warning: oklch(0.82 0.17 82);
+    --warning-foreground: oklch(0.22 0.04 80);
+    --chart-1: oklch(0.575 0.155 151);
+    --chart-2: oklch(0.82 0.17 82);
+    --chart-3: oklch(0.68 0.13 160);
+    --chart-4: oklch(0.42 0.08 155);
+    --chart-5: oklch(0.72 0.05 150);
     --radius: 0.5rem;
-    /* Sidebar em petróleo escuro com identidade Petrobras */
-    --sidebar: oklch(0.18 0.025 205);
-    --sidebar-foreground: oklch(0.92 0.006 200);
-    --sidebar-primary: oklch(0.6 0.15 152);
-    --sidebar-primary-foreground: oklch(0.15 0.02 205);
-    --sidebar-accent: oklch(0.26 0.03 205);
-    --sidebar-accent-foreground: oklch(0.95 0.006 200);
-    --sidebar-border: oklch(0.28 0.03 205);
-    --sidebar-ring: oklch(0.6 0.15 152);
+    /* Sidebar em verde Petrobras profundo */
+    --sidebar: oklch(0.28 0.06 155);
+    --sidebar-foreground: oklch(0.95 0.01 150);
+    --sidebar-primary: oklch(0.82 0.17 82);
+    --sidebar-primary-foreground: oklch(0.24 0.05 155);
+    --sidebar-accent: oklch(0.36 0.07 154);
+    --sidebar-accent-foreground: oklch(0.97 0.008 150);
+    --sidebar-border: oklch(0.38 0.07 154);
+    --sidebar-ring: oklch(0.82 0.17 82);
 }
 
 .dark {
-    --background: oklch(0.17 0.02 205);
-    --foreground: oklch(0.94 0.006 200);
-    --card: oklch(0.21 0.02 205);
-    --card-foreground: oklch(0.94 0.006 200);
-    --popover: oklch(0.21 0.02 205);
-    --popover-foreground: oklch(0.94 0.006 200);
-    --primary: oklch(0.66 0.15 152);
-    --primary-foreground: oklch(0.14 0.02 205);
-    --secondary: oklch(0.28 0.025 205);
-    --secondary-foreground: oklch(0.94 0.006 200);
-    --muted: oklch(0.28 0.025 205);
-    --muted-foreground: oklch(0.68 0.015 200);
-    --accent: oklch(0.82 0.165 88);
-    --accent-foreground: oklch(0.2 0.04 70);
+    --background: oklch(0.19 0.025 158);
+    --foreground: oklch(0.95 0.01 150);
+    --card: oklch(0.23 0.03 157);
+    --card-foreground: oklch(0.95 0.01 150);
+    --popover: oklch(0.23 0.03 157);
+    --popover-foreground: oklch(0.95 0.01 150);
+    --primary: oklch(0.68 0.16 151);
+    --primary-foreground: oklch(0.16 0.03 158);
+    --secondary: oklch(0.3 0.035 157);
+    --secondary-foreground: oklch(0.95 0.01 150);
+    --muted: oklch(0.3 0.035 157);
+    --muted-foreground: oklch(0.7 0.02 152);
+    --accent: oklch(0.82 0.17 82);
+    --accent-foreground: oklch(0.2 0.05 70);
     --destructive: oklch(0.704 0.19 22);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.66 0.15 152);
-    --success: oklch(0.66 0.15 152);
-    --success-foreground: oklch(0.14 0.02 205);
-    --warning: oklch(0.78 0.16 90);
-    --warning-foreground: oklch(0.18 0.03 90);
-    --chart-1: oklch(0.66 0.15 152);
-    --chart-2: oklch(0.82 0.165 88);
-    --chart-3: oklch(0.6 0.08 200);
-    --chart-4: oklch(0.5 0.03 200);
-    --chart-5: oklch(0.75 0.02 200);
-    --sidebar: oklch(0.14 0.02 205);
-    --sidebar-foreground: oklch(0.92 0.006 200);
-    --sidebar-primary: oklch(0.66 0.15 152);
-    --sidebar-primary-foreground: oklch(0.14 0.02 205);
-    --sidebar-accent: oklch(0.22 0.025 205);
-    --sidebar-accent-foreground: oklch(0.95 0.006 200);
-    --sidebar-border: oklch(0.26 0.025 205);
-    --sidebar-ring: oklch(0.66 0.15 152);
+    --ring: oklch(0.68 0.16 151);
+    --success: oklch(0.68 0.16 151);
+    --success-foreground: oklch(0.16 0.03 158);
+    --warning: oklch(0.82 0.17 82);
+    --warning-foreground: oklch(0.18 0.04 80);
+    --chart-1: oklch(0.68 0.16 151);
+    --chart-2: oklch(0.82 0.17 82);
+    --chart-3: oklch(0.6 0.12 160);
+    --chart-4: oklch(0.52 0.08 155);
+    --chart-5: oklch(0.75 0.05 150);
+    --sidebar: oklch(0.16 0.025 158);
+    --sidebar-foreground: oklch(0.93 0.01 150);
+    --sidebar-primary: oklch(0.82 0.17 82);
+    --sidebar-primary-foreground: oklch(0.16 0.03 158);
+    --sidebar-accent: oklch(0.26 0.03 157);
+    --sidebar-accent-foreground: oklch(0.96 0.008 150);
+    --sidebar-border: oklch(0.3 0.03 157);
+    --sidebar-ring: oklch(0.82 0.17 82);
 }
 
 @layer base {
