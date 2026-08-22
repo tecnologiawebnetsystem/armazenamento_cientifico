@@ -1,47 +1,15 @@
-import type { Metadata, Viewport } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
-
-import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/sonner"
-import { cn } from "@/lib/utils"
-
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" })
-
-const fontMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-})
+import { Analytics } from '@vercel/analytics/next'
+import type { Metadata, Viewport } from 'next'
+import './globals.css'
 
 export const metadata: Metadata = {
-  title: "Armazenamento Científico | Petrobras",
-  description:
-    "Plataforma de armazenamento científico Petrobras: arquivamento, organização, compartilhamento e gestão de documentos por projeto, com controle de acesso por perfis e permissões.",
+  title: 'Novo projeto | Armazenamento científico',
+  description: 'Cadastro de projetos do armazenamento científico.',
+  generator: 'v0.app',
 }
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  themeColor: "#0f2f2d",
-}
+export const viewport: Viewport = { colorScheme: 'light', themeColor: '#f4f6f8', userScalable: false }
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
-  return (
-    <html
-      lang="pt-BR"
-      suppressHydrationWarning
-      className={cn("antialiased bg-background", fontMono.variable, "font-sans", geist.variable)}
-    >
-      <body>
-        <ThemeProvider>
-          {children}
-          <Toaster />
-        </ThemeProvider>
-      </body>
-    </html>
-  )
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  return <html lang="pt-BR" className="bg-background"><body className="antialiased">{children}{process.env.NODE_ENV === 'production' && <Analytics />}</body></html>
 }
