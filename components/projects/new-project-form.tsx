@@ -41,7 +41,7 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
   const [codigo, setCodigo] = useState("")
   const [criadoEm, setCriadoEm] = useState(new Date().toISOString().slice(0, 10))
   const [areaResponsavel, setAreaResponsavel] = useState("")
-  const [gestoresIds, setGestoresIds] = useState<string[]>(currentUser.role === "gestor" ? [currentUser.id] : [])
+  const [gestoresIds, setGestoresIds] = useState<string[]>(currentUser.role === "gerente" ? [currentUser.id] : [])
   const [grupoAdEscrita, setGrupoAdEscrita] = useState<string[]>([])
   const [grupoAdLeitura, setGrupoAdLeitura] = useState<string[]>([])
   const [roleIdentidadeEscrita, setRoleIdentidadeEscrita] = useState<string[]>([])
@@ -50,7 +50,7 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
   const [pastaMae, setPastaMae] = useState("")
   const [descricao, setDescricao] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const gestores = users.filter((u) => u.role === "gestor" || u.role === "admin")
+  const gestores = users.filter((u) => u.role === "gerente" || u.role === "admin" || u.role === "patrocinador")
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -60,10 +60,10 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
     }
     setIsSubmitting(true)
     try {
-      const { project } = await createProject({ nome: nome.trim(), codigo: codigo.trim(), criadoEm, areaResponsavel: areaResponsavel.trim(), gestoresIds, grupoAdEscrita: grupoAdEscrita.join(", "), grupoAdLeitura: grupoAdLeitura.join(", "), roleIdentidadeEscrita: roleIdentidadeEscrita.join(", "), roleIdentidadeLeitura: roleIdentidadeLeitura.join(", "), numeroTarefaSnow: numeroTarefaSnow.trim(), pastaMae: pastaMae.trim(), descricao: descricao.trim(), participantesIds: gestoresIds })
+      const { project } = await createProject({ nome: nome.trim(), codigo: codigo.trim(), criadoEm, areaResponsavel: areaResponsavel.trim(), gestoresIds, grupoAdEscrita: grupoAdEscrita.join(", "), grupoAdLeitura: grupoAdLeitura.join(", "), roleIdentidadeEscrita: roleIdentidadeEscrita.join(", "), roleIdentidadeLeitura: roleIdentidadeLeitura.join(", "), numeroTarefaSnow: numeroTarefaSnow.trim(), pastaMae: pastaMae.trim(), descricao: descricao.trim(), participantesIds: gestoresIds }) as { project: import("@/lib/types").Project }
       toast.success("Projeto criado com sucesso.")
       router.push(`/projetos/${project.id}`)
-    } catch (err) {
+    } catch (err: unknown) {
       toast.error(err instanceof ApiError ? err.message : "Não foi possível criar o projeto.")
     } finally { setIsSubmitting(false) }
   }
@@ -74,7 +74,7 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
       <Field><FieldLabel htmlFor="nome">Nome do projeto</FieldLabel><Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Caracterização de Reservatórios" /></Field>
       <div className="grid gap-6 md:grid-cols-2"><Field><FieldLabel htmlFor="codigo">Código ou identificador único</FieldLabel><Input id="codigo" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Ex.: CENPES-EP-2026-0001" /></Field><Field><FieldLabel htmlFor="criadoEm">Data de criação</FieldLabel><Input id="criadoEm" type="date" value={criadoEm} onChange={(e) => setCriadoEm(e.target.value)} /></Field></div>
       <Field><FieldLabel htmlFor="area">Área (gerência) responsável</FieldLabel><Input id="area" value={areaResponsavel} onChange={(e) => setAreaResponsavel(e.target.value)} placeholder="Ex.: CENPES - Geociências" /></Field>
-      <Field><FieldLabel>Gestor(es) do projeto</FieldLabel><Select onValueChange={(id) => { if (id && !gestoresIds.includes(id)) setGestoresIds([...gestoresIds, id]) }}><SelectTrigger><SelectValue placeholder="Adicionar gestor" /></SelectTrigger><SelectContent><SelectGroup>{gestores.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome} · {u.area}</SelectItem>)}</SelectGroup></SelectContent></Select><div className="flex flex-wrap gap-2 pt-1">{gestoresIds.map((id) => { const u = users.find((item) => item.id === id); return u ? <Badge key={id} variant="secondary" className="gap-1">{u.nome}<button type="button" onClick={() => setGestoresIds(gestoresIds.filter((v) => v !== id))} aria-label={`Remover ${u.nome}`}><XIcon data-icon="inline-start" /></button></Badge> : null })}</div><FieldDescription>É possível cadastrar mais de um gestor.</FieldDescription></Field>
+      <Field><FieldLabel htmlFor="gestores">Gestor(es) do projeto</FieldLabel><Select onValueChange={(id: string | null) => { if (id && !gestoresIds.includes(id)) setGestoresIds([...gestoresIds, id]) }}><SelectTrigger id="gestores"><SelectValue placeholder="Adicionar gestor" /></SelectTrigger><SelectContent><SelectGroup>{gestores.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome} · {u.area}</SelectItem>)}</SelectGroup></SelectContent></Select><div className="flex flex-wrap gap-2 pt-1">{gestoresIds.map((id) => { const u = users.find((item) => item.id === id); return u ? <Badge key={id} variant="secondary" className="gap-1">{u.nome}<button type="button" onClick={() => setGestoresIds(gestoresIds.filter((v) => v !== id))} aria-label={`Remover ${u.nome}`}><XIcon data-icon="inline-start" /></button></Badge> : null })}</div><FieldDescription>É possível cadastrar mais de um gestor.</FieldDescription></Field>
       <div className="grid gap-6 md:grid-cols-2"><ChipInput label="Grupos de Azure AD — escrita" value={grupoAdEscrita} onChange={setGrupoAdEscrita} placeholder="Nome do grupo de escrita" /><ChipInput label="Grupos de Azure AD — leitura" value={grupoAdLeitura} onChange={setGrupoAdLeitura} placeholder="Nome do grupo de leitura" /><ChipInput label="Roles do Identidade — escrita" value={roleIdentidadeEscrita} onChange={setRoleIdentidadeEscrita} placeholder="Nome da role de escrita" /><ChipInput label="Roles do Identidade — leitura" value={roleIdentidadeLeitura} onChange={setRoleIdentidadeLeitura} placeholder="Nome da role de leitura" /></div>
       <div className="grid gap-6 md:grid-cols-2"><Field><FieldLabel htmlFor="snow">Número da tarefa do Snow</FieldLabel><Input id="snow" value={numeroTarefaSnow} onChange={(e) => setNumeroTarefaSnow(e.target.value)} placeholder="Ex.: TASK0041827" /></Field><Field><FieldLabel htmlFor="pasta">Nome da pasta mãe do projeto</FieldLabel><Input id="pasta" value={pastaMae} onChange={(e) => setPastaMae(e.target.value)} placeholder="Ex.: presal-caracterizacao" /></Field></div>
       <Field><FieldLabel htmlFor="descricao">Descrição</FieldLabel><Textarea id="descricao" value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descreva o objetivo e o escopo do projeto." rows={4} /></Field>

@@ -14,7 +14,10 @@
  * - `patrocinador` → Patrocinador (aprova acessos e acompanha resultados)
  * - `auditor`      → Auditor (somente leitura + trilha de auditoria)
  */
-export type Role = "admin" | "gerente" | "patrocinador" | "auditor"
+export type Role = "admin" | "gerente" | "patrocinador" | "auditor" | "participante" | "visualizador" | "gestor"
+
+/** Papel global ou de participação dentro de um projeto. */
+export type ProjectMemberRole = Role
 
 export type ShareLevel = "leitura" | "edicao" | "proprietario"
 
@@ -37,7 +40,7 @@ export interface User {
 export interface ProjectMember {
   projectId: string
   userId: string
-  papel: Role
+  papel: ProjectMemberRole
   adicionadoEm: string
 }
 

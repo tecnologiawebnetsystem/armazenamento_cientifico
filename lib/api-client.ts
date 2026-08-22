@@ -6,6 +6,7 @@ import type {
   PlatformSettings,
   Project,
   ProjectMember,
+  ProjectMemberRole,
   Role,
   SessionUser,
   ShareLevel,
@@ -122,7 +123,7 @@ export function getProjectMembers(projectId: string) {
   return request<{ members: (ProjectMember & { user: User })[] }>(`/api/projects/${projectId}/members`)
 }
 
-export function addProjectMember(projectId: string, userId: string, papel: Role) {
+export function addProjectMember(projectId: string, userId: string, papel: ProjectMemberRole) {
   return request<{ member: ProjectMember }>(`/api/projects/${projectId}/members`, {
     method: "POST",
     body: JSON.stringify({ userId, papel }),

@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   const userId = await getSessionUserId()
   const user = findUserById(userId)
   if (!user) return NextResponse.json({ message: "Não autenticado." }, { status: 401 })
-  if (user.role !== "admin" && user.role !== "gestor") {
+  if (user.role !== "admin" && user.role !== "gerente") {
     return NextResponse.json({ message: "Sem permissão para criar projetos." }, { status: 403 })
   }
 
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
 
   const participantesIds: string[] = Array.from(new Set([...gestoresIds, user.id, ...(body.participantesIds ?? [])]))
   for (const pid of participantesIds) {
-    const papel = gestoresIds.includes(pid) ? "gestor" : "participante"
+    const papel = gestoresIds.includes(pid) ? "gerente" : "participante"
     store.projectMembers.push({
       projectId: id,
       userId: pid,
