@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   const userId = await getSessionUserId()
   const user = findUserById(userId)
   if (!user) return NextResponse.json({ message: "Não autenticado." }, { status: 401 })
-  if (user.role !== "admin" && user.role !== "gestor") {
+  if (user.role !== "admin" && user.role !== "gerente") {
     return NextResponse.json({ message: "Sem permissão para criar projetos." }, { status: 403 })
   }
 
@@ -44,22 +44,30 @@ export async function POST(request: Request) {
   const now = new Date().toISOString()
   const id = `PRJ-${new Date().getFullYear()}-${String(store.projects.length + 1).padStart(3, "0")}`
 
+  const gestoresIds: string[] = Array.from(new Set(body.gestoresIds ?? [body.gestorId ?? user.id]))
   const project = {
     id,
     nome: body.nome,
+    codigo: body.codigo,
     areaResponsavel: body.areaResponsavel,
-    gestorId: body.gestorId ?? user.id,
+    gestoresIds,
+    grupoAdEscrita: body.grupoAdEscrita ?? "",
+    grupoAdLeitura: body.grupoAdLeitura ?? "",
+    roleIdentidadeEscrita: body.roleIdentidadeEscrita ?? "",
+    roleIdentidadeLeitura: body.roleIdentidadeLeitura ?? "",
+    numeroTarefaSnow: body.numeroTarefaSnow ?? "",
+    pastaMae: body.pastaMae ?? "",
     descricao: body.descricao ?? "",
     status: "ativo" as const,
-    criadoEm: now,
+    criadoEm: body.criadoEm ? new Date(`${body.criadoEm}T00:00:00.000Z`).toISOString() : now,
     atualizadoEm: now,
   }
 
   store.projects.push(project)
 
-  const participantesIds: string[] = Array.from(new Set([body.gestorId ?? user.id, user.id, ...(body.participantesIds ?? [])]))
+  const participantesIds: string[] = Array.from(new Set([...gestoresIds, user.id, ...(body.participantesIds ?? [])]))
   for (const pid of participantesIds) {
-    const papel = pid === (body.gestorId ?? user.id) ? "gestor" : "participante"
+    const papel = gestoresIds.includes(pid) ? "gerente" : "participante"
     store.projectMembers.push({
       projectId: id,
       userId: pid,

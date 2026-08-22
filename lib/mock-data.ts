@@ -166,19 +166,19 @@ export const projects: Project[] = [
 
 export const projectMembers: ProjectMember[] = [
   { projectId: "PRJ-2024-001", userId: "u-admin", papel: "admin", adicionadoEm: "2024-01-15T10:00:00.000Z" },
-  { projectId: "PRJ-2024-001", userId: "u-gestor", papel: "gestor", adicionadoEm: "2024-01-15T10:00:00.000Z" },
+  { projectId: "PRJ-2024-001", userId: "u-gestor",     papel: "gerente", adicionadoEm: "2024-01-15T10:00:00.000Z" },
   { projectId: "PRJ-2024-001", userId: "u-participante", papel: "participante", adicionadoEm: "2024-01-18T10:00:00.000Z" },
   { projectId: "PRJ-2024-001", userId: "u-005", papel: "participante", adicionadoEm: "2024-02-01T10:00:00.000Z" },
   { projectId: "PRJ-2024-001", userId: "u-visualizador", papel: "visualizador", adicionadoEm: "2024-02-10T10:00:00.000Z" },
 
-  { projectId: "PRJ-2024-002", userId: "u-gestor", papel: "gestor", adicionadoEm: "2024-02-20T10:00:00.000Z" },
+  { projectId: "PRJ-2024-002", userId: "u-gestor",     papel: "gerente", adicionadoEm: "2024-02-20T10:00:00.000Z" },
   { projectId: "PRJ-2024-002", userId: "u-participante", papel: "participante", adicionadoEm: "2024-02-22T10:00:00.000Z" },
   { projectId: "PRJ-2024-002", userId: "u-006", papel: "participante", adicionadoEm: "2024-03-01T10:00:00.000Z" },
 
-  { projectId: "PRJ-2023-014", userId: "u-gestor", papel: "gestor", adicionadoEm: "2023-05-10T10:00:00.000Z" },
+  { projectId: "PRJ-2023-014", userId: "u-gestor",     papel: "gerente", adicionadoEm: "2023-05-10T10:00:00.000Z" },
   { projectId: "PRJ-2023-014", userId: "u-006", papel: "participante", adicionadoEm: "2023-05-12T10:00:00.000Z" },
 
-  { projectId: "PRJ-2024-009", userId: "u-gestor", papel: "gestor", adicionadoEm: "2024-04-02T10:00:00.000Z" },
+  { projectId: "PRJ-2024-009", userId: "u-gestor",     papel: "gerente", adicionadoEm: "2024-04-02T10:00:00.000Z" },
   { projectId: "PRJ-2024-009", userId: "u-visualizador", papel: "visualizador", adicionadoEm: "2024-04-05T10:00:00.000Z" },
 ]
 
@@ -368,7 +368,7 @@ export const defaultPermissionMatrix: PermissionMatrixEntry[] = [
     aprovarSolicitacoes: true,
   },
   {
-    papel: "gestor",
+    papel: "gerente",
     verProjetos: true,
     criarProjetos: true,
     editarProjeto: true,
@@ -380,19 +380,19 @@ export const defaultPermissionMatrix: PermissionMatrixEntry[] = [
     aprovarSolicitacoes: false,
   },
   {
-    papel: "participante",
+    papel: "patrocinador",
     verProjetos: true,
     criarProjetos: false,
     editarProjeto: false,
     excluirProjeto: false,
     gerenciarMembros: false,
-    uploadArquivos: true,
+    uploadArquivos: false,
     excluirArquivos: false,
-    compartilharArquivos: true,
-    aprovarSolicitacoes: false,
+    compartilharArquivos: false,
+    aprovarSolicitacoes: true,
   },
   {
-    papel: "visualizador",
+    papel: "auditor",
     verProjetos: true,
     criarProjetos: false,
     editarProjeto: false,
