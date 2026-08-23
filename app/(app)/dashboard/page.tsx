@@ -1,49 +1,35 @@
 import { getSessionUserId } from "@/lib/session"
 import { findUserById, getStore } from "@/lib/store"
-import { KpiCards, buildKpis } from "@/components/dashboard/kpi-cards"
-import { RecentProjects } from "@/components/dashboard/recent-projects"
-import { PendingRequestsPanel } from "@/components/dashboard/pending-requests-panel"
-import { WelcomeBanner } from "@/components/dashboard/welcome-banner"
+import { ExecutiveDashboard } from "@/components/dashboard/executive-dashboard"
 
 export default async function DashboardPage() {
   const userId = await getSessionUserId()
   const user = findUserById(userId)!
   const store = getStore()
+  const hasGlobalVisibility = user.role === "admin" || user.role === "patrocinador" || user.role === "auditor"
 
-  const visibleProjects =
-    user.role === "admin"
-      ? store.projects
-      : store.projects.filter((p) => store.projectMembers.some((m) => m.userId === user.id && m.projectId === p.id))
+  const visibleProjects = hasGlobalVisibility
+    ? store.projects
+    : store.projects.filter((project) =>
+        project.gestoresIds.includes(user.id) ||
+        store.projectMembers.some((member) => member.userId === user.id && member.projectId === project.id && member.papel === "gerente"),
+      )
 
+  const projectIds = new Set(visibleProjects.map((project) => project.id))
+  const visibleFiles = store.files.filter((file) => projectIds.has(file.projectId))
   const memberIdsInScope = new Set(
-    store.projectMembers.filter((m) => visibleProjects.some((p) => p.id === m.projectId)).map((m) => m.userId),
+    store.projectMembers.filter((member) => projectIds.has(member.projectId)).map((member) => member.userId),
   )
 
-  const kpis = buildKpis({
-    totalProjetos: visibleProjects.length,
-    projetosAtivos: visibleProjects.filter((p) => p.status === "ativo").length,
-    armazenamentoTotalMb: visibleProjects.reduce((sum, p) => sum + (p.armazenamentoUsadoMb ?? 0), 0),
-    totalMembros: memberIdsInScope.size,
-    solicitacoesPendentes:
-      user.role === "admin" ? store.accessRequests.filter((r) => r.status === "pendente").length : 0,
-  })
-
-  const recentProjects = [...visibleProjects]
-    .sort((a, b) => new Date(b.atualizadoEm).getTime() - new Date(a.atualizadoEm).getTime())
-    .slice(0, 5)
-
   return (
-    <div className="flex flex-col gap-6">
-      <WelcomeBanner nome={user.nome} />
-      <KpiCards items={kpis} />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <RecentProjects projects={recentProjects} />
-        </div>
-        {user.role === "admin" ? (
-          <PendingRequestsPanel requests={store.accessRequests} users={store.users} projects={store.projects} />
-        ) : null}
-      </div>
-    </div>
+    <ExecutiveDashboard
+      nome={user.nome}
+      role={user.role}
+      projects={visibleProjects}
+      totalMembros={memberIdsInScope.size}
+      totalMapas={visibleFiles.length}
+      armazenamentoMb={visibleProjects.reduce((sum, project) => sum + (project.armazenamentoUsadoMb ?? 0), 0)}
+      pendencias={hasGlobalVisibility ? store.accessRequests.filter((request) => request.status === "pendente").length : 0}
+    />
   )
 }

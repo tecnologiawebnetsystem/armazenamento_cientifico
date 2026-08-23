@@ -1,5 +1,7 @@
 import type {
+  ProjectReport,
   AccessRequest,
+  AccessMapResponse,
   ActivityLog,
   FileNode,
   PermissionMatrixEntry,
@@ -195,6 +197,16 @@ export function unshareFileNode(id: string, userId: string) {
   })
 }
 
+/* --------------------------------- Reports --------------------------------- */
+
+export function getAccessMap() {
+  return request<AccessMapResponse>("/api/access-map")
+}
+
+export function getProjectReport(query = "") {
+  return request<ProjectReport>(`/api/reports${query ? `?${query}` : ""}`)
+}
+
 /* ---------------------------------- Users --------------------------------- */
 
 export function getUsers() {
@@ -261,8 +273,9 @@ export function updateSettings(data: Partial<PlatformSettings>) {
 
 /* ------------------------------ Activity logs ------------------------------ */
 
-export function getActivityLogs() {
-  return request<{ logs: (ActivityLog & { user: User | null })[] }>("/api/activity-logs")
+export function getActivityLogs(params?: Record<string, string>) {
+  const query = params ? `?${new URLSearchParams(params).toString()}` : ""
+  return request<{ logs: (ActivityLog & { user: User | null })[] }>(`/api/activity-logs${query}`)
 }
 
 export { ApiError }

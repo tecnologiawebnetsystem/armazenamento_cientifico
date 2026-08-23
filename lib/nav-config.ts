@@ -8,6 +8,7 @@ import {
   SlidersHorizontalIcon,
   SendIcon,
   HistoryIcon,
+  BarChart3Icon,
   type LucideIcon,
 } from "lucide-react"
 import type { Role } from "@/lib/types"
@@ -35,6 +36,8 @@ export const navGroups: NavGroup[] = [
     items: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboardIcon },
       { title: "Projetos", url: "/projetos", icon: FolderKanbanIcon },
+      { title: "Pesquisas", url: "/pesquisas", icon: BarChart3Icon, roles: ["admin", "patrocinador", "gerente", "auditor"] },
+    { title: "Consultas e relatórios", url: "/relatorios", icon: BarChart3Icon, roles: ["admin", "patrocinador", "gerente"] },
     ],
   },
   {
@@ -61,7 +64,7 @@ export const navGroups: NavGroup[] = [
         roles: ["admin"],
       },
       { title: "Parâmetros", url: "/administracao/parametros", icon: SlidersHorizontalIcon, roles: ["admin"] },
-      { title: "Trilha de auditoria", url: "/administracao/logs", icon: HistoryIcon, roles: ["admin"] },
+      { title: "Logs", url: "/logs", icon: HistoryIcon, roles: ["admin", "auditor"] },
     ],
   },
 ]
