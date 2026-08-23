@@ -110,6 +110,29 @@ export function isProjectMember(userId: string, projectId: string): boolean {
   return getEffectiveProjectRole(userId, projectId) !== null
 }
 
+/**
+ * Define o escopo de leitura e escrita para projetos e seus mapas/arquivos.
+ * Patrocinadores e administradores consultam todos; gerentes somente os seus.
+ */
+export function canAccessProject(userId: string, projectId: string, action: "read" | "write" | "delete" = "read"): boolean {
+  const store = getStore()
+  const user = findUserById(userId)
+  const project = store.projects.find((item) => item.id === projectId)
+  if (!user || !project) return false
+  if (user.role === "admin") return true
+  if (user.role === "patrocinador") return action === "read"
+  if (project.gestoresIds?.includes(user.id)) return action !== "delete" || user.role === "gerente"
+  const member = store.projectMembers.find((item) => item.projectId === projectId && item.userId === userId)
+  if (!member) return false
+  if (action === "read") return true
+  return member.papel !== "visualizador" && member.papel !== "auditor"
+}
+
+export function getVisibleProjects(userId: string): Project[] {
+  const store = getStore()
+  return store.projects.filter((project) => canAccessProject(userId, project.id, "read"))
+}
+
 /** Registra uma ação na trilha de auditoria da plataforma. */
 export function logActivity(
   userId: string,

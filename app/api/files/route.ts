@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getSessionUserId } from "@/lib/session"
-import { findUserById, genId, getStore, logActivity } from "@/lib/store"
+import { canAccessProject, findUserById, genId, getStore, logActivity } from "@/lib/store"
 import type { FileNode } from "@/lib/types"
 
 function buildBreadcrumb(store: ReturnType<typeof getStore>, parentId: string | null): FileNode[] {
@@ -28,8 +28,7 @@ export async function GET(request: Request) {
   if (!projectId) return NextResponse.json({ message: "projectId é obrigatório." }, { status: 400 })
 
   const store = getStore()
-  const isMember = store.projectMembers.some((m) => m.projectId === projectId && m.userId === user.id)
-  if (user.role !== "admin" && !isMember) {
+  if (!canAccessProject(user.id, projectId, "read")) {
     return NextResponse.json({ message: "Sem acesso a este projeto." }, { status: 403 })
   }
 
@@ -57,9 +56,11 @@ export async function POST(request: Request) {
   const body = await request.json()
   const store = getStore()
 
-  const projectRole = store.projectMembers.find((m) => m.projectId === body.projectId && m.userId === user.id)?.papel
-  if (user.role !== "admin" && projectRole === "visualizador") {
-    return NextResponse.json({ message: "Visualizadores não podem criar conteúdo." }, { status: 403 })
+  if (!body.projectId || !canAccessProject(user.id, body.projectId, "write")) {
+    return NextResponse.json({ message: "Sem permissão para criar conteúdo neste projeto." }, { status: 403 })
+  }
+  if (!['pasta', 'arquivo'].includes(body.tipo) || typeof body.nome !== 'string' || !body.nome.trim()) {
+    return NextResponse.json({ message: "Dados inválidos para o mapa." }, { status: 400 })
   }
 
   const now = new Date().toISOString()

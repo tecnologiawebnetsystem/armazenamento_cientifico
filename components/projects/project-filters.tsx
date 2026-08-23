@@ -85,7 +85,7 @@ export function ProjectFilters({
           </SelectContent>
         </Select>
 
-        <Select value={area} onValueChange={onAreaChange}>
+        <Select value={area} onValueChange={(v) => onAreaChange(v ?? "todas")}>
           <SelectTrigger className="w-full sm:w-52">
             <SelectValue placeholder="Todas as áreas" />
           </SelectTrigger>
@@ -117,8 +117,8 @@ export function ProjectFilters({
         </Select>
 
         <ToggleGroup
-          value={view}
-          onValueChange={(v) => v && onViewChange(v as ViewMode)}
+          value={[view]}
+          onValueChange={(v) => v[0] && onViewChange(v[0] as ViewMode)}
           className="hidden sm:flex"
         >
           <ToggleGroupItem value="grade" aria-label="Visualizar em grade">

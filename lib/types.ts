@@ -168,3 +168,19 @@ export interface ActivityLog {
   detalhes: string
   criadoEm: string
 }
+
+export interface ProjectReport {
+  filtros: { periodoDe?: string; periodoAte?: string; status?: ProjectStatus | "todos"; area?: string; projectId?: string }
+  indicadores: {
+    totalProjetos: number
+    ativos: number
+    suspensos: number
+    concluidos: number
+    armazenamentoUsadoMb: number
+    totalMembros: number
+    totalMapas: number
+  }
+  porArea: { area: string; total: number }[]
+  porStatus: { status: ProjectStatus; total: number }[]
+  projetos: (Project & { totalMapas: number; totalMembros: number })[]
+}

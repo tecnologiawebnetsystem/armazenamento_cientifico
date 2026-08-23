@@ -1,4 +1,5 @@
 import type {
+  ProjectReport,
   AccessRequest,
   ActivityLog,
   FileNode,
@@ -193,6 +194,12 @@ export function unshareFileNode(id: string, userId: string) {
   return request<{ file: FileNode }>(`/api/files/${id}/share?userId=${userId}`, {
     method: "DELETE",
   })
+}
+
+/* --------------------------------- Reports --------------------------------- */
+
+export function getProjectReport(query = "") {
+  return request<ProjectReport>(`/api/reports${query ? `?${query}` : ""}`)
 }
 
 /* ---------------------------------- Users --------------------------------- */
