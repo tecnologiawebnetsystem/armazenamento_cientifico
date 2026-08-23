@@ -169,6 +169,33 @@ export interface ActivityLog {
   criadoEm: string
 }
 
+export interface AccessMapRow {
+  userId: string
+  userName: string
+  userEmail: string
+  userRole: Role
+  area: string
+  projectId: string
+  projectName: string
+  projectStatus: ProjectStatus
+  resourceId: string
+  resourceName: string
+  resourceType: "pasta" | "arquivo"
+  accessLevel: ShareLevel | ProjectMemberRole
+  lastViewedAt: string
+}
+
+export interface AccessMapResponse {
+  summary: {
+    users: number
+    projects: number
+    folders: number
+    files: number
+    relationships: number
+  }
+  rows: AccessMapRow[]
+}
+
 export interface ProjectReport {
   filtros: { periodoDe?: string; periodoAte?: string; status?: ProjectStatus | "todos"; area?: string; projectId?: string }
   indicadores: {

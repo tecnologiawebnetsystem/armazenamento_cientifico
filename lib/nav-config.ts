@@ -36,6 +36,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboardIcon },
       { title: "Projetos", url: "/projetos", icon: FolderKanbanIcon },
+      { title: "Pesquisas", url: "/pesquisas", icon: BarChart3Icon, roles: ["admin", "patrocinador", "gerente", "auditor"] },
     { title: "Consultas e relatórios", url: "/relatorios", icon: BarChart3Icon, roles: ["admin", "patrocinador", "gerente"] },
     ],
   },

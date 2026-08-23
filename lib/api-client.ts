@@ -1,6 +1,7 @@
 import type {
   ProjectReport,
   AccessRequest,
+  AccessMapResponse,
   ActivityLog,
   FileNode,
   PermissionMatrixEntry,
@@ -197,6 +198,10 @@ export function unshareFileNode(id: string, userId: string) {
 }
 
 /* --------------------------------- Reports --------------------------------- */
+
+export function getAccessMap() {
+  return request<AccessMapResponse>("/api/access-map")
+}
 
 export function getProjectReport(query = "") {
   return request<ProjectReport>(`/api/reports${query ? `?${query}` : ""}`)
