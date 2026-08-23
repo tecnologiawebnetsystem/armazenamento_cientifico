@@ -121,7 +121,14 @@ export function canAccessProject(userId: string, projectId: string, action: "rea
   if (!user || !project) return false
   if (user.role === "admin") return true
   if (user.role === "patrocinador") return action === "read"
-  if (project.gestoresIds?.includes(user.id)) return action !== "delete" || user.role === "gerente"
+
+  // Gerentes só podem consultar e operar os mapas dos projetos que gerenciam.
+  // Ser membro de outro projeto não amplia o escopo do gerente.
+  if (user.role === "gerente") {
+    return project.gestoresIds?.includes(user.id) === true
+  }
+
+  if (project.gestoresIds?.includes(user.id)) return action !== "delete"
   const member = store.projectMembers.find((item) => item.projectId === projectId && item.userId === userId)
   if (!member) return false
   if (action === "read") return true
