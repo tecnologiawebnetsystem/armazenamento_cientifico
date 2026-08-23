@@ -7,7 +7,7 @@ export default async function AdministracaoLogsPage() {
   const userId = await getSessionUserId()
   const user = findUserById(userId)
   if (!user) redirect("/login")
-  if (user.role !== "admin") redirect("/dashboard")
+  if (user.role !== "admin" && user.role !== "auditor") redirect("/dashboard")
 
   return (
     <div className="flex flex-col gap-6">

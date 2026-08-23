@@ -268,8 +268,9 @@ export function updateSettings(data: Partial<PlatformSettings>) {
 
 /* ------------------------------ Activity logs ------------------------------ */
 
-export function getActivityLogs() {
-  return request<{ logs: (ActivityLog & { user: User | null })[] }>("/api/activity-logs")
+export function getActivityLogs(params?: Record<string, string>) {
+  const query = params ? `?${new URLSearchParams(params).toString()}` : ""
+  return request<{ logs: (ActivityLog & { user: User | null })[] }>(`/api/activity-logs${query}`)
 }
 
 export { ApiError }

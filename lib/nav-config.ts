@@ -63,7 +63,7 @@ export const navGroups: NavGroup[] = [
         roles: ["admin"],
       },
       { title: "Parâmetros", url: "/administracao/parametros", icon: SlidersHorizontalIcon, roles: ["admin"] },
-      { title: "Trilha de auditoria", url: "/administracao/logs", icon: HistoryIcon, roles: ["admin"] },
+      { title: "Logs", url: "/logs", icon: HistoryIcon, roles: ["admin", "auditor"] },
     ],
   },
 ]
