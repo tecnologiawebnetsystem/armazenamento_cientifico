@@ -72,7 +72,7 @@ export default async function LoginPage() {
         <div className="absolute top-4 right-4">
           <ThemeToggle />
         </div>
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-md">
           <div className="mb-8 flex flex-col items-center gap-2 text-center lg:hidden">
             <LogoMark className="size-10" />
             <span className="font-semibold tracking-tight">Armazenamento Científico</span>
