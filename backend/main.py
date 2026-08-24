@@ -275,6 +275,76 @@ def create_file(payload: FileInput, request: Request) -> dict:
     return {"file": item.model_dump()}
 
 
+@app.get("/api/files/{file_id}")
+def get_file(file_id: str, request: Request) -> dict:
+    item = files.get(file_id)
+    if not item:
+        raise HTTPException(404, "Arquivo não encontrado")
+    project = projects.get(item.projectId)
+    if not project or not can_view_project(current_user(request), project):
+        raise HTTPException(404, "Arquivo não encontrado")
+    return {"file": item.model_dump()}
+
+
+class FilePatch(BaseModel):
+    nome: str | None = Field(default=None, min_length=1, max_length=500)
+    parentId: str | None = None
+
+
+@app.patch("/api/files/{file_id}")
+def update_file(file_id: str, payload: FilePatch, request: Request) -> dict:
+    user = current_user(request)
+    item = files.get(file_id)
+    if not item:
+        raise HTTPException(404, "Arquivo não encontrado")
+    project = projects.get(item.projectId)
+    if not project or not can_view_project(user, project):
+        raise HTTPException(404, "Arquivo não encontrado")
+    if user.role in {"visualizador", "auditor", "patrocinador"}:
+        raise HTTPException(403, "Usuário sem permissão de edição")
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        setattr(item, key, value)
+    item.atualizadoEm = now()
+    audit(user, "editar-arquivo", "arquivo", item.id, item.nome)
+    return {"file": item.model_dump()}
+
+
+@app.delete("/api/files/{file_id}", status_code=204)
+def delete_file(file_id: str, request: Request) -> None:
+    user = current_user(request)
+    item = files.get(file_id)
+    if not item:
+        raise HTTPException(404, "Arquivo não encontrado")
+    project = projects.get(item.projectId)
+    if not project or not can_view_project(user, project):
+        raise HTTPException(404, "Arquivo não encontrado")
+    if user.role in {"visualizador", "auditor", "patrocinador"}:
+        raise HTTPException(403, "Usuário sem permissão de edição")
+    del files[file_id]
+    audit(user, "excluir-arquivo", "arquivo", file_id, item.nome)
+
+
+class FileShareInput(BaseModel):
+    userId: str
+    nivel: Literal["leitura", "edicao"]
+
+
+@app.post("/api/files/{file_id}/share")
+def share_file(file_id: str, payload: FileShareInput, request: Request) -> dict:
+    user = current_user(request)
+    item = files.get(file_id)
+    if not item or not projects.get(item.projectId) or not can_view_project(user, projects[item.projectId]):
+        raise HTTPException(404, "Arquivo não encontrado")
+    if user.role not in {"admin", "gerente"}:
+        raise HTTPException(403, "Usuário sem permissão para compartilhar")
+    if payload.userId not in users:
+        raise HTTPException(404, "Usuário não encontrado")
+    item.compartilhamentos = [share for share in item.compartilhamentos if share.get("userId") != payload.userId]
+    item.compartilhamentos.append(payload.model_dump())
+    audit(user, "compartilhar-arquivo", "arquivo", file_id, payload.userId)
+    return {"file": item.model_dump()}
+
+
 @app.get("/api/reports")
 def reports(request: Request, status_filter: str | None = Query(default=None, alias="status"), area: str | None = None, projectId: str | None = None) -> dict:
     user = current_user(request)
