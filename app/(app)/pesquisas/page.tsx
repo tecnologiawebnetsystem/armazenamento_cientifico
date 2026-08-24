@@ -2,9 +2,11 @@
 
 import { useMemo, useState } from "react"
 import useSWR from "swr"
-import { Search, Users, FolderKanban, Files, FolderOpen, ShieldCheck, Clock3 } from "lucide-react"
+import Link from "next/link"
+import { Search, Users, FolderKanban, Files, FolderOpen, ShieldCheck, Clock3, FileBarChart, Download } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -34,7 +36,7 @@ export default function PesquisasPage() {
   ] as const
 
   return <main className="flex flex-col gap-6">
-    <header className="flex flex-col gap-2"><div className="flex items-center gap-2"><ShieldCheck className="text-primary" /><span className="text-xs font-semibold uppercase tracking-widest text-primary">Governança de acesso</span></div><h1 className="text-3xl font-semibold tracking-tight text-balance">Mapa de acessos científicos</h1><p className="max-w-3xl text-muted-foreground leading-relaxed">Pesquise quem acessa cada projeto, pasta e arquivo. A visão respeita o seu perfil e torna a cadeia de acesso auditável em um único lugar.</p></header>
+    <header className="flex flex-col gap-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="flex flex-col gap-2"><div className="flex items-center gap-2"><ShieldCheck className="text-primary" /><span className="text-xs font-semibold uppercase tracking-widest text-primary">Governança de acesso</span></div><h1 className="text-3xl font-semibold tracking-tight text-balance">Mapa de acessos científicos</h1></div><div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" render={<Link href="/relatorios?origem=pesquisas" />} nativeButton={false}><FileBarChart data-icon="inline-start" />Gerar relatório</Button><Button variant="ghost" size="sm" render={<Link href="/logs" />} nativeButton={false}><Download data-icon="inline-start" />Auditoria</Button></div></div><p className="max-w-3xl text-muted-foreground leading-relaxed">Pesquise quem acessa cada projeto, pasta e arquivo. A visão respeita o seu perfil e torna a cadeia de acesso auditável em um único lugar.</p></header>
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumo de acessos">{cards.map(([Icon, label, value]) => <Card key={label}><CardContent className="flex items-center gap-4 pt-6"><div className="rounded-lg bg-primary/10 p-3 text-primary"><Icon /></div><div><p className="text-2xl font-semibold">{value}</p><p className="text-sm text-muted-foreground">{label}</p></div></CardContent></Card>)}</section>
     <Card><CardHeader><CardTitle>Mapa relacional</CardTitle><CardDescription>{data.summary.relationships} relações de acesso identificadas no seu escopo.</CardDescription></CardHeader><CardContent className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 md:flex-row"><div className="relative flex-1"><Search className="absolute left-3 top-2.5 text-muted-foreground" /><Input className="pl-9" placeholder="Buscar usuário, projeto, pasta ou arquivo" value={search} onChange={(event) => setSearch(event.target.value)} /></div><Select value={type} onValueChange={(value) => setType(value ?? "todos")}><SelectTrigger className="w-full md:w-40"><SelectValue placeholder="Tipo" /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="todos">Todos os recursos</SelectItem><SelectItem value="pasta">Pastas</SelectItem><SelectItem value="arquivo">Arquivos</SelectItem></SelectGroup></SelectContent></Select><Select value={level} onValueChange={(value) => setLevel(value ?? "todos")}><SelectTrigger className="w-full md:w-44"><SelectValue placeholder="Permissão" /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="todos">Todos os níveis</SelectItem><SelectItem value="leitura">Leitura</SelectItem><SelectItem value="edicao">Edição</SelectItem><SelectItem value="gerente">Gerente</SelectItem><SelectItem value="participante">Participante</SelectItem></SelectGroup></SelectContent></Select></div>

@@ -78,9 +78,9 @@ export function ProjectCard({ project, canManage = false, onToggleStatus }: Prop
                     <ExternalLinkIcon />
                     Abrir
                   </DropdownMenuItem>
-                  <DropdownMenuItem render={<Link href={`/projetos/${project.id}/editar`} />}>
+                  <DropdownMenuItem render={<Link href={`/projetos/${project.id}`} />}>
                     <PencilIcon />
-                    Editar
+                    Editar no projeto
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem

@@ -6,7 +6,13 @@ import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useSettings } from "@/hooks/use-settings"
+import { useSession } from "@/hooks/use-session"
+import { roleLabel } from "@/hooks/use-permissions"
 import { navGroups } from "@/lib/nav-config"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { logout } from "@/lib/api-client"
+import { useRouter } from "next/navigation"
 
 function pageTitleFor(pathname: string) {
   for (const group of navGroups) {
@@ -21,17 +27,42 @@ function pageTitleFor(pathname: string) {
 export function AppTopbar() {
   const pathname = usePathname()
   const { settings } = useSettings()
+  const { user } = useSession()
+  const router = useRouter()
+  const initials = user?.nome.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase() ?? ""
+
+  async function handleLogout() {
+    await logout()
+    router.push("/login")
+    router.refresh()
+  }
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-4">
+    <header className="flex min-h-16 shrink-0 items-center gap-3 border-b border-border bg-background px-4 md:px-6">
       <SidebarTrigger />
-      <Separator orientation="vertical" className="mr-2 h-4" />
-      <h1 className="text-sm font-medium text-foreground">{pageTitleFor(pathname)}</h1>
+      <Separator orientation="vertical" className="mr-1 h-5" />
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <h1 className="truncate text-sm font-semibold text-foreground">{pageTitleFor(pathname)}</h1>
+        <span className="hidden text-[11px] text-muted-foreground sm:block">Centro de operações científicas</span>
+      </div>
       <div className="ml-auto flex items-center gap-2">
-        <Badge variant="outline" className="border-warning/40 bg-warning/10 text-warning">
+        <Badge variant="outline" className="hidden max-w-56 truncate border-warning/40 bg-warning/10 text-[11px] text-warning lg:inline-flex">
           {settings?.mensagemAvisoAmbiente ?? "Ambiente local · dados de demonstração"}
         </Badge>
         <ThemeToggle />
+        {user ? (
+          <div className="flex items-center gap-1.5 border-l border-border pl-2">
+            <Avatar className="size-7">
+              {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={user.nome} /> : null}
+              <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
+            </Avatar>
+            <div className="hidden min-w-0 flex-col leading-tight lg:flex">
+              <span className="max-w-28 truncate text-[11px] font-medium">{user.nome}</span>
+              <span className="max-w-28 truncate text-[10px] text-muted-foreground">{roleLabel(user.role)}</span>
+            </div>
+            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={handleLogout}>Sair</Button>
+          </div>
+        ) : null}
       </div>
     </header>
   )

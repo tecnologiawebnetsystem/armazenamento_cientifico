@@ -1,62 +1,86 @@
 # Armazenamento Científico
 
-Plataforma web para gestão de projetos, arquivos e permissões de uma instituição de pesquisa científica (identidade visual Petrobras). Construída com Next.js (App Router), TypeScript, Tailwind CSS e shadcn/ui.
+Plataforma web para gestão de projetos, mapas, arquivos, permissões, relatórios e auditoria. O frontend usa Next.js 16, TypeScript, Tailwind CSS e shadcn/ui. O backend opcional e compatível fica em `backend/`, usando FastAPI.
 
 ## Pré-requisitos
 
-- Node.js 20 ou superior
-- npm (o projeto usa `package-lock.json`)
+- Node.js 20+
+- npm 10+
+- Python 3.11+ (somente para o backend FastAPI)
 
-## Como rodar localmente
+## Rodar o frontend
 
-1. Instale as dependências:
-
-   ```bash
-   npm install
-   ```
-
-2. Inicie o servidor de desenvolvimento:
-
-   ```bash
-   npm run dev
-   ```
-
-3. Acesse [http://localhost:3000](http://localhost:3000) no navegador. Você será redirecionado para a tela de login (`/login`), que possui botões de acesso rápido para os perfis de demonstração (Administrador, Gestor, Participante e Visualizador).
-
-Não há variáveis de ambiente obrigatórias para rodar em modo de demonstração — os dados são simulados em memória (`lib/mock-data.ts`, `lib/store.ts`). Opcionalmente, é possível definir `NEXT_PUBLIC_API_BASE_URL` caso a API seja servida em uma origem diferente do próprio app.
-
-## Outros scripts disponíveis
+Na raiz do projeto:
 
 ```bash
-npm run build      # build de produção
-npm run start       # inicia o build de produção (após "npm run build")
-npm run lint         # roda o ESLint
-npm run typecheck  # verifica os tipos com tsc --noEmit
-npm run format      # formata o código com Prettier
+npm install
+npm run dev
 ```
 
-## Estrutura do projeto
+Abra `http://localhost:3000`.
 
-- `app/(app)/` — páginas autenticadas: `dashboard`, `projetos`, `administracao` (usuários, permissões, parâmetros, logs, solicitações de acesso), `perfil` e `solicitar-acesso`.
-- `app/login/` — tela de login.
-- `app/api/` — rotas de API (auth, projects, files, users, permissions, settings, activity-logs, access-requests).
-- `components/` — componentes de UI organizados por domínio (`layout`, `projects`, `brand`, `ui` do shadcn, etc.).
-- `hooks/` — hooks de dados client-side com SWR (`use-files`, `use-session`, `use-permissions`, etc.).
-- `lib/` — tipos, dados simulados, cliente de API e utilitários.
-- `docs/perfis-e-permissoes.txt` — documentação detalhada dos papéis (Admin, Gestor, Participante, Visualizador) e do que cada um pode acessar.
+Para usar as API Routes incluídas no frontend, não configure nada. Para apontar o frontend para o FastAPI, defina `NEXT_PUBLIC_API_BASE_URL` no ambiente do frontend, por exemplo:
 
-## Adicionando componentes shadcn/ui
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000 npm run dev
+```
 
-Para adicionar novos componentes de UI, execute:
+O frontend chama sempre os paths `/api/...`; o FastAPI deve estar rodando em paralelo.
+
+## Rodar o backend FastAPI
+
+Em outro terminal:
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate       # Windows: .venv\\Scripts\\activate
+pip install -e .
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Documentação interativa: `http://localhost:8000/docs`
+Health check: `http://localhost:8000/health`
+
+## Scripts do frontend
+
+```bash
+npm run dev
+npm run typecheck
+npm run lint
+npm run build
+npm run start
+npm run format
+```
+
+## Estrutura
+
+- `app/` — páginas e API Routes do frontend.
+- `components/` — componentes por domínio e componentes shadcn/ui.
+- `hooks/` — hooks client-side com SWR.
+- `lib/` — tipos, cliente HTTP, sessão e store de demonstração.
+- `backend/` — serviço FastAPI compatível com os contratos `/api`.
+- `database/` — schema SQL de referência.
+- `docs/` — permissões e contratos de API.
+
+## Perfis de demonstração
+
+O modo protótipo possui usuários de exemplo na tela de login. Os dados são mantidos em memória e reiniciados ao reiniciar o processo. Não use essas credenciais em produção.
+
+## Produção
+
+Antes do deploy, substituir o store em memória por banco transacional, configurar autenticação real, restringir CORS, usar variáveis de ambiente e executar `npm run typecheck`, `npm run lint` e `npm run build`.
+
+A documentação completa dos endpoints está em `docs/api-endpoints.md`.
+
+## Componentes shadcn/ui
 
 ```bash
 npx shadcn@latest add button
 ```
 
-Isso colocará os componentes na pasta `components/ui`.
-
-Para usá-los, importe normalmente:
+Importe com o alias do projeto:
 
 ```tsx
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"
 ```
