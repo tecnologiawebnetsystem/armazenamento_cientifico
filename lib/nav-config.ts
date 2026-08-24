@@ -1,12 +1,7 @@
 import {
   LayoutDashboardIcon,
   FolderKanbanIcon,
-  UserCircleIcon,
-  ShieldCheckIcon,
   UsersIcon,
-  ClipboardListIcon,
-  SlidersHorizontalIcon,
-  SendIcon,
   HistoryIcon,
   BarChart3Icon,
   type LucideIcon,
@@ -41,29 +36,9 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Conta",
-    items: [
-      { title: "Meu perfil", url: "/perfil", icon: UserCircleIcon },
-      { title: "Solicitar acesso", url: "/solicitar-acesso", icon: SendIcon },
-    ],
-  },
-  {
     label: "Administração",
     items: [
       { title: "Usuários", url: "/administracao/usuarios", icon: UsersIcon, roles: ["admin"] },
-      {
-        title: "Fila de solicitações",
-        url: "/administracao/solicitacoes",
-        icon: ClipboardListIcon,
-        roles: ["admin"],
-      },
-      {
-        title: "Matriz de permissões",
-        url: "/administracao/permissoes",
-        icon: ShieldCheckIcon,
-        roles: ["admin"],
-      },
-      { title: "Parâmetros", url: "/administracao/parametros", icon: SlidersHorizontalIcon, roles: ["admin"] },
       { title: "Logs", url: "/logs", icon: HistoryIcon, roles: ["admin", "auditor"] },
     ],
   },

@@ -1,7 +1,5 @@
-import Link from "next/link"
-import { ArrowRightIcon, ClipboardCheckIcon } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle, CardAction } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { ClipboardCheckIcon } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { AccessRequest, Project, User } from "@/lib/types"
 
 interface Props {
@@ -17,17 +15,6 @@ export function PendingRequestsPanel({ requests, users, projects }: Props) {
     <Card>
       <CardHeader>
         <CardTitle>Solicitações de acesso</CardTitle>
-        <CardAction>
-          <Button
-            variant="ghost"
-            size="sm"
-            render={<Link href="/administracao/solicitacoes" />}
-            nativeButton={false}
-          >
-            Gerenciar
-            <ArrowRightIcon />
-          </Button>
-        </CardAction>
       </CardHeader>
       <CardContent>
         {pending.length === 0 ? (

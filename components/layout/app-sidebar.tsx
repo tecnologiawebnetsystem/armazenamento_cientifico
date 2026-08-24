@@ -2,12 +2,10 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LogOutIcon } from "lucide-react"
 import { LogoMark } from "@/components/brand/logo-mark"
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
@@ -17,35 +15,14 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
 import { useSession } from "@/hooks/use-session"
 import { filterNavForRole, navGroups } from "@/lib/nav-config"
-import { logout } from "@/lib/api-client"
-import { useRouter } from "next/navigation"
-import { roleLabel } from "@/hooks/use-permissions"
-
-function initials(nome: string) {
-  return nome
-    .split(" ")
-    .slice(0, 2)
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-}
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const router = useRouter()
   const { user } = useSession()
 
   const groups = user ? filterNavForRole(navGroups, user.role) : []
-
-  async function handleLogout() {
-    await logout()
-    router.push("/login")
-    router.refresh()
-  }
 
   return (
     <Sidebar collapsible="icon">
@@ -92,33 +69,6 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <div className="flex items-center gap-2 rounded-md px-2 py-1.5 group-data-[collapsible=icon]:justify-center">
-              <Avatar className="size-7">
-                {user?.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={user.nome} /> : null}
-                <AvatarFallback className="text-xs">{user ? initials(user.nome) : ""}</AvatarFallback>
-              </Avatar>
-              <div className="flex min-w-0 flex-col leading-tight group-data-[collapsible=icon]:hidden">
-                <span className="truncate text-sm font-medium text-sidebar-foreground">{user?.nome}</span>
-                <span className="truncate text-xs text-sidebar-foreground/60">
-                  {user ? roleLabel(user.role) : ""}
-                </span>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="ml-auto shrink-0 text-sidebar-foreground/70 hover:text-sidebar-foreground group-data-[collapsible=icon]:hidden"
-                aria-label="Sair"
-                onClick={handleLogout}
-              >
-                <LogOutIcon />
-              </Button>
-            </div>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )

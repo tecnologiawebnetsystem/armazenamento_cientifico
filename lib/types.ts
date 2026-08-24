@@ -125,7 +125,7 @@ export interface PermissionMatrixEntry {
   aprovarSolicitacoes: boolean
 }
 
-export interface SessionUser extends User {}
+export type SessionUser = User
 
 /** Parâmetros administráveis da plataforma (administração > parâmetros). */
 export interface PlatformSettings {
