@@ -1,7 +1,7 @@
 import {
   LayoutDashboardIcon,
   FolderKanbanIcon,
-  UsersIcon,
+  FlaskConicalIcon,
   HistoryIcon,
   BarChart3Icon,
   type LucideIcon,
@@ -31,16 +31,23 @@ export const navGroups: NavGroup[] = [
     items: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboardIcon },
       { title: "Projetos", url: "/projetos", icon: FolderKanbanIcon },
-      { title: "Pesquisas", url: "/pesquisas", icon: BarChart3Icon, roles: ["admin", "patrocinador", "gerente", "auditor"] },
-    { title: "Consultas e relatórios", url: "/relatorios", icon: BarChart3Icon, roles: ["admin", "patrocinador", "gerente"] },
+      {
+        title: "Pesquisas",
+        url: "/pesquisas",
+        icon: FlaskConicalIcon,
+        roles: ["admin", "patrocinador", "gerente", "auditor"],
+      },
+      {
+        title: "Consultas e relatórios",
+        url: "/relatorios",
+        icon: BarChart3Icon,
+        roles: ["admin", "patrocinador", "gerente"],
+      },
     ],
   },
   {
     label: "Administração",
-    items: [
-      { title: "Usuários", url: "/administracao/usuarios", icon: UsersIcon, roles: ["admin"] },
-      { title: "Logs", url: "/logs", icon: HistoryIcon, roles: ["admin", "auditor"] },
-    ],
+    items: [{ title: "Logs de auditoria", url: "/logs", icon: HistoryIcon, roles: ["admin", "auditor"] }],
   },
 ]
 

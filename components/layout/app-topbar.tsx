@@ -9,10 +9,6 @@ import { useSettings } from "@/hooks/use-settings"
 import { useSession } from "@/hooks/use-session"
 import { roleLabel } from "@/hooks/use-permissions"
 import { navGroups } from "@/lib/nav-config"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { logout } from "@/lib/api-client"
-import { useRouter } from "next/navigation"
 
 function pageTitleFor(pathname: string) {
   for (const group of navGroups) {
@@ -28,14 +24,6 @@ export function AppTopbar() {
   const pathname = usePathname()
   const { settings } = useSettings()
   const { user } = useSession()
-  const router = useRouter()
-  const initials = user?.nome.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase() ?? ""
-
-  async function handleLogout() {
-    await logout()
-    router.push("/login")
-    router.refresh()
-  }
 
   return (
     <header className="flex min-h-16 shrink-0 items-center gap-3 border-b border-border bg-background px-4 md:px-6">
@@ -51,17 +39,9 @@ export function AppTopbar() {
         </Badge>
         <ThemeToggle />
         {user ? (
-          <div className="flex items-center gap-1.5 border-l border-border pl-2">
-            <Avatar className="size-7">
-              {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={user.nome} /> : null}
-              <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
-            </Avatar>
-            <div className="hidden min-w-0 flex-col leading-tight lg:flex">
-              <span className="max-w-28 truncate text-[11px] font-medium">{user.nome}</span>
-              <span className="max-w-28 truncate text-[10px] text-muted-foreground">{roleLabel(user.role)}</span>
-            </div>
-            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={handleLogout}>Sair</Button>
-          </div>
+          <Badge variant="secondary" className="hidden border-l border-border text-[11px] font-medium md:inline-flex">
+            {roleLabel(user.role)}
+          </Badge>
         ) : null}
       </div>
     </header>
