@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation"
 import { getSessionUserId } from "@/lib/session"
-import { findUserById, getStore, getEffectiveProjectRole, getPermissionsForRole } from "@/lib/store"
+import { canAccessProject, findUserById, getStore, getEffectiveProjectRole, getPermissionsForRole } from "@/lib/store"
 import { ProjectStatusBadge } from "@/components/projects/project-status-badge"
 import { ProjectDetailTabs } from "@/components/projects/project-detail-tabs"
 
@@ -14,12 +14,14 @@ export default async function ProjetoDetalhePage({ params }: { params: Promise<{
   const project = store.projects.find((p) => p.id === id)
   if (!project) notFound()
 
-  const effectiveRole = getEffectiveProjectRole(user.id, id)
-  if (!effectiveRole) redirect("/projetos")
+  if (!canAccessProject(user.id, id, "read")) redirect("/projetos")
 
+  const effectiveRole = getEffectiveProjectRole(user.id, id)
   const participantesIds = store.projectMembers.filter((m) => m.projectId === id).map((m) => m.userId)
 
-  const canEdit = effectiveRole === "admin" || effectiveRole === "gestor"
+  // O papel armazenado para gestores é "gerente"; "admin" é global.
+  // Patrocinadores têm acesso de leitura, mas não podem alterar projetos.
+  const canEdit = user.role === "admin" || effectiveRole === "gerente" || effectiveRole === "gestor"
   const canDelete = user.role === "admin"
   const canManageMembers = canEdit
 

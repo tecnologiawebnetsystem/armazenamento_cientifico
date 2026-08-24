@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getSessionUserId } from "@/lib/session"
-import { findUserById, getStore, logActivity } from "@/lib/store"
+import { canAccessProject, findUserById, getStore, logActivity } from "@/lib/store"
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -37,14 +37,37 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const project = store.projects.find((p) => p.id === id)
   if (!project) return NextResponse.json({ message: "Projeto não encontrado." }, { status: 404 })
 
-  const memberRole = store.projectMembers.find((m) => m.projectId === id && m.userId === user.id)?.papel
-  const isGestor = project.gestoresIds?.includes(user.id) || memberRole === "gerente" || memberRole === "gestor"
-  if (user.role !== "admin" && !isGestor) {
+  if (!canAccessProject(user.id, id, "write")) {
     return NextResponse.json({ message: "Sem permissão para editar este projeto." }, { status: 403 })
   }
 
-  const body = await request.json()
-  Object.assign(project, body, { atualizadoEm: new Date().toISOString() })
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ message: "Dados inválidos." }, { status: 400 })
+  }
+
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ message: "Dados inválidos." }, { status: 400 })
+  }
+
+  const input = body as Record<string, unknown>
+  const allowedFields = ["nome", "areaResponsavel", "descricao", "status"] as const
+  for (const field of allowedFields) {
+    if (field in input) {
+      if (typeof input[field] !== "string" || !input[field].trim()) {
+        return NextResponse.json({ message: `O campo ${field} é inválido.` }, { status: 400 })
+      }
+      if (field === "status" && !["ativo", "concluido", "suspenso"].includes(input[field] as string)) {
+        return NextResponse.json({ message: "Status inválido." }, { status: 400 })
+      }
+    }
+  }
+
+  Object.assign(project, Object.fromEntries(allowedFields.filter((field) => field in input).map((field) => [field, input[field]])), {
+    atualizadoEm: new Date().toISOString(),
+  })
 
   logActivity(user.id, "editar-projeto", "projeto", id, `Atualizou o projeto "${project.nome}".`)
 
