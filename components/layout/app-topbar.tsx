@@ -45,22 +45,22 @@ export function AppTopbar() {
         <h1 className="truncate text-sm font-semibold text-foreground">{pageTitleFor(pathname)}</h1>
         <span className="hidden text-[11px] text-muted-foreground sm:block">Centro de operações científicas</span>
       </div>
-      <div className="ml-auto flex items-center gap-3">
-        <Badge variant="outline" className="hidden border-warning/40 bg-warning/10 text-warning lg:inline-flex">
+      <div className="ml-auto flex items-center gap-2">
+        <Badge variant="outline" className="hidden max-w-56 truncate border-warning/40 bg-warning/10 text-[11px] text-warning lg:inline-flex">
           {settings?.mensagemAvisoAmbiente ?? "Ambiente local · dados de demonstração"}
         </Badge>
         <ThemeToggle />
         {user ? (
-          <div className="flex items-center gap-2 border-l border-border pl-3">
-            <Avatar className="size-8">
+          <div className="flex items-center gap-1.5 border-l border-border pl-2">
+            <Avatar className="size-7">
               {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={user.nome} /> : null}
-              <AvatarFallback>{initials}</AvatarFallback>
+              <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
             </Avatar>
-            <div className="hidden min-w-0 flex-col leading-tight xl:flex">
-              <span className="max-w-32 truncate text-xs font-semibold">{user.nome}</span>
-              <span className="text-[11px] text-muted-foreground">{roleLabel(user.role)}</span>
+            <div className="hidden min-w-0 flex-col leading-tight lg:flex">
+              <span className="max-w-28 truncate text-[11px] font-medium">{user.nome}</span>
+              <span className="max-w-28 truncate text-[10px] text-muted-foreground">{roleLabel(user.role)}</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>Sair</Button>
+            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={handleLogout}>Sair</Button>
           </div>
         ) : null}
       </div>
