@@ -69,7 +69,7 @@ export function ProjectCard({ project, canManage = false, onToggleStatus }: Prop
                   render={
                     <Button variant="ghost" size="icon-sm" aria-label="Ações do projeto" />
                   }
-                  nativeButton={false}
+                  nativeButton
                 >
                   <MoreVerticalIcon className="size-4" />
                 </DropdownMenuTrigger>
