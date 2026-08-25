@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     nome,
     codigo,
     areaResponsavel,
-    gestoresIds: asStringArray(body.gestoresIds),
+    gestoresIds,
     grupoAdEscrita: asString(body.grupoAdEscrita),
     grupoAdLeitura: asString(body.grupoAdLeitura),
     roleIdentidadeEscrita: asString(body.roleIdentidadeEscrita),

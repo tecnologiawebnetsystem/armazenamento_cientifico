@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getSessionUserId } from "@/lib/session"
-import { canAccessProject, findUserById, getStore } from "@/lib/store"
+import { canAccessProject, findUserById, getStore, logActivity } from "@/lib/store"
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -17,6 +17,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     { nome: "Role de escrita", fonte: "Identidade", identificadores: project.roleIdentidadeEscrita ? [project.roleIdentidadeEscrita] : [], nivel: "edicao" },
     { nome: "Role de leitura", fonte: "Identidade", identificadores: project.roleIdentidadeLeitura ? [project.roleIdentidadeLeitura] : [], nivel: "leitura" },
   ]
+  logActivity(user.id, "consultar-mapa-acessos", "projeto", id, "Consultou o mapa de acessos do projeto.")
   const members = store.projectMembers.filter((member) => member.projectId === id).map((member) => ({ ...member, user: store.users.find((item) => item.id === member.userId) })).filter((member) => member.user)
   return NextResponse.json({ projectId: id, groups, members, source: "SIGAC local directory", consultedAt: new Date().toISOString() })
 }
