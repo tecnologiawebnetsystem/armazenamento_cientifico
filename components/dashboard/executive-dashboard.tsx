@@ -1,23 +1,16 @@
 import Link from "next/link"
 import {
-  ArrowUpRightIcon,
-  BarChart3Icon,
-  CircleCheckIcon,
   DatabaseIcon,
   FolderKanbanIcon,
   GaugeIcon,
   MapIcon,
-  ShieldCheckIcon,
   UsersIcon,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import type { Project, Role } from "@/lib/types"
+import type { Project } from "@/lib/types"
 
 interface Props {
-  nome: string
-  role: Role
   projects: Project[]
   totalMembros: number
   totalMapas: number
@@ -25,23 +18,15 @@ interface Props {
   pendencias: number
 }
 
-const roleLabels: Partial<Record<Role, string>> = {
-  admin: "Governança da plataforma",
-  patrocinador: "Visão executiva de portfólio",
-  gerente: "Gestão operacional de projetos",
-  auditor: "Conformidade e rastreabilidade",
-}
-
 function formatStorage(mb: number) {
   return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${Math.round(mb)} MB`
 }
 
-export function ExecutiveDashboard({ nome, role, projects, totalMembros, totalMapas, armazenamentoMb, pendencias }: Props) {
+export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazenamentoMb, pendencias }: Props) {
   const ativos = projects.filter((project) => project.status === "ativo").length
   const concluidos = projects.filter((project) => project.status === "concluido").length
   const suspensos = projects.filter((project) => project.status === "suspenso").length
   const total = Math.max(projects.length, 1)
-  const primeiroNome = nome.split(" ")[0]
 
   return (
     <div className="flex flex-col gap-6">

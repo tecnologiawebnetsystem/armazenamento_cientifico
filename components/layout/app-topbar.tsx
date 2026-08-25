@@ -1,12 +1,22 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { ChevronRightIcon, ShieldCheckIcon } from "lucide-react"
+import { ChevronRightIcon, LogOutIcon, ShieldCheckIcon, UserRoundIcon } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ThemeToggle } from "@/components/theme-toggle"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { logout } from "@/lib/api-client"
 import { useSession } from "@/hooks/use-session"
 import { roleLabel } from "@/hooks/use-permissions"
 import { navGroups } from "@/lib/nav-config"
@@ -32,8 +42,15 @@ function initials(name: string) {
 
 export function AppTopbar() {
   const pathname = usePathname()
+  const router = useRouter()
   const { user } = useSession()
   const title = pageTitleFor(pathname)
+
+  async function handleLogout() {
+    await logout()
+    router.push("/login")
+    router.refresh()
+  }
 
   return (
     <header className="relative flex min-h-18 shrink-0 items-center gap-3 border-b border-border/70 bg-background/95 px-4 backdrop-blur md:px-6">
@@ -52,20 +69,38 @@ export function AppTopbar() {
         </div>
         <ThemeToggle />
         {user ? (
-          <div className="flex items-center gap-2 border-l border-border/70 pl-2 md:pl-3">
-            <Avatar className="size-9 rounded-xl ring-2 ring-primary/10">
-              {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={user.nome} /> : null}
-              <AvatarFallback className="rounded-xl bg-primary text-[11px] font-bold text-primary-foreground">
-                {initials(user.nome)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="hidden min-w-0 max-w-36 flex-col leading-tight md:flex">
-              <span className="truncate text-xs font-semibold text-foreground">{user.nome}</span>
-              <Badge variant="secondary" className="mt-1 w-fit border-0 bg-muted px-1.5 py-0 text-[10px] font-medium text-muted-foreground">
-                {roleLabel(user.role)}
-              </Badge>
-            </div>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label={`Abrir perfil de ${user.nome}`}
+              className="flex items-center gap-2 rounded-xl border-l border-border/70 pl-2 outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-primary/40 md:pl-3"
+            >
+              <Avatar className="size-9 rounded-xl ring-2 ring-primary/10">
+                {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={user.nome} /> : null}
+                <AvatarFallback className="rounded-xl bg-primary text-[11px] font-bold text-primary-foreground">
+                  {initials(user.nome)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="hidden max-w-36 truncate text-xs font-semibold text-foreground md:inline">{user.nome}</span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuLabel className="flex flex-col gap-1 px-2 py-2">
+                <span className="truncate text-sm font-semibold text-foreground">{user.nome}</span>
+                <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
+                <Badge variant="secondary" className="mt-1 w-fit border-0 bg-muted px-1.5 py-0 text-[10px] font-medium text-muted-foreground">
+                  {roleLabel(user.role)}
+                </Badge>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled>
+                <UserRoundIcon />
+                Meu perfil
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} variant="destructive">
+                <LogOutIcon />
+                Sair da plataforma
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ) : null}
       </div>
     </header>

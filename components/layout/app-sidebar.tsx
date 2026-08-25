@@ -1,8 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { LogOutIcon } from "lucide-react"
+import { usePathname } from "next/navigation"
 import { LogoMark } from "@/components/brand/logo-mark"
 import {
   Sidebar,
@@ -18,31 +17,14 @@ import {
   SidebarRail,
   SidebarSeparator,
 } from "@/components/ui/sidebar"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useSession } from "@/hooks/use-session"
-import { roleLabel } from "@/hooks/use-permissions"
-import { logout } from "@/lib/api-client"
 import { filterNavForRole, navGroups } from "@/lib/nav-config"
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const router = useRouter()
   const { user } = useSession()
 
   const groups = user ? filterNavForRole(navGroups, user.role) : []
-  const initials =
-    user?.nome
-      .split(" ")
-      .map((part) => part[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() ?? ""
-
-  async function handleLogout() {
-    await logout()
-    router.push("/login")
-    router.refresh()
-  }
 
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border">
@@ -105,40 +87,8 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="gap-0 p-0">
+      <SidebarFooter className="p-0">
         <SidebarSeparator className="mx-0" />
-        <SidebarMenu className="p-2">
-          {user ? (
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                size="lg"
-                tooltip={`${user.nome} · ${roleLabel(user.role)}`}
-                className="cursor-default hover:bg-sidebar-accent/60"
-              >
-                <Avatar className="size-8 rounded-md">
-                  {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={user.nome} /> : null}
-                  <AvatarFallback className="rounded-md bg-sidebar-accent text-[11px] text-sidebar-accent-foreground">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex min-w-0 flex-col leading-tight">
-                  <span className="truncate text-xs font-medium">{user.nome}</span>
-                  <span className="truncate text-[11px] text-sidebar-foreground/60">{roleLabel(user.role)}</span>
-                </div>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ) : null}
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              tooltip="Sair da plataforma"
-              onClick={handleLogout}
-              className="h-9 text-sidebar-foreground/70 hover:text-sidebar-accent-foreground"
-            >
-              <LogOutIcon />
-              <span>Sair</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
       </SidebarFooter>
 
       <SidebarRail />
