@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getAccessMap } from "@/lib/api-client"
 import type { AccessMapResponse } from "@/lib/types"
+import { PetrobrasLoading } from "@/components/petrobras-loading"
 
 const fetcher = () => getAccessMap()
 const dateFormat = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" })
@@ -27,7 +28,7 @@ export default function PesquisasPage() {
     return text.includes(search.toLowerCase()) && (type === "todos" || row.resourceType === type) && (level === "todos" || row.accessLevel === level)
   }), [data?.rows, search, type, level])
 
-  if (isLoading) return <main className="flex flex-col gap-6"><h1 className="text-2xl font-semibold">Pesquisas</h1><p className="text-muted-foreground">Carregando mapa de acessos...</p></main>
+  if (isLoading) return <main className="flex flex-col gap-6"><h1 className="text-2xl font-semibold">Pesquisas</h1><PetrobrasLoading label="Carregando mapa de acessos..." /></main>
   if (error || !data) return <main className="flex flex-col gap-6"><h1 className="text-2xl font-semibold">Pesquisas</h1><p className="text-destructive">Não foi possível carregar o mapa de acessos.</p></main>
 
   const cards = [

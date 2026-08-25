@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { MoonIcon, SunIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme()
@@ -11,26 +12,25 @@ export function ThemeToggle() {
 
   useEffect(() => setMounted(true), [])
 
-  if (!mounted) {
-    return (
-      <Button variant="ghost" size="icon" className="size-8" disabled aria-label="Alternar tema">
-        <SunIcon className="size-4" />
-      </Button>
-    )
-  }
-
-  const isDark = resolvedTheme === "dark"
+  const isDark = mounted && resolvedTheme === "dark"
+  const label = isDark ? "Modo claro" : "Modo escuro"
 
   return (
     <Button
       variant="ghost"
-      size="icon"
-      className="size-8"
-      onClick={() => setTheme(isDark ? "light" : "dark")}
+      onClick={() => mounted && setTheme(isDark ? "light" : "dark")}
+      disabled={!mounted}
       aria-label={isDark ? "Ativar modo claro" : "Ativar modo escuro"}
-      title={isDark ? "Modo claro (D)" : "Modo escuro (D)"}
+      title={label}
+      className={cn(
+        "h-9 gap-2 rounded-full border border-border/70 bg-muted/40 px-3 text-muted-foreground shadow-none transition-all",
+        "hover:border-primary/30 hover:bg-primary/10 hover:text-primary",
+      )}
     >
-      {isDark ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
+      <span className="flex size-5 items-center justify-center rounded-full bg-background text-primary shadow-sm ring-1 ring-border/60">
+        {isDark ? <SunIcon className="size-3.5" /> : <MoonIcon className="size-3.5" />}
+      </span>
+      <span className="hidden text-xs font-semibold sm:inline">{label}</span>
     </Button>
   )
 }

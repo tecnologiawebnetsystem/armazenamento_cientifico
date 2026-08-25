@@ -1,90 +1,47 @@
-# Backend FastAPI
+# Armazenamento Científico — Backend
 
-API Python compatível com o frontend atual do Armazenamento Científico. O frontend continua usando os paths `/api/...`; quando `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000` é configurado, essas chamadas são atendidas por este serviço.
+API REST em FastAPI para projetos, arquivos, acessos, relatórios e auditoria, usando PostgreSQL (compatível com Neon).
 
 ## Requisitos
 
 - Python 3.11+
-- pip
+- PostgreSQL 14+ ou Docker
+- `uv` (recomendado) ou `pip`
 
-## Instalação e execução
-
-Linux/macOS:
+## Configuração local
 
 ```bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -e .
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+cp .env.example .env
+# opção local
+ docker compose -f docker-compose.local.yml up -d
+# aplicar o schema
+psql "$DATABASE_URL" -f ../database/projects-schema.sql
+uv sync
+uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Windows PowerShell:
+Se usar `pip`, crie um ambiente virtual e execute `pip install -e .`; depois inicie com `uvicorn main:app --reload --port 8000`. Para Neon, mantenha todas as variáveis e substitua somente `DATABASE_URL` pela connection string da integração.
 
-```powershell
-cd backend
-python -m venv .venv
-.venv\\Scripts\\Activate.ps1
-python -m pip install --upgrade pip
-pip install -e .
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
+## Documentação e saúde
 
-- API: `http://localhost:8000`
-- Swagger: `http://localhost:8000/docs`
-- OpenAPI: `http://localhost:8000/openapi.json`
-- Saúde: `http://localhost:8000/health`
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+- OpenAPI JSON: http://localhost:8000/openapi.json
+- Health check: http://localhost:8000/health
 
-## Conectar ao frontend
+O Swagger é gerado diretamente pelos decorators e modelos Pydantic da aplicação. Ele documenta os endpoints `/api/auth`, `/api/projects`, `/api/files`, `/api/users`, `/api/activity-logs`, `/api/reports` e `/api/access-map`.
 
-Com o backend ativo, execute na raiz, em outro terminal:
+## Testes e qualidade
 
 ```bash
-npm install
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000 npm run dev
+uv run pytest -q
+uv run ruff check .
+uv run ruff format --check .
 ```
 
-No Windows PowerShell:
+O teste de integração PostgreSQL é executado somente quando `DATABASE_URL` aponta para um banco acessível; caso contrário, é marcado como `skip`.
 
-```powershell
-$env:NEXT_PUBLIC_API_BASE_URL="http://localhost:8000"
-npm run dev
-```
+## Segurança e operação
 
-## Endpoints implementados
-
-- `POST/GET /api/auth/login`, `/api/auth/logout`, `/api/auth/session`
-- `GET/POST /api/projects`
-- `GET/PATCH/DELETE /api/projects/{project_id}`
-- `GET /api/projects/{project_id}/members`
-- `GET/POST/PATCH/DELETE /api/files` e `/api/files/{file_id}`
-- `POST /api/files/{file_id}/share`
-- `GET /api/reports`
-- `GET /api/access-map`
-- `GET /api/activity-logs` e `/api/activity-logs/export?format=csv|txt`
-- `GET /api/users` e `PATCH /api/users/{user_id}`
-
-Os payloads completos estão em `../docs/api-endpoints.md`.
-
-## Desenvolvimento
-
-Usuários de demonstração:
-
-- `admin@exemplo.com` / `admin123`
-- `gerente@exemplo.com` / `gerente123`
-- `patrocinador@exemplo.com` / `patrocinador123`
-- `auditor@exemplo.com` / `auditor123`
-
-Também é possível enviar `x-user-id` para testar um usuário. Os dados são armazenados em memória e são recriados ao reiniciar o processo.
-
-## Verificação
-
-```bash
-python -m compileall -q .
-python -c "from main import app; print(app.title)"
-```
-
-## Próximos passos para produção
-
-Trocar os dicionários em memória por PostgreSQL, armazenar senhas com hash, usar sessões assinadas/rotacionáveis, limitar CORS a domínios conhecidos, adicionar migrações, paginação nos logs e testes automatizados de autorização. O login atual é exclusivamente demonstrativo e não deve ser usado em produção.
+Todas as rotas, exceto login e health, exigem sessão via cookie HttpOnly. A API aplica autorização por perfil e escopo de projeto, queries parametrizadas, CORS configurável e auditoria. Em produção, defina `COOKIE_SECURE=true`, use HTTPS, restrinja `CORS_ORIGINS`, não versiona `.env` e configure backups/migrações controladas do PostgreSQL.
