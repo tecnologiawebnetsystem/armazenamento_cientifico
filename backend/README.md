@@ -45,6 +45,36 @@ docker exec -i armazenamento-cientifico-postgres psql -U armazenamento -d armaze
 
 A URL `postgresql+asyncpg://...` é usada pela aplicação Python; o comando `psql` usa o esquema `postgresql://...`.
 
+## Migrações de banco com Alembic
+
+O Alembic usa `DATABASE_URL` do `backend/.env` e carrega os modelos SQLAlchemy registrados em `app/db/base.py`. O schema legado continua sendo aplicado pelo script SQL do Docker; a migration `0001_baseline` apenas registra esse ponto inicial sem recriar ou apagar tabelas.
+
+Após subir o PostgreSQL e ativar o ambiente virtual:
+
+```bash
+cd backend
+source .venv/bin/activate             # Windows PowerShell: .venv\\Scripts\\Activate.ps1
+python -m alembic current
+python -m alembic upgrade head
+```
+
+Para criar uma nova migration após alterar modelos:
+
+```bash
+python -m alembic revision --autogenerate -m "descreva a alteração"
+python -m alembic upgrade head
+```
+
+Revise sempre o arquivo gerado antes de aplicar em qualquer ambiente. Comandos úteis:
+
+```bash
+python -m alembic history
+python -m alembic downgrade -1
+python -m alembic check
+```
+
+Com `uv`, use `uv run alembic` no lugar de `python -m alembic`.
+
 ## Executar a API sem `uv` (forma padrão)
 
 ```bash
