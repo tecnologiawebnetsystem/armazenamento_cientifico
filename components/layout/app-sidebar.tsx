@@ -61,9 +61,7 @@ export function AppSidebar() {
               </div>
               <div className="flex min-w-0 flex-col gap-0.5 leading-none">
                 <span className="truncate text-sm font-semibold">Armazenamento Científico</span>
-                <span className="truncate text-[11px] tracking-wide text-sidebar-foreground/60">
-                  Petrobras · Pesquisa &amp; Dados
-                </span>
+                
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
