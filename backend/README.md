@@ -47,17 +47,6 @@ A URL `postgresql+asyncpg://...` é usada pela aplicação Python; o comando `ps
 
 ## Autorização por perfil (RBAC)
 
-As rotas protegidas validam a sessão no backend e nunca confiam no perfil enviado pelo frontend. Os perfis oficiais são:
-
-- **Administrador (`admin`)**: acesso total, incluindo alteração de perfis.
-- **Gerente (`gerente`)**: operações de gestão permitidas, sem alterar perfis de usuários.
-- **Patrocinador (`patrocinador`)**: somente leitura.
-- **Auditor (`auditor`)**: somente leitura, incluindo logs de auditoria.
-
-Perfis legados continuam aceitos para compatibilidade: `gestor` é tratado como `gerente`, `participante` como `gerente` e `visualizador` como `auditor`. Uma requisição sem sessão retorna `401`; uma requisição autenticada sem permissão retorna `403`.
-
-## Autorização por perfil (RBAC)
-
 As rotas protegidas validam a sessão no backend e nunca confiam no perfil enviado pelo frontend. A matriz de rota é:
 
 - **Administrador (`admin`)**: acesso total, incluindo alteração de perfis.
@@ -66,6 +55,58 @@ As rotas protegidas validam a sessão no backend e nunca confiam no perfil envia
 - **Auditor (`auditor`)**: somente leitura, incluindo consulta de auditoria.
 
 Os perfis legados continuam compatíveis: `gestor` é tratado como `gerente`, `participante` como `gerente` e `visualizador` como `auditor`. Requisições sem sessão retornam `401`; usuários autenticados sem autorização retornam `403`.
+
+## Checklist de integração local
+
+Execute nesta ordem:
+
+```bash
+# terminal 1 — banco
+cd backend
+docker compose -f docker-compose.local.yml up -d
+
+# terminal 2 — API sem uv
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m alembic upgrade head
+python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# terminal 3 — frontend, na raiz do projeto
+printf 'NEXT_PUBLIC_API_BASE_URL=http://localhost:8000\\n' > .env.local
+npm ci
+npm run dev
+```
+
+Verifique `http://localhost:8000/health`, `http://localhost:8000/docs` e `http://localhost:3000`. Se aparecer `Failed to fetch`, confirme se a API está em execução, se a URL está correta e se `CORS_ORIGINS` contém o endereço usado pelo navegador (`localhost` e/ou `127.0.0.1`).
+
+## Build e validação
+
+```bash
+# frontend (na raiz)
+npm run typecheck
+npm run lint
+npm run build
+
+# backend (em backend, com .venv ativo)
+python -m compileall -q .
+python -m pip check
+python -m pytest -q
+python -m ruff check .
+```
+
+O login continua mockado no frontend. As demais operações dependem do backend, PostgreSQL e uma sessão válida. O fallback das API Routes do Next.js é apenas uma contingência de desenvolvimento quando o FastAPI não estiver disponível.
+
+## Integração com o frontend
+
+O backend expõe o mesmo contrato HTTP consumido por `lib/api-client.ts`. No frontend, configure:
+
+```dotenv
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+```
+
+Com essa variável, o FastAPI é a fonte principal dos dados persistidos no PostgreSQL. As API Routes locais do Next.js permanecem disponíveis apenas como fallback quando o backend não puder ser alcançado. O login continua mockado no frontend conforme definido no projeto; para uma sessão autenticada no FastAPI, use o endpoint `/api/auth/login` do backend.
 
 ## Migrações de banco com Alembic
 

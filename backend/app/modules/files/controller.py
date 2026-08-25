@@ -46,6 +46,7 @@ async def get_file(
     service: Annotated[FileService, Depends(get_service)],
 ):
     from app.core.exceptions import NotFoundException
+
     file = await service.repository.find_by_id(file_id)
     if not file:
         raise NotFoundException("Arquivo não encontrado")

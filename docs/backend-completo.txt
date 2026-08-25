@@ -1,0 +1,216 @@
+DOCUMENTAÇÃO COMPLETA DO BACKEND
+Armazenamento Científico API
+
+1. VISÃO GERAL
+
+O backend é uma API FastAPI com PostgreSQL, SQLAlchemy/Alembic e autenticação por sessão. O ponto de entrada é backend/main.py; a aplicação é montada em backend/app/app.py e os endpoints legados compatíveis ficam em backend/app/legacy_api.py.
+
+O frontend usa o backend quando NEXT_PUBLIC_API_BASE_URL=http://localhost:8000 está configurado. As API Routes do Next.js são apenas fallback de desenvolvimento. O login pode permanecer mockado no frontend conforme decisão do projeto.
+
+2. EXECUÇÃO
+
+Banco:
+  cd backend
+  docker compose -f docker-compose.local.yml up -d
+
+Backend com pip:
+  cd backend
+  python3 -m venv .venv
+  source .venv/bin/activate
+  python -m pip install -r requirements.txt
+  python -m alembic upgrade head
+  python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+Backend com uv:
+  cd backend
+  uv sync
+  uv run alembic upgrade head
+  uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+Frontend integrado:
+  criar .env.local na raiz com:
+  NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+  npm ci
+  npm run dev
+
+3. VARIÁVEIS DE AMBIENTE
+
+DATABASE_URL: conexão PostgreSQL.
+CORS_ORIGINS: origens permitidas, separadas por vírgula.
+COOKIE_NAME: nome do cookie de sessão.
+COOKIE_SECURE: true em HTTPS; false somente localmente.
+SESSION_HOURS: duração da sessão.
+ENVIRONMENT: development, staging ou production.
+LOG_LEVEL: nível de logging.
+EXPOSE_API_DOCS: habilita /docs, /redoc e /openapi.json.
+SECURITY_HEADERS_ENABLED: habilita headers defensivos.
+REQUEST_LOG_MAX_ID_LENGTH: tamanho máximo do X-Correlation-ID aceito.
+AUDIT_RETENTION_DAYS: política operacional de retenção.
+COOKIE_DOMAIN: domínio opcional do cookie.
+
+4. SEGURANÇA — ITEM 1
+
+CORS é centralizado em app/app.py. Somente as origens configuradas são aceitas; métodos e headers são explicitamente listados. Não usar * com credenciais.
+
+Cada resposta inclui X-Correlation-ID. IDs inválidos ou excessivamente longos são substituídos por UUID novo.
+
+Headers de segurança aplicados:
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Permissions-Policy: câmera, microfone e geolocalização desabilitados
+  Strict-Transport-Security em produção
+
+A documentação OpenAPI pode ser desativada em produção com EXPOSE_API_DOCS=false.
+
+Sessões devem usar cookie HttpOnly. Em produção, configure COOKIE_SECURE=true e execute atrás de HTTPS.
+
+5. LOGGING E AUDITORIA — ITEM 2
+
+O logger usa formato JSON em stdout. Cada registro possui timestamp, nível, logger, mensagem, correlation_id e user_id quando disponível.
+
+O middleware registra método, caminho, status, duração, cliente e falhas. Não são gravados senha, token, cookie, DATABASE_URL ou conteúdo de arquivo.
+
+A auditoria de negócio usa app_activity_logs e deve ser tratada como append-only. Eventos registrados incluem login, login falho, logout e operações de domínio realizadas pelos endpoints.
+
+Campos da auditoria:
+  id, user_id, action, entity, entity_id, details, created_at
+
+A auditoria deve ser enviada para agregador central de logs em produção, com retenção, alertas e controle de acesso.
+
+6. ENDPOINTS
+
+GET /health
+  Verifica disponibilidade básica e estado da conexão do banco.
+
+POST /api/auth/login
+  Payload: {email, senha}. Cria sessão e retorna user. Cookie HttpOnly.
+
+POST /api/auth/logout
+  Encerra a sessão atual. Retorna 204.
+
+GET /api/auth/session
+  Retorna o usuário da sessão atual.
+
+GET /api/projects
+  Lista projetos. Query: status, area, all.
+
+POST /api/projects
+  Cria projeto. Requer permissão de escrita.
+
+GET /api/projects/{id}
+  Consulta projeto por ID.
+
+PATCH /api/projects/{id}
+  Atualiza projeto.
+
+DELETE /api/projects/{id}
+  Remove projeto.
+
+GET /api/projects/{id}/members
+  Lista membros do projeto.
+
+POST/PATCH /api/projects/{id}/members
+  Adiciona ou atualiza membro. Payload: userId, papel.
+
+DELETE /api/projects/{id}/members?userId=...
+  Remove membro.
+
+GET /api/files?projectId=...
+  Lista arquivos e pastas do projeto. Query: parentId, allFolders.
+
+POST /api/files
+  Cria arquivo lógico ou pasta. Payload: projectId, parentId, tipo, nome, tamanho, mimeType.
+
+GET /api/files/{id}
+  Consulta arquivo ou pasta.
+
+PATCH /api/files/{id}
+  Atualiza nome ou pasta pai.
+
+DELETE /api/files/{id}
+  Remove arquivo ou pasta.
+
+POST /api/files/{id}/share
+  Compartilha arquivo. Payload: userId, nivel.
+
+DELETE /api/files/{id}/share?userId=...
+  Remove compartilhamento.
+
+GET /api/users
+  Lista usuários autorizados.
+
+PATCH /api/users/{id}
+  Altera perfil; operação administrativa.
+
+GET /api/activity-logs
+  Consulta logs de auditoria. Suporta userId, acao, entidade, search, from e to.
+
+GET /api/activity-logs/export?format=csv|txt
+  Exporta logs de auditoria.
+
+GET /api/reports
+  Retorna relatórios e indicadores. Query: status, area, projectId, search.
+
+GET /api/access-map
+  Retorna mapa de acesso entre usuários, projetos e recursos.
+
+GET /api/permissions
+  Consulta matriz de permissões.
+
+PUT /api/permissions
+  Atualiza matriz de permissões.
+
+GET /api/settings
+  Consulta configurações do sistema.
+
+PATCH /api/settings
+  Atualiza configurações do sistema.
+
+7. PERFIS
+
+admin: acesso total.
+gerente: operações de gestão.
+patrocinador: leitura.
+auditor: leitura e auditoria.
+
+Perfis legados continuam compatíveis conforme o mapeamento definido no módulo de autorização.
+
+8. ERROS
+
+401: sessão ausente, inválida ou expirada.
+403: usuário autenticado sem permissão.
+404: recurso inexistente.
+409: conflito de regra de negócio.
+422: dados inválidos.
+500: erro interno; detalhes não devem ser expostos ao cliente.
+503: banco indisponível ou não configurado.
+
+9. MIGRAÇÕES
+
+Criar migration:
+  python -m alembic revision --autogenerate -m "descrição"
+Aplicar:
+  python -m alembic upgrade head
+Verificar:
+  python -m alembic check
+Histórico:
+  python -m alembic history
+
+10. VALIDAÇÃO
+
+Frontend:
+  npm run typecheck
+  npm run lint
+  npm run build
+
+Backend:
+  python -m compileall -q .
+  python -m pip check
+  python -m pytest -q
+  python -m ruff check .
+  python -m ruff format --check .
+
+11. PRODUÇÃO
+
+Use HTTPS, COOKIE_SECURE=true, origens CORS explícitas, EXPOSE_API_DOCS=false, banco com TLS, backups, rotação de logs, alertas para 401/403/5xx e revisão periódica das dependências. Nunca publique senhas, tokens ou connection strings em código, documentação ou logs.

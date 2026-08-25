@@ -74,9 +74,15 @@ $env:NEXT_PUBLIC_API_BASE_URL = "http://localhost:8000"
 npm run dev
 ```
 
-## Rodar banco e backend
+## Rodar banco, backend e frontend integrados
 
-Consulte [`backend/README.md`](backend/README.md) para subir o PostgreSQL com Docker e executar a API usando `pip` (padrão, sem `uv`) ou `uv` (alternativa). A documentação também explica como aplicar o schema quando o volume do Docker já existe.
+Consulte [`backend/README.md`](backend/README.md) para subir o PostgreSQL com Docker e executar a API usando `pip` ou `uv`. Para conectar o frontend ao FastAPI, crie `.env.local` na raiz:
+
+```dotenv
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+```
+
+Com essa variável, o frontend usa o FastAPI como fonte principal e o PostgreSQL como persistência. As API Routes locais do Next.js permanecem apenas como fallback opcional durante o desenvolvimento. O login continua mockado conforme definido no projeto; logout e sessão são encaminhados ao backend quando o modo integrado estiver ativo.
 
 ## Scripts do frontend
 

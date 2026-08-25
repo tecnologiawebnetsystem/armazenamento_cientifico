@@ -27,7 +27,9 @@ class AppException(Exception):
 class NotFoundException(AppException):
     """Recurso não encontrado (404)."""
 
-    def __init__(self, message: str = "Recurso não encontrado", details: dict[str, Any] | None = None):
+    def __init__(
+        self, message: str = "Recurso não encontrado", details: dict[str, Any] | None = None
+    ):
         super().__init__(
             message=message,
             error_code="NotFound",
