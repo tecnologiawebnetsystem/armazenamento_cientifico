@@ -1,419 +1,219 @@
 from __future__ import annotations
 
+import csv, io, json, os
 from datetime import datetime, timezone
 from typing import Literal
 from uuid import uuid4
 
+import asyncpg
 from fastapi import FastAPI, HTTPException, Query, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse, StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field, EmailStr
-
-Role = Literal["admin", "gerente", "patrocinador", "auditor", "participante", "visualizador", "gestor"]
-ProjectStatus = Literal["ativo", "concluido", "suspenso"]
-ShareLevel = Literal["leitura", "edicao", "proprietario"]
-
-
-def now() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-class User(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    id: str
-    nome: str
-    email: EmailStr
-    cargo: str = ""
-    area: str = ""
-    role: Role
-    criadoEm: str
-
-
-class LoginPayload(BaseModel):
-    email: EmailStr
-    senha: str = Field(min_length=1)
-
-
-class Project(BaseModel):
-    id: str
-    nome: str
-    codigo: str
-    areaResponsavel: str
-    gestoresIds: list[str] = []
-    grupoAdEscrita: str = ""
-    grupoAdLeitura: str = ""
-    roleIdentidadeEscrita: str = ""
-    roleIdentidadeLeitura: str = ""
-    numeroTarefaSnow: str = ""
-    pastaMae: str = ""
-    descricao: str = ""
-    status: ProjectStatus = "ativo"
-    criadoEm: str
-    atualizadoEm: str
-    participantesIds: list[str] = []
-    armazenamentoUsadoMb: float = 0
-
-
-class ProjectInput(BaseModel):
-    nome: str = Field(min_length=2, max_length=200)
-    codigo: str = Field(min_length=1, max_length=50)
-    areaResponsavel: str = Field(min_length=1, max_length=150)
-    gestoresIds: list[str] = []
-    grupoAdEscrita: str = ""
-    grupoAdLeitura: str = ""
-    roleIdentidadeEscrita: str = ""
-    roleIdentidadeLeitura: str = ""
-    numeroTarefaSnow: str = ""
-    pastaMae: str = ""
-    descricao: str = ""
-    status: ProjectStatus = "ativo"
-    participantesIds: list[str] = []
-
-
-class ProjectPatch(BaseModel):
-    nome: str | None = Field(default=None, min_length=2, max_length=200)
-    areaResponsavel: str | None = None
-    gestoresIds: list[str] | None = None
-    grupoAdEscrita: str | None = None
-    grupoAdLeitura: str | None = None
-    roleIdentidadeEscrita: str | None = None
-    roleIdentidadeLeitura: str | None = None
-    numeroTarefaSnow: str | None = None
-    pastaMae: str | None = None
-    descricao: str | None = None
-    status: ProjectStatus | None = None
-    participantesIds: list[str] | None = None
-
-
-class FileNode(BaseModel):
-    id: str
-    projectId: str
-    parentId: str | None = None
-    tipo: Literal["pasta", "arquivo"]
-    nome: str
-    tamanho: int = 0
-    mimeType: str | None = None
-    criadoPor: str
-    criadoEm: str
-    atualizadoEm: str
-    compartilhamentos: list[dict] = []
-
-
-class FileInput(BaseModel):
-    projectId: str
-    parentId: str | None = None
-    tipo: Literal["pasta", "arquivo"]
-    nome: str = Field(min_length=1, max_length=500)
-    tamanho: int = Field(default=0, ge=0)
-    mimeType: str | None = None
-
-
-class ActivityLog(BaseModel):
-    id: str
-    userId: str
-    acao: str
-    entidade: str
-    entidadeId: str
-    detalhes: str = ""
-    criadoEm: str
-
-
-class ReportsQuery(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    periodoDe: str | None = None
-    periodoAte: str | None = None
-    status: ProjectStatus | Literal["todos"] = "todos"
-    area: str | None = None
-    projectId: str | None = None
-
-
-users: dict[str, User] = {}
-projects: dict[str, Project] = {}
-files: dict[str, FileNode] = {}
-logs: list[ActivityLog] = []
-
-
-def seed() -> None:
-    for role, email, name in [
-        ("admin", "admin@exemplo.com", "Administrador"),
-        ("gerente", "gerente@exemplo.com", "Gerente de Projeto"),
-        ("patrocinador", "patrocinador@exemplo.com", "Patrocinador"),
-        ("auditor", "auditor@exemplo.com", "Auditor"),
-    ]:
-        user = User(id=f"u-{role}", nome=name, email=email, cargo=name, area="Corporativo", role=role, criadoEm=now())
-        users[user.id] = user
-    project = Project(id="PRJ-2024-001", nome="Armazenamento Científico", codigo="PRJ-2024-001", areaResponsavel="Tecnologia", gestoresIds=["u-gerente"], grupoAdEscrita="GRP-ESCRITA", grupoAdLeitura="GRP-LEITURA", numeroTarefaSnow="SNOW-001", pastaMae="/cientifico/2024", descricao="Projeto de demonstração", criadoEm=now(), atualizadoEm=now())
-    projects[project.id] = project
-
-
-seed()
-
-app = FastAPI(title="Armazenamento Científico API", version="1.0.0", docs_url="/docs", openapi_url="/openapi.json")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
-
-
-def current_user(request: Request) -> User:
-    user_id = request.headers.get("x-user-id") or request.cookies.get("wayon_session_user_id") or "u-admin"
-    return users.get(user_id, users["u-admin"])
-
-
-def can_view_project(user: User, project: Project) -> bool:
-    return user.role in {"admin", "patrocinador", "auditor"} or user.id in project.gestoresIds or user.id in project.participantesIds
-
-
-def require_role(user: User, roles: set[str]) -> None:
-    if user.role not in roles:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Usuário sem permissão para esta operação")
-
-
-def audit(user: User, action: str, entity: str, entity_id: str, details: str = "") -> None:
-    logs.insert(0, ActivityLog(id=str(uuid4()), userId=user.id, acao=action, entidade=entity, entidadeId=entity_id, detalhes=details, criadoEm=now()))
-
-
-@app.get("/health")
-def health() -> dict:
-    return {"status": "ok", "service": "fastapi", "version": app.version}
-
-
-@app.post("/api/auth/login")
-def login(payload: LoginPayload, response: Response) -> dict:
-    user = next((item for item in users.values() if item.email.lower() == payload.email.lower()), None)
-    if not user or payload.senha not in {"admin123", "gerente123", "patrocinador123", "auditor123"}:
-        raise HTTPException(status_code=401, detail="E-mail ou senha inválidos")
-    response.set_cookie("wayon_session_user_id", user.id, httponly=True, samesite="lax", max_age=28800)
-    audit(user, "login", "sessao", user.id)
-    return {"user": user.model_dump()}
-
-
-@app.post("/api/auth/logout", status_code=204)
-def logout(request: Request, response: Response) -> None:
-    audit(current_user(request), "logout", "sessao", current_user(request).id)
-    response.delete_cookie("wayon_session_user_id")
-
-
-@app.get("/api/auth/session")
-def session(request: Request) -> dict:
-    return {"user": current_user(request).model_dump()}
-
-
-@app.get("/api/projects")
-def list_projects(request: Request, all: bool = False) -> dict:
-    user = current_user(request)
-    visible = list(projects.values()) if all and user.role in {"admin", "patrocinador", "auditor"} else [p for p in projects.values() if can_view_project(user, p)]
-    return {"projects": [p.model_dump() for p in visible]}
-
-
-@app.post("/api/projects")
-def create_project(payload: ProjectInput, request: Request) -> dict:
-    user = current_user(request)
-    require_role(user, {"admin", "gerente"})
-    if payload.codigo in {p.codigo for p in projects.values()}:
-        raise HTTPException(409, "Código de projeto já existente")
-    project = Project(id=str(uuid4()), criadoEm=now(), atualizadoEm=now(), **payload.model_dump())
-    projects[project.id] = project
-    audit(user, "criar-projeto", "projeto", project.id, project.nome)
-    return {"project": project.model_dump()}
-
-
-@app.get("/api/projects/{project_id}")
-def get_project(project_id: str, request: Request) -> dict:
-    user = current_user(request)
-    project = projects.get(project_id)
-    if not project or not can_view_project(user, project):
-        raise HTTPException(404, "Projeto não encontrado")
-    return {"project": project.model_dump()}
-
-
-@app.patch("/api/projects/{project_id}")
-def update_project(project_id: str, payload: ProjectPatch, request: Request) -> dict:
-    user = current_user(request)
-    project = projects.get(project_id)
-    if not project or not can_view_project(user, project):
-        raise HTTPException(404, "Projeto não encontrado")
-    require_role(user, {"admin", "gerente"})
-    if user.role == "gerente" and user.id not in project.gestoresIds:
-        raise HTTPException(403, "Gerente não pertence a este projeto")
-    updates = payload.model_dump(exclude_unset=True)
-    for key, value in updates.items():
-        setattr(project, key, value)
-    project.atualizadoEm = now()
-    audit(user, "editar-projeto", "projeto", project.id, ",".join(updates.keys()))
-    return {"project": project.model_dump()}
-
-
-@app.delete("/api/projects/{project_id}", status_code=204)
-def delete_project(project_id: str, request: Request) -> None:
-    user = current_user(request)
-    project = projects.get(project_id)
-    if not project:
-        raise HTTPException(404, "Projeto não encontrado")
-    require_role(user, {"admin"})
-    del projects[project_id]
-    audit(user, "excluir-projeto", "projeto", project_id)
-
-
-@app.get("/api/files")
-def list_files(projectId: str, request: Request, parentId: str | None = None, allFolders: bool = False) -> dict:
-    project = projects.get(projectId)
-    if not project or not can_view_project(current_user(request), project):
-        raise HTTPException(404, "Projeto não encontrado")
-    result = [f for f in files.values() if f.projectId == projectId and (allFolders and f.tipo == "pasta" or not allFolders and f.parentId == parentId)]
-    return {"files": [f.model_dump() for f in result], "breadcrumb": []}
-
-
-@app.post("/api/files")
-def create_file(payload: FileInput, request: Request) -> dict:
-    user = current_user(request)
-    project = projects.get(payload.projectId)
-    if not project or not can_view_project(user, project):
-        raise HTTPException(404, "Projeto não encontrado")
-    if user.role in {"visualizador", "auditor", "patrocinador"}:
-        raise HTTPException(403, "Usuário sem permissão de edição")
-    item = FileNode(id=str(uuid4()), criadoPor=user.id, criadoEm=now(), atualizadoEm=now(), **payload.model_dump())
-    files[item.id] = item
-    audit(user, "criar-pasta" if item.tipo == "pasta" else "enviar-arquivo", "arquivo", item.id, item.nome)
-    return {"file": item.model_dump()}
-
-
-@app.get("/api/files/{file_id}")
-def get_file(file_id: str, request: Request) -> dict:
-    item = files.get(file_id)
-    if not item:
-        raise HTTPException(404, "Arquivo não encontrado")
-    project = projects.get(item.projectId)
-    if not project or not can_view_project(current_user(request), project):
-        raise HTTPException(404, "Arquivo não encontrado")
-    return {"file": item.model_dump()}
-
-
-class FilePatch(BaseModel):
-    nome: str | None = Field(default=None, min_length=1, max_length=500)
-    parentId: str | None = None
-
-
-@app.patch("/api/files/{file_id}")
-def update_file(file_id: str, payload: FilePatch, request: Request) -> dict:
-    user = current_user(request)
-    item = files.get(file_id)
-    if not item:
-        raise HTTPException(404, "Arquivo não encontrado")
-    project = projects.get(item.projectId)
-    if not project or not can_view_project(user, project):
-        raise HTTPException(404, "Arquivo não encontrado")
-    if user.role in {"visualizador", "auditor", "patrocinador"}:
-        raise HTTPException(403, "Usuário sem permissão de edição")
-    for key, value in payload.model_dump(exclude_unset=True).items():
-        setattr(item, key, value)
-    item.atualizadoEm = now()
-    audit(user, "editar-arquivo", "arquivo", item.id, item.nome)
-    return {"file": item.model_dump()}
-
-
-@app.delete("/api/files/{file_id}", status_code=204)
-def delete_file(file_id: str, request: Request) -> None:
-    user = current_user(request)
-    item = files.get(file_id)
-    if not item:
-        raise HTTPException(404, "Arquivo não encontrado")
-    project = projects.get(item.projectId)
-    if not project or not can_view_project(user, project):
-        raise HTTPException(404, "Arquivo não encontrado")
-    if user.role in {"visualizador", "auditor", "patrocinador"}:
-        raise HTTPException(403, "Usuário sem permissão de edição")
-    del files[file_id]
-    audit(user, "excluir-arquivo", "arquivo", file_id, item.nome)
-
-
-class FileShareInput(BaseModel):
-    userId: str
-    nivel: Literal["leitura", "edicao"]
-
-
-@app.post("/api/files/{file_id}/share")
-def share_file(file_id: str, payload: FileShareInput, request: Request) -> dict:
-    user = current_user(request)
-    item = files.get(file_id)
-    if not item or not projects.get(item.projectId) or not can_view_project(user, projects[item.projectId]):
-        raise HTTPException(404, "Arquivo não encontrado")
-    if user.role not in {"admin", "gerente"}:
-        raise HTTPException(403, "Usuário sem permissão para compartilhar")
-    if payload.userId not in users:
-        raise HTTPException(404, "Usuário não encontrado")
-    item.compartilhamentos = [share for share in item.compartilhamentos if share.get("userId") != payload.userId]
-    item.compartilhamentos.append(payload.model_dump())
-    audit(user, "compartilhar-arquivo", "arquivo", file_id, payload.userId)
-    return {"file": item.model_dump()}
-
-
-@app.get("/api/reports")
-def reports(request: Request, status_filter: str | None = Query(default=None, alias="status"), area: str | None = None, projectId: str | None = None) -> dict:
-    user = current_user(request)
-    visible = [p for p in projects.values() if can_view_project(user, p)]
-    if status_filter and status_filter != "todos": visible = [p for p in visible if p.status == status_filter]
-    if area: visible = [p for p in visible if p.areaResponsavel == area]
-    if projectId: visible = [p for p in visible if p.id == projectId]
-    by_status = {key: sum(p.status == key for p in visible) for key in ("ativo", "suspenso", "concluido")}
-    return {"filtros": {"status": status_filter or "todos", "area": area, "projectId": projectId}, "indicadores": {"totalProjetos": len(visible), "ativos": by_status["ativo"], "suspensos": by_status["suspenso"], "concluidos": by_status["concluido"], "armazenamentoUsadoMb": sum(p.armazenamentoUsadoMb for p in visible), "totalMembros": sum(len(p.gestoresIds) + len(p.participantesIds) for p in visible), "totalMapas": sum(1 for p in visible)}, "porArea": [], "porStatus": [{"status": key, "total": value} for key, value in by_status.items()], "projetos": [{**p.model_dump(), "totalMapas": 1, "totalMembros": len(p.gestoresIds) + len(p.participantesIds)} for p in visible]}
-
-
-@app.get("/api/activity-logs")
-def activity_logs(request: Request, userId: str | None = None, acao: str | None = None, entidade: str | None = None, search: str | None = None) -> dict:
-    require_role(current_user(request), {"admin", "auditor"})
-    result = logs
-    if userId: result = [item for item in result if item.userId == userId]
-    if acao: result = [item for item in result if item.acao == acao]
-    if entidade: result = [item for item in result if item.entidade == entidade]
-    if search: result = [item for item in result if search.lower() in f"{item.acao} {item.entidade} {item.detalhes}".lower()]
-    return {"logs": [{**item.model_dump(), "user": users.get(item.userId).model_dump() if users.get(item.userId) else None} for item in result]}
-
-
-@app.get("/api/activity-logs/export")
-def export_logs(request: Request, format: Literal["csv", "txt"] = "csv"):
-    require_role(current_user(request), {"admin", "auditor"})
-    if format == "txt":
-        content = "\n".join(f"{item.criadoEm} | {item.userId} | {item.acao} | {item.entidade}:{item.entidadeId} | {item.detalhes}" for item in logs)
-        return PlainTextResponse(content, headers={"Content-Disposition": "attachment; filename=auditoria.txt"})
-    content = "data,usuario,acao,entidade,entidade_id,detalhes\n" + "\n".join(f'"{i.criadoEm}","{i.userId}","{i.acao}","{i.entidade}","{i.entidadeId}","{i.detalhes}"' for i in logs)
-    return StreamingResponse(iter([content]), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=auditoria.csv"})
-
-
-@app.get("/api/access-map")
-def access_map(request: Request) -> dict:
-    user = current_user(request)
-    visible = [p for p in projects.values() if can_view_project(user, p)]
-    rows = []
-    for project in visible:
-        for member_id in project.gestoresIds + project.participantesIds:
-            member = users.get(member_id)
-            if member:
-                rows.append({"userId": member.id, "userName": member.nome, "userEmail": str(member.email), "userRole": member.role, "area": member.area, "projectId": project.id, "projectName": project.nome, "projectStatus": project.status, "resourceId": project.id, "resourceName": project.pastaMae, "resourceType": "pasta", "accessLevel": "edicao" if member_id in project.gestoresIds else "leitura", "lastViewedAt": project.atualizadoEm})
-    return {"summary": {"users": len({row["userId"] for row in rows}), "projects": len(visible), "folders": len(rows), "files": 0, "relationships": len(rows)}, "rows": rows}
-
-
-@app.get("/api/users")
-def list_users(request: Request) -> dict:
-    require_role(current_user(request), {"admin", "patrocinador", "auditor"})
-    return {"users": [user.model_dump() for user in users.values()]}
-
-
-class UserRolePatch(BaseModel):
-    role: Role
-
-
-@app.patch("/api/users/{user_id}")
-def update_user_role(user_id: str, payload: UserRolePatch, request: Request) -> dict:
-    actor = current_user(request)
-    require_role(actor, {"admin"})
-    user = users.get(user_id)
-    if not user: raise HTTPException(404, "Usuário não encontrado")
-    user.role = payload.role
-    audit(actor, "atualizar-papel-usuario", "usuario", user_id, payload.role)
-    return {"user": user.model_dump()}
-
-
-@app.get("/api/projects/{project_id}/members")
-def members(project_id: str, request: Request) -> dict:
-    project = projects.get(project_id)
-    if not project or not can_view_project(current_user(request), project): raise HTTPException(404, "Projeto não encontrado")
-    ids = project.gestoresIds + project.participantesIds
-    return {"members": [{"projectId": project.id, "userId": uid, "papel": "gerente" if uid in project.gestoresIds else "participante", "adicionadoEm": project.criadoEm, "user": users[uid].model_dump()} for uid in ids if uid in users]}
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, EmailStr, Field
+
+Role = Literal['admin','gerente','patrocinador','auditor','participante','visualizador','gestor']
+ProjectStatus = Literal['ativo','concluido','suspenso']
+
+def now(): return datetime.now(timezone.utc)
+def dump(row):
+    if row is None: return None
+    d=dict(row)
+    for k,v in list(d.items()):
+        if isinstance(v, datetime): d[k]=v.isoformat()
+    return d
+
+def project(row):
+    d=dump(row); return {'id':d['id'],'nome':d['name'],'codigo':d['code'],'areaResponsavel':d['responsible_area'],'gestoresIds':d['managers_ids'],'grupoAdEscrita':d['write_group'],'grupoAdLeitura':d['read_group'],'roleIdentidadeEscrita':d['write_identity_role'],'roleIdentidadeLeitura':d['read_identity_role'],'numeroTarefaSnow':d['snow_task_number'],'pastaMae':d['parent_folder'],'descricao':d['description'],'status':d['status'],'criadoEm':d['created_at'],'atualizadoEm':d['updated_at'],'participantesIds':d['participants_ids'],'armazenamentoUsadoMb':0}
+
+def user(row):
+    d=dump(row); return {'id':d['id'],'nome':d['name'],'email':d['email'],'cargo':d['cargo'],'area':d['area'],'role':d['role'],'criadoEm':d['created_at']}
+
+class Login(BaseModel): email: EmailStr; senha: str = Field(min_length=1)
+class ProjectInput(BaseModel): nome:str=Field(min_length=2,max_length=200); codigo:str=Field(min_length=1,max_length=50); areaResponsavel:str; gestoresIds:list[str]=[]; grupoAdEscrita:str=''; grupoAdLeitura:str=''; roleIdentidadeEscrita:str=''; roleIdentidadeLeitura:str=''; numeroTarefaSnow:str=''; pastaMae:str=''; descricao:str=''; status:ProjectStatus='ativo'; participantesIds:list[str]=[]
+class ProjectPatch(BaseModel): nome:str|None=None; areaResponsavel:str|None=None; gestoresIds:list[str]|None=None; grupoAdEscrita:str|None=None; grupoAdLeitura:str|None=None; roleIdentidadeEscrita:str|None=None; roleIdentidadeLeitura:str|None=None; numeroTarefaSnow:str|None=None; pastaMae:str|None=None; descricao:str|None=None; status:ProjectStatus|None=None; participantesIds:list[str]|None=None
+class FileInput(BaseModel): projectId:str; parentId:str|None=None; tipo:Literal['pasta','arquivo']; nome:str=Field(min_length=1,max_length=500); tamanho:int=Field(default=0,ge=0); mimeType:str|None=None
+class FilePatch(BaseModel): nome:str|None=None; parentId:str|None=None
+class ShareInput(BaseModel): userId:str; nivel:Literal['leitura','edicao']
+class MemberInput(BaseModel): userId:str; papel:Literal['gerente','participante','visualizador']
+class RolePatch(BaseModel): role:Role
+class PermissionMatrix(BaseModel): matrix:list[dict]
+
+app=FastAPI(title='Armazenamento Científico API',version='2.0.0',description='API REST para gestão de projetos, arquivos, acessos e auditoria.',docs_url='/docs',redoc_url='/redoc',openapi_url='/openapi.json')
+app.add_middleware(CORSMiddleware,allow_origins=os.getenv('CORS_ORIGINS','http://localhost:3000').split(','),allow_credentials=True,allow_methods=['*'],allow_headers=['*'])
+pool:asyncpg.Pool|None=None
+
+@app.on_event('startup')
+async def startup():
+    global pool
+    url=os.getenv('DATABASE_URL')
+    if url: pool=await asyncpg.create_pool(url, min_size=1, max_size=10, command_timeout=30)
+@app.on_event('shutdown')
+async def shutdown():
+    if pool: await pool.close()
+async def db():
+    if not pool: raise HTTPException(503,'Banco de dados não configurado')
+    return pool
+async def current(request:Request):
+    sid=request.cookies.get('wayon_session_id')
+    if not sid: raise HTTPException(401,'Sessão ausente')
+    p=await db(); row=await p.fetchrow('select u.* from app_sessions s join app_users u on u.id=s.user_id where s.id=$1 and s.expires_at>now()',sid)
+    if not row: raise HTTPException(401,'Sessão inválida ou expirada')
+    return row
+async def require(request, roles=()):
+    u=await current(request)
+    if roles and u['role'] not in roles: raise HTTPException(403,'Usuário sem permissão para esta operação')
+    return u
+async def audit(u,action,entity,eid,details=''):
+    p=await db(); await p.execute('insert into app_activity_logs(id,user_id,action,entity,entity_id,details) values($1,$2,$3,$4,$5,$6)',str(uuid4()),u['id'],action,entity,eid,details)
+async def visible(u,pid):
+    p=await db(); return await p.fetchrow("select * from app_projects where id=$1 and ($2 in ('admin','patrocinador','auditor') or $3=any(managers_ids) or $3=any(participants_ids))",pid,u['role'],u['id'])
+
+@app.get('/health')
+async def health():
+    ok=bool(pool)
+    return {'status':'ok' if ok else 'degradado','service':'fastapi','version':app.version,'database':'connected' if ok else 'not_configured'}
+@app.post('/api/auth/login')
+async def login(x:Login,response:Response):
+    p=await db(); u=await p.fetchrow('select * from app_users where lower(email)=lower($1)',str(x.email))
+    if not u or not x.senha: raise HTTPException(401,'E-mail ou senha inválidos')
+    sid=str(uuid4()); await p.execute("insert into app_sessions(id,user_id,expires_at) values($1,$2,now()+interval '8 hours')",sid,u['id']); response.set_cookie('wayon_session_id',sid,httponly=True,samesite='lax',secure=os.getenv('COOKIE_SECURE','false').lower()=='true',max_age=28800); await audit(u,'login','sessao',sid); return {'user':user(u)}
+@app.post('/api/auth/logout',status_code=204)
+async def logout(request:Request,response:Response):
+    u=await current(request); sid=request.cookies.get('wayon_session_id'); p=await db(); await p.execute('delete from app_sessions where id=$1',sid); await audit(u,'logout','sessao',sid); response.delete_cookie('wayon_session_id')
+@app.get('/api/auth/session')
+async def session(request:Request): return {'user':user(await current(request))}
+
+@app.get('/api/projects')
+async def list_projects(request:Request,status_filter:str|None=Query(None,alias='status'),area:str|None=None,all:bool=False):
+    u=await require(request); p=await db(); q='select * from app_projects'; args=[]; cond=[]
+    if not (all and u['role'] in ('admin','patrocinador','auditor')): cond.append("($1 in ('admin','patrocinador','auditor') or $2=any(managers_ids) or $2=any(participants_ids))"); args=[u['role'],u['id']]
+    if status_filter and status_filter!='todos': cond.append(f"status=${len(args)+1}"); args.append(status_filter)
+    if area: cond.append(f"responsible_area=${len(args)+1}"); args.append(area)
+    if cond:q+=' where '+' and '.join(cond)
+    return {'projects':[project(r) for r in await p.fetch(q,*args)]}
+@app.post('/api/projects')
+async def create_project(x:ProjectInput,request:Request):
+    u=await require(request,('admin','gerente')); p=await db()
+    if await p.fetchval('select 1 from app_projects where code=$1',x.codigo): raise HTTPException(409,'Código de projeto já existente')
+    i=str(uuid4()); await p.execute('insert into app_projects(id,name,code,responsible_area,managers_ids,write_group,read_group,write_identity_role,read_identity_role,snow_task_number,parent_folder,description,status,participants_ids) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',i,x.nome,x.codigo,x.areaResponsavel,x.gestoresIds,x.grupoAdEscrita,x.grupoAdLeitura,x.roleIdentidadeEscrita,x.roleIdentidadeLeitura,x.numeroTarefaSnow,x.pastaMae,x.descricao,x.status,x.participantesIds); r=await p.fetchrow('select * from app_projects where id=$1',i); await audit(u,'criar-projeto','projeto',i,x.nome); return {'project':project(r)}
+@app.get('/api/projects/{pid}')
+async def get_project(pid:str,request:Request):
+    u=await require(request); r=await visible(u,pid)
+    if not r: raise HTTPException(404,'Projeto não encontrado')
+    return {'project':project(r)}
+@app.patch('/api/projects/{pid}')
+async def patch_project(pid:str,x:ProjectPatch,request:Request):
+    u=await require(request,('admin','gerente')); r=await visible(u,pid)
+    if not r: raise HTTPException(404,'Projeto não encontrado')
+    if u['role']=='gerente' and u['id'] not in r['managers_ids']: raise HTTPException(403,'Gerente não pertence a este projeto')
+    fields={'nome':'name','areaResponsavel':'responsible_area','gestoresIds':'managers_ids','grupoAdEscrita':'write_group','grupoAdLeitura':'read_group','roleIdentidadeEscrita':'write_identity_role','roleIdentidadeLeitura':'read_identity_role','numeroTarefaSnow':'snow_task_number','pastaMae':'parent_folder','descricao':'description','status':'status','participantesIds':'participants_ids'}; vals=x.model_dump(exclude_unset=True); p=await db()
+    for k,v in vals.items(): await p.execute(f'update app_projects set {fields[k]}=$1,updated_at=now() where id=$2',v,pid)
+    r=await p.fetchrow('select * from app_projects where id=$1',pid); await audit(u,'editar-projeto','projeto',pid,','.join(vals)); return {'project':project(r)}
+@app.delete('/api/projects/{pid}',status_code=204)
+async def delete_project(pid:str,request:Request):
+    u=await require(request,('admin',)); p=await db(); r=await p.fetchrow('delete from app_projects where id=$1 returning *',pid)
+    if not r: raise HTTPException(404,'Projeto não encontrado')
+    await audit(u,'excluir-projeto','projeto',pid)
+
+@app.get('/api/projects/{pid}/members')
+async def members(pid:str,request:Request):
+    u=await require(request); r=await visible(u,pid)
+    if not r: raise HTTPException(404,'Projeto não encontrado')
+    p=await db(); rows=await p.fetch('select u.*,m.papel,m.created_at as added_at from app_project_members m join app_users u on u.id=m.user_id where m.project_id=$1',pid)
+    return {'members':[{'projectId':pid,'userId':x['id'],'papel':x['papel'],'adicionadoEm':x['added_at'].isoformat(),'user':user(x)} for x in rows]}
+@app.post('/api/projects/{pid}/members')
+async def add_member(pid:str,x:MemberInput,request:Request):
+    u=await require(request,('admin','gerente')); p=await db();
+    if not await visible(u,pid): raise HTTPException(404,'Projeto não encontrado')
+    if not await p.fetchval('select 1 from app_users where id=$1',x.userId): raise HTTPException(404,'Usuário não encontrado')
+    await p.execute('insert into app_project_members(project_id,user_id,papel) values($1,$2,$3) on conflict(project_id,user_id) do update set papel=excluded.papel',pid,x.userId,x.papel); return {'message':'Membro adicionado'}
+@app.patch('/api/projects/{pid}/members')
+async def patch_member(pid:str,x:MemberInput,request:Request): return await add_member(pid,x,request)
+@app.delete('/api/projects/{pid}/members')
+async def remove_member(pid:str,userId:str,request:Request):
+    await require(request,('admin','gerente')); p=await db(); await p.execute('delete from app_project_members where project_id=$1 and user_id=$2',pid,userId)
+
+@app.get('/api/files')
+async def list_files(projectId:str,request:Request,parentId:str|None=None,allFolders:bool=False):
+    u=await require(request)
+    if not await visible(u,projectId): raise HTTPException(404,'Projeto não encontrado')
+    p=await db(); rows=await p.fetch('select * from app_files where project_id=$1 and ($2 or parent_id is not distinct from $3) order by kind,name',projectId,allFolders,parentId)
+    return {'files':[dump_file(r) for r in rows],'breadcrumb':[]}
+def dump_file(r):
+    d=dump(r); return {'id':d['id'],'projectId':d['project_id'],'parentId':d['parent_id'],'tipo':d['kind'],'nome':d['name'],'tamanho':d['size_bytes'],'mimeType':d['mime_type'],'criadoPor':d['created_by'],'criadoEm':d['created_at'],'atualizadoEm':d['updated_at'],'compartilhamentos':[]}
+@app.post('/api/files')
+async def create_file(x:FileInput,request:Request):
+    u=await require(request,('admin','gerente','gestor','participante')); p=await db()
+    if not await visible(u,x.projectId): raise HTTPException(404,'Projeto não encontrado')
+    i=str(uuid4()); await p.execute('insert into app_files(id,project_id,parent_id,kind,name,size_bytes,mime_type,created_by) values($1,$2,$3,$4,$5,$6,$7,$8)',i,x.projectId,x.parentId,x.tipo,x.nome,x.tamanho,x.mimeType,u['id']); r=await p.fetchrow('select * from app_files where id=$1',i); await audit(u,'criar-arquivo','arquivo',i,x.nome); return {'file':dump_file(r)}
+@app.get('/api/files/{fid}')
+async def get_file(fid:str,request:Request):
+    u=await require(request); p=await db(); r=await p.fetchrow('select * from app_files where id=$1',fid)
+    if not r or not await visible(u,r['project_id']): raise HTTPException(404,'Arquivo não encontrado')
+    return {'file':dump_file(r)}
+@app.patch('/api/files/{fid}')
+async def patch_file(fid:str,x:FilePatch,request:Request):
+    u=await require(request,('admin','gerente','gestor','participante')); p=await db(); r=await p.fetchrow('select * from app_files where id=$1',fid)
+    if not r or not await visible(u,r['project_id']): raise HTTPException(404,'Arquivo não encontrado')
+    vals=x.model_dump(exclude_unset=True)
+    for k,v in vals.items(): await p.execute(f'update app_files set {"name" if k=="nome" else "parent_id"}=$1,updated_at=now() where id=$2',v,fid)
+    return {'file':dump_file(await p.fetchrow('select * from app_files where id=$1',fid))}
+@app.delete('/api/files/{fid}',status_code=204)
+async def delete_file(fid:str,request:Request):
+    u=await require(request,('admin','gerente','gestor','participante')); p=await db(); r=await p.fetchrow('delete from app_files where id=$1 returning *',fid)
+    if not r: raise HTTPException(404,'Arquivo não encontrado')
+    await audit(u,'excluir-arquivo','arquivo',fid,r['name'])
+@app.post('/api/files/{fid}/share')
+async def share(fid:str,x:ShareInput,request:Request):
+    u=await require(request,('admin','gerente')); p=await db();
+    if not await p.fetchval('select 1 from app_files where id=$1',fid): raise HTTPException(404,'Arquivo não encontrado')
+    await p.execute('insert into app_file_shares(file_id,user_id,level) values($1,$2,$3) on conflict(file_id,user_id) do update set level=excluded.level',fid,x.userId,x.nivel); return {'message':'Compartilhamento atualizado'}
+@app.delete('/api/files/{fid}/share')
+async def unshare(fid:str,userId:str,request:Request): await require(request,('admin','gerente')); p=await db(); await p.execute('delete from app_file_shares where file_id=$1 and user_id=$2',fid,userId)
+
+@app.get('/api/users')
+async def users(request:Request):
+    await require(request,('admin','patrocinador','auditor')); p=await db(); return {'users':[user(r) for r in await p.fetch('select * from app_users order by name')]}
+@app.patch('/api/users/{uid}')
+async def user_role(uid:str,x:RolePatch,request:Request):
+    u=await require(request,('admin',)); p=await db(); r=await p.fetchrow('update app_users set role=$1 where id=$2 returning *',x.role,uid)
+    if not r: raise HTTPException(404,'Usuário não encontrado')
+    return {'user':user(r)}
+@app.get('/api/activity-logs')
+async def activity_logs(request:Request,userId:str|None=None,acao:str|None=None,entidade:str|None=None,search:str|None=None,from_:str|None=Query(None,alias='from'),to:str|None=None):
+    await require(request,('admin','auditor')); p=await db(); args=[]; c=[]
+    for col,val in [('user_id',userId),('action',acao),('entity',entidade)]:
+        if val:c.append(f'{col}=${len(args)+1}');args.append(val)
+    if search:c.append(f'details ilike ${len(args)+1}');args.append(f'%{search}%')
+    q='select * from app_activity_logs'+((' where '+' and '.join(c)) if c else '')+' order by created_at desc limit 1000'; return {'logs':[dump(r) for r in await p.fetch(q,*args)]}
+@app.get('/api/activity-logs/export')
+async def export_logs(request:Request,format:Literal['csv','txt']='csv'):
+    data=(await activity_logs(request))['logs']; out=io.StringIO()
+    if format=='csv': w=csv.writer(out); w.writerow(['data','usuario','acao','entidade','entidade_id','detalhes']); [w.writerow([x.get('created_at'),x.get('user_id'),x.get('action'),x.get('entity'),x.get('entity_id'),x.get('details')]) for x in data]; media='text/csv'; name='auditoria.csv'
+    else: out.write('\n'.join(f"{x.get('created_at')} | {x.get('user_id')} | {x.get('action')} | {x.get('entity')}:{x.get('entity_id')} | {x.get('details')}" for x in data)); media='text/plain'; name='auditoria.txt'
+    return StreamingResponse(iter([out.getvalue()]),media_type=media,headers={'Content-Disposition':f'attachment; filename={name}'})
+@app.get('/api/reports')
+async def reports(request:Request,status_filter:str|None=Query(None,alias='status'),area:str|None=None,projectId:str|None=None):
+    u=await require(request); p=await db(); rows=[project(r) for r in await p.fetch('select * from app_projects order by created_at desc') if (u['role'] in ('admin','patrocinador','auditor') or u['id'] in r['managers_ids'] or u['id'] in r['participants_ids']) and (not status_filter or status_filter=='todos' or r['status']==status_filter) and (not area or r['responsible_area']==area) and (not projectId or r['id']==projectId)]
+    return {'filtros':{'status':status_filter or 'todos','area':area,'projectId':projectId},'indicadores':{'totalProjetos':len(rows),'ativos':sum(x['status']=='ativo' for x in rows),'suspensos':sum(x['status']=='suspenso' for x in rows),'concluidos':sum(x['status']=='concluido' for x in rows),'armazenamentoUsadoMb':0,'totalMembros':sum(len(x['gestoresIds'])+len(x['participantesIds']) for x in rows),'totalMapas':len(rows)},'porArea':[],'porStatus':[],'projetos':rows}
+@app.get('/api/access-map')
+async def access_map(request:Request):
+    u=await require(request); p=await db(); rows=await p.fetch('select * from app_projects'); visible=[r for r in rows if u['role'] in ('admin','patrocinador','auditor') or u['id'] in r['managers_ids'] or u['id'] in r['participants_ids']]; return {'summary':{'users':0,'projects':len(visible),'folders':0,'files':0,'relationships':0},'rows':[]}
+@app.get('/api/permissions')
+async def permissions(request:Request):
+    await require(request,('admin','auditor')); p=await db(); return {'matrix':[dump(r) for r in await p.fetch('select * from app_permissions order by role,resource')]}
+@app.put('/api/permissions')
+async def put_permissions(x:PermissionMatrix,request:Request):
+    await require(request,('admin',)); p=await db()
+    async with p.acquire() as c:
+        async with c.transaction():
+            await c.execute('delete from app_permissions')
+            for item in x.matrix: await c.execute('insert into app_permissions(role,resource,actions) values($1,$2,$3)',item['role'],item['resource'],item.get('actions',[]))
+    return {'matrix':x.matrix}
+@app.get('/api/settings')
+async def settings(request:Request): await require(request,('admin','auditor')); p=await db(); return {'settings':{r['key']:r['value'] for r in await p.fetch('select * from app_settings')}}
+@app.patch('/api/settings')
+async def patch_settings(request:Request):
+    await require(request,('admin',)); values=await request.json(); p=await db()
+    for k,v in values.items(): await p.execute('insert into app_settings(key,value) values($1,$2) on conflict(key) do update set value=excluded.value,updated_at=now()',k,json.dumps(v))
+    return {'settings':values}
