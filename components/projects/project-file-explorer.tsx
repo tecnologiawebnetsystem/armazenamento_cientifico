@@ -569,7 +569,7 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Renomear</DialogTitle>
-            <DialogDescription>Escolha um novo nome para "{renameTarget?.nome}".</DialogDescription>
+            <DialogDescription>Escolha um novo nome para &quot;{renameTarget?.nome}&quot;.</DialogDescription>
           </DialogHeader>
           <Input
             value={renameValue}
@@ -595,7 +595,7 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
       <Dialog open={moveTarget !== null} onOpenChange={(open) => !open && setMoveTarget(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Mover "{moveTarget?.nome}"</DialogTitle>
+            <DialogTitle>Mover &quot;{moveTarget?.nome}&quot;</DialogTitle>
             <DialogDescription>Escolha a pasta de destino.</DialogDescription>
           </DialogHeader>
           <Select value={moveDestination} onValueChange={(v) => setMoveDestination(v ?? "root")}>
@@ -636,7 +636,7 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
       <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir "{deleteTarget?.nome}"?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir &quot;{deleteTarget?.nome}&quot;?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleteTarget?.tipo === "pasta"
                 ? "Esta pasta e todo o seu conteúdo serão excluídos permanentemente."
@@ -702,7 +702,7 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
       <Dialog open={shareTarget !== null} onOpenChange={(open) => !open && setShareTarget(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Compartilhar "{shareTarget?.nome}"</DialogTitle>
+            <DialogTitle>Compartilhar &quot;{shareTarget?.nome}&quot;</DialogTitle>
             <DialogDescription>Defina o nível de acesso de cada membro do projeto a este item.</DialogDescription>
           </DialogHeader>
 

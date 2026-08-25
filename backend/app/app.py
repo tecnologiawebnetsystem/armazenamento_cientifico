@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.core.exceptions import AppException
 from app.db.session import connect, disconnect
 from app.legacy_api import app as legacy_app
+from app.modules.audit.module import router as audit_router
 from app.modules.files.module import router as files_router
 from app.modules.projects.module import router as projects_router
 from app.modules.users.module import router as users_router
@@ -83,6 +84,7 @@ def create_app() -> FastAPI:
     application.include_router(users_router)
     application.include_router(projects_router)
     application.include_router(files_router)
+    application.include_router(audit_router)
     # Os endpoints existentes continuam disponíveis enquanto cada domínio é migrado.
     application.mount("/", legacy_app)
 
