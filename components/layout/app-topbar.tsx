@@ -11,6 +11,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -87,13 +88,15 @@ export function AppTopbar() {
               <span className="hidden max-w-36 truncate text-xs font-semibold text-foreground md:inline">{user.nome}</span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64">
-              <DropdownMenuLabel className="flex flex-col gap-1 px-2 py-2">
-                <span className="truncate text-sm font-semibold text-foreground">{user.nome}</span>
-                <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
-                <Badge variant="secondary" className="mt-1 w-fit border-0 bg-muted px-1.5 py-0 text-[10px] font-medium text-muted-foreground">
-                  {roleLabel(user.role) ?? "Usuário da plataforma"}
-                </Badge>
-              </DropdownMenuLabel>
+              <DropdownMenuGroup>
+                <DropdownMenuLabel className="flex flex-col gap-1 px-2 py-2">
+                  <span className="truncate text-sm font-semibold text-foreground">{user.nome}</span>
+                  <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
+                  <Badge variant="secondary" className="mt-1 w-fit border-0 bg-muted px-1.5 py-0 text-[10px] font-medium text-muted-foreground">
+                    {roleLabel(user.role) ?? "Usuário da plataforma"}
+                  </Badge>
+                </DropdownMenuLabel>
+              </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem disabled>
                 <UserRoundIcon />
