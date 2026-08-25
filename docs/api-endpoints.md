@@ -1,4 +1,6 @@
-# API da plataforma
+# SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico
+
+## API da plataforma
 
 A fonte de verdade do contrato é o OpenAPI gerado em `/openapi.json` (Swagger em `/docs`). Todas as rotas abaixo são expostas pelo backend FastAPI; login e health são as exceções à autenticação por sessão.
 
