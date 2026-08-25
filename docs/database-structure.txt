@@ -1,0 +1,141 @@
+ESTRUTURA DO BANCO DE DADOS — ARMAZENAMENTO CIENTÍFICO
+=====================================================
+
+1. EXECUÇÃO LOCAL
+-----------------
+Banco: PostgreSQL 16 (Docker)
+Arquivo Compose: backend/docker-compose.local.yml
+Database: armazenamento_cientifico
+Usuário: armazenamento
+Porta local: 5432
+Volume: armazenamento_postgres_data
+Schema inicial: database/projects-schema.sql
+
+Comando:
+  cd backend
+  docker compose -f docker-compose.local.yml up -d
+
+Observação: o script SQL é executado automaticamente apenas na primeira criação do volume. Para recriar o banco local:
+  docker compose -f docker-compose.local.yml down -v
+  docker compose -f docker-compose.local.yml up -d
+
+2. TABELAS DO SCRIPT SQL ATUAL
+------------------------------
+profiles
+  id uuid PK
+  name varchar(100) UNIQUE NOT NULL
+  description text
+  created_at timestamptz NOT NULL
+
+users
+  id uuid PK
+  external_id varchar(150) UNIQUE
+  name varchar(160) NOT NULL
+  email varchar(255) UNIQUE NOT NULL
+  profile_id uuid FK -> profiles.id (ON DELETE SET NULL)
+  created_at, updated_at timestamptz NOT NULL
+
+projects
+  id uuid PK
+  code varchar(50) UNIQUE NOT NULL
+  name varchar(200) NOT NULL
+  responsible_area varchar(150) NOT NULL
+  snow_task_number varchar(50) NOT NULL
+  parent_folder_name varchar(500) NOT NULL
+  created_by uuid FK -> users.id (ON DELETE SET NULL)
+  created_at, updated_at timestamptz NOT NULL
+
+project_managers (PK composta: project_id + user_id)
+  project_id uuid FK -> projects.id (ON DELETE CASCADE)
+  user_id uuid FK -> users.id (ON DELETE CASCADE)
+
+project_access_groups
+  id uuid PK
+  project_id uuid FK -> projects.id (ON DELETE CASCADE)
+  provider varchar(30) NOT NULL
+  group_name varchar(255) NOT NULL
+  access_level read|write
+  UNIQUE(project_id, provider, group_name, access_level)
+
+project_access_roles
+  id uuid PK
+  project_id uuid FK -> projects.id (ON DELETE CASCADE)
+  provider varchar(30) NOT NULL
+  role_name varchar(255) NOT NULL
+  access_level read|write
+  UNIQUE(project_id, provider, role_name, access_level)
+
+files
+  id uuid PK
+  project_id uuid FK -> projects.id (ON DELETE CASCADE)
+  parent_id uuid FK -> files.id (ON DELETE CASCADE), opcional
+  kind folder|file
+  name varchar(500) NOT NULL
+  size_bytes bigint NOT NULL
+  mime_type varchar(150), opcional
+  created_by uuid FK -> users.id (ON DELETE SET NULL)
+  last_viewed_at timestamptz, opcional
+  created_at, updated_at timestamptz NOT NULL
+
+file_shares (PK composta: file_id + user_id)
+  file_id uuid FK -> files.id (ON DELETE CASCADE)
+  user_id uuid FK -> users.id (ON DELETE CASCADE)
+  access_level read|write
+  shared_by uuid FK -> users.id (ON DELETE SET NULL)
+  created_at timestamptz NOT NULL
+
+activity_logs
+  id uuid PK
+  user_id uuid FK -> users.id (ON DELETE SET NULL), opcional
+  action varchar(80) NOT NULL
+  entity varchar(80) NOT NULL
+  entity_id varchar(150) NOT NULL
+  details text NOT NULL
+  ip_address inet, opcional
+  user_agent text, opcional
+  created_at timestamptz NOT NULL
+
+3. ORGANOGRAMA DE RELACIONAMENTOS
+----------------------------------
+profiles
+  |
+  +-- users
+        |
+        +-- projects (created_by)
+        |     |
+        |     +-- project_managers -- users
+        |     +-- project_access_groups
+        |     +-- project_access_roles
+        |     +-- files
+        |           |
+        |           +-- files (parent_id, hierarquia de pastas)
+        |           +-- file_shares -- users
+        |
+        +-- file_shares (shared_by)
+        +-- activity_logs
+
+4. ÍNDICES
+----------
+idx_projects_area: projects(responsible_area)
+idx_projects_snow: projects(snow_task_number)
+idx_project_groups_project: project_access_groups(project_id)
+idx_project_roles_project: project_access_roles(project_id)
+idx_files_project_parent: files(project_id, parent_id)
+idx_file_shares_user: file_shares(user_id)
+idx_activity_logs_user_created: activity_logs(user_id, created_at DESC)
+idx_activity_logs_entity_created: activity_logs(entity, created_at DESC)
+
+5. PONTO DE ATENÇÃO DA MIGRAÇÃO
+-------------------------------
+O SQL atual usa nomes sem prefixo (users, projects, files etc.). Os modelos SQLAlchemy
+modulares atualmente usam nomes app_users, app_projects, app_files, app_file_shares e
+app_activity_logs. Antes de ativar a persistência dos módulos novos em um ambiente real,
+é necessário padronizar os nomes por migration Alembic ou alinhar os __tablename__ ao SQL.
+A aplicação mantém o legacy_api durante a migração, portanto essa divergência não deve ser
+ignorada nem resolvida com criação automática de tabelas em produção.
+
+6. ESTADO
+---------
+O Docker está configurado para inicializar o PostgreSQL e montar o schema SQL somente na
+primeira inicialização do volume. Não há Alembic versionado em backend/alembic/; recomenda-se
+criar a primeira migration antes de promover os módulos SQLAlchemy para produção.

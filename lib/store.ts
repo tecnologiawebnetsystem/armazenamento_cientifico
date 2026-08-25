@@ -33,7 +33,6 @@ import type {
  * mantendo as mesmas assinaturas usadas pelas rotas.
  */
 declare global {
-  // eslint-disable-next-line no-var
   var __wayonStore:
     | {
         users: User[]

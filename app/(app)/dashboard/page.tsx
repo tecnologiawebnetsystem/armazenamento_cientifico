@@ -23,8 +23,6 @@ export default async function DashboardPage() {
 
   return (
     <ExecutiveDashboard
-      nome={user.nome}
-      role={user.role}
       projects={visibleProjects}
       totalMembros={memberIdsInScope.size}
       totalMapas={visibleFiles.length}
