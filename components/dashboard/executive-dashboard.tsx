@@ -45,30 +45,7 @@ export function ExecutiveDashboard({ nome, role, projects, totalMembros, totalMa
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="relative overflow-hidden rounded-2xl bg-primary p-6 text-primary-foreground shadow-lg sm:p-8">
-        <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex max-w-2xl flex-col gap-3">
-            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-primary-foreground/70">
-              <span className="flex size-2 rounded-full bg-chart-2" /> Centro de operações científicas
-            </div>
-            <h1 className="text-balance font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
-              Bom dia, {primeiroNome}.
-            </h1>
-            <p className="max-w-xl text-sm leading-6 text-primary-foreground/75">
-              {roleLabels[role] ?? "Acompanhamento de dados científicos"}. Tudo o que importa para sua operação, em uma única visão.
-            </p>
-          </div>
-          <div className="flex items-center gap-3 rounded-xl border border-primary-foreground/15 bg-primary-foreground/10 px-4 py-3 backdrop-blur-sm">
-            <ShieldCheckIcon className="size-5 text-chart-2" />
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs text-primary-foreground/60">Ambiente protegido</span>
-              <span className="text-sm font-medium">Dados sincronizados</span>
-            </div>
-          </div>
-        </div>
-        <div className="absolute -right-16 -top-24 size-72 rounded-full border border-primary-foreground/10" />
-        <div className="absolute -bottom-40 right-16 size-80 rounded-full border border-primary-foreground/10" />
-      </section>
+      
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
@@ -92,7 +69,7 @@ export function ExecutiveDashboard({ nome, role, projects, totalMembros, totalMa
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
+      <div className="grid gap-6">
         <Card className="border-0 shadow-sm ring-1 ring-border/70">
           <CardHeader className="border-b bg-muted/20 pb-4">
             <div className="flex items-start justify-between gap-4">
@@ -115,15 +92,7 @@ export function ExecutiveDashboard({ nome, role, projects, totalMembros, totalMa
           </CardContent>
         </Card>
 
-        <Card className="border-0 bg-secondary/30 shadow-sm ring-1 ring-border/70">
-          <CardHeader><CardTitle>Próxima decisão</CardTitle></CardHeader>
-          <CardContent className="flex flex-col gap-5">
-            <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground"><BarChart3Icon className="size-6" /></div>
-            <div className="flex flex-col gap-2"><h2 className="font-heading text-xl font-semibold">Leia o pulso do portfólio</h2><p className="text-sm leading-6 text-muted-foreground">Consulte tendências, status e distribuição por área para apoiar a próxima reunião de acompanhamento.</p></div>
-            <Button render={<Link href="/relatorios" />} nativeButton={false}>Abrir consultas <ArrowUpRightIcon data-icon="inline-end" /></Button>
-            <div className="flex items-center gap-2 border-t pt-4 text-xs text-muted-foreground"><CircleCheckIcon className="size-4 text-chart-2" /> Visibilidade calculada por perfil</div>
-          </CardContent>
-        </Card>
+        
       </div>
     </div>
   )
