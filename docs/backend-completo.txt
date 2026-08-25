@@ -1,5 +1,5 @@
 DOCUMENTAÇÃO COMPLETA DO BACKEND
-Armazenamento Científico API
+SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico API
 
 1. VISÃO GERAL
 

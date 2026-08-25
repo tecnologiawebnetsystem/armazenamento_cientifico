@@ -14,9 +14,9 @@ const fontMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Armazenamento Científico | Petrobras",
+  title: "SIGAC | Petrobras",
   description:
-    "Plataforma de armazenamento científico Petrobras: arquivamento, organização, compartilhamento e gestão de documentos por projeto, com controle de acesso por perfis e permissões.",
+    "SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico da Petrobras, com organização, compartilhamento e controle de acesso por perfis e permissões.",
 }
 
 export const viewport: Viewport = {

@@ -158,6 +158,9 @@ export type ActivityAction =
   | "atualizar-papel-usuario"
   | "atualizar-matriz-permissoes"
   | "atualizar-parametros"
+  | "consultar-mapa-acessos"
+  | "exportar-logs"
+  | "exportar-relatorio"
 
 export interface ActivityLog {
   id: string
@@ -167,6 +170,9 @@ export interface ActivityLog {
   entidadeId: string
   detalhes: string
   criadoEm: string
+  resultado?: "sucesso" | "erro"
+  projetoId?: string
+  correlationId?: string
 }
 
 export interface AccessMapRow {
@@ -185,6 +191,21 @@ export interface AccessMapRow {
   lastViewedAt: string
 }
 
+export interface ProjectAccessMapGroup {
+  nome: string
+  fonte: string
+  identificadores: string[]
+  nivel: string
+}
+
+export interface ProjectAccessMapResponse {
+  projectId: string
+  groups: ProjectAccessMapGroup[]
+  members: (ProjectMember & { user: User })[]
+  source: string
+  consultedAt: string
+}
+
 export interface AccessMapResponse {
   summary: {
     users: number
@@ -197,7 +218,7 @@ export interface AccessMapResponse {
 }
 
 export interface ProjectReport {
-  filtros: { periodoDe?: string; periodoAte?: string; status?: ProjectStatus | "todos"; area?: string; projectId?: string }
+  filtros: { periodoDe?: string; periodoAte?: string; status?: ProjectStatus | "todos"; area?: string; projectId?: string; gestorId?: string }
   indicadores: {
     totalProjetos: number
     ativos: number

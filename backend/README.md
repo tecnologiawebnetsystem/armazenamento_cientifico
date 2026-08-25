@@ -1,4 +1,4 @@
-# Armazenamento Científico — Backend
+# SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico — Backend
 
 API REST em FastAPI para projetos, arquivos, acessos, relatórios e auditoria, com PostgreSQL.
 

@@ -27,7 +27,7 @@ function pageTitleFor(pathname: string) {
     }
   }
   if (pathname.startsWith("/projetos/")) return "Detalhe do projeto"
-  return "Armazenamento Científico"
+  return "SIGAC"
 }
 
 function initials(name: string) {

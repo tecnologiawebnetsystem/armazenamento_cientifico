@@ -143,6 +143,10 @@ export function deleteProject(id: string) {
   return request<void>(`/api/projects/${id}`, { method: "DELETE" })
 }
 
+export function getProjectAccessMap(projectId: string) {
+  return request<{ projectId: string; groups: Array<{ nome: string; fonte: string; identificadores: string[]; nivel: string }>; members: Array<ProjectMember & { user: User }>; source: string; consultedAt: string }>(`/api/projects/${projectId}/access-map`)
+}
+
 export function getProjectMembers(projectId: string) {
   return request<{ members: (ProjectMember & { user: User })[] }>(`/api/projects/${projectId}/members`)
 }

@@ -1,5 +1,5 @@
 ================================================================================
-PLATAFORMA DE ARMAZENAMENTO CIENTÍFICO — PERFIS E PERMISSÕES
+SIGAC — SISTEMA DE GESTÃO DE ACESSO AO ARMAZENAMENTO CIENTÍFICO — PERFIS E PERMISSÕES
 ================================================================================
 Documento gerado a partir do comportamento real implementado no código
 (lib/types.ts, lib/mock-data.ts, hooks/use-permissions.ts, lib/nav-config.ts

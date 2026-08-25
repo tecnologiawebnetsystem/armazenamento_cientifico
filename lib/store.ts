@@ -189,6 +189,7 @@ export function logActivity(
   entidade: string,
   entidadeId: string,
   detalhes: string,
+  metadata: { resultado?: "sucesso" | "erro"; projetoId?: string; correlationId?: string } = {},
 ) {
   const store = getStore()
   store.activityLogs.unshift({
@@ -199,5 +200,6 @@ export function logActivity(
     entidadeId,
     detalhes,
     criadoEm: new Date().toISOString(),
+    ...metadata,
   })
 }

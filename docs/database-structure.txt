@@ -1,4 +1,5 @@
-ESTRUTURA DO BANCO DE DADOS — ARMAZENAMENTO CIENTÍFICO
+ESTRUTURA DO BANCO DE DADOS — SIGAC
+Sistema de Gestão de Acesso ao Armazenamento Científico
 =====================================================
 
 1. EXECUÇÃO LOCAL

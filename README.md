@@ -1,6 +1,6 @@
-# Armazenamento Científico
+# SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico
 
-Plataforma web para gestão de projetos, mapas, arquivos, permissões, relatórios e auditoria. O frontend usa Next.js 16, TypeScript, Tailwind CSS e shadcn/ui.
+Aplicação web da Petrobras para gestão de projetos, mapas, arquivos, permissões, relatórios e auditoria. O frontend usa Next.js 16, TypeScript, Tailwind CSS e shadcn/ui.
 
 ## Pré-requisitos
 
