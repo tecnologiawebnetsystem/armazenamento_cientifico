@@ -33,10 +33,11 @@ function formatStorage(mb?: number) {
 interface Props {
   project: Project
   canManage?: boolean
+  showMeta?: boolean
   onToggleStatus?: (project: Project) => void
 }
 
-export function ProjectCard({ project, canManage = false, onToggleStatus }: Props) {
+export function ProjectCard({ project, canManage = false, showMeta = true, onToggleStatus }: Props) {
   const membros = project.participantesIds?.length ?? 0
   const gestores = project.gestoresIds?.length ?? 0
   const suspenso = project.status === "suspenso"
@@ -100,15 +101,10 @@ export function ProjectCard({ project, canManage = false, onToggleStatus }: Prop
 
       <CardContent className="flex flex-col gap-1">
         <span className="text-sm text-muted-foreground">{project.areaResponsavel}</span>
-        <div className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
+        {showMeta && <div className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
           <span>{project.codigo ?? project.id}</span>
-          {gestores > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5">
-              <ShieldCheckIcon className="size-3" />
-              {gestores} {gestores === 1 ? "gestor" : "gestores"}
-            </span>
-          )}
-        </div>
+          {gestores > 0 && <span className="inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5"><ShieldCheckIcon className="size-3" />{gestores} {gestores === 1 ? "gestor" : "gestores"}</span>}
+        </div>}
       </CardContent>
 
       <CardFooter className="justify-between border-t pt-4 text-sm text-muted-foreground">

@@ -11,6 +11,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const search = searchParams.get("nome")?.trim().toLowerCase() ?? ""
   const status = searchParams.get("status")
+  const area = searchParams.get("area")
   const page = Math.max(1, Number(searchParams.get("page") ?? "1") || 1)
   const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit") ?? "50") || 50))
 
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
   //   em que participam como membro OU dos quais são gestores.
   const visibleProjects = getVisibleProjects(user.id).filter((p) => {
     const matchesName = !search || p.nome.toLowerCase().includes(search) || p.codigo.toLowerCase().includes(search)
-    return matchesName && (!status || status === "todos" || p.status === status)
+    return matchesName && (!status || status === "todos" || p.status === status) && (!area || area === "todas" || p.areaResponsavel === area)
   })
   const total = visibleProjects.length
   const pagedProjects = visibleProjects.slice((page - 1) * limit, page * limit)
