@@ -5,6 +5,7 @@ import { findUserById } from "@/lib/store"
 import { getRolePermissions } from "@/hooks/use-permissions"
 import { Button } from "@/components/ui/button"
 import { ProjectsList } from "@/components/projects/projects-list"
+import { BackButton } from "@/components/navigation/back-button"
 
 export default async function ProjetosPage() {
   const userId = await getSessionUserId()
@@ -13,6 +14,7 @@ export default async function ProjetosPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <BackButton />
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Projetos</h1>
