@@ -185,6 +185,21 @@ export interface AccessMapRow {
   lastViewedAt: string
 }
 
+export interface ProjectAccessMapGroup {
+  nome: string
+  fonte: string
+  identificadores: string[]
+  nivel: string
+}
+
+export interface ProjectAccessMapResponse {
+  projectId: string
+  groups: ProjectAccessMapGroup[]
+  members: (ProjectMember & { user: User })[]
+  source: string
+  consultedAt: string
+}
+
 export interface AccessMapResponse {
   summary: {
     users: number

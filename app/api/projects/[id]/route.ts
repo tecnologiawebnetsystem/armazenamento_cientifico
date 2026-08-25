@@ -74,6 +74,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   return NextResponse.json({ project })
 }
 
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  return PATCH(request, { params })
+}
+
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const userId = await getSessionUserId()
@@ -85,11 +89,9 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
   const store = getStore()
   const project = store.projects.find((p) => p.id === id)
-  store.projects = store.projects.filter((p) => p.id !== id)
-  store.projectMembers = store.projectMembers.filter((m) => m.projectId !== id)
-  store.files = store.files.filter((f) => f.projectId !== id)
-
-  logActivity(user.id, "excluir-projeto", "projeto", id, `Excluiu o projeto "${project?.nome ?? id}".`)
-
-  return new NextResponse(null, { status: 204 })
+  if (!project) return NextResponse.json({ message: "Projeto não encontrado." }, { status: 404 })
+  project.status = "suspenso"
+  project.atualizadoEm = new Date().toISOString()
+  logActivity(user.id, "excluir-projeto", "projeto", id, `Desativou o projeto "${project.nome}".`)
+  return NextResponse.json({ project })
 }
