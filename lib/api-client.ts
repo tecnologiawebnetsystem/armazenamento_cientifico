@@ -26,7 +26,17 @@ import type {
  * request/response foram desenhados para serem replicados 1:1 pelo backend
  * definitivo.
  */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? ""
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "")
+
+/**
+ * Cliente único para alternar entre as API Routes locais e o FastAPI externo.
+ * `credentials: include` mantém a sessão por cookie quando a API real estiver
+ * em outro domínio com CORS configurado.
+ */
+export const API_CONFIG = {
+  baseUrl: API_BASE_URL,
+  usingExternalBackend: Boolean(API_BASE_URL),
+} as const
 
 class ApiError extends Error {
   status: number
@@ -40,6 +50,7 @@ class ApiError extends Error {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(init?.headers ?? {}),
