@@ -29,9 +29,10 @@ import type {
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "")
 
 /**
- * Cliente único para alternar entre as API Routes locais e o FastAPI externo.
- * `credentials: include` mantém a sessão por cookie quando a API real estiver
- * em outro domínio com CORS configurado.
+ * Cliente único para usar o FastAPI externo como fonte principal e manter as
+ * API Routes locais como fallback explícito de desenvolvimento. `credentials:
+ * include` mantém a sessão por cookie quando a API real estiver em outro domínio
+ * com CORS configurado.
  */
 export const API_CONFIG = {
   baseUrl: API_BASE_URL,
@@ -47,8 +48,8 @@ class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+async function fetchRequest(url: string, init?: RequestInit) {
+  return fetch(url, {
     ...init,
     credentials: "include",
     headers: {
@@ -57,6 +58,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     },
     cache: "no-store",
   })
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  let res: Response
+  try {
+    res = await fetchRequest(`${API_BASE_URL}${path}`, init)
+  } catch (error) {
+    if (!API_BASE_URL) throw error
+    // Fallback opcional para as API Routes locais do Next.js durante o desenvolvimento.
+    res = await fetchRequest(path, init)
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ message: res.statusText }))
@@ -64,7 +76,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (res.status === 204) return undefined as T
-
   return res.json() as Promise<T>
 }
 

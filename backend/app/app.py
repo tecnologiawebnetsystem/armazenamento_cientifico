@@ -12,10 +12,6 @@ from app.core.config import settings
 from app.core.exceptions import AppException
 from app.db.session import connect, disconnect
 from app.legacy_api import app as legacy_app
-from app.modules.audit.module import router as audit_router
-from app.modules.files.module import router as files_router
-from app.modules.projects.module import router as projects_router
-from app.modules.users.module import router as users_router
 
 logger = logging.getLogger(__name__)
 
@@ -80,12 +76,9 @@ def create_app() -> FastAPI:
             "database": "configured" if settings.database_url else "not_configured",
         }
 
-    # Módulos novos são registrados antes do legado para permitir migração incremental.
-    application.include_router(users_router)
-    application.include_router(projects_router)
-    application.include_router(files_router)
-    application.include_router(audit_router)
-    # Os endpoints existentes continuam disponíveis enquanto cada domínio é migrado.
+    # O legado é o contrato HTTP canônico durante a integração frontend/backend.
+    # Ele expõe os endpoints consumidos pelo cliente TypeScript, com respostas
+    # compatíveis e autorização baseada na sessão PostgreSQL.
     application.mount("/", legacy_app)
 
     # Aplicações montadas não propagam automaticamente seus paths para o schema
