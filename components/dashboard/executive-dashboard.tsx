@@ -5,6 +5,9 @@ import {
   GaugeIcon,
   MapIcon,
   UsersIcon,
+  PlusIcon,
+  FileBarChartIcon,
+  ArrowRightIcon,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -28,9 +31,21 @@ export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazen
   const suspensos = projects.filter((project) => project.status === "suspenso").length
   const total = Math.max(projects.length, 1)
 
+  const areas = Array.from(new Set(projects.map((project) => project.areaResponsavel))).filter(Boolean).slice(0, 5)
+
   return (
     <div className="flex flex-col gap-6">
-      
+      <header className="flex flex-col gap-4 rounded-xl border border-primary/15 bg-primary/[0.04] p-5 sm:flex-row sm:items-end sm:justify-between sm:p-6">
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">SIGAC · visão executiva</p>
+          <h1 className="font-heading text-3xl font-semibold tracking-tight text-balance">Portfólio científico em foco</h1>
+          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">Acompanhe projetos, acessos e capacidade de armazenamento em um único panorama operacional.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/projetos?novo=1" className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"><PlusIcon data-icon="inline-start" />Novo projeto</Link>
+          <Link href="/relatorios" className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium transition-colors hover:bg-muted"><FileBarChartIcon data-icon="inline-start" />Relatórios</Link>
+        </div>
+      </header>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
@@ -54,7 +69,7 @@ export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazen
         ))}
       </div>
 
-      <div className="grid gap-6">
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border-0 shadow-sm ring-1 ring-border/70">
           <CardHeader className="border-b bg-muted/20 pb-4">
             <div className="flex items-start justify-between gap-4">
@@ -77,7 +92,13 @@ export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazen
           </CardContent>
         </Card>
 
-        
+        <Card className="border-0 shadow-sm ring-1 ring-border/70">
+          <CardHeader className="border-b bg-muted/20 pb-4"><CardTitle>Distribuição por área</CardTitle><p className="text-sm text-muted-foreground">Onde o portfólio está concentrado.</p></CardHeader>
+          <CardContent className="flex flex-col gap-4 p-5">
+            {areas.map((area) => { const count = projects.filter((project) => project.areaResponsavel === area).length; return <Link key={area} href={`/projetos?area=${encodeURIComponent(area)}`} className="group flex items-center justify-between gap-3"><span className="truncate text-sm font-medium">{area}</span><span className="flex items-center gap-2 text-sm text-muted-foreground"><Badge variant="secondary">{count}</Badge><ArrowRightIcon className="size-4 opacity-0 transition-opacity group-hover:opacity-100" /></span></Link> })}
+            {!areas.length && <p className="text-sm text-muted-foreground">Nenhuma área disponível no seu escopo.</p>}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
