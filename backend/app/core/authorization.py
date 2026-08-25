@@ -15,7 +15,8 @@ def canonical_role(role: str | None) -> str:
 
 
 def ensure_role(user: Any, *allowed_roles: str) -> Any:
-    role = canonical_role(user["role"])
+    raw_role = user.get("role") if isinstance(user, dict) else getattr(user, "role", None)
+    role = canonical_role(raw_role)
     allowed = {canonical_role(item) for item in allowed_roles}
     if role not in allowed:
         raise HTTPException(status_code=403, detail="Usuário sem permissão para esta operação")

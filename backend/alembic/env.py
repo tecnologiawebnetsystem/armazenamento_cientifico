@@ -1,16 +1,12 @@
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+from alembic import context
 from app.core.config import settings
 from app.db.base import Base
-from app.modules.audit import models as audit_models  # noqa: F401
-from app.modules.files import models as files_models  # noqa: F401
-from app.modules.projects import models as projects_models  # noqa: F401
-from app.modules.users import models as users_models  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:
@@ -22,7 +18,12 @@ target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:
     url = settings.database_url
-    context.configure(url=url, target_metadata=target_metadata, literal_binds=True, dialect_opts={"paramstyle": "named"})
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
     with context.begin_transaction():
         context.run_migrations()
 
@@ -46,6 +47,7 @@ def do_run_migrations(connection: Connection) -> None:
 
 def run_migrations_online() -> None:
     import asyncio
+
     asyncio.run(run_async_migrations())
 
 

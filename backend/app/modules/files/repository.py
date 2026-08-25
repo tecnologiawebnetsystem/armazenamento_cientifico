@@ -8,7 +8,9 @@ class FileRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def list_by_project(self, project_id: str, parent_id: str | None, all_folders: bool) -> list[File]:
+    async def list_by_project(
+        self, project_id: str, parent_id: str | None, all_folders: bool
+    ) -> list[File]:
         query = select(File).where(File.project_id == project_id).order_by(File.kind, File.name)
         if not all_folders:
             query = query.where(File.parent_id == parent_id)

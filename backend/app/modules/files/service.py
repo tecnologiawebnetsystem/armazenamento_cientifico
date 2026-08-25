@@ -17,7 +17,20 @@ class FileService:
 
     async def create_file(self, data: FileCreate, user_id: str):
         now = datetime.now(UTC)
-        return await self.repository.create(File(id=str(uuid4()), project_id=data.project_id, parent_id=data.parent_id, kind=data.kind, name=data.name, size_bytes=data.size_bytes, mime_type=data.mime_type, created_by=user_id, created_at=now, updated_at=now))
+        return await self.repository.create(
+            File(
+                id=str(uuid4()),
+                project_id=data.project_id,
+                parent_id=data.parent_id,
+                kind=data.kind,
+                name=data.name,
+                size_bytes=data.size_bytes,
+                mime_type=data.mime_type,
+                created_by=user_id,
+                created_at=now,
+                updated_at=now,
+            )
+        )
 
     async def update_file(self, file_id: str, data: FileUpdate):
         file = await self.repository.find_by_id(file_id)

@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUser, require_roles
+from app.api.dependencies import CurrentUser
 from app.db.session import get_session
 from app.modules.projects.repository import ProjectRepository
 from app.modules.projects.schemas import ProjectOut
