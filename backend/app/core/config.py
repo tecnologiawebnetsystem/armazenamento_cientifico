@@ -9,9 +9,9 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 
 class Settings(BaseModel):
-    app_name: str = "Armazenamento Científico API"
+    app_name: str = "SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico API"
     app_version: str = "3.0.0"
-    database_url: str = os.getenv("DATABASE_URL", "")
+    database_url: str = os.getenv("DATABASE_URL", "postgresql+asyncpg://sigac:sigac_dev_password@localhost:5432/sigac")
     cors_origins: list[str] = [
         x.strip()
         for x in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")

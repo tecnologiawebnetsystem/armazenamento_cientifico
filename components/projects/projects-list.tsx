@@ -1,6 +1,7 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import {
   FolderPlusIcon,
@@ -9,6 +10,7 @@ import {
   CircleCheckIcon,
   PauseCircleIcon,
   DatabaseIcon,
+  Columns3Icon,
 } from "lucide-react"
 import { useProjects } from "@/hooks/use-projects"
 import { useSession } from "@/hooks/use-session"
@@ -67,15 +69,34 @@ function formatStorage(mb: number) {
 }
 
 export function ProjectsList({ canCreate }: { canCreate: boolean }) {
-  const { projects, isLoading, refresh } = useProjects()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  const initialSearch = searchParams.get("nome") ?? ""
+  const initialStatus = (searchParams.get("status") as StatusFilter) || "todos"
+  const initialArea = searchParams.get("area") ?? "todas"
+  const { projects, pagination, isLoading, refresh } = useProjects({ nome: initialSearch, status: initialStatus, page: Number(searchParams.get("page") ?? "1") || 1, limit: 12 })
   const { user } = useSession()
-  const [search, setSearch] = useState("")
-  const [status, setStatus] = useState<StatusFilter>("todos")
-  const [area, setArea] = useState("todas")
+  const [search, setSearch] = useState(initialSearch)
+  const [status, setStatus] = useState<StatusFilter>(initialStatus)
+  const [area, setArea] = useState(initialArea)
   const [sort, setSort] = useState<SortOption>("recentes")
   const [view, setView] = useState<ViewMode>("grade")
+  const [showMeta, setShowMeta] = useState(true)
   const [target, setTarget] = useState<Project | null>(null)
   const [pending, setPending] = useState(false)
+
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams.toString())
+    if (search) next.set("nome", search)
+    else next.delete("nome")
+    if (status !== "todos") next.set("status", status)
+    else next.delete("status")
+    if (area !== "todas") next.set("area", area)
+    else next.delete("area")
+    next.set("page", "1")
+    router.replace(`${pathname}?${next.toString()}`, { scroll: false })
+  }, [search, status, area, pathname, router, searchParams])
 
   const areas = useMemo(
     () => Array.from(new Set(projects.map((p) => p.areaResponsavel).filter(Boolean))).sort(),
@@ -167,6 +188,8 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         onViewChange={setView}
       />
 
+      <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground"><Columns3Icon className="size-4" /><label className="flex items-center gap-2"><input type="checkbox" checked={showMeta} onChange={(event) => setShowMeta(event.target.checked)} />Mostrar detalhes</label></div>
+
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -201,6 +224,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
             <ProjectCard
               key={project.id}
               project={project}
+              showMeta={showMeta}
               canManage={canManage(project)}
               onToggleStatus={setTarget}
             />
@@ -212,11 +236,22 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
             <ProjectListRow
               key={project.id}
               project={project}
+              showMeta={showMeta}
               canManage={canManage(project)}
               onToggleStatus={setTarget}
               className={i > 0 ? "border-t" : ""}
             />
           ))}
+        </div>
+      )}
+
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+          <p className="text-sm text-muted-foreground">Página {pagination.page} de {pagination.totalPages} · {pagination.total} projetos</p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" disabled={pagination.page <= 1} onClick={() => { const next = new URLSearchParams(searchParams.toString()); next.set("page", String(pagination.page - 1)); router.push(`${pathname}?${next}`) }}>Anterior</Button>
+            <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages} onClick={() => { const next = new URLSearchParams(searchParams.toString()); next.set("page", String(pagination.page + 1)); router.push(`${pathname}?${next}`) }}>Próxima</Button>
+          </div>
         </div>
       )}
 

@@ -32,11 +32,12 @@ function formatStorage(mb?: number) {
 interface Props {
   project: Project
   canManage?: boolean
+  showMeta?: boolean
   onToggleStatus?: (project: Project) => void
   className?: string
 }
 
-export function ProjectListRow({ project, canManage = false, onToggleStatus, className }: Props) {
+export function ProjectListRow({ project, canManage = false, showMeta = true, onToggleStatus, className }: Props) {
   const membros = project.participantesIds?.length ?? 0
   const suspenso = project.status === "suspenso"
 
@@ -54,9 +55,9 @@ export function ProjectListRow({ project, canManage = false, onToggleStatus, cla
 
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{project.nome}</p>
-        <p className="truncate text-sm text-muted-foreground">
+        {showMeta && <p className="truncate text-sm text-muted-foreground">
           {project.areaResponsavel} · <span className="font-mono text-xs">{project.codigo ?? project.id}</span>
-        </p>
+        </p>}
       </div>
 
       <div className="hidden items-center gap-1.5 text-sm text-muted-foreground sm:flex">
