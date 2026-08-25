@@ -26,6 +26,11 @@ class Settings(BaseModel):
     api_prefix: str = os.getenv("API_PREFIX", "/api")
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
     environment: str = os.getenv("ENVIRONMENT", "development")
+    expose_api_docs: bool = os.getenv("EXPOSE_API_DOCS", "true").lower() == "true"
+    request_log_max_id_length: int = int(os.getenv("REQUEST_LOG_MAX_ID_LENGTH", "100"))
+    security_headers_enabled: bool = os.getenv("SECURITY_HEADERS_ENABLED", "true").lower() == "true"
+    cookie_domain: str | None = os.getenv("COOKIE_DOMAIN") or None
+    audit_retention_days: int = int(os.getenv("AUDIT_RETENTION_DAYS", "365"))
 
 
 @lru_cache

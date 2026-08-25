@@ -10,7 +10,6 @@ from uuid import uuid4
 
 import asyncpg
 from fastapi import FastAPI, HTTPException, Query, Request, Response
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, EmailStr, Field
 
@@ -142,16 +141,9 @@ app = FastAPI(
     title="Armazenamento Científico API",
     version="2.0.0",
     description="API REST para gestão de projetos, arquivos, acessos e auditoria.",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
-)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:3000").split(","),
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
 pool: asyncpg.Pool | None = None
 
@@ -203,13 +195,13 @@ async def require(request, roles=()):
 async def audit(u, action, entity, eid, details=""):
     p = await db()
     await p.execute(
-        "insert into app_activity_logs(id,user_id,action,entity,entity_id,details) values($1,$2,$3,$4,$5,$6)",
+        "insert into app_activity_logs(id,user_id,action,entity,entity_id,details,created_at) values($1,$2,$3,$4,$5,$6,now())",
         str(uuid4()),
         u["id"],
         action,
         entity,
         eid,
-        details,
+        details[:4000],
     )
 
 
@@ -239,6 +231,8 @@ async def login(x: Login, response: Response):
     p = await db()
     u = await p.fetchrow("select * from app_users where lower(email)=lower($1)", str(x.email))
     if not u or not x.senha:
+        if u:
+            await audit(u, "login_failed", "sessao", None, "credenciais inválidas")
         raise HTTPException(401, "E-mail ou senha inválidos")
     sid = str(uuid4())
     await p.execute(

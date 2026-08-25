@@ -1,7 +1,8 @@
 import logging
+import time
 from contextlib import asynccontextmanager
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -10,6 +11,9 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.exceptions import AppException
+from app.core.logging import configure_logging, set_request_context
+
+configure_logging(settings.log_level)
 from app.db.session import connect, disconnect
 from app.legacy_api import app as legacy_app
 
@@ -29,24 +33,53 @@ def create_app() -> FastAPI:
         version=settings.app_version,
         description="API REST para gestão de projetos científicos, arquivos, acessos, relatórios e auditoria.",
         lifespan=lifespan,
-        docs_url="/docs",
-        redoc_url="/redoc",
-        openapi_url="/openapi.json",
+        docs_url="/docs" if settings.expose_api_docs else None,
+        redoc_url="/redoc" if settings.expose_api_docs else None,
+        openapi_url="/openapi.json" if settings.expose_api_docs else None,
     )
 
     application.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "X-Correlation-ID"],
+        max_age=600,
     )
 
     @application.middleware("http")
-    async def correlation_id(request: Request, call_next: Any):
-        request_id = request.headers.get("X-Correlation-ID", str(uuid4()))
-        response = await call_next(request)
+    async def request_security_and_logging(request: Request, call_next: Any):
+        raw_id = request.headers.get("X-Correlation-ID", "")
+        try:
+            request_id = str(UUID(raw_id)) if raw_id else str(uuid4())
+        except ValueError:
+            request_id = str(uuid4())
+        if len(raw_id) > settings.request_log_max_id_length:
+            request_id = str(uuid4())
+        started = time.perf_counter()
+        set_request_context(request_id)
+        try:
+            response = await call_next(request)
+        except Exception:
+            logger.exception("request_failed method=%s path=%s", request.method, request.url.path)
+            raise
+        duration_ms = round((time.perf_counter() - started) * 1000, 2)
         response.headers["X-Correlation-ID"] = request_id
+        if settings.security_headers_enabled:
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+            response.headers["X-Frame-Options"] = "DENY"
+            response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+            if settings.environment.lower() == "production":
+                response.headers["Strict-Transport-Security"] = "max-age=63072000"
+        logger.info(
+            "request_complete method=%s path=%s status=%s duration_ms=%s client=%s",
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration_ms,
+            request.client.host if request.client else "-",
+        )
         return response
 
     @application.exception_handler(AppException)
