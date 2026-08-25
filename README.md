@@ -6,6 +6,8 @@ Plataforma web para gestão de projetos, mapas, arquivos, permissões, relatóri
 
 - Node.js 20+
 - npm 10+
+- Python 3.11+
+- Docker e Docker Compose (para o PostgreSQL local)
 
 ## Rodar o frontend
 
@@ -18,6 +20,9 @@ npm run dev
 
 Abra `http://localhost:3000`.
 
+## Rodar banco e backend
+
+Consulte [`backend/README.md`](backend/README.md) para subir o PostgreSQL com Docker e executar a API usando `pip` (padrão, sem `uv`) ou `uv` (alternativa). A documentação também explica como aplicar o schema quando o volume do Docker já existe.
 
 ## Scripts do frontend
 

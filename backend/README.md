@@ -14,6 +14,15 @@ A partir da pasta `backend`:
 
 ```bash
 docker compose -f docker-compose.local.yml up -d
+# confira se o banco está pronto
+docker compose -f docker-compose.local.yml ps
+```
+
+O schema é aplicado automaticamente apenas na primeira criação do volume. Se o volume já existia, recrie-o antes de subir o banco:
+
+```bash
+docker compose -f docker-compose.local.yml down -v
+docker compose -f docker-compose.local.yml up -d
 ```
 
 O PostgreSQL ficará disponível em `localhost:5432` com:
@@ -28,13 +37,32 @@ Configure `backend/.env` usando `.env.example`. Para o banco local, use:
 DATABASE_URL=postgresql+asyncpg://armazenamento:armazenamento@localhost:5432/armazenamento_cientifico
 ```
 
-Depois aplique o schema inicial (caso ainda não tenha sido aplicado):
+Se precisar aplicar o schema manualmente (por exemplo, sem recriar o volume), use o `psql` dentro do container — assim não é necessário instalar o cliente PostgreSQL na máquina:
 
 ```bash
-psql "postgresql://armazenamento:armazenamento@localhost:5432/armazenamento_cientifico" -f ../database/projects-schema.sql
+docker exec -i armazenamento-cientifico-postgres psql -U armazenamento -d armazenamento_cientifico < ../database/projects-schema.sql
 ```
 
 A URL `postgresql+asyncpg://...` é usada pela aplicação Python; o comando `psql` usa o esquema `postgresql://...`.
+
+## Executar a API sem `uv` (forma padrão)
+
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate             # Windows PowerShell: .venv\\Scripts\\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+## Executar com `uv` (alternativa)
+
+```bash
+cd backend
+uv sync
+uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
 
 Para parar o banco sem remover os dados:
 
@@ -46,23 +74,6 @@ Para remover também o volume local:
 
 ```bash
 docker compose -f docker-compose.local.yml down -v
-```
-
-## Instalar e executar a API
-
-```bash
-cd backend
-uv sync
-uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-Alternativamente, com `pip`:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e .
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ## Swagger e contrato OpenAPI
