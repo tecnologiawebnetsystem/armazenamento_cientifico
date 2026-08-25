@@ -31,12 +31,9 @@ export function AppTopbar() {
       <Separator orientation="vertical" className="mr-1 h-5" />
       <div className="flex min-w-0 flex-col gap-0.5">
         <h1 className="truncate text-sm font-semibold text-foreground">{pageTitleFor(pathname)}</h1>
-        <span className="hidden text-[11px] text-muted-foreground sm:block">Centro de operações científicas</span>
       </div>
       <div className="ml-auto flex items-center gap-2">
-        <Badge variant="outline" className="hidden max-w-56 truncate border-warning/40 bg-warning/10 text-[11px] text-warning lg:inline-flex">
-          {settings?.mensagemAvisoAmbiente ?? "Ambiente local · dados de demonstração"}
-        </Badge>
+        
         <ThemeToggle />
         {user ? (
           <Badge variant="secondary" className="hidden border-l border-border text-[11px] font-medium md:inline-flex">
