@@ -1,36 +1,64 @@
 from collections.abc import AsyncIterator
 
-import asyncpg
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from app.core.config import settings
 
-_pool: asyncpg.Pool | None = None
+
+def _async_database_url() -> str:
+    url = settings.database_url
+    if url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql+asyncpg://", 1)
+    return url
+
+
+engine: AsyncEngine | None = None
+session_factory: async_sessionmaker[AsyncSession] | None = None
+
+
+def configure_engine() -> None:
+    global engine, session_factory
+    if engine is not None or not settings.database_url:
+        return
+    engine = create_async_engine(
+        _async_database_url(),
+        pool_pre_ping=True,
+        pool_size=settings.db_max_size,
+        max_overflow=0,
+        pool_timeout=settings.db_command_timeout,
+    )
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+
+async def dispose_engine() -> None:
+    global engine, session_factory
+    if engine is not None:
+        await engine.dispose()
+    engine = None
+    session_factory = None
+
+
+async def get_session() -> AsyncIterator[AsyncSession]:
+    configure_engine()
+    if session_factory is None:
+        raise RuntimeError("DATABASE_URL não configurada ou banco indisponível")
+    async with session_factory() as session:
+        yield session
+
 
 async def connect() -> None:
-    global _pool
-    if settings.database_url and _pool is None:
-        try:
-            _pool = await asyncpg.create_pool(
-                settings.database_url,
-                min_size=settings.db_min_size,
-                max_size=settings.db_max_size,
-                command_timeout=settings.db_command_timeout,
-            )
-        except (OSError, asyncpg.PostgresError):
-            _pool = None
+    configure_engine()
+
 
 async def disconnect() -> None:
-    global _pool
-    if _pool:
-        await _pool.close()
-        _pool = None
+    await dispose_engine()
 
-async def get_pool() -> asyncpg.Pool:
-    if _pool is None:
-        raise RuntimeError('DATABASE_URL não configurada ou banco indisponível')
-    return _pool
 
-async def connection() -> AsyncIterator[asyncpg.Connection]:
-    pool = await get_pool()
-    async with pool.acquire() as conn:
-        yield conn
+__all__ = ["connect", "disconnect", "engine", "get_session"]
