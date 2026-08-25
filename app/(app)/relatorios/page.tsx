@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { getProjectReport } from "@/lib/api-client"
 import type { ProjectReport } from "@/lib/types"
+import { PetrobrasLoading } from "@/components/petrobras-loading"
 
 const fetcher = () => getProjectReport()
 
@@ -27,7 +28,7 @@ export default function ReportsPage() {
     const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = "relatorio-projetos.csv"; link.click(); URL.revokeObjectURL(url)
   }
 
-  if (isLoading) return <main className="flex flex-col gap-6"><h1 className="text-2xl font-semibold">Consultas e relatórios</h1><p className="text-muted-foreground">Consolidando o portfólio autorizado...</p></main>
+  if (isLoading) return <main className="flex flex-col gap-6"><h1 className="text-2xl font-semibold">Consultas e relatórios</h1><PetrobrasLoading label="Consolidando o portfólio autorizado..." /></main>
   if (error || !data) return <main><p className="text-destructive">Não foi possível carregar o relatório.</p></main>
 
   const cards = [["Projetos no escopo", data.indicadores.totalProjetos, FolderKanban], ["Projetos ativos", data.indicadores.ativos, BarChart3], ["Mapas catalogados", data.indicadores.totalMapas, Map], ["Membros vinculados", data.indicadores.totalMembros, Users]] as const

@@ -196,12 +196,34 @@ async def export_logs(request:Request,format:Literal['csv','txt']='csv'):
     else: out.write('\n'.join(f"{x.get('created_at')} | {x.get('user_id')} | {x.get('action')} | {x.get('entity')}:{x.get('entity_id')} | {x.get('details')}" for x in data)); media='text/plain'; name='auditoria.txt'
     return StreamingResponse(iter([out.getvalue()]),media_type=media,headers={'Content-Disposition':f'attachment; filename={name}'})
 @app.get('/api/reports')
-async def reports(request:Request,status_filter:str|None=Query(None,alias='status'),area:str|None=None,projectId:str|None=None):
-    u=await require(request); p=await db(); rows=[project(r) for r in await p.fetch('select * from app_projects order by created_at desc') if (u['role'] in ('admin','patrocinador','auditor') or u['id'] in r['managers_ids'] or u['id'] in r['participants_ids']) and (not status_filter or status_filter=='todos' or r['status']==status_filter) and (not area or r['responsible_area']==area) and (not projectId or r['id']==projectId)]
-    return {'filtros':{'status':status_filter or 'todos','area':area,'projectId':projectId},'indicadores':{'totalProjetos':len(rows),'ativos':sum(x['status']=='ativo' for x in rows),'suspensos':sum(x['status']=='suspenso' for x in rows),'concluidos':sum(x['status']=='concluido' for x in rows),'armazenamentoUsadoMb':0,'totalMembros':sum(len(x['gestoresIds'])+len(x['participantesIds']) for x in rows),'totalMapas':len(rows)},'porArea':[],'porStatus':[],'projetos':rows}
+async def reports(request:Request,status_filter:str|None=Query(None,alias='status'),area:str|None=None,projectId:str|None=None,search:str|None=None):
+    u=await require(request); p=await db()
+    args=[]; conditions=[]
+    if u['role'] not in ('admin','patrocinador','auditor'):
+        args.extend([u['id'], u['id']]); conditions.append(f'(${len(args)-1}=any(managers_ids) or ${len(args)}=any(participants_ids))')
+    if status_filter and status_filter != 'todos': args.append(status_filter); conditions.append(f'status=${len(args)}')
+    if area: args.append(area); conditions.append(f'responsible_area=${len(args)}')
+    if projectId: args.append(projectId); conditions.append(f'id=${len(args)}')
+    if search: args.append(f'%{search}%'); conditions.append(f'(name ilike ${len(args)} or code ilike ${len(args)} or responsible_area ilike ${len(args)})')
+    where = (' where ' + ' and '.join(conditions)) if conditions else ''
+    raw = await p.fetch(f'select * from app_projects{where} order by created_at desc', *args)
+    projects=[]
+    for item in raw:
+        value=project(item)
+        value['totalMapas']=await p.fetchval('select count(*) from app_files where project_id=$1',item['id']) or 0
+        value['totalMembros']=await p.fetchval('select count(*) from app_project_members where project_id=$1',item['id']) or 0
+        projects.append(value)
+    areas={}; statuses={}
+    for item in projects:
+        areas[item['areaResponsavel']]=areas.get(item['areaResponsavel'],0)+1
+        statuses[item['status']]=statuses.get(item['status'],0)+1
+    return {'filtros':{'status':status_filter or 'todos','area':area,'projectId':projectId},'indicadores':{'totalProjetos':len(projects),'ativos':statuses.get('ativo',0),'suspensos':statuses.get('suspenso',0),'concluidos':statuses.get('concluido',0),'armazenamentoUsadoMb':sum((x.get('armazenamentoUsadoMb') or 0) for x in projects),'totalMembros':sum(x['totalMembros'] for x in projects),'totalMapas':sum(x['totalMapas'] for x in projects)},'porArea':[{'area':k,'total':v} for k,v in areas.items()],'porStatus':[{'status':k,'total':v} for k,v in statuses.items()],'projetos':projects}
 @app.get('/api/access-map')
 async def access_map(request:Request):
-    u=await require(request); p=await db(); rows=await p.fetch('select * from app_projects'); visible=[r for r in rows if u['role'] in ('admin','patrocinador','auditor') or u['id'] in r['managers_ids'] or u['id'] in r['participants_ids']]; return {'summary':{'users':0,'projects':len(visible),'folders':0,'files':0,'relationships':0},'rows':[]}
+    u=await require(request); p=await db(); visibility = '' if u['role'] in ('admin','patrocinador','auditor') else ' where $1=any(p.managers_ids) or $1=any(p.participants_ids)'
+    args=[] if not visibility else [u['id']]
+    rows=await p.fetch(f'''select u.id as user_id,u.name as user_name,u.email as user_email,u.role as user_role,u.area,p.id as project_id,p.name as project_name,p.status as project_status,f.id as resource_id,f.name as resource_name,f.kind as resource_type,'leitura' as access_level,f.updated_at as last_viewed_at from app_files f join app_projects p on p.id=f.project_id left join app_users u on u.id=f.created_by{visibility} order by f.updated_at desc''',*args)
+    return {'summary':{'users':len({x['user_id'] for x in rows if x['user_id']}),'projects':len({x['project_id'] for x in rows}),'folders':sum(x['resource_type']=='pasta' for x in rows),'files':sum(x['resource_type']=='arquivo' for x in rows),'relationships':len(rows)},'rows':[{'userId':x['user_id'],'userName':x['user_name'],'userEmail':x['user_email'],'userRole':x['user_role'],'area':x['area'],'projectId':x['project_id'],'projectName':x['project_name'],'projectStatus':x['project_status'],'resourceId':x['resource_id'],'resourceName':x['resource_name'],'resourceType':x['resource_type'],'accessLevel':x['access_level'],'lastViewedAt':x['last_viewed_at'].isoformat()} for x in rows]}
 @app.get('/api/permissions')
 async def permissions(request:Request):
     await require(request,('admin','auditor')); p=await db(); return {'matrix':[dump(r) for r in await p.fetch('select * from app_permissions order by role,resource')]}
