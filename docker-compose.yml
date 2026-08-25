@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sigac-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sigac
+      POSTGRES_USER: sigac
+      POSTGRES_PASSWORD: sigac_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - sigac_postgres_data:/var/lib/postgresql/data
+      - ./database/projects-schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sigac -d sigac"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+volumes:
+  sigac_postgres_data:

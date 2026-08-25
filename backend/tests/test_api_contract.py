@@ -21,7 +21,7 @@ def test_openapi_exposes_required_operations():
         "/api/activity-logs",
     }
     assert required <= paths.keys()
-    assert schema["info"]["title"] == "Armazenamento Científico API"
+    assert schema["info"]["title"] == "SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico API"
 
 
 def test_health_is_public():

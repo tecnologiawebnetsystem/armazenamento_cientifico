@@ -116,3 +116,5 @@ Se estiver usando o backend Python, confirme primeiro que [`http://localhost:800
 - `docs/` — permissões e contratos de API.
 
 A documentação completa dos endpoints está em `docs/api-endpoints.md`.
+
+Para executar o ambiente completo localmente, consulte [`docs/setup-local-completo.md`](docs/setup-local-completo.md). O schema PostgreSQL está em [`database/projects-schema.sql`](database/projects-schema.sql), o diagrama ER editável em [`docs/database-erd.mmd`](docs/database-erd.mmd), a imagem em [`docs/database-erd.svg`](docs/database-erd.svg) e o guia de execução em [`docs/setup-local-completo.md`](docs/setup-local-completo.md).

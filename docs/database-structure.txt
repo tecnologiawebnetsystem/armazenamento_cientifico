@@ -5,20 +5,22 @@ Sistema de Gestão de Acesso ao Armazenamento Científico
 1. EXECUÇÃO LOCAL
 -----------------
 Banco: PostgreSQL 16 (Docker)
-Arquivo Compose: backend/docker-compose.local.yml
-Database: armazenamento_cientifico
-Usuário: armazenamento
+Arquivo Compose: docker-compose.yml (raiz)
+Database: sigac
+Usuário: sigac
 Porta local: 5432
-Volume: armazenamento_postgres_data
+Volume: sigac_postgres_data
 Schema inicial: database/projects-schema.sql
+Diagrama ER editável: docs/database-erd.mmd
+Diagrama ER visual: docs/database-erd.svg
+Guia completo: docs/setup-local-completo.md
 
 Comando:
-  cd backend
-  docker compose -f docker-compose.local.yml up -d
+  docker compose up -d postgres
 
 Observação: o script SQL é executado automaticamente apenas na primeira criação do volume. Para recriar o banco local:
-  docker compose -f docker-compose.local.yml down -v
-  docker compose -f docker-compose.local.yml up -d
+  docker compose down -v
+  docker compose up -d postgres
 
 2. TABELAS DO SCRIPT SQL ATUAL
 ------------------------------
@@ -138,5 +140,6 @@ ignorada nem resolvida com criação automática de tabelas em produção.
 6. ESTADO
 ---------
 O Docker está configurado para inicializar o PostgreSQL e montar o schema SQL somente na
-primeira inicialização do volume. Não há Alembic versionado em backend/alembic/; recomenda-se
-criar a primeira migration antes de promover os módulos SQLAlchemy para produção.
+primeira inicialização do volume. O Alembic possui uma baseline `0001_baseline` que registra
+o schema legado sem recriar tabelas. Migrations novas devem ser testadas em banco descartável
+antes de promoção para produção.

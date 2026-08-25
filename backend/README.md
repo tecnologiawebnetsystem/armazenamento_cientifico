@@ -13,34 +13,34 @@ API REST em FastAPI para projetos, arquivos, acessos, relatórios e auditoria, c
 A partir da pasta `backend`:
 
 ```bash
-docker compose -f docker-compose.local.yml up -d
+docker compose -f ../docker-compose.yml up -d
 # confira se o banco está pronto
-docker compose -f docker-compose.local.yml ps
+docker compose -f ../docker-compose.yml ps
 ```
 
 O schema é aplicado automaticamente apenas na primeira criação do volume. Se o volume já existia, recrie-o antes de subir o banco:
 
 ```bash
-docker compose -f docker-compose.local.yml down -v
-docker compose -f docker-compose.local.yml up -d
+docker compose -f ../docker-compose.yml down -v
+docker compose -f ../docker-compose.yml up -d
 ```
 
 O PostgreSQL ficará disponível em `localhost:5432` com:
 
-- Banco: `armazenamento_cientifico`
-- Usuário: `armazenamento`
-- Senha: `armazenamento`
+- Banco: `sigac`
+- Usuário: `sigac`
+- Senha: `sigac_dev_password`
 
 Configure `backend/.env` usando `.env.example`. Para o banco local, use:
 
 ```env
-DATABASE_URL=postgresql+asyncpg://armazenamento:armazenamento@localhost:5432/armazenamento_cientifico
+DATABASE_URL=postgresql+asyncpg://sigac:sigac_dev_password@localhost:5432/sigac
 ```
 
 Se precisar aplicar o schema manualmente (por exemplo, sem recriar o volume), use o `psql` dentro do container — assim não é necessário instalar o cliente PostgreSQL na máquina:
 
 ```bash
-docker exec -i armazenamento-cientifico-postgres psql -U armazenamento -d armazenamento_cientifico < ../database/projects-schema.sql
+docker compose -f ../docker-compose.yml exec -T postgres psql -U sigac -d sigac < ../database/projects-schema.sql
 ```
 
 A URL `postgresql+asyncpg://...` é usada pela aplicação Python; o comando `psql` usa o esquema `postgresql://...`.
@@ -63,7 +63,7 @@ Execute nesta ordem:
 ```bash
 # terminal 1 — banco
 cd backend
-docker compose -f docker-compose.local.yml up -d
+docker compose -f ../docker-compose.yml up -d
 
 # terminal 2 — API sem uv
 cd backend
@@ -110,7 +110,7 @@ Com essa variável, o FastAPI é a fonte principal dos dados persistidos no Post
 
 ## Migrações de banco com Alembic
 
-O Alembic usa `DATABASE_URL` do `backend/.env` e carrega os modelos SQLAlchemy registrados em `app/db/base.py`. O schema legado continua sendo aplicado pelo script SQL do Docker; a migration `0001_baseline` apenas registra esse ponto inicial sem recriar ou apagar tabelas.
+O Alembic usa `DATABASE_URL` do `backend/.env` e carrega os modelos SQLAlchemy registrados em `app/db/base.py`. O schema legado continua sendo aplicado pelo script SQL do Docker; a migration `0001_baseline` apenas registra esse ponto inicial sem recriar ou apagar tabelas. O modelo SQLAlchemy modular ainda utiliza tabelas `app_*` em alguns domínios; não misture as duas fontes em produção sem uma migration explícita de consolidação.
 
 Após subir o PostgreSQL e ativar o ambiente virtual:
 
@@ -160,13 +160,13 @@ uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
 Para parar o banco sem remover os dados:
 
 ```bash
-docker compose -f docker-compose.local.yml stop
+docker compose -f ../docker-compose.yml stop
 ```
 
 Para remover também o volume local:
 
 ```bash
-docker compose -f docker-compose.local.yml down -v
+docker compose -f ../docker-compose.yml down -v
 ```
 
 ## Swagger e contrato OpenAPI
