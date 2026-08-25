@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from typing import Literal
+
 from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field
 
 
@@ -16,4 +18,4 @@ class UserOut(BaseModel):
 
 
 class UserRoleUpdate(BaseModel):
-    role: str
+    role: Literal["admin", "gerente", "patrocinador", "auditor", "gestor", "participante", "visualizador"]

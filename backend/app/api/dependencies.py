@@ -1,8 +1,10 @@
-from fastapi import HTTPException, Request
+from typing import Annotated
 
+from fastapi import Depends, HTTPException, Request
+
+from app.core.authorization import ensure_role
 from app.core.config import settings
 from app.db.session import get_pool
-
 
 async def get_current_user(request: Request):
     session_id = request.cookies.get(settings.cookie_name)
@@ -20,7 +22,10 @@ async def get_current_user(request: Request):
 def require_roles(*roles: str):
     async def dependency(request: Request):
         user = await get_current_user(request)
-        if roles and user['role'] not in roles:
-            raise HTTPException(status_code=403, detail='Usuário sem permissão')
+        if roles:
+            ensure_role(user, *roles)
         return user
     return dependency
+
+
+CurrentUser = Annotated[dict, Depends(get_current_user)]

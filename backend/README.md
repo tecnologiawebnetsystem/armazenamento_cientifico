@@ -45,6 +45,58 @@ docker exec -i armazenamento-cientifico-postgres psql -U armazenamento -d armaze
 
 A URL `postgresql+asyncpg://...` é usada pela aplicação Python; o comando `psql` usa o esquema `postgresql://...`.
 
+## Autorização por perfil (RBAC)
+
+As rotas protegidas validam a sessão no backend e nunca confiam no perfil enviado pelo frontend. Os perfis oficiais são:
+
+- **Administrador (`admin`)**: acesso total, incluindo alteração de perfis.
+- **Gerente (`gerente`)**: operações de gestão permitidas, sem alterar perfis de usuários.
+- **Patrocinador (`patrocinador`)**: somente leitura.
+- **Auditor (`auditor`)**: somente leitura, incluindo logs de auditoria.
+
+Perfis legados continuam aceitos para compatibilidade: `gestor` é tratado como `gerente`, `participante` como `gerente` e `visualizador` como `auditor`. Uma requisição sem sessão retorna `401`; uma requisição autenticada sem permissão retorna `403`.
+
+## Autorização por perfil (RBAC)
+
+As rotas protegidas validam a sessão no backend e nunca confiam no perfil enviado pelo frontend. A matriz de rota é:
+
+- **Administrador (`admin`)**: acesso total, incluindo alteração de perfis.
+- **Gerente (`gerente`)**: operações de gestão, sem alterar perfis de usuários.
+- **Patrocinador (`patrocinador`)**: somente leitura.
+- **Auditor (`auditor`)**: somente leitura, incluindo consulta de auditoria.
+
+Os perfis legados continuam compatíveis: `gestor` é tratado como `gerente`, `participante` como `gerente` e `visualizador` como `auditor`. Requisições sem sessão retornam `401`; usuários autenticados sem autorização retornam `403`.
+
+## Migrações de banco com Alembic
+
+O Alembic usa `DATABASE_URL` do `backend/.env` e carrega os modelos SQLAlchemy registrados em `app/db/base.py`. O schema legado continua sendo aplicado pelo script SQL do Docker; a migration `0001_baseline` apenas registra esse ponto inicial sem recriar ou apagar tabelas.
+
+Após subir o PostgreSQL e ativar o ambiente virtual:
+
+```bash
+cd backend
+source .venv/bin/activate             # Windows PowerShell: .venv\\Scripts\\Activate.ps1
+python -m alembic current
+python -m alembic upgrade head
+```
+
+Para criar uma nova migration após alterar modelos:
+
+```bash
+python -m alembic revision --autogenerate -m "descreva a alteração"
+python -m alembic upgrade head
+```
+
+Revise sempre o arquivo gerado antes de aplicar em qualquer ambiente. Comandos úteis:
+
+```bash
+python -m alembic history
+python -m alembic downgrade -1
+python -m alembic check
+```
+
+Com `uv`, use `uv run alembic` no lugar de `python -m alembic`.
+
 ## Executar a API sem `uv` (forma padrão)
 
 ```bash

@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencies import CurrentUser, require_roles
 from app.db.session import get_session
 from app.modules.users.repository import UserRepository
 from app.modules.users.schemas import UserOut, UserRoleUpdate
@@ -17,7 +18,10 @@ def get_service(session: Session) -> UserService:
 
 
 @router.get("", response_model=list[UserOut])
-async def list_users(service: Annotated[UserService, Depends(get_service)]):
+async def list_users(
+    service: Annotated[UserService, Depends(get_service)],
+    _: CurrentUser,
+):
     return await service.list_users()
 
 
@@ -26,5 +30,6 @@ async def update_user_role(
     user_id: str,
     body: UserRoleUpdate,
     service: Annotated[UserService, Depends(get_service)],
+    _: Annotated[dict, Depends(require_roles("admin"))],
 ):
     return await service.change_role(user_id, body.role)
