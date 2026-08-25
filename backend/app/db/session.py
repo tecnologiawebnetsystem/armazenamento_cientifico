@@ -9,7 +9,15 @@ _pool: asyncpg.Pool | None = None
 async def connect() -> None:
     global _pool
     if settings.database_url and _pool is None:
-        _pool = await asyncpg.create_pool(settings.database_url, min_size=1, max_size=10, command_timeout=30)
+        try:
+            _pool = await asyncpg.create_pool(
+                settings.database_url,
+                min_size=settings.db_min_size,
+                max_size=settings.db_max_size,
+                command_timeout=settings.db_command_timeout,
+            )
+        except (OSError, asyncpg.PostgresError):
+            _pool = None
 
 async def disconnect() -> None:
     global _pool

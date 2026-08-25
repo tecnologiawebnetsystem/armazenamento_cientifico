@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: armazenamento-cientifico-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: armazenamento_cientifico
+      POSTGRES_USER: armazenamento
+      POSTGRES_PASSWORD: armazenamento
+    ports:
+      - "5432:5432"
+    volumes:
+      - armazenamento_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  armazenamento_postgres_data:

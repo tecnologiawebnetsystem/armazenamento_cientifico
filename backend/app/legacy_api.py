@@ -49,7 +49,11 @@ pool:asyncpg.Pool|None=None
 async def startup():
     global pool
     url=os.getenv('DATABASE_URL')
-    if url: pool=await asyncpg.create_pool(url, min_size=1, max_size=10, command_timeout=30)
+    if url:
+        try:
+            pool=await asyncpg.create_pool(url, min_size=1, max_size=10, command_timeout=30)
+        except (OSError, asyncpg.PostgresError):
+            pool=None
 @app.on_event('shutdown')
 async def shutdown():
     if pool: await pool.close()

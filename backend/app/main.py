@@ -10,6 +10,18 @@ from app.legacy_api import app as legacy_app
 app: FastAPI = legacy_app
 app.title = settings.app_name
 app.version = settings.app_version
+app.description = (
+    'API REST para gestão de projetos científicos, arquivos, acessos, '
+    'relatórios e trilha de auditoria.'
+)
+app.openapi_tags = [
+    {'name': 'Health', 'description': 'Verificação de disponibilidade da API e do PostgreSQL.'},
+    {'name': 'Auth', 'description': 'Login, sessão e logout.'},
+    {'name': 'Projects', 'description': 'Projetos, membros e permissões de projeto.'},
+    {'name': 'Files', 'description': 'Pastas, arquivos e compartilhamentos.'},
+    {'name': 'Reports', 'description': 'Consultas, indicadores e mapa de acessos.'},
+    {'name': 'Administration', 'description': 'Usuários, auditoria e configurações.'},
+]
 
 @app.on_event('startup')
 async def startup_database() -> None:

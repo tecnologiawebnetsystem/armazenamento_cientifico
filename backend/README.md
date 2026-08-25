@@ -1,37 +1,47 @@
 # Armazenamento Científico — Backend
 
-API REST em FastAPI 0.115+ com PostgreSQL/Neon e documentação OpenAPI.
+API REST em FastAPI para projetos, arquivos, acessos, relatórios e auditoria, usando PostgreSQL (compatível com Neon).
 
-## Execução
+## Requisitos
+
+- Python 3.11+
+- PostgreSQL 14+ ou Docker
+- `uv` (recomendado) ou `pip`
+
+## Configuração local
 
 ```bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -e .
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+cp .env.example .env
+# opção local
+ docker compose -f docker-compose.local.yml up -d
+# aplicar o schema
+psql "$DATABASE_URL" -f ../database/projects-schema.sql
+uv sync
+uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Configure `DATABASE_URL` usando `.env.example`. A aplicação não usa dados em memória: usuários, sessões, projetos, arquivos, compartilhamentos, permissões, settings e auditoria são persistidos no PostgreSQL.
+Se usar `pip`, crie um ambiente virtual e execute `pip install -e .`; depois inicie com `uvicorn main:app --reload --port 8000`. Para Neon, mantenha todas as variáveis e substitua somente `DATABASE_URL` pela connection string da integração.
 
-## Documentação
+## Documentação e saúde
 
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
-- OpenAPI: `http://localhost:8000/openapi.json`
-- Health: `http://localhost:8000/health`
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+- OpenAPI JSON: http://localhost:8000/openapi.json
+- Health check: http://localhost:8000/health
 
-## Rotas
+O Swagger é gerado diretamente pelos decorators e modelos Pydantic da aplicação. Ele documenta os endpoints `/api/auth`, `/api/projects`, `/api/files`, `/api/users`, `/api/activity-logs`, `/api/reports` e `/api/access-map`.
 
-- Auth: login, logout e sessão
-- Projetos: CRUD e membros
-- Arquivos: CRUD, pastas e compartilhamentos
-- Relatórios e mapa de acesso
-- Auditoria e exportação CSV/TXT
-- Administração de usuários, permissões e configurações
+## Testes e qualidade
 
-Todas as rotas, exceto login e health, exigem o cookie de sessão. O endpoint de login valida o usuário persistido; as senhas devem ser armazenadas como hash no banco.
+```bash
+uv run pytest -q
+uv run ruff check .
+uv run ruff format --check .
+```
 
-## Segurança
+O teste de integração PostgreSQL é executado somente quando `DATABASE_URL` aponta para um banco acessível; caso contrário, é marcado como `skip`.
 
-A API aplica autorização por perfil e escopo de projeto, queries parametrizadas, cookies HttpOnly, CORS configurável e constraints PostgreSQL. Em produção, defina `COOKIE_SECURE=true`, use HTTPS e limite `CORS_ORIGINS` aos domínios oficiais.
+## Segurança e operação
+
+Todas as rotas, exceto login e health, exigem sessão via cookie HttpOnly. A API aplica autorização por perfil e escopo de projeto, queries parametrizadas, CORS configurável e auditoria. Em produção, defina `COOKIE_SECURE=true`, use HTTPS, restrinja `CORS_ORIGINS`, não versiona `.env` e configure backups/migrações controladas do PostgreSQL.
