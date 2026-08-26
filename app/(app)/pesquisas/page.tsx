@@ -14,6 +14,7 @@ import { getAccessMap } from "@/lib/api-client"
 import type { AccessMapResponse } from "@/lib/types"
 import { PetrobrasLoading } from "@/components/petrobras-loading"
 import { BackButton } from "@/components/navigation/back-button"
+import { KpiCards, type KpiItem } from "@/components/dashboard/kpi-cards"
 
 const fetcher = () => getAccessMap()
 const dateFormat = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" })
@@ -34,14 +35,16 @@ export default function PesquisasPage() {
   if (error || !data) return <main className="flex flex-col gap-6"><h1 className="text-2xl font-semibold">Pesquisas</h1><p className="text-destructive">Não foi possível carregar o mapa de acessos.</p></main>
 
   const accessMetadata = data as AccessMapResponse & { source?: string; consultedAt?: string }
-  const cards = [
-    [Users, "Usuários no escopo", data.summary.users], [FolderKanban, "Projetos", data.summary.projects],
-    [FolderOpen, "Pastas", data.summary.folders], [Files, "Arquivos", data.summary.files],
-  ] as const
+  const cards: KpiItem[] = [
+    { icon: Users, label: "Usuários no escopo", value: String(data.summary.users), tone: "teal" },
+    { icon: FolderKanban, label: "Projetos", value: String(data.summary.projects), tone: "green" },
+    { icon: FolderOpen, label: "Pastas", value: String(data.summary.folders), tone: "blue" },
+    { icon: Files, label: "Arquivos", value: String(data.summary.files), tone: "yellow" },
+  ]
 
   return <main className="flex flex-col gap-6">
     <header className="flex flex-col gap-4"><BackButton /><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="flex flex-col gap-2"><div className="flex items-center gap-2"><ShieldCheck className="text-primary" /><span className="text-xs font-semibold uppercase tracking-widest text-primary">Governança de acesso</span></div><h1 className="text-3xl font-semibold tracking-tight text-balance">Mapa de acessos científicos</h1></div><div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" render={<Link href="/relatorios?origem=pesquisas" />} nativeButton={false}><FileBarChart data-icon="inline-start" />Gerar relatório</Button><Button variant="ghost" size="sm" render={<Link href="/logs" />} nativeButton={false}><Download data-icon="inline-start" />Auditoria</Button></div></div><p className="max-w-3xl text-muted-foreground leading-relaxed">Pesquise quem acessa cada projeto, pasta e arquivo. A visão respeita o seu perfil e torna a cadeia de acesso auditável em um único lugar.</p><div className="flex flex-wrap gap-3 text-xs text-muted-foreground"><span>Fonte: {accessMetadata.source ?? "SIGAC Directory"}</span><span>Última atualização: {accessMetadata.consultedAt ? dateFormat.format(new Date(accessMetadata.consultedAt)) : "Não informado"}</span></div></header>
-    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumo de acessos">{cards.map(([Icon, label, value]) => <Card key={label}><CardContent className="flex items-center gap-4 pt-6"><div className="rounded-lg bg-primary/10 p-3 text-primary"><Icon /></div><div><p className="text-2xl font-semibold">{value}</p><p className="text-sm text-muted-foreground">{label}</p></div></CardContent></Card>)}</section>
+    <section aria-label="Resumo de acessos"><KpiCards items={cards} /></section>
     <Card><CardHeader><CardTitle>Mapa relacional</CardTitle><CardDescription>{data.summary.relationships} relações de acesso identificadas no seu escopo.</CardDescription></CardHeader><CardContent className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 md:flex-row md:flex-wrap"><div className="relative min-w-64 flex-1"><Search className="absolute left-3 top-2.5 text-muted-foreground" /><Input className="pl-9" placeholder="Buscar usuário, projeto, pasta ou arquivo" value={search} onChange={(event) => setSearch(event.target.value)} /></div><Select value={type} onValueChange={(value) => setType(value ?? "todos")}><SelectTrigger className="w-full md:w-40"><SelectValue placeholder="Tipo" /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="todos">Todos os recursos</SelectItem><SelectItem value="pasta">Pastas</SelectItem><SelectItem value="arquivo">Arquivos</SelectItem></SelectGroup></SelectContent></Select><Select value={level} onValueChange={(value) => setLevel(value ?? "todos")}><SelectTrigger className="w-full md:w-44"><SelectValue placeholder="Permissão" /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="todos">Todos os níveis</SelectItem><SelectItem value="leitura">Leitura</SelectItem><SelectItem value="edicao">Edição</SelectItem><SelectItem value="gerente">Gerente</SelectItem><SelectItem value="participante">Participante</SelectItem></SelectGroup></SelectContent></Select><Button variant="outline" size="sm" onClick={() => setAdvanced((value) => !value)}>Filtros avançados</Button>{advanced && <Select value={view} onValueChange={(value) => setView(value ?? "projeto")}><SelectTrigger className="w-full md:w-44"><SelectValue placeholder="Visão" /></SelectTrigger><SelectContent><SelectItem value="projeto">Por projeto</SelectItem><SelectItem value="usuario">Por usuário</SelectItem><SelectItem value="grupo">Por grupo</SelectItem><SelectItem value="nivel">Por nível de acesso</SelectItem></SelectContent></Select>}</div>
       <div className="flex flex-wrap gap-2"><Badge variant="outline">Visão: {view}</Badge>{rows.some((row) => row.accessLevel === "gerente" && row.resourceType === "arquivo") && <Badge variant="destructive">Conflitos detectados</Badge>}<Badge variant="secondary">{rows.filter((row) => !row.userEmail).length} sem correspondência</Badge></div>

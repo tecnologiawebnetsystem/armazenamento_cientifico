@@ -7,6 +7,7 @@ export interface KpiItem {
   value: string
   icon: LucideIcon
   hint?: string
+  tone?: "green" | "yellow" | "blue" | "teal"
 }
 
 function formatStorage(mb: number) {
@@ -34,22 +35,26 @@ export function buildKpis({
       value: String(totalProjetos),
       hint: `${projetosAtivos} ativos`,
       icon: FolderKanbanIcon,
+      tone: "green",
     },
     {
       label: "Armazenamento usado",
       value: formatStorage(armazenamentoTotalMb),
       icon: DatabaseIcon,
+      tone: "blue",
     },
     {
       label: "Membros envolvidos",
       value: String(totalMembros),
       icon: UsersIcon,
+      tone: "teal",
     },
     {
       label: "Solicitações pendentes",
       value: String(solicitacoesPendentes),
       icon: ClipboardListIcon,
       hint: solicitacoesPendentes > 0 ? "aguardando análise" : "tudo em dia",
+      tone: "yellow",
     },
   ]
 }
@@ -62,7 +67,11 @@ export function KpiCards({ items }: { items: KpiItem[] }) {
           <CardContent className="flex items-center gap-4">
             <div
               className={cn(
-                "flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary",
+                "flex size-11 shrink-0 items-center justify-center rounded-lg",
+                item.tone === "yellow" && "bg-petrobras-yellow/20 text-petrobras-yellow",
+                item.tone === "blue" && "bg-petrobras-blue/15 text-petrobras-blue",
+                item.tone === "teal" && "bg-petrobras-teal/15 text-petrobras-teal",
+                (!item.tone || item.tone === "green") && "bg-petrobras-green/15 text-petrobras-green",
               )}
             >
               <item.icon className="size-5" />
