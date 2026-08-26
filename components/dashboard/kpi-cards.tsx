@@ -63,15 +63,24 @@ export function KpiCards({ items }: { items: KpiItem[] }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {items.map((item) => (
-        <Card key={item.label}>
-          <CardContent className="flex items-center gap-4">
+        <Card
+          key={item.label}
+          className={cn(
+            "relative overflow-hidden border shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
+            item.tone === "yellow" && "border-petrobras-yellow/40 !bg-petrobras-yellow/15 bg-gradient-to-br from-petrobras-yellow/20 via-petrobras-yellow/10 to-card",
+            item.tone === "blue" && "border-petrobras-blue/35 !bg-petrobras-blue/15 bg-gradient-to-br from-petrobras-blue/20 via-petrobras-blue/10 to-card",
+            item.tone === "teal" && "border-petrobras-teal/35 !bg-petrobras-teal/15 bg-gradient-to-br from-petrobras-teal/20 via-petrobras-teal/10 to-card",
+            (!item.tone || item.tone === "green") && "border-petrobras-green/35 !bg-petrobras-green/15 bg-gradient-to-br from-petrobras-green/20 via-petrobras-green/10 to-card",
+          )}
+        >
+          <CardContent className="relative flex items-center gap-4">
             <div
               className={cn(
-                "flex size-11 shrink-0 items-center justify-center rounded-lg",
-                item.tone === "yellow" && "bg-petrobras-yellow/20 text-petrobras-yellow",
-                item.tone === "blue" && "bg-petrobras-blue/15 text-petrobras-blue",
-                item.tone === "teal" && "bg-petrobras-teal/15 text-petrobras-teal",
-                (!item.tone || item.tone === "green") && "bg-petrobras-green/15 text-petrobras-green",
+                "flex size-11 shrink-0 items-center justify-center rounded-xl shadow-sm ring-1 ring-inset",
+                item.tone === "yellow" && "bg-petrobras-yellow/20 text-petrobras-yellow ring-petrobras-yellow/25",
+                item.tone === "blue" && "bg-petrobras-blue/15 text-petrobras-blue ring-petrobras-blue/20",
+                item.tone === "teal" && "bg-petrobras-teal/15 text-petrobras-teal ring-petrobras-teal/20",
+                (!item.tone || item.tone === "green") && "bg-petrobras-green/15 text-petrobras-green ring-petrobras-green/20",
               )}
             >
               <item.icon className="size-5" />

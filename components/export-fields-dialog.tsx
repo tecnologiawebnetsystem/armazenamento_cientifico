@@ -33,7 +33,7 @@ export function ExportFieldsDialog({ open, onOpenChange, title, fields, defaultF
   const confirm = () => { if (selectedFields.length && selectedFormats.length) { onConfirm(selectedFields, selectedFormats); onOpenChange(false) } }
 
   return <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="max-w-2xl">
+    <DialogContent className="max-h-[90vh] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto border-petrobras-blue/15 bg-gradient-to-br from-background via-background to-petrobras-green/5 p-6 shadow-[0_24px_80px_-32px_rgba(0,88,140,0.5)] sm:p-8">
       <DialogHeader>
         <DialogTitle className="text-xl">Configurar exportação</DialogTitle>
         <DialogDescription>Escolha os formatos e os campos do {title} que serão gerados.</DialogDescription>

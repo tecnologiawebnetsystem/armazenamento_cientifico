@@ -445,7 +445,7 @@ export const activityLogs: ActivityLog[] = [
 /** Credenciais de teste — apenas para ambiente local/mock. */
 export const testCredentials: Record<string, { userId: string; senha: string }> = {
   "admin@petrobras.com": { userId: "u-admin", senha: "admin123" },
-  "gestor@petrobras.com": { userId: "u-gestor", senha: "gestor123" },
-  "participante@petrobras.com": { userId: "u-participante", senha: "participante123" },
-  "visualizador@petrobras.com": { userId: "u-visualizador", senha: "visualizador123" },
+  "gestor@petrobras.com": { userId: "u-gerente", senha: "gestor123" },
+  "participante@petrobras.com": { userId: "u-patrocinador", senha: "participante123" },
+  "visualizador@petrobras.com": { userId: "u-auditor", senha: "visualizador123" },
 }

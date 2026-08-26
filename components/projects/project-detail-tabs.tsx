@@ -5,6 +5,7 @@ import { ProjectInfoTab } from "@/components/projects/project-info-tab"
 import { ProjectMembersTab } from "@/components/projects/project-members-tab"
 import { ProjectFileExplorer } from "@/components/projects/project-file-explorer"
 import { useProject } from "@/hooks/use-project"
+import { useSearchParams } from "next/navigation"
 import type { Project } from "@/lib/types"
 
 export function ProjectDetailTabs({
@@ -22,11 +23,13 @@ export function ProjectDetailTabs({
   canManageMembers: boolean
   canWriteFiles: boolean
 }) {
+  const searchParams = useSearchParams()
   const { project, refresh } = useProject(projectId)
   const current = project ?? initialProject
+  const initialTab = searchParams.get("aba") === "informacoes" ? "informacoes" : "arquivos"
 
   return (
-    <Tabs defaultValue="arquivos">
+    <Tabs key={initialTab} defaultValue={initialTab}>
       <TabsList>
         <TabsTrigger value="arquivos">Arquivos</TabsTrigger>
         <TabsTrigger value="membros">Membros e Permissões</TabsTrigger>
