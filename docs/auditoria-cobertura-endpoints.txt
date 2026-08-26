@@ -8,7 +8,7 @@ Implementado nesta etapa:
 - Catálogo de auditoria: login, logout, criação, edição, exclusão/desativação, alterações de membros/permissões, consulta de mapa, exportações e parâmetros.
 - Auditoria: logActivity aceita resultado, projetoId e correlationId opcionais; as rotas registram ações relevantes.
 - Logs: /api/activity-logs possui filtros por busca, usuário, ação, entidade e período; paginação via page/limit.
-- Exportação: /api/activity-logs?format=csv e ?format=txt respeitam os filtros e registram exportar-logs.
+- Exportação: /api/activity-logs?format=csv, ?format=txt e ?format=pdf respeitam filtros, campos selecionados e registram exportar-logs. /api/reports segue o mesmo contrato para relatórios de projetos.
 
 ROTAS FUNCIONAIS
 GET /api/projects

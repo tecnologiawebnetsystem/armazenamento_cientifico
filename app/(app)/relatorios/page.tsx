@@ -39,21 +39,21 @@ export default function ReportsPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize)
 
-  const download = (content: string, filename: string, type: string) => { const blob = new Blob([content], { type }); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = filename; link.click(); URL.revokeObjectURL(url) }
-  const generateExport = (fields: string[], formats: ("csv" | "txt" | "pdf")[]) => {
-    const labels = Object.fromEntries(exportFields.map((field) => [field.key, field.label]))
-    const values = (project: ProjectReport["projetos"][number]) => ({ nome: project.nome, codigo: project.codigo, area: project.areaResponsavel, status: project.status, mapas: project.totalMapas, membros: project.totalMembros })
-    const rows = filtered.map((project) => fields.map((field) => String(values(project)[field as keyof ReturnType<typeof values>] ?? "")))
-    formats.forEach((format) => {
-      if (format === "pdf") {
-        const params = new URLSearchParams({ format, fields: fields.join(","), status, area, gestorId: gestor })
-        window.open(`/api/reports?${params.toString()}`, "_blank")
-        return
-      }
-      const content = format === "csv" ? [fields.map((field) => labels[field]).join(","), ...rows.map((row) => row.map((value) => `"${value.replaceAll('"', '""')}"`).join(","))].join("\n") : rows.map((row) => row.join(" | ")).join("\n")
-      download(content, `relatorio-projetos.${format}`, format === "csv" ? "text/csv;charset=utf-8" : "text/plain;charset=utf-8")
-    })
+  const downloadExport = async (format: "csv" | "txt" | "pdf", fields: string[]) => {
+    const params = new URLSearchParams({ format, fields: fields.join(","), status: status === "todos" ? "" : status, area: area === "todas" ? "" : area, gestorId: gestor })
+    const response = await fetch(`/api/reports?${params.toString()}`)
+    if (!response.ok) throw new Error("Não foi possível gerar a exportação.")
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `relatorio-projetos.${format}`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
   }
+  const generateExport = (fields: string[], formats: ("csv" | "txt" | "pdf")[]) => { void Promise.all(formats.map((format) => downloadExport(format, fields))) }
 
   if (isLoading) return <main className="flex flex-col gap-6"><h1 className="text-2xl font-semibold">Consultas e relatórios</h1><PetrobrasLoading label="Consolidando o portfólio autorizado..." /></main>
   if (error || !data) return <main><p className="text-destructive">Não foi possível carregar o relatório.</p></main>

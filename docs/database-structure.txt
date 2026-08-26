@@ -130,14 +130,19 @@ idx_activity_logs_entity_created: activity_logs(entity, created_at DESC)
 
 5. PONTO DE ATENÇÃO DA MIGRAÇÃO
 -------------------------------
-O SQL atual usa nomes sem prefixo (users, projects, files etc.). Os modelos SQLAlchemy
-modulares atualmente usam nomes app_users, app_projects, app_files, app_file_shares e
-app_activity_logs. Antes de ativar a persistência dos módulos novos em um ambiente real,
-é necessário padronizar os nomes por migration Alembic ou alinhar os __tablename__ ao SQL.
-A aplicação mantém o legacy_api durante a migração, portanto essa divergência não deve ser
-ignorada nem resolvida com criação automática de tabelas em produção.
+O banco possui duas superfícies documentadas durante a migração:
+- schema legado inicial, com nomes sem prefixo (users, projects, files etc.), criado por database/projects-schema.sql;
+- módulos SQLAlchemy novos, com nomes app_users, app_projects, app_files, app_file_shares e app_activity_logs, registrados pela baseline 0001_baseline sem criação automática.
 
-6. ESTADO
+A persistência dos módulos novos não deve ser ativada em ambiente real sem uma migration Alembic explícita para padronizar os nomes ou alinhar os __tablename__ ao SQL legado. O legacy_api permanece ativo durante a migração; não criar tabelas automaticamente em produção.
+
+Exportações não criam tabelas: relatórios e auditoria são leituras filtradas e as exportações CSV, TXT e PDF devem respeitar a mesma autorização e os mesmos filtros da consulta de origem.
+
+6. EXPORTAÇÕES E LEITURAS
+-------------------------
+Relatórios e logs são consultas, não tabelas novas. As três saídas suportadas são CSV, TXT e PDF. O endpoint deve aplicar autorização, filtros e campos selecionados antes de gerar qualquer arquivo; a exportação de auditoria registra a operação como evento append-only.
+
+7. ESTADO
 ---------
 O Docker está configurado para inicializar o PostgreSQL e montar o schema SQL somente na
 primeira inicialização do volume. O Alembic possui uma baseline `0001_baseline` que registra
