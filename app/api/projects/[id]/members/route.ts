@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import type { ProjectMemberRole } from "@/lib/types"
 import { getSessionUserId } from "@/lib/session"
 import { findUserById, getStore, logActivity } from "@/lib/store"
 
@@ -28,19 +29,35 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!user) return NextResponse.json({ message: "Não autenticado." }, { status: 401 })
 
   const store = getStore()
+  const project = store.projects.find((item) => item.id === id)
+  if (!project) return NextResponse.json({ message: "Projeto não encontrado." }, { status: 404 })
   const projectRole = store.projectMembers.find((m) => m.projectId === id && m.userId === user.id)?.papel
 
   if (!canManageMembers(user.role, projectRole)) {
     return NextResponse.json({ message: "Sem permissão para gerenciar membros." }, { status: 403 })
   }
 
-  const { userId: newUserId, papel } = await request.json()
+  let body: { userId?: unknown; papel?: unknown }
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ message: "Payload inválido." }, { status: 400 })
+  }
+  const newUserId = typeof body.userId === "string" ? body.userId.trim() : ""
+  const papel = typeof body.papel === "string" ? body.papel : ""
+  const allowedRoles: ProjectMemberRole[] = ["gestor", "participante", "visualizador", "auditor"]
+  if (!newUserId || !allowedRoles.includes(papel as ProjectMemberRole)) {
+    return NextResponse.json({ message: "Usuário e papel válido são obrigatórios." }, { status: 400 })
+  }
+  if (!store.users.some((item) => item.id === newUserId)) {
+    return NextResponse.json({ message: "Usuário não encontrado." }, { status: 404 })
+  }
 
   if (store.projectMembers.some((m) => m.projectId === id && m.userId === newUserId)) {
     return NextResponse.json({ message: "Usuário já é membro deste projeto." }, { status: 409 })
   }
 
-  const member = { projectId: id, userId: newUserId, papel, adicionadoEm: new Date().toISOString() }
+  const member = { projectId: id, userId: newUserId, papel: papel as ProjectMemberRole, adicionadoEm: new Date().toISOString() }
   store.projectMembers.push(member)
 
   const targetUser = store.users.find((u) => u.id === newUserId)
@@ -56,6 +73,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!user) return NextResponse.json({ message: "Não autenticado." }, { status: 401 })
 
   const store = getStore()
+  const project = store.projects.find((item) => item.id === id)
+  if (!project) return NextResponse.json({ message: "Projeto não encontrado." }, { status: 404 })
   const projectRole = store.projectMembers.find((m) => m.projectId === id && m.userId === user.id)?.papel
 
   if (!canManageMembers(user.role, projectRole)) {
@@ -81,6 +100,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   if (!user) return NextResponse.json({ message: "Não autenticado." }, { status: 401 })
 
   const store = getStore()
+  const project = store.projects.find((item) => item.id === id)
+  if (!project) return NextResponse.json({ message: "Projeto não encontrado." }, { status: 404 })
   const projectRole = store.projectMembers.find((m) => m.projectId === id && m.userId === user.id)?.papel
 
   if (!canManageMembers(user.role, projectRole)) {

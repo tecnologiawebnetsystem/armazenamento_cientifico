@@ -9,7 +9,6 @@ Implementado nesta etapa:
 - Auditoria: logActivity aceita resultado, projetoId e correlationId opcionais; as rotas registram ações relevantes.
 - Logs: /api/activity-logs possui filtros por busca, usuário, ação, entidade e período; paginação via page/limit.
 - Exportação: /api/activity-logs?format=csv e ?format=txt respeitam os filtros e registram exportar-logs.
-- PDF: não implementado. Decisão: manter CSV/TXT sem adicionar dependência pesada; PDF poderá ser criado posteriormente com @react-pdf/renderer ou serviço dedicado.
 
 ROTAS FUNCIONAIS
 GET /api/projects

@@ -64,8 +64,13 @@ export async function POST(request: Request) {
   if (nome.trim().length < 2 || !codigo.trim() || !areaResponsavel.trim()) {
     return NextResponse.json({ message: "Nome, código e área responsável são obrigatórios." }, { status: 400 })
   }
-  if (store.projects.some((p) => p.codigo.toLowerCase() === codigo.trim().toLowerCase())) {
+  const normalizedNome = nome.trim().toLowerCase()
+  const normalizedCodigo = codigo.trim().toLowerCase()
+  if (store.projects.some((p) => p.codigo.toLowerCase() === normalizedCodigo)) {
     return NextResponse.json({ message: "Código de projeto já existente." }, { status: 400 })
+  }
+  if (store.projects.some((p) => p.nome.trim().toLowerCase() === normalizedNome)) {
+    return NextResponse.json({ message: "Nome de projeto já existente." }, { status: 400 })
   }
 
   const now = new Date().toISOString()

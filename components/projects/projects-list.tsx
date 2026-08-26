@@ -87,7 +87,8 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
   const [pending, setPending] = useState(false)
 
   useEffect(() => {
-    const next = new URLSearchParams(searchParams.toString())
+    const current = searchParams.toString()
+    const next = new URLSearchParams(current)
     if (search) next.set("nome", search)
     else next.delete("nome")
     if (status !== "todos") next.set("status", status)
@@ -95,7 +96,11 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
     if (area !== "todas") next.set("area", area)
     else next.delete("area")
     next.set("page", "1")
-    router.replace(`${pathname}?${next.toString()}`, { scroll: false })
+
+    // Evita substituir a mesma URL em toda renderização e causar um loop de navegação.
+    if (next.toString() !== current) {
+      router.replace(`${pathname}?${next.toString()}`, { scroll: false })
+    }
   }, [search, status, area, pathname, router, searchParams])
 
   const areas = useMemo(
