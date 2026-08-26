@@ -85,7 +85,7 @@ export function ProjectListRow({ project, canManage = false, showMeta = true, on
                 <ExternalLinkIcon />
                 Abrir
               </DropdownMenuItem>
-              <DropdownMenuItem render={<Link href={`/projetos/${project.id}`} />}>
+              <DropdownMenuItem render={<Link href={`/projetos/${project.id}?aba=informacoes`} />}>
                 <PencilIcon />
                 Editar no projeto
               </DropdownMenuItem>

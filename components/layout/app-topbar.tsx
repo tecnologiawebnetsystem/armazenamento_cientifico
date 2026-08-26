@@ -20,6 +20,7 @@ import { useSession } from "@/hooks/use-session"
 import { roleDescription, roleLabel } from "@/hooks/use-permissions"
 import { navGroups } from "@/lib/nav-config"
 import { AppBreadcrumbs } from "@/components/navigation/app-breadcrumbs"
+import { LogoMark } from "@/components/brand/logo-mark"
 
 function pageTitleFor(pathname: string) {
   for (const group of navGroups) {
@@ -61,6 +62,7 @@ export function AppTopbar() {
       <div className="absolute inset-x-0 top-0 h-0.5 bg-primary" aria-hidden="true" />
       <SidebarTrigger className="size-9 rounded-xl border border-border/70 bg-muted/30 text-muted-foreground hover:bg-primary/10 hover:text-primary" />
       <Separator orientation="vertical" className="mx-1 h-7 bg-border/70" />
+      <LogoMark className="size-9 shrink-0 rounded-lg" />
       <div className="flex min-w-0 flex-col gap-1"><AppBreadcrumbs /></div>
       <div className="ml-auto flex items-center gap-2 md:gap-3">
         

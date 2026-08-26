@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Loader2Icon, Trash2Icon } from "lucide-react"
@@ -55,6 +55,13 @@ export function ProjectInfoTab({
   const [status, setStatus] = useState<ProjectStatus>(project.status)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  useEffect(() => {
+    setNome(project.nome)
+    setAreaResponsavel(project.areaResponsavel)
+    setDescricao(project.descricao)
+    setStatus(project.status)
+  }, [project])
 
   const dirty =
     nome !== project.nome ||

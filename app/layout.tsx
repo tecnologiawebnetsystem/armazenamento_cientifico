@@ -17,6 +17,10 @@ export const metadata: Metadata = {
   title: "SIGAC | Petrobras",
   description:
     "SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico da Petrobras, com organização, compartilhamento e controle de acesso por perfis e permissões.",
+  icons: {
+    icon: "/images/petrobras-logo.png",
+    shortcut: "/images/petrobras-logo.png",
+  },
 }
 
 export const viewport: Viewport = {
