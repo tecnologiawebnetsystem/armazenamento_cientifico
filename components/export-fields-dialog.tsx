@@ -1,13 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { CheckIcon, DownloadIcon, FileTextIcon, FileSpreadsheetIcon } from "lucide-react"
+import { CheckIcon, DownloadIcon, FileTextIcon, FileSpreadsheetIcon, FileType2Icon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export type ExportField = { key: string; label: string }
-export type ExportFormat = "csv" | "txt"
+export type ExportFormat = "csv" | "txt" | "pdf"
 
 type Props = {
   open: boolean
@@ -22,6 +22,7 @@ type Props = {
 const formats: { key: ExportFormat; label: string; description: string; icon: typeof FileTextIcon }[] = [
   { key: "csv", label: "CSV", description: "Para planilhas e análises", icon: FileSpreadsheetIcon },
   { key: "txt", label: "TXT", description: "Texto simples e compatível", icon: FileTextIcon },
+  { key: "pdf", label: "PDF", description: "Documento pronto para impressão", icon: FileType2Icon },
 ]
 
 export function ExportFieldsDialog({ open, onOpenChange, title, fields, defaultFields, defaultFormats = ["csv"] , onConfirm }: Props) {

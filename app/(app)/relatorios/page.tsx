@@ -40,7 +40,7 @@ export default function ReportsPage() {
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize)
 
   const download = (content: string, filename: string, type: string) => { const blob = new Blob([content], { type }); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = filename; link.click(); URL.revokeObjectURL(url) }
-  const generateExport = (fields: string[], formats: ("csv" | "txt")[]) => {
+  const generateExport = (fields: string[], formats: ("csv" | "txt" | "pdf")[]) => {
     const labels = Object.fromEntries(exportFields.map((field) => [field.key, field.label]))
     const values = (project: ProjectReport["projetos"][number]) => ({ nome: project.nome, codigo: project.codigo, area: project.areaResponsavel, status: project.status, mapas: project.totalMapas, membros: project.totalMembros })
     const rows = filtered.map((project) => fields.map((field) => String(values(project)[field as keyof ReturnType<typeof values>] ?? "")))
