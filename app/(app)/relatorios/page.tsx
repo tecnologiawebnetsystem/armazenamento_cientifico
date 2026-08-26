@@ -45,6 +45,11 @@ export default function ReportsPage() {
     const values = (project: ProjectReport["projetos"][number]) => ({ nome: project.nome, codigo: project.codigo, area: project.areaResponsavel, status: project.status, mapas: project.totalMapas, membros: project.totalMembros })
     const rows = filtered.map((project) => fields.map((field) => String(values(project)[field as keyof ReturnType<typeof values>] ?? "")))
     formats.forEach((format) => {
+      if (format === "pdf") {
+        const params = new URLSearchParams({ format, fields: fields.join(","), status, area, gestorId: gestor })
+        window.open(`/api/reports?${params.toString()}`, "_blank")
+        return
+      }
       const content = format === "csv" ? [fields.map((field) => labels[field]).join(","), ...rows.map((row) => row.map((value) => `"${value.replaceAll('"', '""')}"`).join(","))].join("\n") : rows.map((row) => row.join(" | ")).join("\n")
       download(content, `relatorio-projetos.${format}`, format === "csv" ? "text/csv;charset=utf-8" : "text/plain;charset=utf-8")
     })
