@@ -301,9 +301,18 @@ export function updateSettings(data: Partial<PlatformSettings>) {
 
 /* ------------------------------ Activity logs ------------------------------ */
 
-export function getActivityLogs(params?: Record<string, string>) {
-  const query = params ? `?${new URLSearchParams(params).toString()}` : ""
-  return request<{ logs: (ActivityLog & { user: User | null })[] }>(`/api/activity-logs${query}`)
+export type ActivityLogQuery = Record<string, string | number | undefined>
+
+export function getActivityLogs(params: ActivityLogQuery = {}) {
+  const queryParams = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") queryParams.set(key, String(value))
+  })
+  const query = queryParams.size ? `?${queryParams}` : ""
+  return request<{
+    logs: (ActivityLog & { user: User | null })[]
+    pagination: { page: number; limit: number; total: number; totalPages: number }
+  }>(`/api/activity-logs${query}`)
 }
 
 export { ApiError }
