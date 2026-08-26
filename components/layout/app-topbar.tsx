@@ -63,10 +63,7 @@ export function AppTopbar() {
       <Separator orientation="vertical" className="mx-1 h-7 bg-border/70" />
       <div className="flex min-w-0 flex-col gap-1"><AppBreadcrumbs /></div>
       <div className="ml-auto flex items-center gap-2 md:gap-3">
-        <div className="hidden items-center gap-1.5 rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-[11px] font-medium text-primary lg:flex">
-          <ShieldCheckIcon className="size-3.5" aria-hidden="true" />
-          Ambiente corporativo
-        </div>
+        
         <ThemeToggle />
         {user ? (
           <DropdownMenu>
@@ -92,13 +89,9 @@ export function AppTopbar() {
                 </Badge>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem disabled>
-                <UserRoundIcon />
-                Meu perfil
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleLogout} variant="destructive">
                 <LogOutIcon />
-                Sair da plataforma
+                Sair
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

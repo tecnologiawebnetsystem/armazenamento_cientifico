@@ -56,7 +56,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="gap-1 px-1 py-2">
-        <div className="relative px-1"><SearchIcon className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-sidebar-foreground/50" aria-hidden="true" /><input aria-label="Buscar no menu" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar menu" className="h-8 w-full rounded-md border border-sidebar-border bg-sidebar-accent/30 pl-8 pr-2 text-xs outline-none placeholder:text-sidebar-foreground/45 focus-visible:ring-2 focus-visible:ring-sidebar-ring group-data-[collapsible=icon]:hidden" /></div>
+        
         {groups.map((group) => (
           <SidebarGroup key={group.label} className="py-1">
             <SidebarGroupLabel className="text-[10px] font-semibold tracking-[0.14em] text-sidebar-foreground/45 uppercase">

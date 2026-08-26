@@ -43,7 +43,7 @@ export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazen
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/projetos?novo=1" className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"><PlusIcon data-icon="inline-start" />Novo projeto</Link>
-          <Link href="/relatorios" className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium transition-colors hover:bg-muted"><FileBarChartIcon data-icon="inline-start" />Relatórios</Link>
+         
         </div>
       </header>
 
