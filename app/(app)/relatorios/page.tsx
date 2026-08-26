@@ -25,7 +25,6 @@ export default function ReportsPage() {
   const [sortAsc, setSortAsc] = useState(true)
   const [page, setPage] = useState(1)
   const [exportOpen, setExportOpen] = useState(false)
-  const [exportOpen, setExportOpen] = useState(false)
   const exportFields: ExportField[] = [
     { key: "nome", label: "Nome do projeto" }, { key: "codigo", label: "Código" },
     { key: "area", label: "Área responsável" }, { key: "status", label: "Status" },
