@@ -66,20 +66,36 @@ cd backend
 docker compose -f ../docker-compose.yml up -d
 
 # terminal 2 — API sem uv
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python -m alembic upgrade head
-python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
-# terminal 3 — frontend, na raiz do projeto
-printf 'NEXT_PUBLIC_API_BASE_URL=http://localhost:8000\\n' > .env.local
-npm ci
-npm run dev
+### Instalação Local
+
+```bash
+# 1. Entrar na pasta
+cd backend
+
+# 2. Criar e ativar o ambiente virtual
+python -m venv venv
+
+# Windows
+venv\Scripts\activate
+# Linux/Mac
+source venv/bin/activate
+
+# 3. Instalar dependências
+pip install -r requirements.txt 
+ # ou
+pip install -r requirements.txt --index-url https://jfrog.petrobras.dev.br/artifactory/api/pypi/pypi-group-all/simple --trusted-host jfrog.petrobras.dev.br
+
+# 4. Criar arquivo .env (ver tabela abaixo)
+
+# 5. Executar migrações
+alembic upgrade heads
+
+# 6. Iniciar a aplicação
+uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
 ```
 
-Verifique `http://localhost:8000/health`, `http://localhost:8000/docs` e `http://localhost:3000`. Se aparecer `Failed to fetch`, confirme se a API está em execução, se a URL está correta e se `CORS_ORIGINS` contém o endereço usado pelo navegador (`localhost` e/ou `127.0.0.1`).
+Verifique `http://localhost:8080/health`, `http://localhost:8080/docs` e `http://localhost:3000`. Se aparecer `Failed to fetch`, confirme se a API está em execução, se a URL está correta e se `CORS_ORIGINS` contém o endereço usado pelo navegador (`localhost` e/ou `127.0.0.1`).
 
 ## Build e validação
 
@@ -116,7 +132,7 @@ Após subir o PostgreSQL e ativar o ambiente virtual:
 
 ```bash
 cd backend
-source .venv/bin/activate             # Windows PowerShell: .venv\\Scripts\\Activate.ps1
+.venv\\Scripts\\Activate.ps1
 python -m alembic current
 python -m alembic upgrade head
 ```
@@ -137,17 +153,6 @@ python -m alembic check
 ```
 
 Com `uv`, use `uv run alembic` no lugar de `python -m alembic`.
-
-## Executar a API sem `uv` (forma padrão)
-
-```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate             # Windows PowerShell: .venv\\Scripts\\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
 
 ## Executar com `uv` (alternativa)
 

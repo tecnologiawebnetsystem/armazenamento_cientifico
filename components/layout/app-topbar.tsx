@@ -61,7 +61,7 @@ export function AppTopbar() {
       <div className="absolute inset-x-0 top-0 h-0.5 bg-primary" aria-hidden="true" />
       <SidebarTrigger className="size-9 rounded-xl border border-border/70 bg-muted/30 text-muted-foreground hover:bg-primary/10 hover:text-primary" />
       <Separator orientation="vertical" className="mx-1 h-7 bg-border/70" />
-      <div className="flex min-w-0 flex-col gap-1"><AppBreadcrumbs /><h1 className="truncate text-sm font-bold tracking-tight text-foreground md:text-base">{title}</h1></div>
+      <div className="flex min-w-0 flex-col gap-1"><AppBreadcrumbs /></div>
       <div className="ml-auto flex items-center gap-2 md:gap-3">
         <div className="hidden items-center gap-1.5 rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-[11px] font-medium text-primary lg:flex">
           <ShieldCheckIcon className="size-3.5" aria-hidden="true" />
