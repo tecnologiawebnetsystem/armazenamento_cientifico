@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { ChevronRightIcon, LogOutIcon, ShieldCheckIcon, UserRoundIcon } from "lucide-react"
+import { LogOutIcon, ShieldCheckIcon, UserRoundIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
@@ -17,8 +17,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { logout } from "@/lib/api-client"
 import { useSession } from "@/hooks/use-session"
-import { roleLabel } from "@/hooks/use-permissions"
+import { roleDescription, roleLabel } from "@/hooks/use-permissions"
 import { navGroups } from "@/lib/nav-config"
+import { AppBreadcrumbs } from "@/components/navigation/app-breadcrumbs"
 
 function pageTitleFor(pathname: string) {
   for (const group of navGroups) {
@@ -60,11 +61,7 @@ export function AppTopbar() {
       <div className="absolute inset-x-0 top-0 h-0.5 bg-primary" aria-hidden="true" />
       <SidebarTrigger className="size-9 rounded-xl border border-border/70 bg-muted/30 text-muted-foreground hover:bg-primary/10 hover:text-primary" />
       <Separator orientation="vertical" className="mx-1 h-7 bg-border/70" />
-      <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-        <span className="hidden font-medium sm:inline">Plataforma</span>
-        <ChevronRightIcon className="hidden size-3.5 sm:inline" aria-hidden="true" />
-        <h1 className="truncate text-sm font-bold tracking-tight text-foreground md:text-base">{title}</h1>
-      </div>
+      <div className="flex min-w-0 flex-col gap-1"><AppBreadcrumbs /><h1 className="truncate text-sm font-bold tracking-tight text-foreground md:text-base">{title}</h1></div>
       <div className="ml-auto flex items-center gap-2 md:gap-3">
         <div className="hidden items-center gap-1.5 rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-[11px] font-medium text-primary lg:flex">
           <ShieldCheckIcon className="size-3.5" aria-hidden="true" />
@@ -89,6 +86,7 @@ export function AppTopbar() {
               <div className="flex flex-col gap-1 px-2 py-2" role="presentation">
                 <span className="truncate text-sm font-semibold text-foreground">{user.nome}</span>
                 <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
+                <span className="text-[11px] leading-4 text-muted-foreground">{roleDescription(user.role)}</span>
                 <Badge variant="secondary" className="mt-1 w-fit border-0 bg-muted px-1.5 py-0 text-[10px] font-medium text-muted-foreground">
                   {roleLabel(user.role) ?? "Usuário da plataforma"}
                 </Badge>

@@ -47,7 +47,7 @@ export const navGroups: NavGroup[] = [
   },
   {
     label: "Administração",
-    items: [{ title: "Logs de auditoria", url: "/logs", icon: HistoryIcon, roles: ["admin", "auditor"] }],
+    items: [{ title: "Logs de auditoria", url: "/administracao/logs", icon: HistoryIcon, roles: ["admin", "auditor"] }],
   },
 ]
 

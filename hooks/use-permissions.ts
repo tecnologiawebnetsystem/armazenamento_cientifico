@@ -37,7 +37,7 @@ export function roleLabel(role: Role) {
     case "admin":
       return "Administrador"
     case "gerente":
-      return "Gerente do Projeto"
+      return "Gestor"
     case "patrocinador":
       return "Patrocinador"
     case "auditor":

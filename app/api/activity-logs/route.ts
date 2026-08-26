@@ -15,6 +15,8 @@ export async function GET(request: Request) {
   const userFilter = params.get("usuario")
   const acao = params.get("acao")
   const entidade = params.get("entidade")
+  const projeto = params.get("projeto")
+  const resultado = params.get("resultado")
   const de = params.get("de")
   const ate = params.get("ate")
   const page = Math.max(1, Number(params.get("page") ?? "1") || 1)
@@ -23,8 +25,9 @@ export async function GET(request: Request) {
   const logs = store.activityLogs
     .map((log) => ({ ...log, user: store.users.find((u) => u.id === log.userId) ?? null }))
     .filter((log) => {
-      const text = `${log.detalhes} ${log.entidade} ${log.entidadeId} ${log.user?.nome ?? ""}`.toLowerCase()
+      const text = `${log.detalhes} ${log.entidade} ${log.entidadeId} ${log.projetoId ?? ""} ${log.correlationId ?? ""} ${log.user?.nome ?? ""}`.toLowerCase()
       return (!query || text.includes(query)) && (!userFilter || log.userId === userFilter) &&
+        (!projeto || log.projetoId === projeto) && (!resultado || log.resultado === resultado) &&
         (!acao || log.acao === acao) && (!entidade || log.entidade === entidade) &&
         (!de || log.criadoEm >= de) && (!ate || log.criadoEm <= `${ate}T23:59:59.999Z`)
     })
