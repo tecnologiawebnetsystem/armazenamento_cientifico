@@ -53,11 +53,24 @@ export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazen
           { label: "Mapas e conjuntos", value: totalMapas, icon: MapIcon, note: "acesso autorizado" },
           { label: "Armazenamento", value: formatStorage(armazenamentoMb), icon: DatabaseIcon, note: "uso consolidado" },
           { label: "Membros envolvidos", value: totalMembros, icon: UsersIcon, note: pendencias ? `${pendencias} pendência(s)` : "sem pendências" },
-        ].map((item) => (
-          <Card key={item.label} className="border-0 shadow-sm ring-1 ring-border/70">
+        ].map((item, index) => (
+          <Card
+            key={item.label}
+            className={`border-0 shadow-sm ring-1 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${[
+              "!bg-petrobras-green/10 ring-petrobras-green/30",
+              "!bg-petrobras-blue/10 ring-petrobras-blue/30",
+              "!bg-petrobras-teal/10 ring-petrobras-teal/30",
+              "!bg-petrobras-yellow/15 ring-petrobras-yellow/40",
+            ][index]}`}
+          >
             <CardContent className="flex min-h-32 flex-col justify-between gap-4 p-4 sm:p-5">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground"><item.icon className="size-5" /></span>
+                <span className={`flex size-9 items-center justify-center rounded-lg shadow-sm ring-1 ring-inset ${[
+                  "bg-petrobras-green/15 text-petrobras-green ring-petrobras-green/20",
+                  "bg-petrobras-blue/15 text-petrobras-blue ring-petrobras-blue/20",
+                  "bg-petrobras-teal/15 text-petrobras-teal ring-petrobras-teal/20",
+                  "bg-petrobras-yellow/25 text-accent-foreground ring-petrobras-yellow/30",
+                ][index]}`}><item.icon className="size-5" /></span>
                 <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Portfólio</span>
               </div>
               <div className="flex flex-col gap-1">
