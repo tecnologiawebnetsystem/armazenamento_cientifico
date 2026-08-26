@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getSessionUserId } from "@/lib/session"
 import { findUserById, getStore, logActivity } from "@/lib/store"
+import { renderPdf } from "@/lib/pdf"
 
 export async function GET(request: Request) {
   const userId = await getSessionUserId()
@@ -41,6 +42,13 @@ export async function GET(request: Request) {
   }
   const fields = (requestedFields?.length ? requestedFields : Object.keys(fieldMap)).filter((key) => key in fieldMap)
   const paged = logs.slice((page - 1) * limit, page * limit)
+  if (format === "pdf" && fields.length) {
+    const labels: Record<string, string> = { id: "ID", usuario: "Usuário", acao: "Ação", entidade: "Entidade", entidadeId: "ID da entidade", detalhes: "Detalhes", criadoEm: "Data", correlationId: "Correlation ID" }
+    const rows = logs.map((log) => fields.map((key) => fieldMap[key](log)))
+    const pdf = await renderPdf("Logs de auditoria", fields, labels, rows)
+    logActivity(user.id, "exportar-logs", "auditoria", "activity-logs", `Exportou ${total} registros no formato PDF com os campos: ${fields.join(", ")}.`)
+    return new Response(pdf, { headers: { "Content-Type": "application/pdf", "Content-Disposition": "attachment; filename=sigac-logs.pdf" } })
+  }
   if ((format === "csv" || format === "txt") && fields.length) {
     logActivity(user.id, "exportar-logs", "auditoria", "activity-logs", `Exportou ${total} registros no formato ${format} com os campos: ${fields.join(", ")}.`)
     const labels: Record<string, string> = { id: "ID", usuario: "Usuário", acao: "Ação", entidade: "Entidade", entidadeId: "ID da entidade", detalhes: "Detalhes", criadoEm: "Data", correlationId: "Correlation ID" }

@@ -71,7 +71,7 @@ O logger usa formato JSON em stdout. Cada registro possui timestamp, nível, log
 
 O middleware registra método, caminho, status, duração, cliente e falhas. Não são gravados senha, token, cookie, DATABASE_URL ou conteúdo de arquivo.
 
-A auditoria de negócio usa app_activity_logs e deve ser tratada como append-only. Eventos registrados incluem login, login falho, logout e operações de domínio realizadas pelos endpoints.
+A auditoria de negócio usa app_activity_logs e deve ser tratada como append-only. Eventos registrados incluem login, login falho, logout, operações de domínio e exportações realizadas pelos endpoints. As exportações CSV, TXT e PDF não alteram o schema: reutilizam os mesmos filtros, autorização e campos selecionados da consulta de origem.
 
 Campos da auditoria:
   id, user_id, action, entity, entity_id, details, created_at
@@ -200,9 +200,10 @@ Histórico:
 10. VALIDAÇÃO
 
 Frontend:
-  npm run typecheck
-  npm run lint
-  npm run build
+  pnpm typecheck
+  pnpm lint
+  pnpm build
+  pnpm exec playwright install chromium
 
 Backend:
   python -m compileall -q .
