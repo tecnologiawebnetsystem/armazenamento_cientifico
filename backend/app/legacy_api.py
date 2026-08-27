@@ -4,6 +4,7 @@ import csv
 import io
 import json
 import os
+import math
 from datetime import UTC, datetime
 from typing import Literal
 from uuid import uuid4
@@ -276,6 +277,9 @@ async def list_projects(
     request: Request,
     status_filter: str | None = Query(None, alias="status"),
     area: str | None = None,
+    nome: str | None = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(12, ge=1, le=100),
     all: bool = False,
 ):
     u = await require(request)
@@ -294,9 +298,16 @@ async def list_projects(
     if area:
         cond.append(f"responsible_area=${len(args) + 1}")
         args.append(area)
-    if cond:
-        q += " where " + " and ".join(cond)
-    return {"projects": [project(r) for r in await p.fetch(q, *args)]}
+    if nome:
+        cond.append(f"(name ilike ${len(args) + 1} or code ilike ${len(args) + 1})")
+        args.append(f"%{nome}%")
+    where = (" where " + " and ".join(cond)) if cond else ""
+    total = await p.fetchval(f"select count(*) from app_projects{where}", *args)
+    if all:
+        rows = await p.fetch(f"{q}{where} order by created_at desc", *args)
+        return {"projects": [project(r) for r in rows], "pagination": {"page": 1, "limit": total, "total": total, "totalPages": 1}}
+    rows = await p.fetch(f"{q}{where} order by created_at desc limit ${len(args) + 1} offset ${len(args) + 2}", *args, limit, (page - 1) * limit)
+    return {"projects": [project(r) for r in rows], "pagination": {"page": page, "limit": limit, "total": total, "totalPages": math.ceil(total / limit) if total else 0}}
 
 
 @app.post("/api/projects")
@@ -745,6 +756,48 @@ async def access_map(request: Request):
             for x in rows
         ],
     }
+
+
+@app.get("/api/access-map/export")
+async def export_access_map(
+    request: Request,
+    format: Literal["csv", "txt", "pdf"] = "csv",
+    fields: str = "usuario,email,perfil,area,projeto,recurso,tipo,acesso,ultimaVisualizacao",
+    q: str = "",
+    type: str = "todos",
+    level: str = "todos",
+    view: str = "projeto",
+):
+    if format == "pdf":
+        raise HTTPException(422, "Exportação PDF ainda não está disponível no backend")
+    data = await access_map(request)
+    selected = [item for item in fields.split(",") if item]
+    labels = {
+        "usuario": ("Usuário", "userName"), "email": ("E-mail", "userEmail"),
+        "perfil": ("Perfil", "userRole"), "area": ("Área", "area"),
+        "projeto": ("Projeto", "projectName"), "recurso": ("Recurso", "resourceName"),
+        "tipo": ("Tipo de recurso", "resourceType"), "acesso": ("Nível de acesso", "accessLevel"),
+        "ultimaVisualizacao": ("Última visualização", "lastViewedAt"),
+    }
+    rows = data["rows"]
+    if q:
+        needle = q.lower()
+        rows = [row for row in rows if needle in " ".join(str(row.get(key, "")) for _, key in labels.values()).lower()]
+    if type != "todos":
+        rows = [row for row in rows if row.get("resourceType") == type]
+    if level != "todos":
+        rows = [row for row in rows if row.get("accessLevel") == level]
+    out = io.StringIO()
+    if format == "csv":
+        writer = csv.writer(out)
+        writer.writerow([labels[key][0] for key in selected if key in labels])
+        for row in rows:
+            writer.writerow([row.get(labels[key][1], "") for key in selected if key in labels])
+        media, filename = "text/csv", "mapa-de-acessos.csv"
+    else:
+        out.write("\n".join(" | ".join(str(row.get(labels[key][1], "")) for key in selected if key in labels) for row in rows))
+        media, filename = "text/plain", "mapa-de-acessos.txt"
+    return StreamingResponse(iter([out.getvalue()]), media_type=media, headers={"Content-Disposition": f"attachment; filename={filename}"})
 
 
 @app.get("/api/permissions")

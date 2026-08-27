@@ -111,7 +111,7 @@ def create_app() -> FastAPI:
 
     # O legado é o contrato HTTP canônico durante a integração frontend/backend.
     # Ele expõe os endpoints consumidos pelo cliente TypeScript, com respostas
-    # compatíveis e autorização baseada na sessão PostgreSQL.
+    # compatíveis e autorização baseada na sessão persistida do backend.
     application.mount("/", legacy_app)
 
     # Aplicações montadas não propagam automaticamente seus paths para o schema

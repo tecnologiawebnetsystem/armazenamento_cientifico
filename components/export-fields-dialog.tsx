@@ -19,6 +19,10 @@ type Props = {
   onConfirm: (fields: string[], formats: ExportFormat[]) => void
 }
 
+// Ajuste visual rápido da modal: altere apenas estas duas classes.
+export const EXPORT_DIALOG_WIDTH_CLASS = "max-w-6xl"
+export const EXPORT_DIALOG_HEIGHT_CLASS = "min-h-[70vh] max-h-[92vh]"
+
 const formats: { key: ExportFormat; label: string; description: string; icon: typeof FileTextIcon }[] = [
   { key: "csv", label: "CSV", description: "Para planilhas e análises", icon: FileSpreadsheetIcon },
   { key: "txt", label: "TXT", description: "Texto simples e compatível", icon: FileTextIcon },
@@ -33,7 +37,7 @@ export function ExportFieldsDialog({ open, onOpenChange, title, fields, defaultF
   const confirm = () => { if (selectedFields.length && selectedFormats.length) { onConfirm(selectedFields, selectedFormats); onOpenChange(false) } }
 
   return <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="max-h-[90vh] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto border-petrobras-blue/15 bg-gradient-to-br from-background via-background to-petrobras-green/5 p-6 shadow-[0_24px_80px_-32px_rgba(0,88,140,0.5)] sm:p-8">
+    <DialogContent className={`${EXPORT_DIALOG_HEIGHT_CLASS} w-[calc(100%-2rem)] ${EXPORT_DIALOG_WIDTH_CLASS} overflow-y-auto border-petrobras-blue/15 bg-gradient-to-br from-background via-background to-petrobras-green/5 p-6 shadow-[0_24px_80px_-32px_rgba(0,88,140,0.5)] sm:p-8">
       <DialogHeader>
         <DialogTitle className="text-xl">Configurar exportação</DialogTitle>
         <DialogDescription>Escolha os formatos e os campos do {title} que serão gerados.</DialogDescription>
