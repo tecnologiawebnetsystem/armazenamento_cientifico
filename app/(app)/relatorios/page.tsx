@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { getProjectReport } from "@/lib/api-client"
+import { downloadFile, getProjectReport, getProjectReportExportPath } from "@/lib/api-client"
 import type { ProjectReport } from "@/lib/types"
 import { PetrobrasLoading } from "@/components/petrobras-loading"
 import { BackButton } from "@/components/navigation/back-button"
@@ -15,6 +15,8 @@ import { KpiCards, type KpiItem } from "@/components/dashboard/kpi-cards"
 import { ExportButton, ExportFieldsDialog, type ExportField } from "@/components/export-fields-dialog"
 
 const fetcher = () => getProjectReport()
+
+type ReportExportFormat = "csv" | "txt" | "pdf"
 
 export default function ReportsPage() {
   const { data, error, isLoading } = useSWR<ProjectReport>("/api/reports", fetcher)
@@ -39,11 +41,15 @@ export default function ReportsPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize)
 
-  const downloadExport = async (format: "csv" | "txt" | "pdf", fields: string[]) => {
-    const params = new URLSearchParams({ format, fields: fields.join(","), status: status === "todos" ? "" : status, area: area === "todas" ? "" : area, gestorId: gestor })
-    const response = await fetch(`/api/reports?${params.toString()}`)
-    if (!response.ok) throw new Error("Não foi possível gerar a exportação.")
-    const blob = await response.blob()
+  const downloadExport = async (format: ReportExportFormat, fields: string[]) => {
+    const path = getProjectReportExportPath({
+      format,
+      fields,
+      status: status === "todos" ? undefined : status,
+      area: area === "todas" ? undefined : area,
+      gestorId: gestor || undefined,
+    })
+    const blob = await downloadFile(path)
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.href = url
@@ -53,7 +59,9 @@ export default function ReportsPage() {
     link.remove()
     URL.revokeObjectURL(url)
   }
-  const generateExport = (fields: string[], formats: ("csv" | "txt" | "pdf")[]) => { void Promise.all(formats.map((format) => downloadExport(format, fields))) }
+  const generateExport = (fields: string[], formats: ReportExportFormat[]) => {
+    void Promise.all(formats.map((format) => downloadExport(format, fields)))
+  }
 
   if (isLoading) return <main className="flex flex-col gap-6"><h1 className="text-2xl font-semibold">Consultas e relatórios</h1><PetrobrasLoading label="Consolidando o portfólio autorizado..." /></main>
   if (error || !data) return <main><p className="text-destructive">Não foi possível carregar o relatório.</p></main>

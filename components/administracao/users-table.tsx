@@ -39,8 +39,8 @@ export function UsersTable({ currentUserId }: { currentUserId: string }) {
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="overflow-hidden border-0 shadow-sm ring-1 ring-border/70">
+      <CardHeader className="border-b bg-gradient-to-r from-petrobras-green/5 via-background to-petrobras-yellow/10">
         <CardTitle>Todos os usuários</CardTitle>
         <CardDescription>{users.length} usuários cadastrados na plataforma.</CardDescription>
       </CardHeader>

@@ -580,6 +580,27 @@ async def user_role(uid: str, x: RolePatch, request: Request):
     return {"user": user(r)}
 
 
+@app.get("/api/dashboard/summary", tags=["Dashboard"])
+async def dashboard_summary(request: Request):
+    """Retorna indicadores do dashboard calculados exclusivamente no banco."""
+    u = await require(request)
+    p = await db()
+    visibility = "" if u["role"] in ("admin", "patrocinador", "auditor") else " where $1=any(managers_ids) or $1=any(participants_ids)"
+    args = [] if not visibility else [u["id"]]
+    projects = await p.fetch(f"select * from app_projects{visibility} order by updated_at desc", *args)
+    project_ids = [row["id"] for row in projects]
+    members = 0
+    files = 0
+    storage = 0
+    if project_ids:
+        members = await p.fetchval("select count(distinct user_id) from app_project_members where project_id=any($1::text[])", project_ids) or 0
+        files = await p.fetchval("select count(*) from app_files where project_id=any($1::text[])", project_ids) or 0
+        storage = await p.fetchval("select coalesce(sum(size_bytes), 0) from app_files where project_id=any($1::text[])", project_ids) or 0
+    pending = await p.fetchval("select count(*) from app_access_requests where status='pendente'") if u["role"] in ("admin", "patrocinador", "auditor") else 0
+    logs = await p.fetch("select * from app_activity_logs order by created_at desc limit 8")
+    return {"projects": [project(row) for row in projects], "totalMembros": int(members), "totalMapas": int(files), "armazenamentoMb": round(int(storage) / 1048576, 2), "pendencias": int(pending or 0), "activity": [dump(row) for row in logs], "source": "database", "consultedAt": now().isoformat()}
+
+
 @app.get("/api/activity-logs")
 async def activity_logs(
     request: Request,

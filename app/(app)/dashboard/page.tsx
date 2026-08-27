@@ -1,33 +1,25 @@
-import { getSessionUserId } from "@/lib/session"
-import { findUserById, getStore } from "@/lib/store"
+"use client"
+
+import useSWR from "swr"
 import { ExecutiveDashboard } from "@/components/dashboard/executive-dashboard"
+import { PageError, PageLoading } from "@/components/ui/page-state"
+import { getDashboardSummary } from "@/lib/api-client"
+import type { DashboardSummary } from "@/lib/types"
 
-export default async function DashboardPage() {
-  const userId = await getSessionUserId()
-  const user = findUserById(userId)!
-  const store = getStore()
-  const hasGlobalVisibility = user.role === "admin" || user.role === "patrocinador" || user.role === "auditor"
+const fetcher = () => getDashboardSummary()
 
-  const visibleProjects = hasGlobalVisibility
-    ? store.projects
-    : store.projects.filter((project) =>
-        project.gestoresIds.includes(user.id) ||
-        store.projectMembers.some((member) => member.userId === user.id && member.projectId === project.id && member.papel === "gerente"),
-      )
+export default function DashboardPage() {
+  const { data, error, isLoading } = useSWR<DashboardSummary>("dashboard-summary", fetcher, {
+    revalidateOnFocus: false,
+  })
 
-  const projectIds = new Set(visibleProjects.map((project) => project.id))
-  const visibleFiles = store.files.filter((file) => projectIds.has(file.projectId))
-  const memberIdsInScope = new Set(
-    store.projectMembers.filter((member) => projectIds.has(member.projectId)).map((member) => member.userId),
-  )
+  if (isLoading) {
+    return <main className="flex flex-col gap-6"><h1 className="text-2xl font-semibold">Dashboard</h1><PageLoading label="Consultando indicadores no banco de dados..." /></main>
+  }
 
-  return (
-    <ExecutiveDashboard
-      projects={visibleProjects}
-      totalMembros={memberIdsInScope.size}
-      totalMapas={visibleFiles.length}
-      armazenamentoMb={visibleProjects.reduce((sum, project) => sum + (project.armazenamentoUsadoMb ?? 0), 0)}
-      pendencias={hasGlobalVisibility ? store.accessRequests.filter((request) => request.status === "pendente").length : 0}
-    />
-  )
+  if (error || !data) {
+    return <main className="flex flex-col gap-4"><h1 className="text-2xl font-semibold">Dashboard</h1><PageError title="Não foi possível consultar o dashboard" message="Verifique a sessão e a disponibilidade da API." /></main>
+  }
+
+  return <ExecutiveDashboard projects={data.projects} totalMembros={data.totalMembros} totalMapas={data.totalMapas} armazenamentoMb={data.armazenamentoMb} pendencias={data.pendencias} activity={data.activity} source={data.source} consultedAt={data.consultedAt} />
 }

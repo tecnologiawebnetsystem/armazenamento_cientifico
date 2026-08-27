@@ -4,6 +4,12 @@
 
 A fonte de verdade do contrato é o OpenAPI gerado em `/openapi.json` (Swagger em `/docs`). Todas as rotas abaixo são expostas pelo backend FastAPI; login e health são as exceções à autenticação por sessão.
 
+## Dashboard e mapas
+
+- `GET /api/dashboard/summary` — indicadores reais do dashboard, projetos visíveis, armazenamento, pendências e últimas atividades. Requer sessão válida e retorna `source: database`.
+- `GET /api/access-map` — relações de acesso filtradas pela autorização do usuário autenticado.
+- `GET /api/projects/{id}/access-map` — mapa detalhado por projeto, incluindo membros e recursos.
+
 ## Saúde e autenticação
 
 - `GET /health` — estado da API e configuração do banco.

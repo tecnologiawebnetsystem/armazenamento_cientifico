@@ -2,7 +2,6 @@ import Link from "next/link"
 import { FolderPlusIcon } from "lucide-react"
 import { getSessionUserId } from "@/lib/session"
 import { findUserById } from "@/lib/store"
-import { getRolePermissions } from "@/hooks/use-permissions"
 import { Button } from "@/components/ui/button"
 import { ProjectsList } from "@/components/projects/projects-list"
 import { BackButton } from "@/components/navigation/back-button"
@@ -10,7 +9,7 @@ import { BackButton } from "@/components/navigation/back-button"
 export default async function ProjetosPage() {
   const userId = await getSessionUserId()
   const user = findUserById(userId)
-  const canCreate = user ? getRolePermissions(user.role).criarProjetos : false
+  const canCreate = user ? user.role === "admin" || user.role === "gerente" : false
 
   return (
     <div className="flex flex-col gap-6">

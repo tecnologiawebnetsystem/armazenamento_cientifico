@@ -120,7 +120,8 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
-    const list = projects.filter((p) => {
+    const uniqueProjects = Array.from(new Map(projects.map((project) => [project.id, project])).values())
+    const list = uniqueProjects.filter((p) => {
       const matchesStatus = status === "todos" || p.status === status
       const matchesArea = area === "todas" || p.areaResponsavel === area
       const matchesSearch =
@@ -157,7 +158,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Resumo dos projetos">
         <StatCard icon={LayersIcon} label="Projetos" value={stats.total} />
         <StatCard
           icon={CircleCheckIcon}

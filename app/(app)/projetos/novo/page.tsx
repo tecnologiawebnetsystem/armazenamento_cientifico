@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation"
 import { getSessionUserId } from "@/lib/session"
 import { findUserById } from "@/lib/store"
-import { getRolePermissions } from "@/hooks/use-permissions"
 import { NewProjectForm } from "@/components/projects/new-project-form"
 
 export default async function NovoProjetoPage() {
@@ -9,7 +8,7 @@ export default async function NovoProjetoPage() {
   const user = findUserById(userId)
   if (!user) redirect("/login")
 
-  const canCreate = getRolePermissions(user.role).criarProjetos
+  const canCreate = user.role === "admin" || user.role === "gerente"
   if (!canCreate) redirect("/projetos")
 
   return (
