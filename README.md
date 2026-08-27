@@ -135,10 +135,10 @@ O smoke test frontend consulta `http://127.0.0.1:3000` e valida os fluxos públi
 - `backend/app/` — aplicação FastAPI, módulos, autenticação e regras de negócio.
 - `backend/alembic/` — migrations versionadas do banco.
 - `backend/data/` — SQLite local, não destinado à produção.
-- `database/` — schemas SQL de referência.
+- `backend/database/` — schemas SQL de referência do backend.
 - `docs/` — arquitetura, contratos, setup e diagramas.
 - `wiki-dev.md` — documentação técnica consolidada.
 
 A documentação completa dos endpoints está em `docs/api-endpoints.md`.
 
-Para executar o ambiente completo localmente, consulte [`docs/setup-local-completo.md`](docs/setup-local-completo.md). O schema PostgreSQL está em [`database/projects-schema.sql`](database/projects-schema.sql), o diagrama ER editável em [`docs/database-erd.mmd`](docs/database-erd.mmd), a imagem em [`docs/database-erd.svg`](docs/database-erd.svg) e o guia de execução em [`docs/setup-local-completo.md`](docs/setup-local-completo.md).
+Para executar o ambiente completo localmente, consulte [`docs/setup-local-completo.md`](docs/setup-local-completo.md). O schema PostgreSQL está em [`backend/database/projects-schema.sql`](backend/database/projects-schema.sql), o diagrama ER editável em [`docs/database-erd.mmd`](docs/database-erd.mmd), a imagem em [`docs/database-erd.svg`](docs/database-erd.svg) e o guia de execução em [`docs/setup-local-completo.md`](docs/setup-local-completo.md).

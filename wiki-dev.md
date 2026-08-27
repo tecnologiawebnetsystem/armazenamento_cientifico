@@ -389,7 +389,7 @@ Usada em [`frontend/components/administracao/activity-log-table.tsx`](frontend/c
 ### Como confirmar no código
 
 - Models: [`backend/app/modules/*/models.py`](backend/app/modules/);
-- Schema SQLite: [`database/sqlite-schema.sql`](database/sqlite-schema.sql);
+- Schema SQLite: [`backend/database/sqlite-schema.sql`](backend/database/sqlite-schema.sql);
 - Migrations: [`backend/alembic/versions/`](backend/alembic/versions/);
 - Schemas de API: `backend/app/modules/*/schemas.py`.
 
@@ -710,7 +710,7 @@ SQLite não deve ser usado como base persistente em uma implantação com múlti
 - [Diagrama SVG](docs/database-erd.svg)
 - [Endpoints documentados](docs/api-endpoints.md)
 - [Arquitetura](docs/ARCHITECTURE.md)
-- [Schema SQLite](database/sqlite-schema.sql)
+- [Schema SQLite](backend/database/sqlite-schema.sql)
 - [Wiki visual](frontend/app/wiki-dev/page.tsx)
 
 ---
