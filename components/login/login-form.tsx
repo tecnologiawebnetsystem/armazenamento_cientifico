@@ -101,7 +101,7 @@ export function LoginForm() {
 
           <div className="flex flex-col gap-3 text-center">
             <p className="text-sm leading-6 text-muted-foreground">Colaboradores Petrobras devem acessar utilizando o botão Login corporativo abaixo.</p>
-            <Button type="button" size="lg" variant="outline" className="w-full border-petrobras-green bg-petrobras-green text-primary-foreground hover:bg-petrobras-green/90">
+            <Button type="button" size="lg" variant="outline" className="w-full border-petrobras-green bg-gradient-to-r from-petrobras-green via-petrobras-green to-petrobras-yellow text-primary-foreground shadow-lg shadow-petrobras-yellow/25 transition-all hover:brightness-105 hover:shadow-xl hover:shadow-petrobras-yellow/35">
               <Building2Icon data-icon="inline-start" />
               Login Corporativo
             </Button>
@@ -111,9 +111,6 @@ export function LoginForm() {
 
       </div>
 
-      <p className="mt-4 text-center text-xs text-muted-foreground">
-        Ambiente monitorado. O uso indevido está sujeito às políticas internas de segurança da informação.
-      </p>
     </div>
   )
 }
