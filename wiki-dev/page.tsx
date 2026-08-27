@@ -18,7 +18,6 @@ const sections = [
   { id: "backend", label: "Estrutura do backend", icon: Boxes },
   { id: "frontend", label: "Estrutura do frontend", icon: FileCode2 },
   { id: "testes", label: "Testes", icon: ShieldCheck },
-  { id: "testes", label: "Testes", icon: ShieldCheck },
 ]
 
 const endpointGroups = [
