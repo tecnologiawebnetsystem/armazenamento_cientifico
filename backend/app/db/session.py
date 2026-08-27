@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator
+from pathlib import Path
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -8,7 +9,6 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from app.core.config import settings
-from pathlib import Path
 
 
 def _async_database_url() -> str:
@@ -54,6 +54,17 @@ async def dispose_engine() -> None:
     session_factory = None
 
 
+async def get_pool():
+    """Compatibilidade para módulos legados que usam asyncpg.
+
+    O pool continua sendo gerenciado pelo legacy_api durante a migração;
+    esta função evita imports quebrados sem alterar contratos HTTP.
+    """
+    from app.legacy_api import db
+
+    return await db()
+
+
 async def get_session() -> AsyncIterator[AsyncSession]:
     configure_engine()
     if session_factory is None:
@@ -73,4 +84,4 @@ async def disconnect() -> None:
     await dispose_engine()
 
 
-__all__ = ["connect", "disconnect", "engine", "get_session"]
+__all__ = ["connect", "disconnect", "engine", "get_pool", "get_session"]

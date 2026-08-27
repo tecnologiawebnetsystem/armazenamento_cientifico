@@ -23,8 +23,8 @@ async def initialize_database(engine) -> None:
         await connection.run_sync(Base.metadata.create_all)
         await connection.run_sync(_create_compatibility_tables)
 
-    from sqlalchemy.ext.asyncio import async_sessionmaker
     from sqlalchemy import select
+    from sqlalchemy.ext.asyncio import async_sessionmaker
 
     factory = async_sessionmaker(engine, expire_on_commit=False)
     async with factory() as session:

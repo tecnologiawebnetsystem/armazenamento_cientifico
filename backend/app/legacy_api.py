@@ -3,8 +3,8 @@ from __future__ import annotations
 import csv
 import io
 import json
-import os
 import math
+import os
 from datetime import UTC, datetime
 from typing import Literal
 from uuid import uuid4
@@ -849,7 +849,7 @@ async def put_permissions(x: PermissionMatrix, request: Request):
 
 
 @app.get("/api/settings")
-async def settings(request: Request):
+async def settings_endpoint(request: Request):
     await require(request, ("admin", "auditor"))
     p = await db()
     return {"settings": {r["key"]: r["value"] for r in await p.fetch("select * from app_settings")}}
