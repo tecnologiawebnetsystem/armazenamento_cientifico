@@ -132,7 +132,7 @@ idx_activity_logs_entity_created: activity_logs(entity, created_at DESC)
 -------------------------------
 O banco possui duas superfícies documentadas durante a migração:
 - schema legado inicial, com nomes sem prefixo (users, projects, files etc.), criado por database/projects-schema.sql;
-- módulos SQLAlchemy novos, com nomes app_users, app_projects, app_files, app_file_shares e app_activity_logs, registrados pela baseline 0001_baseline sem criação automática.
+- módulos SQLAlchemy novos, com nomes users, projects, files, file_shares e activity_logs. A migration 0002_remove_app_prefix renomeia automaticamente bancos legados.
 
 A persistência dos módulos novos não deve ser ativada em ambiente real sem uma migration Alembic explícita para padronizar os nomes ou alinhar os __tablename__ ao SQL legado. O legacy_api permanece ativo durante a migração; não criar tabelas automaticamente em produção.
 

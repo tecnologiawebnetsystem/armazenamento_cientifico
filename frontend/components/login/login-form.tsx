@@ -52,7 +52,7 @@ export function LoginForm() {
           </div>
         </header>
 
-        <div className="flex flex-col gap-6 px-6 py-6">
+        <div className="flex flex-col gap-8 px-6 py-8">
           <form onSubmit={handleSubmit}>
             <FieldGroup>
               {error && (
@@ -101,7 +101,7 @@ export function LoginForm() {
 
           <div className="flex flex-col gap-3 text-center">
             <p className="text-sm leading-6 text-muted-foreground">Colaboradores Petrobras devem acessar utilizando o botão Login corporativo abaixo.</p>
-            <Button type="button" size="lg" variant="outline" className="w-full border-petrobras-green bg-gradient-to-r from-petrobras-green via-petrobras-green to-petrobras-yellow text-primary-foreground shadow-lg shadow-petrobras-yellow/25 transition-all hover:brightness-105 hover:shadow-xl hover:shadow-petrobras-yellow/35">
+            <Button type="button" size="lg" variant="outline" className="mx-auto w-full max-w-xs border-petrobras-green bg-gradient-to-r from-petrobras-green via-petrobras-green to-petrobras-yellow text-primary-foreground shadow-lg shadow-petrobras-yellow/25 transition-all hover:brightness-105 hover:shadow-xl hover:shadow-petrobras-yellow/35">
               <Building2Icon data-icon="inline-start" />
               Login Corporativo
             </Button>

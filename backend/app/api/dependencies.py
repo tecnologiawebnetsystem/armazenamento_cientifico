@@ -13,7 +13,7 @@ async def get_current_user(request: Request):
         raise HTTPException(status_code=401, detail="Sessão ausente")
     pool = await get_pool()
     user = await pool.fetchrow(
-        "select u.* from app_sessions s join app_users u on u.id=s.user_id "
+        "select u.* from sessions s join users u on u.id=s.user_id "
         "where s.id=$1 and s.expires_at > now()",
         session_id,
     )

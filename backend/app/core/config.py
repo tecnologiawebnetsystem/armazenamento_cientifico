@@ -10,7 +10,7 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 class Settings(BaseModel):
     app_name: str = "SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico API"
-    app_version: str = "3.0.0"
+    app_version: str = "3.1.0"
     database_engine: str = os.getenv("DATABASE_ENGINE", "sqlite").lower()
     database_url: str = os.getenv(
         "DATABASE_URL",
