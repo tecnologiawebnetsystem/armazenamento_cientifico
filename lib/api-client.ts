@@ -222,6 +222,12 @@ export function getAccessMap() {
   return request<AccessMapResponse>("/api/access-map")
 }
 
+export function getAccessMapExportUrl(params: { format: string; fields: string; q?: string; type?: string; level?: string; view?: string }) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => value && query.set(key, value))
+  return `${API_BASE_URL}/api/access-map/export?${query.toString()}`
+}
+
 export function getProjectReport(query = "") {
   return request<ProjectReport>(`/api/reports${query ? `?${query}` : ""}`)
 }
