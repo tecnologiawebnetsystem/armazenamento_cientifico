@@ -13,6 +13,8 @@ from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, EmailStr, Field
 
+from app.core.config import settings
+
 Role = Literal[
     "admin", "gerente", "patrocinador", "auditor", "participante", "visualizador", "gestor"
 ]

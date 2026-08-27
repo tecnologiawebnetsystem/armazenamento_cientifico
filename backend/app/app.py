@@ -125,6 +125,16 @@ def create_app() -> FastAPI:
         legacy_schema = legacy_app.openapi()
         for path, path_item in legacy_schema.get("paths", {}).items():
             schema["paths"].setdefault(path, path_item)
+
+        # Rotas de uma aplicação montada mantêm referências locais, como
+        # #/components/schemas/Login. Ao mesclar somente os paths, Swagger UI
+        # não encontra esses schemas no documento OpenAPI principal.
+        components = schema.setdefault("components", {})
+        for component_group, values in legacy_schema.get("components", {}).items():
+            target_group = components.setdefault(component_group, {})
+            for name, value in values.items():
+                target_group.setdefault(name, value)
+
         application.openapi_schema = schema
         return schema
 
