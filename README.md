@@ -16,14 +16,15 @@ Para executar a aplicação completa com a API e o banco local, também será ne
 
 ## Rodar o frontend
 
-Todos os comandos abaixo devem ser executados na **raiz do projeto**, na mesma pasta deste README.
+Os comandos do frontend devem ser executados dentro da pasta `frontend/`. O backend permanece separado em `backend/`.
 
 ### 1. Instalar as dependências
 
 Na primeira execução, instale as versões registradas no `package-lock.json`:
 
 ```bash
-npm ci
+cd frontend
+pnpm install
 ```
 
 Se o `package-lock.json` tiver sido alterado ou não estiver disponível, use:
@@ -100,7 +101,8 @@ npm run format     # formatação dos arquivos TypeScript/TSX
 Em um terminal, suba o PostgreSQL e a API seguindo o [`backend/README.md`](backend/README.md). Em outro terminal, na raiz do projeto, execute:
 
 ```bash
-npm ci
+cd frontend
+pnpm install
 npm run dev
 ```
 
@@ -111,7 +113,8 @@ Se estiver usando o backend Python, confirme primeiro que [`http://localhost:808
 Antes de abrir um PR, execute na raiz:
 
 ```bash
-npm ci
+cd frontend
+pnpm install
 npm run typecheck
 npm run lint
 npm run build
