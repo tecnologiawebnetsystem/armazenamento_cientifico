@@ -38,7 +38,7 @@ export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazen
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-4 rounded-xl border border-primary/15 bg-primary/[0.04] p-5 sm:flex-row sm:items-end sm:justify-between sm:p-6">
+      <header className="relative flex flex-col gap-5 overflow-hidden rounded-2xl border border-petrobras-blue/15 bg-gradient-to-br from-petrobras-blue/[0.08] via-background to-petrobras-yellow/[0.12] p-5 shadow-sm sm:flex-row sm:items-end sm:justify-between sm:p-7">
         <div className="flex flex-col gap-2">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">SIGAC · visão executiva</p>
           <h1 className="font-heading text-3xl font-semibold tracking-tight text-balance">Portfólio científico em foco</h1>

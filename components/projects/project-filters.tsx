@@ -57,7 +57,7 @@ export function ProjectFilters({
   onViewChange,
 }: Props) {
   return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex flex-col gap-4 rounded-xl border border-petrobras-blue/15 bg-gradient-to-r from-background via-background to-petrobras-green/5 p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
       <InputGroup className="lg:max-w-xs">
         <InputGroupAddon>
           <SearchIcon />
