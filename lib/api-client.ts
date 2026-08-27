@@ -58,8 +58,7 @@ async function fetchRequest(url: string, init?: RequestInit) {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  let res: Response
-  res = await fetchRequest(`${API_BASE_URL}${path}`, init)
+  const res = await fetchRequest(`${API_BASE_URL}${path}`, init)
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ message: res.statusText }))
@@ -68,6 +67,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
+}
+
+/** Faz download binário usando exatamente a mesma base, cookies e tratamento de erro da API. */
+export async function downloadFile(path: string): Promise<Blob> {
+  const res = await fetchRequest(`${API_BASE_URL}${path}`, { headers: { Accept: "application/octet-stream" } })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ message: res.statusText }))
+    throw new ApiError(res.status, body.message ?? "Não foi possível gerar o arquivo")
+  }
+  return res.blob()
 }
 
 /* ---------------------------------- Auth --------------------------------- */
@@ -228,8 +237,18 @@ export function getAccessMapExportUrl(params: { format: string; fields: string; 
   return `${API_BASE_URL}/api/access-map/export?${query.toString()}`
 }
 
-export function getProjectReport(query = "") {
-  return request<ProjectReport>(`/api/reports${query ? `?${query}` : ""}`)
+export function getProjectReport(params: { status?: string; area?: string; gestorId?: string } = {}) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => value && query.set(key, value))
+  return request<ProjectReport>(`/api/reports${query.size ? `?${query.toString()}` : ""}`)
+}
+
+export function getProjectReportExportPath(params: { format: "csv" | "txt" | "pdf"; fields: string[]; status?: string; area?: string; gestorId?: string }) {
+  const query = new URLSearchParams({ format: params.format, fields: params.fields.join(",") })
+  if (params.status) query.set("status", params.status)
+  if (params.area) query.set("area", params.area)
+  if (params.gestorId) query.set("gestorId", params.gestorId)
+  return `/api/reports?${query.toString()}`
 }
 
 /* ---------------------------------- Users --------------------------------- */

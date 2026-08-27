@@ -19,9 +19,11 @@ type Props = {
   onConfirm: (fields: string[], formats: ExportFormat[]) => void
 }
 
-// Ajuste visual rápido da modal: altere apenas estas duas classes.
-export const EXPORT_DIALOG_WIDTH_CLASS = "max-w-6xl"
-export const EXPORT_DIALOG_HEIGHT_CLASS = "min-h-[70vh] max-h-[92vh]"
+// Ajuste visual rápido da modal: teste estes dois valores aos poucos.
+// Largura: max-w-4xl, max-w-5xl, max-w-6xl ou max-w-7xl.
+export const EXPORT_DIALOG_WIDTH_CLASS = "max-w-7xl"
+// Altura: use min-h-[70vh] max-h-[92vh] e ajuste os percentuais conforme necessário.
+export const EXPORT_DIALOG_HEIGHT_CLASS = "min-h-[78vh] max-h-[94vh]"
 
 const formats: { key: ExportFormat; label: string; description: string; icon: typeof FileTextIcon }[] = [
   { key: "csv", label: "CSV", description: "Para planilhas e análises", icon: FileSpreadsheetIcon },
@@ -37,16 +39,36 @@ export function ExportFieldsDialog({ open, onOpenChange, title, fields, defaultF
   const confirm = () => { if (selectedFields.length && selectedFormats.length) { onConfirm(selectedFields, selectedFormats); onOpenChange(false) } }
 
   return <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className={`${EXPORT_DIALOG_HEIGHT_CLASS} w-[calc(100%-2rem)] ${EXPORT_DIALOG_WIDTH_CLASS} overflow-y-auto border-petrobras-blue/15 bg-gradient-to-br from-background via-background to-petrobras-green/5 p-6 shadow-[0_24px_80px_-32px_rgba(0,88,140,0.5)] sm:p-8">
+    <DialogContent className={`${EXPORT_DIALOG_HEIGHT_CLASS} flex w-[calc(100%-2rem)] ${EXPORT_DIALOG_WIDTH_CLASS} flex-col overflow-hidden border-petrobras-blue/15 bg-gradient-to-br from-background via-background to-petrobras-green/5 p-6 shadow-[0_24px_80px_-32px_rgba(0,88,140,0.5)] sm:p-8`}>
       <DialogHeader>
         <DialogTitle className="text-xl">Configurar exportação</DialogTitle>
         <DialogDescription>Escolha os formatos e os campos do {title} que serão gerados.</DialogDescription>
       </DialogHeader>
-      <div className="flex flex-col gap-6 py-2">
+      <div className="min-h-0 flex-1 overflow-y-auto py-2 pr-2">
+        <div className="flex flex-col gap-6">
         <section className="flex flex-col gap-3" aria-labelledby="export-format-title">
           <div><h3 id="export-format-title" className="font-semibold">Formato do arquivo</h3><p className="text-sm text-muted-foreground">Você pode selecionar mais de um formato.</p></div>
           <div className="grid gap-3 sm:grid-cols-3">
-            {formats.map(({ key, label, description, icon: Icon }) => { const active = selectedFormats.includes(key); return <button key={key} type="button" onClick={() => toggleFormat(key)} aria-pressed={active} className={`flex items-start gap-3 rounded-lg border p-3 text-left transition-colors ${active ? "border-petrobras-green bg-petrobras-green/10" : "hover:bg-muted/50"}`}><span className={`flex size-9 shrink-0 items-center justify-center rounded-md ${active ? "bg-petrobras-green text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{active ? <CheckIcon aria-hidden="true" /> : <Icon aria-hidden="true" />}</span><span><span className="block font-medium">{label}</span><span className="block text-xs text-muted-foreground">{description}</span></span></button> })}
+            {formats.map(({ key, label, description, icon: Icon }) => {
+              const active = selectedFormats.includes(key)
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => toggleFormat(key)}
+                  aria-pressed={active}
+                  className={active ? "flex items-start gap-3 rounded-lg border border-petrobras-green bg-petrobras-green/10 p-3 text-left transition-colors" : "flex items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-muted/50"}
+                >
+                  <span className={active ? "flex size-9 shrink-0 items-center justify-center rounded-md bg-petrobras-green text-primary-foreground" : "flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground"}>
+                    {active ? <CheckIcon aria-hidden="true" /> : <Icon aria-hidden="true" />}
+                  </span>
+                  <span>
+                    <span className="block font-medium">{label}</span>
+                    <span className="block text-xs text-muted-foreground">{description}</span>
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </section>
         <section className="flex flex-col gap-3" aria-labelledby="export-fields-title">
@@ -55,6 +77,7 @@ export function ExportFieldsDialog({ open, onOpenChange, title, fields, defaultF
             {fields.map((field) => <label key={field.key} className="flex cursor-pointer items-center gap-3 rounded-md p-2 text-sm hover:bg-muted/50"><Checkbox checked={selectedFields.includes(field.key)} onCheckedChange={(checked) => toggleField(field.key, checked === true)} /><span>{field.label}</span></label>)}
           </div>
         </section>
+        </div>
       </div>
       {(!selectedFields.length || !selectedFormats.length) && <p className="text-sm text-destructive">Selecione ao menos um formato e um campo.</p>}
       <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button><Button onClick={confirm} disabled={!selectedFields.length || !selectedFormats.length}><DownloadIcon data-icon="inline-start" />Gerar arquivos</Button></DialogFooter>

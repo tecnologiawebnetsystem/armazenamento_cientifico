@@ -56,7 +56,9 @@ export function ProjectInfoTab({
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
+  // O formulário precisa ser sincronizado quando o projeto selecionado muda.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setNome(project.nome)
     setAreaResponsavel(project.areaResponsavel)
     setDescricao(project.descricao)
