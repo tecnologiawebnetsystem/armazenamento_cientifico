@@ -155,27 +155,28 @@
 @layer utilities {
   .wiki-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: var(--petrobras-yellow) var(--petrobras-green);
+    scrollbar-color: color-mix(in oklch, var(--petrobras-blue) 42%, var(--muted)) transparent;
   }
 
   .wiki-scrollbar::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 7px;
+    height: 7px;
   }
 
   .wiki-scrollbar::-webkit-scrollbar-track {
-    background: color-mix(in oklch, var(--petrobras-green) 16%, transparent);
-    border-radius: 999px;
+    background: transparent;
   }
 
   .wiki-scrollbar::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, var(--petrobras-yellow), var(--petrobras-green), var(--petrobras-blue));
-    border: 2px solid color-mix(in oklch, var(--background) 75%, transparent);
+    background: color-mix(in oklch, var(--petrobras-blue) 38%, var(--muted));
+    border: 2px solid transparent;
     border-radius: 999px;
+    background-clip: padding-box;
   }
 
   .wiki-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, var(--petrobras-yellow), var(--petrobras-teal), var(--petrobras-blue));
+    background: color-mix(in oklch, var(--petrobras-green) 58%, var(--muted));
+    background-clip: padding-box;
   }
 
   .sw-motion {
