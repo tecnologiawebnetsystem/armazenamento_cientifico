@@ -35,7 +35,7 @@ npm install
 
 ### 2. Configurar a URL da API (opcional)
 
-Por padrão, o frontend usa as API Routes locais do Next.js. Para apontar para o backend Python, crie o arquivo `.env.local` na raiz do projeto:
+Por padrão, o frontend usa as API Routes locais do Next.js. Para apontar para o backend Python, crie o arquivo `frontend/.env.local`:
 
 ```dotenv
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
@@ -77,7 +77,9 @@ npm run dev
 
 ## Rodar banco, backend e frontend integrados
 
-Consulte [`backend/README.md`](backend/README.md) para subir o PostgreSQL com Docker e executar a API usando `pip` ou `uv`. Para conectar o frontend ao FastAPI, crie `.env.local` na raiz:
+O backend pode usar SQLite localmente ou PostgreSQL em ambientes compartilhados. Para SQLite, siga os passos abaixo. Para PostgreSQL com Docker, use `backend/docker-compose.local.yml` e ajuste as variáveis em `backend/.env`.
+
+Para conectar o frontend ao FastAPI, crie `frontend/.env.local`:
 
 ```dotenv
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
@@ -98,12 +100,12 @@ npm run format     # formatação dos arquivos TypeScript/TSX
 
 ## Ordem recomendada para executar tudo
 
-Em um terminal, suba o PostgreSQL e a API seguindo o [`backend/README.md`](backend/README.md). Em outro terminal, na raiz do projeto, execute:
+Em um terminal, suba o PostgreSQL e a API seguindo a seção de backend deste README e a [`wiki-dev.md`](wiki-dev.md). Em outro terminal, execute:
 
 ```bash
 cd frontend
 pnpm install
-npm run dev
+pnpm dev
 ```
 
 Se estiver usando o backend Python, confirme primeiro que [`http://localhost:8080/health`](http://localhost:8080/health) responde e que o `.env.local` contém `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080`. Sem essa variável, o frontend continua usando as rotas locais do Next.js.
@@ -121,17 +123,22 @@ npm run build
 npm run test:e2e
 ```
 
-O smoke test frontend consulta `http://127.0.0.1:3000` e valida os fluxos públicos de login e Wiki Dev. Inicie o frontend em outro terminal antes de executar o teste. Os testes do backend e os comandos de qualidade estão documentados em [`backend/README.md`](backend/README.md).
+O smoke test frontend consulta `http://127.0.0.1:3000` e valida os fluxos públicos de login e Wiki Dev. Inicie o frontend em outro terminal antes de executar o teste. Os testes do backend e os comandos de qualidade estão documentados na seção de validação deste README e na [`wiki-dev.md`](wiki-dev.md).
 
 ## Estrutura
 
-- `app/` — páginas e API Routes do frontend.
-- `components/` — componentes por domínio e componentes shadcn/ui.
-- `hooks/` — hooks client-side com SWR.
-- `lib/` — tipos, cliente HTTP, sessão e store de demonstração.
-- `database/` — schema SQL de referência.
-- `docs/` — permissões e contratos de API.
+- `frontend/app/` — páginas, layouts e API Routes do frontend.
+- `frontend/components/` — componentes por domínio e componentes shadcn/ui.
+- `frontend/hooks/` — hooks client-side com SWR.
+- `frontend/lib/` — tipos, cliente HTTP, sessão e utilitários.
+- `frontend/public/` — imagens e arquivos estáticos.
+- `backend/app/` — aplicação FastAPI, módulos, autenticação e regras de negócio.
+- `backend/alembic/` — migrations versionadas do banco.
+- `backend/data/` — SQLite local, não destinado à produção.
+- `backend/database/` — schemas SQL de referência do backend.
+- `docs/` — arquitetura, contratos, setup e diagramas.
+- `wiki-dev.md` — documentação técnica consolidada.
 
 A documentação completa dos endpoints está em `docs/api-endpoints.md`.
 
-Para executar o ambiente completo localmente, consulte [`docs/setup-local-completo.md`](docs/setup-local-completo.md). O schema PostgreSQL está em [`database/projects-schema.sql`](database/projects-schema.sql), o diagrama ER editável em [`docs/database-erd.mmd`](docs/database-erd.mmd), a imagem em [`docs/database-erd.svg`](docs/database-erd.svg) e o guia de execução em [`docs/setup-local-completo.md`](docs/setup-local-completo.md).
+Para executar o ambiente completo localmente, consulte [`docs/setup-local-completo.md`](docs/setup-local-completo.md). O schema PostgreSQL está em [`backend/database/projects-schema.sql`](backend/database/projects-schema.sql), o diagrama ER editável em [`docs/database-erd.mmd`](docs/database-erd.mmd), a imagem em [`docs/database-erd.svg`](docs/database-erd.svg) e o guia de execução em [`docs/setup-local-completo.md`](docs/setup-local-completo.md).
