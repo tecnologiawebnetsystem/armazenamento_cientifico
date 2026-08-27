@@ -37,7 +37,7 @@ npm install
 Por padrão, o frontend usa as API Routes locais do Next.js. Para apontar para o backend Python, crie o arquivo `.env.local` na raiz do projeto:
 
 ```dotenv
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 ```
 
 Depois de criar ou alterar esse arquivo, reinicie o servidor do frontend. Não coloque chaves secretas em variáveis com prefixo `NEXT_PUBLIC_`, pois elas ficam disponíveis no navegador.
@@ -70,7 +70,7 @@ A aplicação ficará disponível em [http://localhost:3000](http://localhost:30
 Os mesmos comandos funcionam no PowerShell. Para definir a variável apenas na sessão atual:
 
 ```powershell
-$env:NEXT_PUBLIC_API_BASE_URL = "http://localhost:8000"
+$env:NEXT_PUBLIC_API_BASE_URL = "http://localhost:8080"
 npm run dev
 ```
 
@@ -79,7 +79,7 @@ npm run dev
 Consulte [`backend/README.md`](backend/README.md) para subir o PostgreSQL com Docker e executar a API usando `pip` ou `uv`. Para conectar o frontend ao FastAPI, crie `.env.local` na raiz:
 
 ```dotenv
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 ```
 
 Com essa variável, o frontend usa o FastAPI como fonte principal e o PostgreSQL como persistência. As API Routes locais do Next.js permanecem apenas como fallback opcional durante o desenvolvimento. O login continua mockado conforme definido no projeto; logout e sessão são encaminhados ao backend quando o modo integrado estiver ativo.
@@ -104,7 +104,21 @@ npm ci
 npm run dev
 ```
 
-Se estiver usando o backend Python, confirme primeiro que [`http://localhost:8000/health`](http://localhost:8000/health) responde e que o `.env.local` contém `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`. Sem essa variável, o frontend continua usando as rotas locais do Next.js.
+Se estiver usando o backend Python, confirme primeiro que [`http://localhost:8080/health`](http://localhost:8080/health) responde e que o `.env.local` contém `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080`. Sem essa variável, o frontend continua usando as rotas locais do Next.js.
+
+## Testes
+
+Antes de abrir um PR, execute na raiz:
+
+```bash
+npm ci
+npm run typecheck
+npm run lint
+npm run build
+npm run test:e2e
+```
+
+O smoke test frontend consulta `http://127.0.0.1:3000` e valida os fluxos públicos de login e Wiki Dev. Inicie o frontend em outro terminal antes de executar o teste. Os testes do backend e os comandos de qualidade estão documentados em [`backend/README.md`](backend/README.md).
 
 ## Estrutura
 

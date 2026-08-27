@@ -21,7 +21,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 alembic upgrade head
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
 ```
 
 No `.env`, use:
@@ -62,10 +62,23 @@ Execute `alembic upgrade head` antes de iniciar a API. O seed é idempotente, ma
 Configure o frontend para consumir exclusivamente o FastAPI:
 
 ```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 ```
 
 A documentação OpenAPI fica em `/docs`, ReDoc em `/redoc` e o health check em `/health`.
+
+## Testes e validação
+
+Com o ambiente virtual ativo, execute:
+
+```bash
+python -m pytest -q
+ruff check .
+python -m compileall -q app alembic
+python -m pip check
+```
+
+`pytest` valida os contratos públicos da API, incluindo OpenAPI e health check. Para interromper na primeira falha, use `pytest -q -x`; para executar um teste específico, use `pytest -q tests/test_api_contract.py::test_health_is_public`. Testes que dependem de PostgreSQL podem ser pulados quando `TEST_DATABASE_URL` não estiver configurada.
 
 ## Validação
 
