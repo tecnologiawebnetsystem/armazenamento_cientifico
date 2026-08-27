@@ -1,5 +1,5 @@
 ## Demanda (ServiceNow)
-- STS: STSXXXXXXX
+- STS: STRXXXXXXX
 - Link: https://petrobras.service-now.com/...
 
 ## Contexto
@@ -29,8 +29,8 @@ Resultado esperado e resultado obtido:
 
 ## Checklist
 - [ ] PR aponta para `develop`
-- [ ] Branch segue o padrão: `<tipo>/STS<numero>-<descricao-curta>`
-- [ ] Commits seguem o padrão: `<tipo>(<escopo>): STS<numero> <mensagem>`
+- [ ] Branch segue o padrão: `<tipo>/STR<numero>-<descricao-curta>`
+- [ ] Commits seguem o padrão: `<tipo>(<escopo>): STR<numero> <mensagem>`
 - [ ] Build/pipeline OK
 - [ ] Testes executados (unitário/integrado, quando aplicável)
 - [ ] Sem credenciais ou segredos no código
