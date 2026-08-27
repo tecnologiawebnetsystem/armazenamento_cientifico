@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
-import { LoaderCircleIcon, LogInIcon, MailIcon, ShieldCheckIcon } from "lucide-react"
+import { Building2Icon, LoaderCircleIcon, LogInIcon, MailIcon, ShieldCheckIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
@@ -92,6 +92,21 @@ export function LoginForm() {
               </Field>
             </FieldGroup>
           </form>
+
+          <div className="relative flex items-center justify-center">
+            <span className="h-px flex-1 bg-border" />
+            <span className="bg-card px-3 text-xs font-medium text-muted-foreground">Ou continue com</span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
+          <div className="flex flex-col gap-3 text-center">
+            <p className="text-sm leading-6 text-muted-foreground">Colaboradores Petrobras devem acessar utilizando o botão Login corporativo abaixo.</p>
+            <Button type="button" size="lg" variant="outline" className="w-full border-petrobras-green bg-petrobras-green text-primary-foreground hover:bg-petrobras-green/90">
+              <Building2Icon data-icon="inline-start" />
+              Login Corporativo
+            </Button>
+            <p className="pt-1 text-xs text-muted-foreground">© 2026 Petrobras. Todos os direitos reservados.</p>
+          </div>
         </div>
 
       </div>
