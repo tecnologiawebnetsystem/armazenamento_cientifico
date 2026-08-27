@@ -153,6 +153,31 @@
 }
 
 @layer utilities {
+  .wiki-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--petrobras-yellow) var(--petrobras-green);
+  }
+
+  .wiki-scrollbar::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .wiki-scrollbar::-webkit-scrollbar-track {
+    background: color-mix(in oklch, var(--petrobras-green) 16%, transparent);
+    border-radius: 999px;
+  }
+
+  .wiki-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--petrobras-yellow), var(--petrobras-green), var(--petrobras-blue));
+    border: 2px solid color-mix(in oklch, var(--background) 75%, transparent);
+    border-radius: 999px;
+  }
+
+  .wiki-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--petrobras-yellow), var(--petrobras-teal), var(--petrobras-blue));
+  }
+
   .sw-motion {
     animation: sw-fade-up 420ms ease-out both;
   }
