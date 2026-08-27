@@ -152,7 +152,7 @@ Na primeira execução, o seed cria perfis e usuários iniciais apenas quando el
 
 ### Visualizar dados
 
-- Use o [Swagger](/docs) para consultar a API;
+- Use o [Swagger](http://localhost:8080/docs) para consultar a API;
 - Use o **DB Browser for SQLite** para abrir `backend/data/sigac.db`;
 - Não coloque o `.db` dentro de `public/`;
 - Não crie uma rota HTTP que entregue o arquivo SQLite diretamente.
@@ -236,7 +236,7 @@ O backend está em [`backend/`](backend/) e usa FastAPI, SQLAlchemy, Pydantic e 
 | [`backend/tests/`](backend/tests/) | Testes de contrato, schemas e integração. |
 | [`backend/requirements.txt`](backend/requirements.txt) | Dependências Python. |
 | [`backend/.env.example`](backend/.env.example) | Modelo de configuração local. |
-| [`backend/README.md`](backend/README.md) | Referência operacional específica do backend. |
+| [`README.md`](README.md) | Documentação operacional única do frontend e backend. |
 
 ### Comandos de qualidade
 
@@ -425,7 +425,7 @@ erDiagram
 
 ## 9. API e endpoints
 
-A fonte viva do contrato é o [Swagger](/docs) e o arquivo [`/openapi.json`](/openapi.json).
+A fonte viva do contrato é o [Swagger](http://localhost:8080/docs) e o arquivo [`OpenAPI JSON`](http://localhost:8080/openapi.json).
 
 | Grupo | Endpoints | Finalidade |
 |---|---|---|
@@ -607,9 +607,7 @@ SQLite não deve ser usado como base persistente em uma implantação com múlti
 
 ## 15. Referências do repositório
 
-- [README principal](README.md)
-- [README do frontend](frontend/README.md)
-- [README do backend](backend/README.md)
+- [README único do projeto](README.md)
 - [Estrutura do banco](docs/database-structure.txt)
 - [Diagrama Mermaid](docs/database-erd.mmd)
 - [Diagrama SVG](docs/database-erd.svg)
