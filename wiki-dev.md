@@ -18,9 +18,11 @@
 - [10. Mapa API x frontend](#10-mapa-api-x-frontend)
 - [11. Autenticação e permissões](#11-autenticação-e-permissões)
 - [12. Padrões de desenvolvimento](#12-padrões-de-desenvolvimento)
-- [13. Troubleshooting](#13-troubleshooting)
-- [14. Deploy](#14-deploy)
-- [15. Referências do repositório](#15-referências-do-repositório)
+- [13. Testes e resultados](#13-testes-e-resultados)
+- [14. Branches, commits e PRs](#14-branches-commits-e-prs)
+- [15. Troubleshooting](#15-troubleshooting)
+- [16. Deploy](#16-deploy)
+- [17. Referências do repositório](#17-referências-do-repositório)
 
 ---
 
@@ -540,7 +542,102 @@ python -m pytest -q
 
 ---
 
-## 13. Troubleshooting
+## 13. Testes e resultados
+
+Execute os comandos abaixo na ordem. Um resultado **bom** termina com código `0`, sem `Error`, `Failed`, `Type error`, `Traceback` ou `ModuleNotFoundError`. Um resultado **ruim** termina com código diferente de `0`, apresenta falhas ou impede o fluxo principal; corrija o primeiro erro real antes de analisar mensagens posteriores.
+
+### Frontend: tipos, lint e build
+
+```bash
+cd frontend
+pnpm install
+pnpm typecheck
+pnpm lint
+pnpm build
+```
+
+Bom: typecheck, lint e build terminam sem erros; o build é gerado. Warnings devem ser avaliados, mas não equivalem automaticamente a falha. Ruim: erro de TypeScript, falha do ESLint ou build interrompido.
+
+### Backend: compilação, dependências e testes
+
+```bash
+cd backend
+python -m compileall -q app alembic
+python -m pip check
+python -m pytest -q
+ruff check .
+```
+
+Bom: `compileall` não imprime erros, `pip check` informa que não há dependências quebradas e o pytest mostra `passed` com código `0`. Ruim: traceback, teste `failed`, `error`, sintaxe inválida ou módulo ausente. Se `pytest` não estiver instalado, instale `requirements.txt` antes de concluir o diagnóstico.
+
+### E2E e validação manual
+
+```bash
+cd frontend
+pnpm test:e2e
+```
+
+Valide login, Wiki Dev, navegação, API, estados de carregamento/vazio/erro e responsividade. Bom: smoke test sem timeout e tela funcional. Ruim: página em branco, erro no console, timeout ou endpoint inesperadamente 4xx/5xx.
+
+### Evidência no PR
+
+Registre comandos, resultado (passou/falhou), quantidade de testes, warnings relevantes e prints/logs quando necessário. Nunca oculte uma falha: informe o bloqueio e o impacto.
+
+---
+
+## 14. Branches, commits e PRs
+
+A padronização usa o identificador da demanda para facilitar rastreabilidade e revisão.
+
+### Branch
+
+A branch deve ser criada a partir de `develop`:
+
+```text
+<tipo>/STS<numero>-<descricao-curta>
+
+Exemplo:
+feature/STS0233556-exportacao-relatorio
+```
+
+### Commit
+
+```text
+<tipo>(<escopo>): STS<numero> <mensagem>
+
+Exemplos:
+feat(api): STS0233556 criar endpoint de exportacao
+feat(ui): STS0233556 criar validacao de campo data
+```
+
+### Pull Request para develop
+
+Título:
+
+```text
+[STS<numero>] <titulo>
+```
+
+O PR deve apontar para `develop` e conter link do ServiceNow, contexto, alterações, como testar, evidências, impactos, riscos e checklist.
+
+### Template automático
+
+O arquivo [`.github/pull_request_template.md`](.github/pull_request_template.md) é preenchido automaticamente ao abrir um PR. Mantenha suas seções e marque somente itens realmente verificados.
+
+### Fluxo recomendado
+
+```bash
+git switch develop
+git pull origin develop
+git switch -c feature/STS0233556-exportacao-relatorio
+git add .
+git commit -m "feat(api): STS0233556 criar endpoint de exportacao"
+git push -u origin feature/STS0233556-exportacao-relatorio
+```
+
+---
+
+## 15. Troubleshooting
 
 ### Preview não abre
 
@@ -579,7 +676,7 @@ Execute `pnpm typecheck`, `pnpm lint` e `pnpm build` separadamente. Corrija o pr
 
 ---
 
-## 14. Deploy
+## 16. Deploy
 
 Frontend e backend devem ser publicados como serviços separados.
 
@@ -605,7 +702,7 @@ SQLite não deve ser usado como base persistente em uma implantação com múlti
 
 ---
 
-## 15. Referências do repositório
+## 17. Referências do repositório
 
 - [README único do projeto](README.md)
 - [Estrutura do banco](docs/database-structure.txt)

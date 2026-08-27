@@ -16,6 +16,8 @@ const sections = [
   { id: "mapping", label: "Mapa API x frontend", icon: FileCode2 },
   { id: "auth", label: "Autenticação e permissões", icon: LockKeyhole },
   { id: "development", label: "Padrões de desenvolvimento", icon: Settings2 },
+  { id: "tests", label: "Testes e resultados", icon: Check },
+  { id: "workflow", label: "Branches, commits e PRs", icon: GitBranch },
   { id: "troubleshooting", label: "Troubleshooting", icon: Wrench },
   { id: "deploy", label: "Deploy", icon: GitBranch },
 ] as const
@@ -100,6 +102,20 @@ const content: Record<SectionId, Page> = {
     { title: "Novo endpoint", text: "Defina método, path, autenticação, payload, respostas e erros. Implemente no controller, conecte ao cliente/hook do frontend, atualize o mapa API x frontend e valide em /docs." },
     { title: "Nova página", text: "Crie a rota em frontend/app, extraia componentes reutilizáveis, use tokens visuais existentes e inclua loading, vazio, erro, acessibilidade e responsividade." },
     { title: "Checklist", text: "Execute typecheck, lint, build, testes Python e E2E. Teste login, permissão, criação, atualização, exclusão e comportamento sem backend." },
+  ] },
+  tests: { eyebrow: "Qualidade", title: "Testes e interpretação dos resultados", description: "Execute os comandos na ordem e use o resultado para decidir se a alteração está pronta.", blocks: [
+    { title: "Frontend: tipos, lint e build", text: "Resultado bom: cada comando termina com código 0, sem mensagem de erro; o build informa que a aplicação foi compilada. Avisos (warnings) não são o mesmo que falha, mas devem ser avaliados. Resultado ruim: aparece Failed, Error, Type error, o processo termina com código diferente de 0 ou o build não é gerado.", code: "cd frontend\npnpm install\npnpm typecheck\npnpm lint\npnpm build" },
+    { title: "Backend: compilação e dependências", text: "Resultado bom: compileall não exibe erros e pip check retorna 'No broken requirements found.'. Resultado ruim: traceback, SyntaxError, ModuleNotFoundError ou dependência incompatível. Corrija o primeiro erro apresentado antes de analisar os seguintes.", code: "cd backend\npython -m compileall -q app alembic\npython -m pip check" },
+    { title: "Backend: testes automatizados", text: "Resultado bom: pytest mostra testes passando, por exemplo 'X passed', e termina com código 0. Resultado ruim: 'failed', 'error', 'ERROR' ou código diferente de 0. Se pytest não estiver instalado, instale as dependências do requirements.txt antes de concluir que o código falhou.", code: "cd backend\npython -m pytest -q\n# opcional, se disponível\nruff check ." },
+    { title: "E2E e validação manual", text: "Resultado bom: o smoke test termina sem falhas e a interface abre em http://localhost:3000. Confirme login, navegação da Wiki, chamadas da API, estados vazio/erro e responsividade. Resultado ruim: timeout, página em branco, erro no console, endpoint 4xx/5xx inesperado ou fluxo que não conclui.", code: "cd frontend\npnpm test:e2e" },
+    { title: "Como registrar a evidência", text: "No PR, informe comandos executados, resultado (passou/falhou), quantidade de testes, warnings relevantes e prints/logs quando ajudarem. Nunca oculte uma falha: descreva o bloqueio e o impacto." },
+  ] },
+  workflow: { eyebrow: "Colaboração", title: "Branches, commits e PRs", description: "Padrão obrigatório para rastreabilidade por demanda ServiceNow.", blocks: [
+    { title: "Branch a partir da develop", text: "Crie a branch sempre a partir da develop. Use o tipo adequado: feature, bugfix, hotfix, chore ou outro tipo aprovado pela equipe.", code: "<tipo>/STS<numero>-<descricao-curta>\n\nExemplo:\nfeature/STS0233556-exportacao-relatorio" },
+    { title: "Commits", text: "Use uma mensagem curta, no infinitivo, com o escopo técnico. O identificador STS deve aparecer em todos os commits relacionados à demanda.", code: "<tipo>(<escopo>): STS<numero> <mensagem>\n\nExemplos:\nfeat(api): STS0233556 criar endpoint de exportacao\nfeat(ui): STS0233556 criar validacao de campo data" },
+    { title: "Pull Request para develop", text: "O título deve seguir o formato abaixo. A descrição deve conter o link do ServiceNow, contexto, alterações, como testar, evidências, riscos e checklist. O PR deve apontar para develop, salvo orientação diferente da equipe.", code: "[STS<numero>] <titulo>" },
+    { title: "Template automático", text: "O arquivo .github/pull_request_template.md preenche automaticamente a descrição de novos PRs. Mantenha as seções e marque apenas itens realmente verificados: demanda, contexto, alterações, testes, evidências, impactos, checklist e observações para o revisor." },
+    { title: "Exemplo de fluxo", text: "Atualize develop, crie a branch, implemente em commits pequenos, execute os testes, preencha o template, revise o diff e abra o PR para develop. Relacione o STS no nome da branch, nos commits e no título do PR." , code: "git switch develop\ngit pull origin develop\ngit switch -c feature/STS0233556-exportacao-relatorio\ngit add .\ngit commit -m \"feat(api): STS0233556 criar endpoint de exportacao\"" },
   ] },
   troubleshooting: { eyebrow: "Diagnóstico", title: "Troubleshooting", description: "Diagnóstico organizado para os problemas mais frequentes.", blocks: [
     { title: "Preview não abre", text: "Confirme que o Next foi iniciado dentro de frontend, que pnpm install terminou e que a porta está livre. Reinicie o servidor após alterar package.json ou variáveis de ambiente." },
