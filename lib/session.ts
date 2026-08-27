@@ -1,11 +1,8 @@
 import { cookies } from "next/headers"
 
 /**
- * Sessão mock baseada em cookie httpOnly contendo o userId.
- *
- * Quando o backend em Python for implementado, esta camada deve ser
- * substituída por um esquema real (JWT/sessão no servidor), mas o contrato
- * `getSessionUserId` / `setSessionUserId` / `clearSession` pode ser mantido.
+ * Compatibilidade para páginas server-side. A sessão de autenticação oficial
+ * é mantida pelo cookie httpOnly emitido pelo backend FastAPI.
  */
 const SESSION_COOKIE = "wayon_session_user_id"
 

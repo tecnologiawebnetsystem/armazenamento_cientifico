@@ -107,7 +107,7 @@ export function ProjectForm() {
         <TagField label="Roles do Identidade — leitura" hint="Roles" values={tags.identityRead} onAdd={(v) => updateTags('identityRead', [...tags.identityRead, v])} onRemove={(v) => updateTags('identityRead', tags.identityRead.filter((x) => x !== v))} />
       </div>
       {error && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
-      {saved && <p role="status" className="flex items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-3 py-2 text-sm text-primary"><Check className="size-4" /> Projeto salvo no mock com sucesso.</p>}
+      {saved && <p role="status" className="flex items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-3 py-2 text-sm text-primary"><Check className="size-4" /> Projeto salvo com sucesso.</p>}
       <div className="flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end"><button type="button" onClick={reset} className="h-11 rounded-md border border-input px-5 text-sm font-semibold transition hover:bg-muted">Cancelar</button><button type="submit" className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"><Plus className="size-4" /> Criar projeto</button></div>
     </form>
   )

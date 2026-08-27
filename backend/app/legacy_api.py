@@ -71,7 +71,6 @@ def user(row):
 
 class Login(BaseModel):
     email: EmailStr
-    senha: str = Field(min_length=1)
 
 
 class ProjectInput(BaseModel):
@@ -229,14 +228,17 @@ async def health():
 @app.post("/api/auth/login")
 async def login(x: Login, response: Response):
     p = await db()
-    u = await p.fetchrow("select * from app_users where lower(email)=lower($1)", str(x.email))
-    if not u or not x.senha:
-        if u:
-            await audit(u, "login_failed", "sessao", None, "credenciais inválidas")
-        raise HTTPException(401, "E-mail ou senha inválidos")
+    if settings.database_engine == "sqlite":
+        u = await p.fetchrow("select * from app_users where lower(email)=lower(?)", str(x.email))
+        expires = "datetime('now', '+8 hours')"
+    else:
+        u = await p.fetchrow("select * from app_users where lower(email)=lower($1)", str(x.email))
+        expires = "now()+interval '8 hours'"
+    if not u:
+        raise HTTPException(401, "E-mail não cadastrado")
     sid = str(uuid4())
     await p.execute(
-        "insert into app_sessions(id,user_id,expires_at) values($1,$2,now()+interval '8 hours')",
+        f"insert into app_sessions(id,user_id,expires_at) values($1,$2,{expires})" if settings.database_engine != "sqlite" else "insert into app_sessions(id,user_id,expires_at) values(?,?,datetime('now', '+8 hours'))",
         sid,
         u["id"],
     )
