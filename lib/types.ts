@@ -204,6 +204,17 @@ export interface ProjectAccessMapResponse {
   consultedAt: string
 }
 
+export interface DashboardSummary {
+  projects: Project[]
+  totalMembros: number
+  totalMapas: number
+  armazenamentoMb: number
+  pendencias: number
+  activity: ActivityLog[]
+  source: "database"
+  consultedAt: string
+}
+
 export interface AccessMapResponse {
   summary: {
     users: number

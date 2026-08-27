@@ -30,10 +30,10 @@ export function ProjectDetailTabs({
 
   return (
     <Tabs key={initialTab} defaultValue={initialTab}>
-      <TabsList>
-        <TabsTrigger value="arquivos">Arquivos</TabsTrigger>
-        <TabsTrigger value="membros">Membros e Permissões</TabsTrigger>
-        <TabsTrigger value="informacoes">Informações</TabsTrigger>
+      <TabsList className="grid h-auto w-full grid-cols-3 rounded-xl bg-muted/70 p-1 shadow-sm">
+        <TabsTrigger className="rounded-lg py-2.5 text-xs sm:text-sm" value="arquivos">Arquivos</TabsTrigger>
+        <TabsTrigger className="rounded-lg py-2.5 text-xs sm:text-sm" value="membros">Membros e Permissões</TabsTrigger>
+        <TabsTrigger className="rounded-lg py-2.5 text-xs sm:text-sm" value="informacoes">Informações</TabsTrigger>
       </TabsList>
       <TabsContent value="arquivos" className="mt-4">
         <ProjectFileExplorer projectId={projectId} canWrite={canWriteFiles} />

@@ -3,6 +3,7 @@ import type {
   AccessRequest,
   AccessMapResponse,
   ActivityLog,
+  DashboardSummary,
   FileNode,
   PermissionMatrixEntry,
   PlatformSettings,
@@ -225,6 +226,12 @@ export function unshareFileNode(id: string, userId: string) {
   })
 }
 
+/* -------------------------------- Dashboard -------------------------------- */
+
+export function getDashboardSummary() {
+  return request<DashboardSummary>("/api/dashboard/summary")
+}
+
 /* --------------------------------- Reports --------------------------------- */
 
 export function getAccessMap() {
@@ -258,7 +265,7 @@ export function getUsers() {
 }
 
 export function updateUserRole(id: string, role: Role) {
-  return request<{ user: User }>(`/api/users/${id}`, {
+  return request<User>(`/api/users/${id}/role`, {
     method: "PATCH",
     body: JSON.stringify({ role }),
   })

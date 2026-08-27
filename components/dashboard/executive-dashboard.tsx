@@ -11,7 +11,7 @@ import {
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import type { Project } from "@/lib/types"
+import type { ActivityLog, Project } from "@/lib/types"
 
 interface Props {
   projects: Project[]
@@ -19,13 +19,16 @@ interface Props {
   totalMapas: number
   armazenamentoMb: number
   pendencias: number
+  activity?: ActivityLog[]
+  source?: "database"
+  consultedAt?: string
 }
 
 function formatStorage(mb: number) {
   return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${Math.round(mb)} MB`
 }
 
-export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazenamentoMb, pendencias }: Props) {
+export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazenamentoMb, pendencias, activity = [], source = "database", consultedAt }: Props) {
   const ativos = projects.filter((project) => project.status === "ativo").length
   const concluidos = projects.filter((project) => project.status === "concluido").length
   const suspensos = projects.filter((project) => project.status === "suspenso").length
@@ -82,6 +85,8 @@ export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazen
         ))}
       </div>
 
+      <div className="flex items-center justify-between rounded-lg border border-primary/15 bg-primary/[0.03] px-4 py-3 text-sm"><span className="text-muted-foreground">Fonte dos indicadores: <strong className="text-foreground">{source === "database" ? "banco de dados" : source}</strong></span>{consultedAt && <span className="text-xs text-muted-foreground">Consultado em {new Date(consultedAt).toLocaleString("pt-BR")}</span>}</div>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border-0 shadow-sm ring-1 ring-border/70">
           <CardHeader className="border-b bg-muted/20 pb-4">
@@ -113,6 +118,8 @@ export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazen
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-0 shadow-sm ring-1 ring-border/70"><CardHeader className="border-b bg-muted/20 pb-4"><CardTitle>Atividade recente</CardTitle><p className="text-sm text-muted-foreground">Eventos registrados pela API no banco de dados.</p></CardHeader><CardContent className="flex flex-col gap-2 p-5">{activity.length ? activity.map((item) => <div key={item.id} className="flex items-center justify-between gap-4 rounded-lg border border-border/60 px-3 py-3"><span className="truncate text-sm font-medium">{item.detalhes || item.acao}</span><Badge variant="outline">{item.entidade}</Badge></div>) : <p className="text-sm text-muted-foreground">Nenhuma atividade registrada no escopo atual.</p>}</CardContent></Card>
     </div>
   )
 }
