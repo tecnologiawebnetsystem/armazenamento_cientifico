@@ -7,7 +7,7 @@ from app.db.base import Base
 
 
 class User(Base):
-    __tablename__ = "app_users"
+    __tablename__ = "users"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     name: Mapped[str] = mapped_column(String(200))

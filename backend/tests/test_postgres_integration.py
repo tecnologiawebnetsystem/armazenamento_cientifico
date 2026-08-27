@@ -15,7 +15,7 @@ async def test_postgres_connection_and_schema():
     except (OSError, asyncpg.PostgresError) as exc:
         pytest.skip(f"PostgreSQL não acessível: {exc}")
     try:
-        result = await conn.fetchval("select to_regclass('public.app_projects')")
-        assert result == "app_projects"
+        result = await conn.fetchval("select to_regclass('public.projects')")
+        assert result == "projects"
     finally:
         await conn.close()

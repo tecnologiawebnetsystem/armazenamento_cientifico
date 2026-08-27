@@ -4,7 +4,6 @@ import { getSessionUserId } from "@/lib/session"
 import { findUserById } from "@/lib/store"
 import { LoginForm } from "@/components/login/login-form"
 import { LogoMark } from "@/components/brand/logo-mark"
-import { ThemeToggle } from "@/components/theme-toggle"
 
 export default async function LoginPage() {
   const userId = await getSessionUserId()
@@ -70,9 +69,7 @@ export default async function LoginPage() {
 
       <div className="relative flex items-center justify-center bg-background p-6 sm:p-10">
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-accent to-primary lg:hidden" />
-        <div className="absolute top-4 right-4">
-          <ThemeToggle />
-        </div>
+
         <div className="w-full max-w-md">
           <div className="mb-8 flex flex-col items-center gap-2 text-center lg:hidden">
             <LogoMark className="size-10" />

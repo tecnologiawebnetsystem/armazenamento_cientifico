@@ -41,34 +41,34 @@ async def initialize_database(engine) -> None:
 def _create_compatibility_tables(connection) -> None:
     # Sessões e membros ainda consumidos pelos endpoints legados.
     connection.execute(text("""
-        CREATE TABLE IF NOT EXISTS app_sessions (
+        CREATE TABLE IF NOT EXISTS sessions (
             id VARCHAR(36) PRIMARY KEY, user_id VARCHAR(36) NOT NULL,
             expires_at TIMESTAMP NOT NULL
         )
     """))
     connection.execute(text("""
-        CREATE TABLE IF NOT EXISTS app_project_members (
+        CREATE TABLE IF NOT EXISTS project_members (
             project_id VARCHAR(36) NOT NULL, user_id VARCHAR(36) NOT NULL,
             papel VARCHAR(40) NOT NULL, created_at TIMESTAMP NOT NULL,
             PRIMARY KEY (project_id, user_id)
         )
     """))
     connection.execute(text("""
-        CREATE TABLE IF NOT EXISTS app_access_requests (
+        CREATE TABLE IF NOT EXISTS access_requests (
             id VARCHAR(36) PRIMARY KEY, project_id VARCHAR(36), requester_id VARCHAR(36),
             status VARCHAR(30), created_at TIMESTAMP NOT NULL
         )
     """))
     connection.execute(text("""
-        CREATE TABLE IF NOT EXISTS app_permission_matrix (
+        CREATE TABLE IF NOT EXISTS permission_matrix (
             id INTEGER PRIMARY KEY, matrix TEXT NOT NULL
         )
     """))
     connection.execute(text("""
-        CREATE TABLE IF NOT EXISTS app_settings (
+        CREATE TABLE IF NOT EXISTS settings (
             key VARCHAR(100) PRIMARY KEY, value TEXT NOT NULL
         )
     """))
-    connection.execute(text("CREATE INDEX IF NOT EXISTS ix_app_sessions_user_id ON app_sessions(user_id)"))
+    connection.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_user_id ON sessions(user_id)"))
 
 __all__ = ["initialize_database"]

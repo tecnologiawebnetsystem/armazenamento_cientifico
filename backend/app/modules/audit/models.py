@@ -7,7 +7,7 @@ from app.db.base import Base
 
 
 class ActivityLog(Base):
-    __tablename__ = "app_activity_logs"
+    __tablename__ = "activity_logs"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(36), index=True)

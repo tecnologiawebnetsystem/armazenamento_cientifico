@@ -7,10 +7,10 @@ from app.db.base import Base
 
 
 class File(Base):
-    __tablename__ = "app_files"
+    __tablename__ = "files"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("app_projects.id"), index=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id"), index=True)
     parent_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     kind: Mapped[str] = mapped_column(String(20))
     name: Mapped[str] = mapped_column(String(500))
@@ -22,9 +22,9 @@ class File(Base):
 
 
 class FileShare(Base):
-    __tablename__ = "app_file_shares"
+    __tablename__ = "file_shares"
 
-    file_id: Mapped[str] = mapped_column(ForeignKey("app_files.id"), primary_key=True)
+    file_id: Mapped[str] = mapped_column(ForeignKey("files.id"), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(36), primary_key=True)
     level: Mapped[str] = mapped_column(String(20))
 

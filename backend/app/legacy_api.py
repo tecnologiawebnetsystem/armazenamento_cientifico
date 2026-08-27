@@ -179,7 +179,7 @@ async def current(request: Request):
         raise HTTPException(401, "Sessão ausente")
     p = await db()
     row = await p.fetchrow(
-        "select u.* from app_sessions s join app_users u on u.id=s.user_id where s.id=$1 and s.expires_at>now()",
+        "select u.* from sessions s join users u on u.id=s.user_id where s.id=$1 and s.expires_at>now()",
         sid,
     )
     if not row:
@@ -197,7 +197,7 @@ async def require(request, roles=()):
 async def audit(u, action, entity, eid, details=""):
     p = await db()
     await p.execute(
-        "insert into app_activity_logs(id,user_id,action,entity,entity_id,details,created_at) values($1,$2,$3,$4,$5,$6,now())",
+        "insert into activity_logs(id,user_id,action,entity,entity_id,details,created_at) values($1,$2,$3,$4,$5,$6,now())",
         str(uuid4()),
         u["id"],
         action,
@@ -210,7 +210,7 @@ async def audit(u, action, entity, eid, details=""):
 async def visible(u, pid):
     p = await db()
     return await p.fetchrow(
-        "select * from app_projects where id=$1 and ($2 in ('admin','patrocinador','auditor') or $3=any(managers_ids) or $3=any(participants_ids))",
+        "select * from projects where id=$1 and ($2 in ('admin','patrocinador','auditor') or $3=any(managers_ids) or $3=any(participants_ids))",
         pid,
         u["role"],
         u["id"],
@@ -232,16 +232,16 @@ async def health():
 async def login(x: Login, response: Response):
     p = await db()
     if settings.database_engine == "sqlite":
-        u = await p.fetchrow("select * from app_users where lower(email)=lower(?)", str(x.email))
+        u = await p.fetchrow("select * from users where lower(email)=lower(?)", str(x.email))
         expires = "datetime('now', '+8 hours')"
     else:
-        u = await p.fetchrow("select * from app_users where lower(email)=lower($1)", str(x.email))
+        u = await p.fetchrow("select * from users where lower(email)=lower($1)", str(x.email))
         expires = "now()+interval '8 hours'"
     if not u:
         raise HTTPException(401, "E-mail não cadastrado")
     sid = str(uuid4())
     await p.execute(
-        f"insert into app_sessions(id,user_id,expires_at) values($1,$2,{expires})" if settings.database_engine != "sqlite" else "insert into app_sessions(id,user_id,expires_at) values(?,?,datetime('now', '+8 hours'))",
+        f"insert into sessions(id,user_id,expires_at) values($1,$2,{expires})" if settings.database_engine != "sqlite" else "insert into sessions(id,user_id,expires_at) values(?,?,datetime('now', '+8 hours'))",
         sid,
         u["id"],
     )
@@ -262,7 +262,7 @@ async def logout(request: Request, response: Response):
     u = await current(request)
     sid = request.cookies.get("wayon_session_id")
     p = await db()
-    await p.execute("delete from app_sessions where id=$1", sid)
+    await p.execute("delete from sessions where id=$1", sid)
     await audit(u, "logout", "sessao", sid)
     response.delete_cookie("wayon_session_id")
 
@@ -284,7 +284,7 @@ async def list_projects(
 ):
     u = await require(request)
     p = await db()
-    q = "select * from app_projects"
+    q = "select * from projects"
     args = []
     cond = []
     if not (all and u["role"] in ("admin", "patrocinador", "auditor")):
@@ -302,7 +302,7 @@ async def list_projects(
         cond.append(f"(name ilike ${len(args) + 1} or code ilike ${len(args) + 1})")
         args.append(f"%{nome}%")
     where = (" where " + " and ".join(cond)) if cond else ""
-    total = await p.fetchval(f"select count(*) from app_projects{where}", *args)
+    total = await p.fetchval(f"select count(*) from projects{where}", *args)
     if all:
         rows = await p.fetch(f"{q}{where} order by created_at desc", *args)
         return {"projects": [project(r) for r in rows], "pagination": {"page": 1, "limit": total, "total": total, "totalPages": 1}}
@@ -314,11 +314,11 @@ async def list_projects(
 async def create_project(x: ProjectInput, request: Request):
     u = await require(request, ("admin", "gerente"))
     p = await db()
-    if await p.fetchval("select 1 from app_projects where code=$1", x.codigo):
+    if await p.fetchval("select 1 from projects where code=$1", x.codigo):
         raise HTTPException(409, "Código de projeto já existente")
     i = str(uuid4())
     await p.execute(
-        "insert into app_projects(id,name,code,responsible_area,managers_ids,write_group,read_group,write_identity_role,read_identity_role,snow_task_number,parent_folder,description,status,participants_ids) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)",
+        "insert into projects(id,name,code,responsible_area,managers_ids,write_group,read_group,write_identity_role,read_identity_role,snow_task_number,parent_folder,description,status,participants_ids) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)",
         i,
         x.nome,
         x.codigo,
@@ -334,7 +334,7 @@ async def create_project(x: ProjectInput, request: Request):
         x.status,
         x.participantesIds,
     )
-    r = await p.fetchrow("select * from app_projects where id=$1", i)
+    r = await p.fetchrow("select * from projects where id=$1", i)
     await audit(u, "criar-projeto", "projeto", i, x.nome)
     return {"project": project(r)}
 
@@ -374,9 +374,9 @@ async def patch_project(pid: str, x: ProjectPatch, request: Request):
     p = await db()
     for k, v in vals.items():
         await p.execute(
-            f"update app_projects set {fields[k]}=$1,updated_at=now() where id=$2", v, pid
+            f"update projects set {fields[k]}=$1,updated_at=now() where id=$2", v, pid
         )
-    r = await p.fetchrow("select * from app_projects where id=$1", pid)
+    r = await p.fetchrow("select * from projects where id=$1", pid)
     await audit(u, "editar-projeto", "projeto", pid, ",".join(vals))
     return {"project": project(r)}
 
@@ -385,7 +385,7 @@ async def patch_project(pid: str, x: ProjectPatch, request: Request):
 async def delete_project(pid: str, request: Request):
     u = await require(request, ("admin",))
     p = await db()
-    r = await p.fetchrow("delete from app_projects where id=$1 returning *", pid)
+    r = await p.fetchrow("delete from projects where id=$1 returning *", pid)
     if not r:
         raise HTTPException(404, "Projeto não encontrado")
     await audit(u, "excluir-projeto", "projeto", pid)
@@ -399,7 +399,7 @@ async def members(pid: str, request: Request):
         raise HTTPException(404, "Projeto não encontrado")
     p = await db()
     rows = await p.fetch(
-        "select u.*,m.papel,m.created_at as added_at from app_project_members m join app_users u on u.id=m.user_id where m.project_id=$1",
+        "select u.*,m.papel,m.created_at as added_at from project_members m join users u on u.id=m.user_id where m.project_id=$1",
         pid,
     )
     return {
@@ -422,10 +422,10 @@ async def add_member(pid: str, x: MemberInput, request: Request):
     p = await db()
     if not await visible(u, pid):
         raise HTTPException(404, "Projeto não encontrado")
-    if not await p.fetchval("select 1 from app_users where id=$1", x.userId):
+    if not await p.fetchval("select 1 from users where id=$1", x.userId):
         raise HTTPException(404, "Usuário não encontrado")
     await p.execute(
-        "insert into app_project_members(project_id,user_id,papel) values($1,$2,$3) on conflict(project_id,user_id) do update set papel=excluded.papel",
+        "insert into project_members(project_id,user_id,papel) values($1,$2,$3) on conflict(project_id,user_id) do update set papel=excluded.papel",
         pid,
         x.userId,
         x.papel,
@@ -443,7 +443,7 @@ async def remove_member(pid: str, userId: str, request: Request):
     await require(request, ("admin", "gerente"))
     p = await db()
     await p.execute(
-        "delete from app_project_members where project_id=$1 and user_id=$2", pid, userId
+        "delete from project_members where project_id=$1 and user_id=$2", pid, userId
     )
 
 
@@ -456,7 +456,7 @@ async def list_files(
         raise HTTPException(404, "Projeto não encontrado")
     p = await db()
     rows = await p.fetch(
-        "select * from app_files where project_id=$1 and ($2 or parent_id is not distinct from $3) order by kind,name",
+        "select * from files where project_id=$1 and ($2 or parent_id is not distinct from $3) order by kind,name",
         projectId,
         allFolders,
         parentId,
@@ -489,7 +489,7 @@ async def create_file(x: FileInput, request: Request):
         raise HTTPException(404, "Projeto não encontrado")
     i = str(uuid4())
     await p.execute(
-        "insert into app_files(id,project_id,parent_id,kind,name,size_bytes,mime_type,created_by) values($1,$2,$3,$4,$5,$6,$7,$8)",
+        "insert into files(id,project_id,parent_id,kind,name,size_bytes,mime_type,created_by) values($1,$2,$3,$4,$5,$6,$7,$8)",
         i,
         x.projectId,
         x.parentId,
@@ -499,7 +499,7 @@ async def create_file(x: FileInput, request: Request):
         x.mimeType,
         u["id"],
     )
-    r = await p.fetchrow("select * from app_files where id=$1", i)
+    r = await p.fetchrow("select * from files where id=$1", i)
     await audit(u, "criar-arquivo", "arquivo", i, x.nome)
     return {"file": dump_file(r)}
 
@@ -508,7 +508,7 @@ async def create_file(x: FileInput, request: Request):
 async def get_file(fid: str, request: Request):
     u = await require(request)
     p = await db()
-    r = await p.fetchrow("select * from app_files where id=$1", fid)
+    r = await p.fetchrow("select * from files where id=$1", fid)
     if not r or not await visible(u, r["project_id"]):
         raise HTTPException(404, "Arquivo não encontrado")
     return {"file": dump_file(r)}
@@ -518,24 +518,24 @@ async def get_file(fid: str, request: Request):
 async def patch_file(fid: str, x: FilePatch, request: Request):
     u = await require(request, ("admin", "gerente", "gestor", "participante"))
     p = await db()
-    r = await p.fetchrow("select * from app_files where id=$1", fid)
+    r = await p.fetchrow("select * from files where id=$1", fid)
     if not r or not await visible(u, r["project_id"]):
         raise HTTPException(404, "Arquivo não encontrado")
     vals = x.model_dump(exclude_unset=True)
     for k, v in vals.items():
         await p.execute(
-            f"update app_files set {'name' if k == 'nome' else 'parent_id'}=$1,updated_at=now() where id=$2",
+            f"update files set {'name' if k == 'nome' else 'parent_id'}=$1,updated_at=now() where id=$2",
             v,
             fid,
         )
-    return {"file": dump_file(await p.fetchrow("select * from app_files where id=$1", fid))}
+    return {"file": dump_file(await p.fetchrow("select * from files where id=$1", fid))}
 
 
 @app.delete("/api/files/{fid}", status_code=204)
 async def delete_file(fid: str, request: Request):
     u = await require(request, ("admin", "gerente", "gestor", "participante"))
     p = await db()
-    r = await p.fetchrow("delete from app_files where id=$1 returning *", fid)
+    r = await p.fetchrow("delete from files where id=$1 returning *", fid)
     if not r:
         raise HTTPException(404, "Arquivo não encontrado")
     await audit(u, "excluir-arquivo", "arquivo", fid, r["name"])
@@ -545,10 +545,10 @@ async def delete_file(fid: str, request: Request):
 async def share(fid: str, x: ShareInput, request: Request):
     await require(request, ("admin", "gerente"))
     p = await db()
-    if not await p.fetchval("select 1 from app_files where id=$1", fid):
+    if not await p.fetchval("select 1 from files where id=$1", fid):
         raise HTTPException(404, "Arquivo não encontrado")
     await p.execute(
-        "insert into app_file_shares(file_id,user_id,level) values($1,$2,$3) on conflict(file_id,user_id) do update set level=excluded.level",
+        "insert into file_shares(file_id,user_id,level) values($1,$2,$3) on conflict(file_id,user_id) do update set level=excluded.level",
         fid,
         x.userId,
         x.nivel,
@@ -560,21 +560,21 @@ async def share(fid: str, x: ShareInput, request: Request):
 async def unshare(fid: str, userId: str, request: Request):
     await require(request, ("admin", "gerente"))
     p = await db()
-    await p.execute("delete from app_file_shares where file_id=$1 and user_id=$2", fid, userId)
+    await p.execute("delete from file_shares where file_id=$1 and user_id=$2", fid, userId)
 
 
 @app.get("/api/users")
 async def users(request: Request):
     await require(request, ("admin", "patrocinador", "auditor"))
     p = await db()
-    return {"users": [user(r) for r in await p.fetch("select * from app_users order by name")]}
+    return {"users": [user(r) for r in await p.fetch("select * from users order by name")]}
 
 
 @app.patch("/api/users/{uid}")
 async def user_role(uid: str, x: RolePatch, request: Request):
     await require(request, ("admin",))
     p = await db()
-    r = await p.fetchrow("update app_users set role=$1 where id=$2 returning *", x.role, uid)
+    r = await p.fetchrow("update users set role=$1 where id=$2 returning *", x.role, uid)
     if not r:
         raise HTTPException(404, "Usuário não encontrado")
     return {"user": user(r)}
@@ -587,17 +587,17 @@ async def dashboard_summary(request: Request):
     p = await db()
     visibility = "" if u["role"] in ("admin", "patrocinador", "auditor") else " where $1=any(managers_ids) or $1=any(participants_ids)"
     args = [] if not visibility else [u["id"]]
-    projects = await p.fetch(f"select * from app_projects{visibility} order by updated_at desc", *args)
+    projects = await p.fetch(f"select * from projects{visibility} order by updated_at desc", *args)
     project_ids = [row["id"] for row in projects]
     members = 0
     files = 0
     storage = 0
     if project_ids:
-        members = await p.fetchval("select count(distinct user_id) from app_project_members where project_id=any($1::text[])", project_ids) or 0
-        files = await p.fetchval("select count(*) from app_files where project_id=any($1::text[])", project_ids) or 0
-        storage = await p.fetchval("select coalesce(sum(size_bytes), 0) from app_files where project_id=any($1::text[])", project_ids) or 0
-    pending = await p.fetchval("select count(*) from app_access_requests where status='pendente'") if u["role"] in ("admin", "patrocinador", "auditor") else 0
-    logs = await p.fetch("select * from app_activity_logs order by created_at desc limit 8")
+        members = await p.fetchval("select count(distinct user_id) from project_members where project_id=any($1::text[])", project_ids) or 0
+        files = await p.fetchval("select count(*) from files where project_id=any($1::text[])", project_ids) or 0
+        storage = await p.fetchval("select coalesce(sum(size_bytes), 0) from files where project_id=any($1::text[])", project_ids) or 0
+    pending = await p.fetchval("select count(*) from access_requests where status='pendente'") if u["role"] in ("admin", "patrocinador", "auditor") else 0
+    logs = await p.fetch("select * from activity_logs order by created_at desc limit 8")
     return {"projects": [project(row) for row in projects], "totalMembros": int(members), "totalMapas": int(files), "armazenamentoMb": round(int(storage) / 1048576, 2), "pendencias": int(pending or 0), "activity": [dump(row) for row in logs], "source": "database", "consultedAt": now().isoformat()}
 
 
@@ -623,7 +623,7 @@ async def activity_logs(
         c.append(f"details ilike ${len(args) + 1}")
         args.append(f"%{search}%")
     q = (
-        "select * from app_activity_logs"
+        "select * from activity_logs"
         + ((" where " + " and ".join(c)) if c else "")
         + " order by created_at desc limit 1000"
     )
@@ -700,16 +700,16 @@ async def reports(
             f"(name ilike ${len(args)} or code ilike ${len(args)} or responsible_area ilike ${len(args)})"
         )
     where = (" where " + " and ".join(conditions)) if conditions else ""
-    raw = await p.fetch(f"select * from app_projects{where} order by created_at desc", *args)
+    raw = await p.fetch(f"select * from projects{where} order by created_at desc", *args)
     projects = []
     for item in raw:
         value = project(item)
         value["totalMapas"] = (
-            await p.fetchval("select count(*) from app_files where project_id=$1", item["id"]) or 0
+            await p.fetchval("select count(*) from files where project_id=$1", item["id"]) or 0
         )
         value["totalMembros"] = (
             await p.fetchval(
-                "select count(*) from app_project_members where project_id=$1", item["id"]
+                "select count(*) from project_members where project_id=$1", item["id"]
             )
             or 0
         )
@@ -747,7 +747,7 @@ async def access_map(request: Request):
     )
     args = [] if not visibility else [u["id"]]
     rows = await p.fetch(
-        f"""select u.id as user_id,u.name as user_name,u.email as user_email,u.role as user_role,u.area,p.id as project_id,p.name as project_name,p.status as project_status,f.id as resource_id,f.name as resource_name,f.kind as resource_type,'leitura' as access_level,f.updated_at as last_viewed_at from app_files f join app_projects p on p.id=f.project_id left join app_users u on u.id=f.created_by{visibility} order by f.updated_at desc""",
+        f"""select u.id as user_id,u.name as user_name,u.email as user_email,u.role as user_role,u.area,p.id as project_id,p.name as project_name,p.status as project_status,f.id as resource_id,f.name as resource_name,f.kind as resource_type,'leitura' as access_level,f.updated_at as last_viewed_at from files f join projects p on p.id=f.project_id left join users u on u.id=f.created_by{visibility} order by f.updated_at desc""",
         *args,
     )
     return {
@@ -827,7 +827,7 @@ async def permissions(request: Request):
     p = await db()
     return {
         "matrix": [
-            dump(r) for r in await p.fetch("select * from app_permissions order by role,resource")
+            dump(r) for r in await p.fetch("select * from permissions order by role,resource")
         ]
     }
 
@@ -837,10 +837,10 @@ async def put_permissions(x: PermissionMatrix, request: Request):
     await require(request, ("admin",))
     p = await db()
     async with p.acquire() as c, c.transaction():
-        await c.execute("delete from app_permissions")
+        await c.execute("delete from permissions")
         for item in x.matrix:
             await c.execute(
-                "insert into app_permissions(role,resource,actions) values($1,$2,$3)",
+                "insert into permissions(role,resource,actions) values($1,$2,$3)",
                 item["role"],
                 item["resource"],
                 item.get("actions", []),
@@ -852,7 +852,7 @@ async def put_permissions(x: PermissionMatrix, request: Request):
 async def settings_endpoint(request: Request):
     await require(request, ("admin", "auditor"))
     p = await db()
-    return {"settings": {r["key"]: r["value"] for r in await p.fetch("select * from app_settings")}}
+    return {"settings": {r["key"]: r["value"] for r in await p.fetch("select * from settings")}}
 
 
 @app.patch("/api/settings")
@@ -862,7 +862,7 @@ async def patch_settings(request: Request):
     p = await db()
     for k, v in values.items():
         await p.execute(
-            "insert into app_settings(key,value) values($1,$2) on conflict(key) do update set value=excluded.value,updated_at=now()",
+            "insert into settings(key,value) values($1,$2) on conflict(key) do update set value=excluded.value,updated_at=now()",
             k,
             json.dumps(v),
         )
