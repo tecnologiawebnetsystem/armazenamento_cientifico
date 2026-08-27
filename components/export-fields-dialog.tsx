@@ -40,9 +40,9 @@ export function ExportFieldsDialog({ open, onOpenChange, title, fields, defaultF
 
   return <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent className={`${EXPORT_DIALOG_HEIGHT_CLASS} flex w-[calc(100%-2rem)] ${EXPORT_DIALOG_WIDTH_CLASS} flex-col overflow-hidden border-petrobras-blue/15 bg-gradient-to-br from-background via-background to-petrobras-green/5 p-6 shadow-[0_24px_80px_-32px_rgba(0,88,140,0.5)] sm:p-8`}>
-      <DialogHeader>
-        <DialogTitle className="text-xl">Configurar exportação</DialogTitle>
-        <DialogDescription>Escolha os formatos e os campos do {title} que serão gerados.</DialogDescription>
+      <DialogHeader className="rounded-xl border border-petrobras-yellow/30 bg-gradient-to-r from-petrobras-green via-petrobras-teal to-petrobras-blue px-5 py-4 text-primary-foreground shadow-lg shadow-petrobras-blue/20">
+        <DialogTitle className="flex items-center gap-2 text-xl text-primary-foreground"><DownloadIcon data-icon="inline-start" />Configurar exportação</DialogTitle>
+        <DialogDescription className="text-primary-foreground/85">Escolha os formatos e os campos do {title} que serão gerados.</DialogDescription>
       </DialogHeader>
       <div className="min-h-0 flex-1 overflow-y-auto py-2 pr-2">
         <div className="flex flex-col gap-6">
@@ -80,7 +80,7 @@ export function ExportFieldsDialog({ open, onOpenChange, title, fields, defaultF
         </div>
       </div>
       {(!selectedFields.length || !selectedFormats.length) && <p className="text-sm text-destructive">Selecione ao menos um formato e um campo.</p>}
-      <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button><Button onClick={confirm} disabled={!selectedFields.length || !selectedFormats.length}><DownloadIcon data-icon="inline-start" />Gerar arquivos</Button></DialogFooter>
+      <DialogFooter className="border-t border-petrobras-yellow/25 pt-4"><Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button><Button onClick={confirm} disabled={!selectedFields.length || !selectedFormats.length} className="bg-gradient-to-r from-petrobras-green via-petrobras-teal to-petrobras-yellow text-primary-foreground shadow-md shadow-petrobras-yellow/25 hover:brightness-105"><DownloadIcon data-icon="inline-start" />Gerar arquivos</Button></DialogFooter>
     </DialogContent>
   </Dialog>
 }
