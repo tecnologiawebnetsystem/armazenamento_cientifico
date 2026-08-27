@@ -10,7 +10,6 @@ ProjectStatus = Literal["ativo", "concluido", "suspenso"]
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    senha: str = Field(min_length=1)
 
 
 class ProjectCreate(BaseModel):

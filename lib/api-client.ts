@@ -19,14 +19,11 @@ import type {
  * Client HTTP único da aplicação.
  *
  * Nenhum componente deve chamar `fetch` diretamente — toda comunicação com o
- * backend passa por aqui. Hoje `API_BASE_URL` é relativo e aponta para as API
- * Routes mock deste projeto Next.js (`app/api/**`). Quando o backend em
- * Python (FastAPI/Flask) estiver disponível, basta apontar
- * `NEXT_PUBLIC_API_BASE_URL` para a URL real — os paths e os formatos de
- * request/response foram desenhados para serem replicados 1:1 pelo backend
- * definitivo.
+ * backend FastAPI passa por aqui. Configure `NEXT_PUBLIC_API_BASE_URL` para a
+ * URL do serviço Python em desenvolvimento e produção; não há fallback para
+ * dados mockados ou API Routes locais.
  */
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "")
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/$/, "")
 
 /**
  * Cliente único para usar o FastAPI externo como fonte principal e manter as
@@ -62,13 +59,7 @@ async function fetchRequest(url: string, init?: RequestInit) {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response
-  try {
-    res = await fetchRequest(`${API_BASE_URL}${path}`, init)
-  } catch (error) {
-    if (!API_BASE_URL) throw error
-    // Fallback opcional para as API Routes locais do Next.js durante o desenvolvimento.
-    res = await fetchRequest(path, init)
-  }
+  res = await fetchRequest(`${API_BASE_URL}${path}`, init)
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ message: res.statusText }))
@@ -81,10 +72,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 /* ---------------------------------- Auth --------------------------------- */
 
-export function login(email: string, senha: string) {
+export function login(email: string) {
   return request<{ user: SessionUser }>("/api/auth/login", {
     method: "POST",
-    body: JSON.stringify({ email, senha }),
+    body: JSON.stringify({ email }),
   })
 }
 
@@ -229,6 +220,12 @@ export function unshareFileNode(id: string, userId: string) {
 
 export function getAccessMap() {
   return request<AccessMapResponse>("/api/access-map")
+}
+
+export function getAccessMapExportUrl(params: { format: string; fields: string; q?: string; type?: string; level?: string; view?: string }) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => value && query.set(key, value))
+  return `${API_BASE_URL}/api/access-map/export?${query.toString()}`
 }
 
 export function getProjectReport(query = "") {

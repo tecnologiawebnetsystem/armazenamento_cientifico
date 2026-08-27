@@ -2,25 +2,16 @@
 
 import { useState, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
-import { EyeIcon, EyeOffIcon, LoaderCircleIcon, LockIcon, LogInIcon, MailIcon, ShieldCheckIcon } from "lucide-react"
+import { LoaderCircleIcon, LogInIcon, MailIcon, ShieldCheckIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group"
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { login, ApiError } from "@/lib/api-client"
-
-const DEMO_ACCOUNTS = [
-  { label: "Administrador", email: "admin@petrobras.com" },
-  { label: "Gerente", email: "gestor@petrobras.com" },
-  { label: "Patrocinador", email: "participante@petrobras.com" },
-  { label: "Auditor", email: "visualizador@petrobras.com" },
-]
 
 export function LoginForm() {
   const router = useRouter()
   const [email, setEmail] = useState("")
-  const [senha, setSenha] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -29,7 +20,7 @@ export function LoginForm() {
     setError(null)
     setLoading(true)
     try {
-      await login(email, senha)
+      await login(email)
       router.push("/dashboard")
       router.refresh()
     } catch (err) {
@@ -90,37 +81,6 @@ export function LoginForm() {
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="senha">Senha</FieldLabel>
-                <InputGroup>
-                  <InputGroupAddon align="inline-start">
-                    <LockIcon className="size-4 text-muted-foreground" />
-                  </InputGroupAddon>
-                  <InputGroupInput
-                    id="senha"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="current-password"
-                    placeholder="Sua senha"
-                    required
-                    value={senha}
-                    onChange={(e) => setSenha(e.target.value)}
-                  />
-                  <InputGroupAddon align="inline-end">
-                    <InputGroupButton
-                      type="button"
-                      size="icon-xs"
-                      aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                      onClick={() => setShowPassword((v) => !v)}
-                    >
-                      {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                    </InputGroupButton>
-                  </InputGroupAddon>
-                </InputGroup>
-                <FieldDescription>
-                  Esqueceu sua senha? Abra um chamado no ServiceNow para redefinição.
-                </FieldDescription>
-              </Field>
-
-              <Field>
                 <Button type="submit" size="lg" disabled={loading} className="w-full">
                   {loading ? (
                     <LoaderCircleIcon data-icon="inline-start" className="animate-spin" />
@@ -134,29 +94,6 @@ export function LoginForm() {
           </form>
         </div>
 
-        <footer className="flex flex-col gap-3 border-t border-border bg-muted/40 px-6 py-5">
-          <div className="flex items-center gap-2">
-            <span className="h-1 w-6 rounded-full bg-accent" />
-            <p className="text-xs font-medium text-muted-foreground">Contas de demonstração (ambiente local)</p>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {DEMO_ACCOUNTS.map((acc) => (
-              <Button
-                key={acc.email}
-                type="button"
-                variant="outline"
-                size="sm"
-                className="justify-start bg-card"
-                onClick={() => {
-                  setEmail(acc.email)
-                  setSenha(`${acc.email.split("@")[0]}123`)
-                }}
-              >
-                {acc.label}
-              </Button>
-            ))}
-          </div>
-        </footer>
       </div>
 
       <p className="mt-4 text-center text-xs text-muted-foreground">

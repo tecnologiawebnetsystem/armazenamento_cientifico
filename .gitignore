@@ -34,3 +34,8 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Python
+backend/**/__pycache__/
+backend/**/*.py[cod]
+backend/data/

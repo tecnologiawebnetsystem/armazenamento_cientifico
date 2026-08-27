@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { getAccessMap } from "@/lib/api-client"
+import { getAccessMap, getAccessMapExportUrl } from "@/lib/api-client"
 import type { AccessMapResponse } from "@/lib/types"
 import { PetrobrasLoading } from "@/components/petrobras-loading"
 import { BackButton } from "@/components/navigation/back-button"
@@ -50,8 +50,7 @@ export default function PesquisasPage() {
   ]
   const exportRows = (fields: string[], formats: ("csv" | "txt" | "pdf")[]) => {
     formats.forEach((format) => {
-      const params = new URLSearchParams({ format, fields: fields.join(","), q: search, type, level, view })
-      window.open(`/api/access-map/export?${params.toString()}`, "_blank", "noopener,noreferrer")
+      window.open(getAccessMapExportUrl({ format, fields: fields.join(","), q: search, type, level, view }), "_blank", "noopener,noreferrer")
     })
   }
   const cards: KpiItem[] = [

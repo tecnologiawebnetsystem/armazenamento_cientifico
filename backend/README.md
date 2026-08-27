@@ -1,220 +1,79 @@
-# SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico — Backend
+# SIGAC Backend
 
-API REST em FastAPI para projetos, arquivos, acessos, relatórios e auditoria, com PostgreSQL.
+API REST em FastAPI com SQLAlchemy assíncrono, migrations Alembic e SQLite para desenvolvimento local.
 
 ## Requisitos
 
 - Python 3.11+
-- Docker e Docker Compose
-- `uv` (recomendado) ou `pip`
+- `pip` ou `uv`
 
-## Banco local com Docker
-
-A partir da pasta `backend`:
+## Rodar localmente com SQLite
 
 ```bash
-docker compose -f ../docker-compose.yml up -d
-# confira se o banco está pronto
-docker compose -f ../docker-compose.yml ps
+cd backend
+python -m venv .venv
+
+# Linux/macOS
+source .venv/bin/activate
+# Windows PowerShell
+# .venv\Scripts\Activate.ps1
+
+pip install -r requirements.txt
+cp .env.example .env
+alembic upgrade head
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-O schema é aplicado automaticamente apenas na primeira criação do volume. Se o volume já existia, recrie-o antes de subir o banco:
-
-```bash
-docker compose -f ../docker-compose.yml down -v
-docker compose -f ../docker-compose.yml up -d
-```
-
-O PostgreSQL ficará disponível em `localhost:5432` com:
-
-- Banco: `sigac`
-- Usuário: `sigac`
-- Senha: `sigac_dev_password`
-
-Configure `backend/.env` usando `.env.example`. Para o banco local, use:
+No `.env`, use:
 
 ```env
-DATABASE_URL=postgresql+asyncpg://sigac:sigac_dev_password@localhost:5432/sigac
+DATABASE_ENGINE=sqlite
+DATABASE_URL=sqlite+aiosqlite:///./data/sigac.db
+SEED_DATABASE=true
 ```
 
-Se precisar aplicar o schema manualmente (por exemplo, sem recriar o volume), use o `psql` dentro do container — assim não é necessário instalar o cliente PostgreSQL na máquina:
+Ao iniciar, o backend cria a pasta `backend/data`, aplica a estrutura e executa o seed idempotente. O banco contém os perfis, usuários, projetos, membros, recursos e logs iniciais do ambiente. O login é exclusivamente por e-mail: o endereço precisa existir na tabela de usuários.
 
-```bash
-docker compose -f ../docker-compose.yml exec -T postgres psql -U sigac -d sigac < ../database/projects-schema.sql
+Usuários iniciais:
+
+| Nome | E-mail | Perfil |
+|---|---|---|
+| Kleber Goncalves | kleber.goncalves.prestserv@petrobras.com.br | administrador |
+| Fabio Junior | fabio.j.lima.prestserv@petrobras.com.br | gerente |
+| Jefferson Breno | jefferson.breno.prestserv@petrobras.com.br | auditor |
+| Raisa Cananeia | raisa.moreira.prestserv@petrobras.com.br | patrocinador |
+
+Para recriar o banco local, pare a API e remova apenas `backend/data/sigac.db`; depois execute novamente `alembic upgrade head` e inicie o servidor. Não versionar `.env` nem o arquivo SQLite.
+
+## Trocar para PostgreSQL no servidor
+
+Altere somente as variáveis de ambiente do servidor:
+
+```env
+DATABASE_ENGINE=postgres
+DATABASE_URL=postgresql+asyncpg://usuario:senha@host:5432/sigac
+SEED_DATABASE=false
 ```
 
-A URL `postgresql+asyncpg://...` é usada pela aplicação Python; o comando `psql` usa o esquema `postgresql://...`.
+Execute `alembic upgrade head` antes de iniciar a API. O seed é idempotente, mas em produção recomenda-se mantê-lo desabilitado depois da carga inicial controlada.
 
-## Autorização por perfil (RBAC)
+## Frontend
 
-As rotas protegidas validam a sessão no backend e nunca confiam no perfil enviado pelo frontend. A matriz de rota é:
+Configure o frontend para consumir exclusivamente o FastAPI:
 
-- **Administrador (`admin`)**: acesso total, incluindo alteração de perfis.
-- **Gerente (`gerente`)**: operações de gestão, sem alterar perfis de usuários.
-- **Patrocinador (`patrocinador`)**: somente leitura.
-- **Auditor (`auditor`)**: somente leitura, incluindo consulta de auditoria.
-
-Os perfis legados continuam compatíveis: `gestor` é tratado como `gerente`, `participante` como `gerente` e `visualizador` como `auditor`. Requisições sem sessão retornam `401`; usuários autenticados sem autorização retornam `403`.
-
-## Checklist de integração local
-
-Execute nesta ordem:
-
-```bash
-# terminal 1 — banco
-cd backend
-docker compose -f ../docker-compose.yml up -d
-
-# terminal 2 — API sem uv
-
-### Instalação Local
-
-```bash
-# 1. Entrar na pasta
-cd backend
-
-# 2. Criar e ativar o ambiente virtual
-python -m venv venv
-
-# Windows
-venv\Scripts\activate
-# Linux/Mac
-source venv/bin/activate
-
-# 3. Instalar dependências
-pip install -r requirements.txt 
- # ou
-pip install -r requirements.txt --index-url https://jfrog.petrobras.dev.br/artifactory/api/pypi/pypi-group-all/simple --trusted-host jfrog.petrobras.dev.br
-
-# 4. Criar arquivo .env (ver tabela abaixo)
-
-# 5. Executar migrações
-alembic upgrade heads
-
-# 6. Iniciar a aplicação
-uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
-```
-
-Verifique `http://localhost:8080/health`, `http://localhost:8080/docs` e `http://localhost:3000`. Se aparecer `Failed to fetch`, confirme se a API está em execução, se a URL está correta e se `CORS_ORIGINS` contém o endereço usado pelo navegador (`localhost` e/ou `127.0.0.1`).
-
-## Build e validação
-
-```bash
-# frontend (na raiz)
-npm run typecheck
-npm run lint
-npm run build
-
-# backend (em backend, com .venv ativo)
-python -m compileall -q .
-python -m pip check
-python -m pytest -q
-python -m ruff check .
-```
-
-O login continua mockado no frontend. As demais operações dependem do backend, PostgreSQL e uma sessão válida. O fallback das API Routes do Next.js é apenas uma contingência de desenvolvimento quando o FastAPI não estiver disponível.
-
-## Integração com o frontend
-
-O backend expõe o mesmo contrato HTTP consumido por `lib/api-client.ts`. No frontend, configure:
-
-```dotenv
+```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 
-Com essa variável, o FastAPI é a fonte principal dos dados persistidos no PostgreSQL. As API Routes locais do Next.js permanecem disponíveis apenas como fallback quando o backend não puder ser alcançado. O login continua mockado no frontend conforme definido no projeto; para uma sessão autenticada no FastAPI, use o endpoint `/api/auth/login` do backend.
+A documentação OpenAPI fica em `/docs`, ReDoc em `/redoc` e o health check em `/health`.
 
-## Migrações de banco com Alembic
-
-O Alembic usa `DATABASE_URL` do `backend/.env` e carrega os modelos SQLAlchemy registrados em `app/db/base.py`. O schema legado continua sendo aplicado pelo script SQL do Docker; a migration `0001_baseline` apenas registra esse ponto inicial sem recriar ou apagar tabelas. O modelo SQLAlchemy modular ainda utiliza tabelas `app_*` em alguns domínios; não misture as duas fontes em produção sem uma migration explícita de consolidação.
-
-Após subir o PostgreSQL e ativar o ambiente virtual:
+## Validação
 
 ```bash
-cd backend
-.venv\\Scripts\\Activate.ps1
-python -m alembic current
-python -m alembic upgrade head
+python -m compileall -q app alembic
+python -m pip check
+pytest -q
+ruff check .
 ```
 
-Para criar uma nova migration após alterar modelos:
-
-```bash
-python -m alembic revision --autogenerate -m "descreva a alteração"
-python -m alembic upgrade head
-```
-
-Revise sempre o arquivo gerado antes de aplicar em qualquer ambiente. Comandos úteis:
-
-```bash
-python -m alembic history
-python -m alembic downgrade -1
-python -m alembic check
-```
-
-Com `uv`, use `uv run alembic` no lugar de `python -m alembic`.
-
-## Executar com `uv` (alternativa)
-
-```bash
-cd backend
-uv sync
-uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-Para parar o banco sem remover os dados:
-
-```bash
-docker compose -f ../docker-compose.yml stop
-```
-
-Para remover também o volume local:
-
-```bash
-docker compose -f ../docker-compose.yml down -v
-```
-
-## Swagger e contrato OpenAPI
-
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-- OpenAPI JSON: http://localhost:8000/openapi.json
-- Health check: http://localhost:8000/health
-
-O OpenAPI reúne as rotas modulares já migradas (`users`, `projects`, `files` e `audit`) e as rotas legadas ainda mantidas durante a migração. O endpoint `/api/projects/layered` é um endpoint técnico de transição e não substitui ainda o contrato principal de projetos.
-
-## Endpoints disponíveis
-
-- Autenticação: `/api/auth/login`, `/api/auth/logout`, `/api/auth/session`
-- Usuários: `/api/users`, `/api/users/{id}`
-- Projetos: `/api/projects`, `/api/projects/{id}`, membros e `/api/projects/layered`
-- Arquivos: `/api/files`, `/api/files/{id}`
-- Compartilhamento: `/api/files/{id}/share`
-- Auditoria: `/api/activity-logs`, `/api/activity-logs/export` e `/api/audit/logs`
-- Relatórios: `/api/reports`
-- Mapa de acesso: `/api/access-map`
-- Administração: `/api/permissions` e `/api/settings`
-
-A lista completa de operações e payloads está em `../docs/api-endpoints.md` e sempre pode ser conferida no Swagger gerado pela aplicação.
-
-## Testes e qualidade
-
-```bash
-uv run pytest -q
-uv run ruff check .
-uv run ruff format --check .
-```
-
-O teste de integração PostgreSQL é ignorado quando `DATABASE_URL` não aponta para um banco acessível.
-
-## Arquitetura
-
-O backend segue organização por domínio e camadas:
-
-`Router/Controller → Service → Repository → Infraestrutura`
-
-Cada domínio em `app/modules/` mantém seus models, schemas, repository, service, controller e module. `app/core/` concentra configuração, exceções e infraestrutura; `app/common/` concentra componentes reutilizáveis. O código em `legacy_api.py` permanece temporário até a migração dos domínios restantes.
-
-## Segurança e operação
-
-Em produção, defina `COOKIE_SECURE=true`, use HTTPS, restrinja `CORS_ORIGINS`, não versiona `.env` e aplique migrations controladas. As queries do legado usam parâmetros; novas regras devem lançar exceções tipadas de `app/core/exceptions.py` e nunca expor detalhes sensíveis.
+Rotas principais: autenticação (`/api/auth/*`), usuários, projetos, arquivos, auditoria, relatórios, mapa de acessos, permissões e configurações. Todas as consultas de negócio passam pelo FastAPI e pelo banco configurado; não há fallback para dados mockados.

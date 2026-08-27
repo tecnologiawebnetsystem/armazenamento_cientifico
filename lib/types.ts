@@ -1,10 +1,8 @@
 /**
  * Tipos de domínio da Plataforma de Armazenamento Científico.
  *
- * Estes tipos espelham o contrato de dados que o futuro backend em Python
- * (FastAPI/Flask) deverá implementar. Hoje eles são servidos por API Routes
- * mock (`app/api/**`) com dados em memória; a troca para o backend real deve
- * preservar exatamente estes formatos de request/response.
+ * Estes tipos espelham o contrato persistente implementado pelo backend FastAPI
+ * e consumido pelo frontend através do cliente HTTP único.
  */
 
 /**

@@ -1,5 +1,4 @@
 import type { PermissionMatrixEntry, Role, ShareLevel } from "@/lib/types"
-import { defaultPermissionMatrix } from "@/lib/mock-data"
 
 /**
  * Modelo de permissões em dois níveis:
@@ -10,7 +9,7 @@ import { defaultPermissionMatrix } from "@/lib/mock-data"
  * 2. Compartilhamento por pasta/arquivo (leitura/edição/proprietário) —
  *    refina o que cada membro pode fazer dentro do que o papel já permite.
  */
-export function getRolePermissions(role: Role, matrix: PermissionMatrixEntry[] = defaultPermissionMatrix) {
+export function getRolePermissions(role: Role, matrix: PermissionMatrixEntry[]) {
   return matrix.find((m) => m.papel === role) ?? matrix[matrix.length - 1]
 }
 
