@@ -264,10 +264,10 @@ export function getUsers() {
   return request<{ users: User[] }>("/api/users")
 }
 
-export function updateUserRole(id: string, role: Role) {
-  return request<User>(`/api/users/${id}/role`, {
+export function updateUserRole(id: string, role: Role, perfilId: string) {
+  return request<User>(`/api/users/${id}`, {
     method: "PATCH",
-    body: JSON.stringify({ role }),
+    body: JSON.stringify({ role, perfilId }),
   })
 }
 

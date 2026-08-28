@@ -17,6 +17,7 @@ class UserOut(BaseModel):
     )
     area: str | None = None
     role: str
+    perfil_id: str | None = None
     criadoEm: datetime = Field(
         validation_alias=AliasChoices("criadoEm", "created_at"), serialization_alias="criadoEm"
     )
@@ -26,3 +27,4 @@ class UserRoleUpdate(BaseModel):
     role: Literal[
         "admin", "gerente", "patrocinador", "auditor", "gestor", "participante", "visualizador"
     ]
+    perfil_id: str | None = None
