@@ -18,11 +18,13 @@ def upgrade() -> None:
         sa.Column("descricao", sa.String(255), nullable=False, server_default=""),
         sa.Column("criado_em", sa.DateTime(), nullable=False),
     )
-    op.add_column("users", sa.Column("perfil_id", sa.String(20), nullable=True))
-    op.create_foreign_key("fk_users_perfil_id", "users", "perfis", ["perfil_id"], ["id"])
+    with op.batch_alter_table("users", recreate="always") as batch_op:
+        batch_op.add_column(sa.Column("perfil_id", sa.String(20), nullable=True))
+        batch_op.create_foreign_key("fk_users_perfil_id", "perfis", ["perfil_id"], ["id"])
 
 
 def downgrade() -> None:
-    op.drop_constraint("fk_users_perfil_id", "users", type_="foreignkey")
-    op.drop_column("users", "perfil_id")
+    with op.batch_alter_table("users", recreate="always") as batch_op:
+        batch_op.drop_constraint("fk_users_perfil_id", type_="foreignkey")
+        batch_op.drop_column("perfil_id")
     op.drop_table("perfis")
