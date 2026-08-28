@@ -281,7 +281,7 @@ Não altere uma migration que já foi aplicada. Crie outra migration incremental
 
 ### Catálogos parametrizados
 
-A parametrização administrativa utiliza `perfis`, `permissoes`, `perfil_permissoes`, `modulos`, `perfil_modulos`, `status_projetos`, `tipos_projetos`, `configuracoes_sistema`, `tipos_relatorios` e `menus`. O seed inicial também cria módulos, permissões, status, tipos de projeto e tipos de relatório de forma idempotente. O endpoint autenticado `GET /api/catalogos` fornece os catálogos ativos para o frontend; novos cadastros devem enviar IDs/códigos, usando nomes somente para exibição. O seed é idempotente e cria os valores iniciais.
+A parametrização administrativa utiliza `perfis`, `permissoes`, `perfil_permissoes`, `modulos`, `perfil_modulos`, `status_projetos`, `tipos_projetos`, `configuracoes_sistema`, `tipos_relatorios` e `menus`. O seed inicial também cria módulos, permissões, status, tipos de projeto e tipos de relatório de forma idempotente. O endpoint autenticado `GET /api/catalogos` fornece os catálogos ativos para o frontend; novos cadastros devem enviar IDs/códigos, usando nomes somente para exibição. O seed é idempotente e cria os valores iniciais. Ele deve manter perfis, permissões, módulos, relações perfil-permissão, relações perfil-módulo, status de projetos, tipos de projetos, configurações do sistema, tipos de relatórios e menus. Os menus devem apontar para módulos existentes e usar rotas reais do frontend.
 
 > Os nomes físicos atuais não usam o prefixo `app_`.
 
@@ -490,6 +490,12 @@ A fonte viva do contrato é o [Swagger](http://localhost:8080/docs) e o arquivo 
 ---
 
 ## 11. Autenticação e permissões
+
+### Proteção de rotas e páginas de erro
+
+As rotas privadas do frontend são protegidas por `frontend/middleware.ts`, que verifica o cookie HttpOnly `wayon_session_user_id` e redireciona usuários não autenticados para `/login`. A proteção é reforçada por `frontend/app/(app)/layout.tsx`, que valida a sessão no servidor.
+
+As páginas parametrizadas são `frontend/app/not-found.tsx` para 404, `frontend/app/forbidden/page.tsx` para acesso negado e `frontend/app/error.tsx`/`global-error.tsx` para erros inesperados. Nenhuma dessas camadas substitui a autorização no backend.
 
 O backend é a autoridade para identidade, sessão e autorização.
 
