@@ -5,7 +5,6 @@ import {
   GaugeIcon,
   MapIcon,
   UsersIcon,
-  PlusIcon,
   FileBarChartIcon,
   ArrowRightIcon,
 } from "lucide-react"
@@ -20,15 +19,13 @@ interface Props {
   armazenamentoMb: number
   pendencias: number
   activity?: ActivityLog[]
-  source?: "database"
-  consultedAt?: string
 }
 
 function formatStorage(mb: number) {
   return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${Math.round(mb)} MB`
 }
 
-export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazenamentoMb, pendencias, activity = [], source = "database", consultedAt }: Props) {
+export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazenamentoMb, pendencias, activity = [] }: Props) {
   const ativos = projects.filter((project) => project.status === "ativo").length
   const concluidos = projects.filter((project) => project.status === "concluido").length
   const suspensos = projects.filter((project) => project.status === "suspenso").length
@@ -43,10 +40,6 @@ export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazen
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">SIGAC · visão executiva</p>
           <h1 className="font-heading text-3xl font-semibold tracking-tight text-balance">Portfólio científico em foco</h1>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">Acompanhe projetos, acessos e capacidade de armazenamento em um único panorama operacional.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/projetos?novo=1" className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"><PlusIcon data-icon="inline-start" />Novo projeto</Link>
-         
         </div>
       </header>
 
@@ -84,8 +77,6 @@ export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazen
           </Card>
         ))}
       </div>
-
-      <div className="flex items-center justify-between rounded-lg border border-primary/15 bg-primary/[0.03] px-4 py-3 text-sm"><span className="text-muted-foreground">Fonte dos indicadores: <strong className="text-foreground">{source === "database" ? "banco de dados" : source}</strong></span>{consultedAt && <span className="text-xs text-muted-foreground">Consultado em {new Date(consultedAt).toLocaleString("pt-BR")}</span>}</div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border-0 shadow-sm ring-1 ring-border/70">
