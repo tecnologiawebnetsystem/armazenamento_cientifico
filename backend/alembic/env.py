@@ -23,12 +23,13 @@ def migration_database_url() -> str:
 
     parts = urlsplit(url)
     database_path = unquote(parts.path)
-    if database_path.startswith("/"):
-        database_path = database_path[1:]
-    if database_path not in ("", ":memory:") and not Path(database_path).is_absolute():
-        database_path = str((Path(__file__).resolve().parents[1] / database_path).resolve())
-        Path(database_path).parent.mkdir(parents=True, exist_ok=True)
-        database_path = "/" + database_path.replace("\\", "/")
+    # URLs SQLite relativas podem chegar como /./data/... no Windows.
+    database_path = database_path.removeprefix("/")
+    if database_path not in ("", ":memory:"):
+        absolute_path = (Path(__file__).resolve().parents[1] / database_path).resolve()
+        absolute_path.parent.mkdir(parents=True, exist_ok=True)
+        # as_posix() gera C:/... no Windows, formato aceito pelo SQLAlchemy.
+        return f"{parts.scheme}:///{absolute_path.as_posix()}"
 
     return urlunsplit((parts.scheme, parts.netloc, database_path, parts.query, parts.fragment))
 
