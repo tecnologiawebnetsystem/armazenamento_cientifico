@@ -25,7 +25,8 @@ import type {
  * URL do serviço Python em desenvolvimento e produção; não há fallback para
  * dados mockados ou API Routes locais.
  */
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/$/, "")
+const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
+const API_BASE_URL = configuredApiBaseUrl ? configuredApiBaseUrl.replace(/\/$/, "") : ""
 
 /**
  * Cliente único para usar o FastAPI externo como fonte principal e manter as
@@ -35,7 +36,7 @@ const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:
  */
 export const API_CONFIG = {
   baseUrl: API_BASE_URL,
-  usingExternalBackend: Boolean(API_BASE_URL),
+  usingExternalBackend: Boolean(configuredApiBaseUrl),
 } as const
 
 class ApiError extends Error {
