@@ -129,7 +129,7 @@ export function getPermissionsForRole(papel: string) {
 export function getEffectiveProjectRole(userId: string, projectId: string): string | null {
   const store = getStore()
   const user = store.users.find((u) => u.id === userId)
-  if (user?.role === "admin") return "admin"
+  if (user?.role === "admin" || user?.perfilId === "ADM") return "admin"
   return getProjectRole(userId, projectId)
 }
 
@@ -146,12 +146,12 @@ export function canAccessProject(userId: string, projectId: string, action: "rea
   const user = findUserById(userId)
   const project = store.projects.find((item) => item.id === projectId)
   if (!user || !project) return false
-  if (user.role === "admin") return true
-  if (user.role === "patrocinador") return action === "read"
+  if (user.role === "admin" || user.perfilId === "ADM") return true
+  if (user.role === "patrocinador" || user.perfilId === "PAT") return action === "read"
 
   // Gerentes só podem consultar e operar os mapas dos projetos que gerenciam.
   // Ser membro de outro projeto não amplia o escopo do gerente.
-  if (user.role === "gerente") {
+  if (user.role === "gerente" || user.perfilId === "GER" || user.perfilId === "GES") {
     return project.gestoresIds?.includes(user.id) === true
   }
 
@@ -192,7 +192,7 @@ export function getAccessMap(userId: string) {
           lastViewedAt: resource.atualizadoEm })
       }
     }
-    if (store.users.some((user) => user.id === userId && ["admin", "patrocinador"].includes(user.role))) {
+    if (store.users.some((user) => user.id === userId && ["admin", "patrocinador"].includes(user.role) || ["ADM", "PAT"].includes(user.perfilId ?? ""))) {
       for (const resource of projectResources) {
         const user = store.users.find((item) => item.id === userId)
         if (user && !rows.some((row) => row.userId === user.id && row.resourceId === resource.id)) {

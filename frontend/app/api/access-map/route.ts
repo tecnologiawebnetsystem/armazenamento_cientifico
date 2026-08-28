@@ -6,7 +6,7 @@ export async function GET() {
   const userId = await getSessionUserId()
   const user = findUserById(userId)
   if (!user) return NextResponse.json({ message: "Sessão expirada." }, { status: 401 })
-  const canAccess = user.perfilId ? ["ADM", "PAT", "GER", "AUD"].includes(user.perfilId) : ["admin", "patrocinador", "gerente", "auditor"].includes(user.role)
+  const canAccess = user.perfilId ? ["ADM", "PAT", "GER", "GES", "AUD"].includes(user.perfilId) : ["admin", "patrocinador", "gerente", "gestor", "auditor"].includes(user.role)
   if (!canAccess) return NextResponse.json({ message: "Você não tem permissão para consultar o mapa de acessos." }, { status: 403 })
   try {
     return NextResponse.json(getAccessMap(user.id))
