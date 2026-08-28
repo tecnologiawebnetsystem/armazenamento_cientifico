@@ -45,7 +45,7 @@ function initials(nome: string) {
 }
 
 export function ProjectMembersTab({ projectId, canManage }: { projectId: string; canManage: boolean }) {
-  const { members, isLoading, refresh } = useProjectMembers(projectId)
+  const { members, isLoading, error, refresh } = useProjectMembers(projectId)
   const { users } = useUsers()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState("")
@@ -159,7 +159,15 @@ export function ProjectMembersTab({ projectId, canManage }: { projectId: string;
         )}
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {error ? (
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>Não foi possível carregar os membros</EmptyTitle>
+              <EmptyDescription>Verifique a conexão com a API e tente novamente.</EmptyDescription>
+            </EmptyHeader>
+            <Button variant="outline" onClick={() => refresh()}>Tentar novamente</Button>
+          </Empty>
+        ) : isLoading ? (
           <div className="flex flex-col gap-3">
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-14 rounded-lg" />
