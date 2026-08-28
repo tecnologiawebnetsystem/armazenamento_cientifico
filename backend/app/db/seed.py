@@ -80,7 +80,7 @@ async def initialize_database(engine) -> None:
                     write_identity_role="administrador", read_identity_role="consultor",
                     snow_task_number=f"TASK{1000 + index}", parent_folder=f"/Demo/{code}",
                     description=description, status=status,
-                    participants_ids=[manager.id, auditor.id, sponsor.id],
+                    participants_ids=participant_ids,
                     created_at=now, updated_at=now,
                 )
                 projects.append(project)
@@ -103,9 +103,9 @@ async def initialize_database(engine) -> None:
                 """), {"project_id": project.id, "user_id": member.id, "papel": papel, "created_at": now})
 
         demo_files = [
-            ("documento", "Manual de Governança.pdf", 245760, "application/pdf"),
+            ("arquivo", "Manual de Governança.pdf", 245760, "application/pdf"),
             ("pasta", "Relatórios", 0, "inode/directory"),
-            ("planilha", "Indicadores de Projetos.xlsx", 98304, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+            ("arquivo", "Indicadores de Projetos.xlsx", 98304, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
         ]
         for project in list(all_projects.values())[:3]:
             for file_index, (kind, name, size, mime) in enumerate(demo_files, start=1):
