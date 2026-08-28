@@ -1,4 +1,6 @@
 from logging.config import fileConfig
+from pathlib import Path
+from urllib.parse import unquote, urlsplit, urlunsplit
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
@@ -12,12 +14,33 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-config.set_main_option("sqlalchemy.url", settings.database_url.replace("%", "%%"))
+
+def migration_database_url() -> str:
+    """Resolve SQLite relativo ao backend e cria a pasta do arquivo."""
+    url = settings.database_url
+    if not url.startswith(("sqlite:///", "sqlite+aiosqlite:///")):
+        return url
+
+    parts = urlsplit(url)
+    database_path = unquote(parts.path)
+    # URLs SQLite relativas podem chegar como /./data/... no Windows.
+    database_path = database_path.removeprefix("/")
+    if database_path not in ("", ":memory:"):
+        absolute_path = (Path(__file__).resolve().parents[1] / database_path).resolve()
+        absolute_path.parent.mkdir(parents=True, exist_ok=True)
+        # as_posix() gera C:/... no Windows, formato aceito pelo SQLAlchemy.
+        return f"{parts.scheme}:///{absolute_path.as_posix()}"
+
+    return urlunsplit((parts.scheme, parts.netloc, database_path, parts.query, parts.fragment))
+
+
+DATABASE_URL = migration_database_url()
+config.set_main_option("sqlalchemy.url", DATABASE_URL.replace("%", "%%"))
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    url = settings.database_url
+    url = DATABASE_URL
     context.configure(
         url=url,
         target_metadata=target_metadata,
