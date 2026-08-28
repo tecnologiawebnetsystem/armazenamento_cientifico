@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 Role = Literal[
     "admin", "gerente", "patrocinador", "auditor", "participante", "visualizador", "gestor"
 ]
-ProjectStatus = Literal["ativo", "concluido", "suspenso"]
+ProjectStatus = Literal["ativo", "concluido", "suspenso", "inativo", "em_andamento"]
 
 
 def now():
@@ -320,10 +320,21 @@ async def audit(u, action, entity, eid, details=""):
 
 async def visible(u, pid):
     p = await db()
+    role = normalized_role(u["role"])
+    if settings.database_engine == "sqlite":
+        row = await p.fetchrow("select * from projects where id=?", pid)
+        if not row:
+            return None
+        if role in ("admin", "patrocinador", "auditor"):
+            return row
+        data = dump(row)
+        if u["id"] in (data.get("managers_ids") or []) or u["id"] in (data.get("participants_ids") or []):
+            return row
+        return None
     return await p.fetchrow(
         "select * from projects where id=$1 and ($2 in ('admin','patrocinador','auditor') or $3=any(managers_ids) or $3=any(participants_ids))",
         pid,
-        normalized_role(u["role"]),
+        role,
         u["id"],
     )
 
@@ -919,7 +930,7 @@ async def access_map(request: Request):
                 "resourceName": x["resource_name"],
                 "resourceType": x["resource_type"],
                 "accessLevel": x["access_level"],
-                "lastViewedAt": x["last_viewed_at"].isoformat(),
+                "lastViewedAt": x["last_viewed_at"].isoformat() if x["last_viewed_at"] else None,
             }
             for x in rows
         ],
