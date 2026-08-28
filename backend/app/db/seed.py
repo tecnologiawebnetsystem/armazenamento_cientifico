@@ -5,13 +5,23 @@ from sqlalchemy import text
 
 from app.db.base import Base
 from app.modules.audit.models import ActivityLog
+from app.modules.catalogs.models import (
+    MenuItem,
+    Module,
+    Permission,
+    ProfileModule,
+    ProfilePermission,
+    ProjectStatusCatalog,
+    ProjectType,
+    ReportType,
+    SystemSetting,
+)
 from app.modules.files.models import File, FileShare
 from app.modules.files.permissions_model import FilePermission
 from app.modules.projects.member_model import ProjectMember
 from app.modules.projects.models import Project
 from app.modules.users.models import User
 from app.modules.users.profile_model import Perfil
-from app.modules.catalogs.models import Module, Permission, ProfileModule, ProfilePermission, ProjectStatusCatalog, ProjectType, ReportType, SystemSetting, MenuItem
 
 SEED_PERFIS = [
     ("ADM", "administrador", "Acesso total à plataforma"),
@@ -125,7 +135,6 @@ async def initialize_database(engine) -> None:
         admin = all_users[SEED_USERS[0][1]]
         manager = all_users[SEED_USERS[1][1]]
         auditor = all_users[SEED_USERS[2][1]]
-        sponsor = all_users[SEED_USERS[3][1]]
 
         existing_codes = {row.code for row in (await session.scalars(select(Project))).all()}
         projects = []

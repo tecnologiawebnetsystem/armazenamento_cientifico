@@ -5,11 +5,10 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .permissions_model import FilePermission
-
 from app.api.dependencies import CurrentUser, require_roles
 from app.db.session import get_session
 
+from .permissions_model import FilePermission
 from .repository import FileRepository
 from .schemas import FileCreate, FileListOut, FilePermissionCreate, FilePermissionOut, FileUpdate
 from .service import FileService

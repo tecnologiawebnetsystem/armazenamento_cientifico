@@ -21,17 +21,6 @@ export function LoginForm() {
     setLoading(true)
     try {
       const result = await login(email)
-      const syncResponse = await fetch("/api/auth/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user: result.user }),
-        credentials: "same-origin",
-      })
-
-      if (!syncResponse.ok) {
-        throw new Error("Não foi possível sincronizar a sessão no frontend.")
-      }
-
       router.replace("/dashboard")
       router.refresh()
     } catch (err) {

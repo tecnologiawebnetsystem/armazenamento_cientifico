@@ -29,7 +29,8 @@ async def lifespan(_: FastAPI):
     await connect()
     # A legacy_app é montada como subaplicação; seus eventos de startup
     # não são executados automaticamente pelo FastAPI principal.
-    from app.legacy_api import startup as legacy_startup, shutdown as legacy_shutdown
+    from app.legacy_api import shutdown as legacy_shutdown
+    from app.legacy_api import startup as legacy_startup
 
     await legacy_startup()
     try:
