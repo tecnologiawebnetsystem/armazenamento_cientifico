@@ -32,6 +32,7 @@ export interface User {
   avatarUrl?: string
   /** Papel global do usuário na plataforma (independe do papel por projeto). */
   role: Role
+  perfilId?: string
   criadoEm: string
 }
 

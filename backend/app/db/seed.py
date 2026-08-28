@@ -8,6 +8,17 @@ from app.modules.audit.models import ActivityLog
 from app.modules.files.models import File, FileShare
 from app.modules.projects.models import Project
 from app.modules.users.models import User
+from app.modules.users.profile_model import Perfil
+
+SEED_PERFIS = [
+    ("ADM", "administrador", "Acesso total à plataforma"),
+    ("GER", "gerente", "Gestão operacional de projetos"),
+    ("AUD", "auditor", "Consulta e auditoria"),
+    ("PAT", "patrocinador", "Acompanhamento e aprovação"),
+    ("PAR", "participante", "Participação em projetos"),
+    ("VIS", "visualizador", "Acesso somente leitura"),
+    ("GES", "gestor", "Gestão de projeto"),
+]
 
 SEED_USERS = [
     ("Kleber Goncalves", "kleber.goncalves.prestserv@petrobras.com.br", "administrador"),
@@ -38,7 +49,7 @@ SEED_DEMO_PROJECTS = [
 
 async def initialize_database(engine) -> None:
     # Importações registram todos os modelos no metadata antes da criação.
-    _ = (ActivityLog, File, FileShare, Project, User)
+    _ = (ActivityLog, File, FileShare, Project, User, Perfil)
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
         await connection.run_sync(_create_compatibility_tables)
@@ -50,11 +61,17 @@ async def initialize_database(engine) -> None:
     async with factory() as session:
         existing = {row.email for row in (await session.scalars(select(User))).all()}
         now = datetime.now(UTC)
+        existing_perfis = {row.id for row in (await session.scalars(select(Perfil))).all()}
+        for perfil_id, nome, descricao in SEED_PERFIS:
+            if perfil_id not in existing_perfis:
+                session.add(Perfil(id=perfil_id, nome=nome, descricao=descricao, criado_em=now))
+        await session.flush()
+        perfil_ids = {row.nome: row.id for row in (await session.scalars(select(Perfil))).all()}
         users = []
         seed_users = SEED_USERS + SEED_DEMO_USERS
         for name, email, role in seed_users:
             if email not in existing:
-                users.append(User(id=str(uuid4()), name=name, email=email, role=role, created_at=now))
+                users.append(User(id=str(uuid4()), name=name, email=email, role=role, perfil_id=perfil_ids.get(role, "PAR"), created_at=now))
         session.add_all(users)
         await session.flush()
 

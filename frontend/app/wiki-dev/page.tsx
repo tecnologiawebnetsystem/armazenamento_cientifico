@@ -20,6 +20,7 @@ const sections = [
   { id: "workflow", label: "Branches, commits e PRs", icon: GitBranch },
   { id: "troubleshooting", label: "Troubleshooting", icon: Wrench },
   { id: "deploy", label: "Deploy", icon: GitBranch },
+  { id: "perfis", label: "Perfis", icon: Database },
 ] as const
 
 type SectionId = (typeof sections)[number]["id"]
@@ -60,7 +61,7 @@ const content: Record<SectionId, Page> = {
   database: { eyebrow: "Persistência", title: "Banco de dados", description: "A persistência é orientada por models SQLAlchemy e migrations Alembic.", blocks: [
     { title: "Escolha do banco", text: "SQLite usa um arquivo local e é simples para desenvolvimento individual. PostgreSQL oferece concorrência, backups e operação adequada para produção. A aplicação deve trocar DATABASE_ENGINE e DATABASE_URL, não espalhar URLs pelo código." },
     { title: "Ciclo de mudança", text: "Altere o model, crie uma migration, revise o SQL gerado, aplique em uma cópia do banco e execute os testes. Para banco legado, faça backup antes de qualquer rename ou alteração destrutiva." },
-    { title: "Nomes atuais", text: "As tabelas principais são profiles, users, projects, project_members, files, file_shares e activity_logs. Relações usam chaves estrangeiras e índices para consultas de sessão, projeto e auditoria." },
+    { title: "Nomes atuais", text: "As tabelas principais são perfis, users, projects, project_members, files, file_shares e activity_logs. users.perfil_id referencia perfis.id. Relações usam chaves estrangeiras e índices para consultas de sessão, projeto e auditoria." },
   ] },
   tables: { eyebrow: "Dicionário de dados", title: "Tabelas e campos", description: "Relação consolidada das tabelas, finalidade, campos principais, páginas e endpoints consumidores.", blocks: [
     { title: "profiles", text: "Finalidade: catálogo de perfis e permissões. Campos: id (PK), name, description, permissions e timestamps. Usada por páginas de administração de perfis/permissões e pelo login/sessão. Endpoints: GET /api/profiles, POST/PATCH/DELETE /api/profiles e GET /api/permissions." },
@@ -116,6 +117,11 @@ const content: Record<SectionId, Page> = {
     { title: "Pull Request para develop", text: "O título deve seguir o formato abaixo. A descrição deve conter o link do ServiceNow, contexto, alterações, como testar, evidências, riscos e checklist. O PR deve apontar para develop, salvo orientação diferente da equipe.", code: "[STS<numero>] <titulo>" },
     { title: "Template automático", text: "O arquivo .github/pull_request_template.md preenche automaticamente a descrição de novos PRs. Mantenha as seções e marque apenas itens realmente verificados: demanda, contexto, alterações, testes, evidências, impactos, checklist e observações para o revisor." },
     { title: "Exemplo de fluxo", text: "Atualize develop, crie a branch, implemente em commits pequenos, execute os testes, preencha o template, revise o diff e abra o PR para develop. Relacione o STS no nome da branch, nos commits e no título do PR." , code: "git switch develop\ngit pull origin develop\ngit switch -c feature/STS0233556-exportacao-relatorio\ngit add .\ngit commit -m \"feat(api): STS0233556 criar endpoint de exportacao\"" },
+  ] },
+  perfis: { eyebrow: "Segurança", title: "Tabela de perfis", description: "Perfis são entidades persistentes com IDs fixos e estáveis.", blocks: [
+    { title: "Tabela perfis", text: "A tabela perfis contém o catálogo oficial de perfis: ADM administrador, GER gerente, AUD auditor, PAT patrocinador, PAR participante, VIS visualizador e GES gestor. O ID é a chave usada no vínculo com usuários.", code: "perfis\n- id: VARCHAR(20), PK\n- nome: VARCHAR(80), UNIQUE\n- descricao: VARCHAR(255)\n- criado_em: TIMESTAMP" },
+    { title: "Vínculo com usuários", text: "A tabela users possui perfil_id como referência ao ID da tabela perfis. O cadastro e a edição devem enviar o ID do perfil; o nome é apenas uma informação derivada para exibição e compatibilidade.", code: "users.perfil_id -> perfis.id\n\nExemplo:\nperfil_id = ADM\nrole exibido = admin" },
+    { title: "Seed e migração", text: "O seed cria os perfis de forma idempotente e vincula novos usuários pelo ID fixo. A migration 0003_add_perfis cria a tabela e adiciona perfil_id sem remover imediatamente o campo role legado, permitindo migração gradual dos dados existentes." },
   ] },
   troubleshooting: { eyebrow: "Diagnóstico", title: "Troubleshooting", description: "Diagnóstico organizado para os problemas mais frequentes.", blocks: [
     { title: "Preview não abre", text: "Confirme que o Next foi iniciado dentro de frontend, que pnpm install terminou e que a porta está livre. Reinicie o servidor após alterar package.json ou variáveis de ambiente." },

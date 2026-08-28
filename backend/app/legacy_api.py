@@ -82,6 +82,7 @@ def user(row):
         "cargo": d["cargo"],
         "area": d["area"],
         "role": normalized_role(d["role"]),
+        "perfilId": d.get("perfil_id"),
         "criadoEm": d["created_at"],
     }
 
