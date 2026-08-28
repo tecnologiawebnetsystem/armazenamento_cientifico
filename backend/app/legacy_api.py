@@ -38,6 +38,11 @@ def dump(row):
     for k, v in list(d.items()):
         if isinstance(v, datetime):
             d[k] = v.isoformat()
+        elif settings.database_engine == "sqlite" and k in ("managers_ids", "participants_ids") and isinstance(v, str):
+            try:
+                d[k] = json.loads(v)
+            except json.JSONDecodeError:
+                d[k] = []
     return d
 
 
@@ -170,7 +175,7 @@ class SQLitePool:
     @staticmethod
     def _query(sql: str, args: tuple) -> tuple[str, tuple]:
         # Converte o subconjunto de SQL compartilhado usado pela API para SQLite.
-        values = list(args)
+        values = [json.dumps(value) if settings.database_engine == "sqlite" and isinstance(value, (list, dict)) else value for value in args]
         any_pattern = re.compile(r"\$(\d+)=any\(([a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*|[a-zA-Z_][a-zA-Z0-9_]*)\)")
 
         def replace_any(match):
@@ -408,10 +413,12 @@ async def list_projects(
     args = []
     cond = []
     if not (all and u["role"] in ("admin", "patrocinador", "auditor")):
-        cond.append(
-            "($1 in ('admin','patrocinador','auditor') or $2=any(managers_ids) or $2=any(participants_ids))"
-        )
-        args = [u["role"], u["id"]]
+        if settings.database_engine == "sqlite":
+            cond.append("(? in ('admin','patrocinador','auditor') or EXISTS (select 1 from json_each(managers_ids) where value=?) or EXISTS (select 1 from json_each(participants_ids) where value=?))")
+            args = [u["role"], u["id"], u["id"]]
+        else:
+            cond.append("($1 in ('admin','patrocinador','auditor') or $2=any(managers_ids) or $2=any(participants_ids))")
+            args = [u["role"], u["id"]]
     if status_filter and status_filter != "todos":
         cond.append(f"status=${len(args) + 1}")
         args.append(status_filter)
@@ -813,10 +820,14 @@ async def reports(
     args = []
     conditions = []
     if u["role"] not in ("admin", "patrocinador", "auditor"):
-        args.extend([u["id"], u["id"]])
-        conditions.append(
-            f"(${len(args) - 1}=any(managers_ids) or ${len(args)}=any(participants_ids))"
-        )
+        if settings.database_engine == "sqlite":
+            args.extend([u["id"], u["id"]])
+            conditions.append("(EXISTS (select 1 from json_each(managers_ids) where value=?) or EXISTS (select 1 from json_each(participants_ids) where value=?))")
+        else:
+            args.extend([u["id"], u["id"]])
+            conditions.append(
+                f"(${len(args) - 1}=any(managers_ids) or ${len(args)}=any(participants_ids))"
+            )
     if status_filter and status_filter != "todos":
         args.append(status_filter)
         conditions.append(f"status=${len(args)}")
