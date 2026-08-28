@@ -10,8 +10,24 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!user) return NextResponse.json({ message: "Não autenticado." }, { status: 401 })
 
   const store = getStore()
-  const members = store.projectMembers
-    .filter((m) => m.projectId === id)
+  const project = store.projects.find((item) => item.id === id)
+  if (!project) return NextResponse.json({ message: "Projeto não encontrado." }, { status: 404 })
+
+  // Compatibilidade com projetos antigos: alguns registros guardam os IDs no
+  // projeto, enquanto os atuais usam a tabela de associação projectMembers.
+  const persisted = store.projectMembers.filter((m) => m.projectId === id)
+  const legacyIds = [...new Set([...(project.gestoresIds ?? []), ...(project.participantesIds ?? [])])]
+  const existingIds = new Set(persisted.map((m) => m.userId))
+  const legacyMembers = legacyIds
+    .filter((memberId) => !existingIds.has(memberId) && store.users.some((item) => item.id === memberId))
+    .map((memberId) => ({
+      projectId: id,
+      userId: memberId,
+      papel: project.gestoresIds?.includes(memberId) ? "gestor" as const : "participante" as const,
+      adicionadoEm: project.criadoEm,
+    }))
+
+  const members = [...persisted, ...legacyMembers]
     .map((m) => ({ ...m, user: store.users.find((u) => u.id === m.userId)! }))
     .filter((m) => m.user)
 

@@ -16,6 +16,9 @@ from app.core.logging import configure_logging, set_request_context
 configure_logging(settings.log_level)
 from app.db.session import connect, disconnect
 from app.legacy_api import app as legacy_app
+from app.modules.files.module import router as files_router
+from app.modules.projects.module import router as projects_router
+from app.modules.users.module import router as users_router
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +29,8 @@ async def lifespan(_: FastAPI):
     await connect()
     # A legacy_app é montada como subaplicação; seus eventos de startup
     # não são executados automaticamente pelo FastAPI principal.
-    from app.legacy_api import startup as legacy_startup, shutdown as legacy_shutdown
+    from app.legacy_api import shutdown as legacy_shutdown
+    from app.legacy_api import startup as legacy_startup
 
     await legacy_startup()
     try:
@@ -138,6 +142,12 @@ def create_app() -> FastAPI:
                     "database_engine": settings.database_engine,
                 },
             )
+
+    # Rotas SQLAlchemy novas são registradas antes da aplicação legada para que
+    # os grupos migrados possam ser validados sem depender do store do frontend.
+    application.include_router(projects_router)
+    application.include_router(files_router)
+    application.include_router(users_router)
 
     # O legado é o contrato HTTP canônico durante a integração frontend/backend.
     # Ele expõe os endpoints consumidos pelo cliente TypeScript, com respostas

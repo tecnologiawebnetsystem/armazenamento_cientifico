@@ -18,20 +18,16 @@ import {
   ImageIcon,
   EyeIcon,
   PencilIcon,
-  Share2Icon,
   DownloadIcon,
   Trash2Icon,
   FoldersIcon,
   Loader2Icon,
-  UsersIcon,
-  XIcon,
   FolderInputIcon,
   SearchIcon,
   SearchXIcon,
 } from "lucide-react"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
@@ -77,20 +73,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useFiles } from "@/hooks/use-files"
-import { useProjectMembers } from "@/hooks/use-project-members"
-import { shareLevelLabel } from "@/hooks/use-permissions"
 import {
   createFileNode,
   deleteFileNode,
   getAllFolders,
-  shareFileNode,
-  unshareFileNode,
   updateFileNode,
   ApiError,
 } from "@/lib/api-client"
-import type { FileNode, ShareLevel } from "@/lib/types"
+import type { FileNode } from "@/lib/types"
 
 function formatBytes(bytes?: number) {
   if (!bytes) return "—"
@@ -146,7 +137,6 @@ type FileAction = {
 export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string; canWrite: boolean }) {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null)
   const { files, breadcrumb, isLoading, refresh } = useFiles(projectId, currentFolderId)
-  const { members } = useProjectMembers(projectId)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [search, setSearch] = useState("")
 
@@ -164,22 +154,12 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
 
   const [previewTarget, setPreviewTarget] = useState<FileNode | null>(null)
 
-  const [shareTarget, setShareTarget] = useState<FileNode | null>(null)
-  const [shareUserId, setShareUserId] = useState("")
-  const [shareLevel, setShareLevel] = useState<ShareLevel>("leitura")
-  const [isSharing, setIsSharing] = useState(false)
-
   const [moveTarget, setMoveTarget] = useState<FileNode | null>(null)
   const [moveDestination, setMoveDestination] = useState<string>("root")
   const [isMoving, setIsMoving] = useState(false)
   const { data: allFoldersData } = useSWR(
     moveTarget ? ["all-folders", projectId] : null,
     () => getAllFolders(projectId),
-  )
-
-  const shareableMembers = useMemo(
-    () => members.filter((m) => !shareTarget?.compartilhamentos.some((s) => s.userId === m.userId)),
-    [members, shareTarget],
   )
 
   const moveDestinationOptions = useMemo(() => {
@@ -193,10 +173,6 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
     if (!q) return files
     return files.filter((f) => f.nome.toLowerCase().includes(q))
   }, [files, search])
-
-  function memberById(userId: string) {
-    return members.find((m) => m.userId === userId)?.user
-  }
 
   async function handleUploadFiles(fileList: FileList) {
     setIsUploading(true)
@@ -270,7 +246,8 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
     }
   }
 
-  async function handleShare() {
+  /* Compartilhamento por arquivo foi removido; o acesso é controlado por membros e permissões do projeto. */
+  /* async function handleShare() {
     if (!shareTarget || !shareUserId) return
     setIsSharing(true)
     try {
@@ -300,6 +277,8 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
       toast.error(message)
     }
   }
+
+  */
 
   async function handleMove() {
     if (!moveTarget) return
@@ -356,12 +335,6 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
         },
       },
       canWrite && {
-        key: "share",
-        icon: Share2Icon,
-        label: "Compartilhar",
-        onClick: () => setShareTarget(f),
-      },
-      canWrite && {
         key: "delete",
         icon: Trash2Icon,
         label: "Excluir",
@@ -376,7 +349,7 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
     <Card>
       <CardHeader>
         <CardTitle>Arquivos do projeto</CardTitle>
-        <CardDescription>Organize pastas, envie arquivos e controle o compartilhamento por item.</CardDescription>
+        <CardDescription>Organize pastas, envie arquivos e gerencie os documentos do projeto.</CardDescription>
         {canWrite && (
           <CardAction className="flex items-center gap-2">
             <input
@@ -488,12 +461,6 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
                       </button>
                     ) : (
                       <span className="min-w-0 flex-1 truncate text-sm text-foreground">{f.nome}</span>
-                    )}
-                    {f.compartilhamentos.length > 0 && (
-                      <Badge variant="outline" className="gap-1 border-primary/30 bg-primary/10 text-primary">
-                        <Share2Icon className="size-3" />
-                        {f.compartilhamentos.length}
-                      </Badge>
                     )}
                     <span className="hidden w-20 shrink-0 text-right text-xs text-muted-foreground sm:block">
                       {f.tipo === "arquivo" ? formatBytes(f.tamanho) : "—"}
@@ -698,97 +665,6 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
         </DialogContent>
       </Dialog>
 
-      {/* Compartilhar */}
-      <Dialog open={shareTarget !== null} onOpenChange={(open) => !open && setShareTarget(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Compartilhar &quot;{shareTarget?.nome}&quot;</DialogTitle>
-            <DialogDescription>Defina o nível de acesso de cada membro do projeto a este item.</DialogDescription>
-          </DialogHeader>
-
-          <div className="flex flex-col gap-3">
-            {shareTarget && shareTarget.compartilhamentos.length > 0 && (
-              <div className="flex flex-col gap-1">
-                {shareTarget.compartilhamentos.map((s) => {
-                  const user = memberById(s.userId)
-                  return (
-                    <div key={s.id} className="flex items-center gap-2 rounded-md px-1 py-1.5">
-                      <Avatar className="size-7">
-                        {user?.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={user.nome} /> : null}
-                        <AvatarFallback className="text-[10px]">{user ? initials(user.nome) : "?"}</AvatarFallback>
-                      </Avatar>
-                      <span className="min-w-0 flex-1 truncate text-sm text-foreground">{user?.nome ?? s.userId}</span>
-                      <Badge variant="outline">{shareLevelLabel(s.nivel)}</Badge>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        onClick={() => handleUnshare(s.userId)}
-                        aria-label={`Remover compartilhamento de ${user?.nome ?? s.userId}`}
-                      >
-                        <XIcon className="size-3.5" />
-                      </Button>
-                    </div>
-                  )
-                })}
-                <DropdownMenuSeparator />
-              </div>
-            )}
-
-            {shareableMembers.length === 0 ? (
-              <Empty className="py-4">
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <UsersIcon />
-                  </EmptyMedia>
-                  <EmptyDescription>Todos os membros do projeto já têm acesso a este item.</EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            ) : (
-              <div className="flex items-end gap-2">
-                <Select value={shareUserId} onValueChange={(v) => setShareUserId(v ?? "")}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione um membro" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {shareableMembers.map((m) => (
-                        <SelectItem key={m.userId} value={m.userId}>
-                          {m.user.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                <Select value={shareLevel} onValueChange={(v) => setShareLevel((v as ShareLevel) ?? "leitura")}>
-                  <SelectTrigger className="w-40 shrink-0">
-                    <SelectValue>{(value: ShareLevel) => shareLevelLabel(value)}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="leitura">Leitura</SelectItem>
-                      <SelectItem value="edicao">Edição</SelectItem>
-                      <SelectItem value="proprietario">Proprietário</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShareTarget(null)}>
-              Concluir
-            </Button>
-            {shareableMembers.length > 0 && (
-              <Button onClick={handleShare} disabled={!shareUserId || isSharing}>
-                {isSharing && <Loader2Icon data-icon="inline-start" className="animate-spin" />}
-                Compartilhar
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Card>
   )
 }

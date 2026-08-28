@@ -1,6 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.projects.member_model import ProjectMember
 from app.modules.projects.models import Project
 
 
@@ -17,8 +18,8 @@ class ProjectRepository:
     async def list_visible(self, user_id: str, role: str) -> list[Project]:
         statement = select(Project).order_by(Project.updated_at.desc())
         if role not in {"admin", "patrocinador", "auditor"}:
-            statement = statement.where(
-                (Project.managers_ids.any(user_id)) | (Project.participants_ids.any(user_id))
+            statement = statement.join(ProjectMember, ProjectMember.project_id == Project.id).where(
+                ProjectMember.user_id == user_id
             )
         result = await self.session.scalars(statement)
         return list(result)

@@ -203,9 +203,18 @@ export function getAccessMap(userId: string) {
       }
     }
   }
-  return { summary: { users: new Set(rows.map((row) => row.userId)).size, projects: visibleProjectIds.size,
-    folders: new Set(rows.filter((row) => row.resourceType === "pasta").map((row) => row.resourceId)).size,
-    files: new Set(rows.filter((row) => row.resourceType === "arquivo").map((row) => row.resourceId)).size, relationships: rows.length }, rows }
+  return {
+    summary: {
+      users: new Set(rows.map((row) => row.userId)).size,
+      projects: visibleProjectIds.size,
+      folders: new Set(rows.filter((row) => row.resourceType === "pasta").map((row) => row.resourceId)).size,
+      files: new Set(rows.filter((row) => row.resourceType === "arquivo").map((row) => row.resourceId)).size,
+      relationships: rows.length,
+    },
+    rows,
+    source: "Diretório interno de projetos",
+    consultedAt: new Date().toISOString(),
+  }
 }
 
 /** Registra uma ação na trilha de auditoria da plataforma. */

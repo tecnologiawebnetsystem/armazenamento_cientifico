@@ -25,17 +25,19 @@ import type {
  * URL do serviço Python em desenvolvimento e produção; não há fallback para
  * dados mockados ou API Routes locais.
  */
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/$/, "")
+const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
+const API_BASE_URL = configuredApiBaseUrl ? configuredApiBaseUrl.replace(/\/$/, "") : ""
 
 /**
- * Cliente único para usar o FastAPI externo como fonte principal e manter as
- * API Routes locais como fallback explícito de desenvolvimento. `credentials:
- * include` mantém a sessão por cookie quando a API real estiver em outro domínio
- * com CORS configurado.
+ * Cliente HTTP único da aplicação. Em desenvolvimento, as rotas relativas
+ * (`/api/*`) são a ponte local temporária até o FastAPI receber uma URL pública.
+ * Quando `NEXT_PUBLIC_API_BASE_URL` estiver configurada, todas as chamadas vão
+ * diretamente para o FastAPI e não existe fallback automático para outra fonte.
  */
 export const API_CONFIG = {
   baseUrl: API_BASE_URL,
-  usingExternalBackend: Boolean(API_BASE_URL),
+  usingExternalBackend: Boolean(configuredApiBaseUrl),
+  mode: configuredApiBaseUrl ? "fastapi" : "local-bridge",
 } as const
 
 class ApiError extends Error {

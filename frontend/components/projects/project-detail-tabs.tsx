@@ -30,10 +30,10 @@ export function ProjectDetailTabs({
 
   return (
     <Tabs key={initialTab} defaultValue={initialTab}>
-      <TabsList className="grid h-auto w-full grid-cols-3 rounded-xl bg-muted/70 p-1 shadow-sm">
-        <TabsTrigger className="rounded-lg py-2.5 text-xs sm:text-sm" value="arquivos">Arquivos</TabsTrigger>
-        <TabsTrigger className="rounded-lg py-2.5 text-xs sm:text-sm" value="membros">Membros e Permissões</TabsTrigger>
-        <TabsTrigger className="rounded-lg py-2.5 text-xs sm:text-sm" value="informacoes">Informações</TabsTrigger>
+      <TabsList aria-label="Seções do projeto" className="grid h-auto w-full grid-cols-3 gap-1 rounded-xl border border-border bg-muted/50 p-1.5 shadow-sm">
+        <TabsTrigger className="rounded-lg border border-transparent px-3 py-3 text-xs font-medium transition-all data-[state=active]:border-primary/20 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm" value="arquivos">Arquivos</TabsTrigger>
+        <TabsTrigger className="rounded-lg border border-transparent px-3 py-3 text-xs font-medium transition-all data-[state=active]:border-primary/20 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm" value="membros">Membros e Permissões</TabsTrigger>
+        <TabsTrigger className="rounded-lg border border-transparent px-3 py-3 text-xs font-medium transition-all data-[state=active]:border-primary/20 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm" value="informacoes">Informações</TabsTrigger>
       </TabsList>
       <TabsContent value="arquivos" className="mt-4">
         <ProjectFileExplorer projectId={projectId} canWrite={canWriteFiles} />

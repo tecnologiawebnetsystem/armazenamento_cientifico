@@ -17,6 +17,22 @@ class FileUpdate(BaseModel):
     parent_id: str | None = None
 
 
+class FilePermissionCreate(BaseModel):
+    user_id: str | None = None
+    group_id: str | None = None
+    level: str = Field(min_length=1, max_length=20)
+
+
+class FilePermissionOut(BaseModel):
+    file_id: str
+    user_id: str | None
+    group_id: str | None
+    level: str
+    inherited_from: str | None
+
+    model_config = {"from_attributes": True}
+
+
 class FileOut(BaseModel):
     id: str
     project_id: str

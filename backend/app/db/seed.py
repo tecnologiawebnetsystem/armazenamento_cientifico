@@ -5,11 +5,23 @@ from sqlalchemy import text
 
 from app.db.base import Base
 from app.modules.audit.models import ActivityLog
+from app.modules.catalogs.models import (
+    MenuItem,
+    Module,
+    Permission,
+    ProfileModule,
+    ProfilePermission,
+    ProjectStatusCatalog,
+    ProjectType,
+    ReportType,
+    SystemSetting,
+)
 from app.modules.files.models import File, FileShare
+from app.modules.files.permissions_model import FilePermission
+from app.modules.projects.member_model import ProjectMember
 from app.modules.projects.models import Project
 from app.modules.users.models import User
 from app.modules.users.profile_model import Perfil
-from app.modules.catalogs.models import Module, Permission, ProfileModule, ProfilePermission, ProjectStatusCatalog, ProjectType, ReportType, SystemSetting, MenuItem
 
 SEED_PERFIS = [
     ("ADM", "administrador", "Acesso total à plataforma"),
@@ -51,7 +63,7 @@ SEED_PROJECTS = [
     ("Portal de Pesquisa", "PES-004", "Pesquisa e Desenvolvimento", "Projeto arquivado para testar inativação e filtros de status.", "inativo"),
 ]
 
-# Massa adicional de apresentação: dados fixos tornam o seed repetível e auditável.
+# Massa inicial: dados fixos tornam o seed repetível e auditável.
 SEED_DEMO_USERS = [
     (f"Usuário Demonstração {index:02d}", f"demo.usuario{index:02d}@sigac.local", ("gerente", "auditor", "consultor")[index % 3])
     for index in range(1, 13)
@@ -66,7 +78,7 @@ SEED_DEMO_PROJECTS = [
 
 async def initialize_database(engine) -> None:
     # Importações registram todos os modelos no metadata antes da criação.
-    _ = (ActivityLog, File, FileShare, Project, User, Perfil, Module, Permission, ProfileModule, ProfilePermission, ProjectStatusCatalog, ProjectType, ReportType, SystemSetting, MenuItem)
+    _ = (ActivityLog, File, FileShare, FilePermission, ProjectMember, Project, User, Perfil, Module, Permission, ProfileModule, ProfilePermission, ProjectStatusCatalog, ProjectType, ReportType, SystemSetting, MenuItem)
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
         await connection.run_sync(_create_compatibility_tables)
@@ -123,7 +135,6 @@ async def initialize_database(engine) -> None:
         admin = all_users[SEED_USERS[0][1]]
         manager = all_users[SEED_USERS[1][1]]
         auditor = all_users[SEED_USERS[2][1]]
-        sponsor = all_users[SEED_USERS[3][1]]
 
         existing_codes = {row.code for row in (await session.scalars(select(Project))).all()}
         projects = []
@@ -157,11 +168,8 @@ async def initialize_database(engine) -> None:
                 if member.id in seen_member_ids:
                     continue
                 seen_member_ids.add(member.id)
-                await session.execute(text("""
-                    INSERT INTO project_members(project_id, user_id, papel, created_at)
-                    VALUES (:project_id, :user_id, :papel, :created_at)
-                    ON CONFLICT(project_id, user_id) DO NOTHING
-                """), {"project_id": project.id, "user_id": member.id, "papel": papel, "created_at": now})
+                if not await session.get(ProjectMember, {"project_id": project.id, "user_id": member.id}):
+                    session.add(ProjectMember(project_id=project.id, user_id=member.id, role=papel, created_at=now))
 
         demo_files = [
             ("arquivo", "Manual de Governança.pdf", 245760, "application/pdf"),
@@ -178,7 +186,7 @@ async def initialize_database(engine) -> None:
 
         await session.execute(text("INSERT INTO permission_matrix(id, matrix) VALUES (1, :matrix) ON CONFLICT(id) DO NOTHING"), {"matrix": '{"admin":["*"],"auditor":["read"],"gerente":["read","write"]}'})
         await session.execute(text("INSERT INTO settings(key, value) VALUES (:key, :value) ON CONFLICT(key) DO NOTHING"), {"key": "seed_demo", "value": 'true'})
-        for action, entity, entity_id, details in (("login", "sessao", None, "Login de demonstração"), ("create", "projeto", "demo-project-01", "Projeto criado pelo seed"), ("update", "projeto", "demo-project-02", "Status atualizado para teste"), ("share", "arquivo", None, "Arquivo compartilhado para teste")):
+        for action, entity, entity_id, details in (("login", "sessao", None, "Login inicial"), ("create", "projeto", "demo-project-01", "Projeto criado pelo seed"), ("update", "projeto", "demo-project-02", "Status atualizado para teste")):
             session.add(ActivityLog(id=str(uuid4()), user_id=admin.id, action=action, entity=entity, entity_id=entity_id, details=details, created_at=now))
 
         await session.commit()

@@ -321,7 +321,7 @@ async def profiles(request: Request):
 
 @app.get("/api/configuracoes-sistema")
 async def system_settings(request: Request):
-    u = await require(request, ("admin",))
+    await require(request, ("admin",))
     p = await db()
     return {"configuracoes": [dump(row) for row in await p.fetch("select * from configuracoes_sistema where ativo=true order by grupo, chave")]}
 
@@ -613,7 +613,7 @@ async def patch_member(pid: str, x: MemberInput, request: Request):
 
 @app.delete("/api/projects/{pid}/members")
 async def remove_member(pid: str, userId: str, request: Request):
-    await require(request, ("admin", "gerente"))
+    u = await require(request, ("admin", "gerente"))
     p = await db()
     await p.execute(
         "delete from project_members where project_id=$1 and user_id=$2", pid, userId
@@ -718,7 +718,7 @@ async def delete_file(fid: str, request: Request):
 
 @app.post("/api/files/{fid}/share")
 async def share(fid: str, x: ShareInput, request: Request):
-    await require(request, ("admin", "gerente"))
+    u = await require(request, ("admin", "gerente"))
     p = await db()
     if not await p.fetchval("select 1 from files where id=$1", fid):
         raise HTTPException(404, "Arquivo não encontrado")
@@ -748,7 +748,7 @@ async def users(request: Request):
 
 @app.patch("/api/users/{uid}")
 async def user_role(uid: str, x: RolePatch, request: Request):
-    await require(request, ("admin",))
+    u = await require(request, ("admin",))
     p = await db()
     r = await p.fetchrow("update users set role=$1 where id=$2 returning *", x.role, uid)
     if not r:

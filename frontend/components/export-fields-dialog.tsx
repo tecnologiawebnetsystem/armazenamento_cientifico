@@ -21,7 +21,7 @@ type Props = {
 
 // Ajuste visual rápido da modal: teste estes dois valores aos poucos.
 // Largura: max-w-4xl, max-w-5xl, max-w-6xl ou max-w-7xl.
-export const EXPORT_DIALOG_WIDTH_CLASS = "max-w-none sm:w-[min(96vw,72rem)]"
+export const EXPORT_DIALOG_WIDTH_CLASS = "max-w-none sm:w-[min(96vw,80rem)]"
 // Altura: use min-h-[70vh] max-h-[92vh] e ajuste os percentuais conforme necessário.
 export const EXPORT_DIALOG_HEIGHT_CLASS = "min-h-[78vh] max-h-[94vh]"
 
@@ -39,7 +39,7 @@ export function ExportFieldsDialog({ open, onOpenChange, title, fields, defaultF
   const confirm = () => { if (selectedFields.length && selectedFormats.length) { onConfirm(selectedFields, selectedFormats); onOpenChange(false) } }
 
   return <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className={`${EXPORT_DIALOG_HEIGHT_CLASS} flex w-[calc(100%-2rem)] ${EXPORT_DIALOG_WIDTH_CLASS} flex-col overflow-hidden border-petrobras-blue/15 bg-gradient-to-br from-background via-background to-petrobras-green/5 p-6 shadow-[0_24px_80px_-32px_rgba(0,88,140,0.5)] sm:p-8`}>
+    <DialogContent className={`${EXPORT_DIALOG_HEIGHT_CLASS} flex w-[calc(100%-1rem)] ${EXPORT_DIALOG_WIDTH_CLASS} flex-col overflow-hidden border-petrobras-blue/15 bg-gradient-to-br from-background via-background to-petrobras-green/5 p-4 shadow-[0_24px_80px_-32px_rgba(0,88,140,0.5)] sm:w-[min(96vw,80rem)] sm:p-8`}>
       <DialogHeader className="rounded-xl border border-petrobras-yellow/30 bg-gradient-to-r from-petrobras-green via-petrobras-teal to-petrobras-blue px-5 py-4 text-primary-foreground shadow-lg shadow-petrobras-blue/20">
         <DialogTitle className="flex items-center gap-2 text-xl text-primary-foreground"><DownloadIcon data-icon="inline-start" />Configurar exportação</DialogTitle>
         <DialogDescription className="text-primary-foreground/85">Escolha os formatos e os campos do {title} que serão gerados.</DialogDescription>
@@ -73,7 +73,7 @@ export function ExportFieldsDialog({ open, onOpenChange, title, fields, defaultF
         </section>
         <section className="flex flex-col gap-3" aria-labelledby="export-fields-title">
           <div><h3 id="export-fields-title" className="font-semibold">Campos incluídos</h3><p className="text-sm text-muted-foreground">Selecione pelo menos um campo para cada arquivo.</p></div>
-          <div className="grid max-h-72 gap-2 overflow-y-auto rounded-lg border p-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid max-h-80 gap-2 overflow-y-auto rounded-lg border p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {fields.map((field) => <label key={field.key} className="flex cursor-pointer items-center gap-3 rounded-md p-2 text-sm hover:bg-muted/50"><Checkbox checked={selectedFields.includes(field.key)} onCheckedChange={(checked) => toggleField(field.key, checked === true)} /><span>{field.label}</span></label>)}
           </div>
         </section>
