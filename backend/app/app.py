@@ -83,12 +83,13 @@ def create_app() -> FastAPI:
             if settings.environment.lower() == "production":
                 response.headers["Strict-Transport-Security"] = "max-age=63072000"
         logger.info(
-            "request_complete method=%s path=%s status=%s duration_ms=%s client=%s",
+            "request_complete method=%s path=%s status=%s duration_ms=%s client=%s correlation_id=%s",
             request.method,
             request.url.path,
             response.status_code,
             duration_ms,
             request.client.host if request.client else "-",
+            request_id,
         )
         return response
 
@@ -112,15 +113,31 @@ def create_app() -> FastAPI:
 
     @application.get("/health", tags=["Health"])
     async def health():
-        database_status = "connected" if legacy_app.pool else "not_configured"
-        logger.info("health_check database=%s engine=%s", database_status, settings.database_engine)
-        return {
-            "status": "ok" if database_status == "connected" else "degradado",
-            "service": "fastapi",
-            "version": settings.app_version,
-            "database": database_status,
-            "database_engine": settings.database_engine,
-        }
+        from app.legacy_api import database_probe
+
+        try:
+            probe = await database_probe()
+            logger.info("health_check status=ok database=%s", probe)
+            return {
+                "status": "ok",
+                "service": "fastapi",
+                "version": settings.app_version,
+                "database": "connected",
+                "database_engine": settings.database_engine,
+                "database_probe": probe,
+            }
+        except Exception:
+            logger.exception("health_check status=failed engine=%s", settings.database_engine)
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "status": "degradado",
+                    "service": "fastapi",
+                    "version": settings.app_version,
+                    "database": "unavailable",
+                    "database_engine": settings.database_engine,
+                },
+            )
 
     # O legado é o contrato HTTP canônico durante a integração frontend/backend.
     # Ele expõe os endpoints consumidos pelo cliente TypeScript, com respostas
