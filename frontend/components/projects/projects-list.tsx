@@ -108,7 +108,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
     [projects],
   )
 
-  const canManage = (_project: Project) => user?.role === "admin"
+  const canManage = (_project: Project) => user?.perfilId === "ADM" || user?.role === "admin"
 
 
   const stats = useMemo(() => {

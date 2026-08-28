@@ -33,13 +33,14 @@ function initials(nome: string) {
 export function UsersTable({ currentUserId }: { currentUserId: string }) {
   const { users, isLoading, refresh } = useUsers()
   const { perfis, isLoading: profilesLoading } = useCatalogs()
-  const profiles = perfis.length ? perfis.map((profile) => ({ id: profile.id, role: profile.id === "ADM" ? "admin" as Role : profile.nome as Role, label: profile.nome })) : allProfiles
+  const profiles = perfis.length ? perfis : allProfiles.map((profile) => ({ id: profile.id, nome: profile.label, descricao: "" }))
 
   async function handleProfileChange(userId: string, perfilId: string) {
-    const profile = allProfiles.find((item) => item.id === perfilId)
+    const profile = profiles.find((item) => item.id === perfilId)
     if (!profile) return
+    const role = profile.id === "ADM" ? "admin" : profile.nome.toLowerCase() as Role
     try {
-      await updateUserRole(userId, profile.role, perfilId)
+      await updateUserRole(userId, role, perfilId)
       toast.success("Papel do usuário atualizado.")
       refresh()
     } catch (err) {
@@ -94,7 +95,7 @@ export function UsersTable({ currentUserId }: { currentUserId: string }) {
                         {roleLabel(u.role)} (você)
                       </Badge>
                     ) : (
-                      <Select disabled={profilesLoading} value={u.perfilId ?? profiles.find((p) => p.role === u.role)?.id ?? "PAR"} onValueChange={(v) => handleProfileChange(u.id, v)}>
+                      <Select disabled={profilesLoading} value={u.perfilId ?? profiles.find((p) => p.nome.toLowerCase() === u.role || (u.role === "admin" && p.id === "ADM"))?.id ?? "PAR"} onValueChange={(v) => handleProfileChange(u.id, v)}>
                         <SelectTrigger className="w-44">
                           <SelectValue />
                         </SelectTrigger>
