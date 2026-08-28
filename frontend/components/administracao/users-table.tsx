@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useUsers } from "@/hooks/use-users"
+import { useCatalogs } from "@/hooks/use-catalogs"
 import { roleLabel } from "@/hooks/use-permissions"
 import { updateUserRole, ApiError } from "@/lib/api-client"
 import type { Role } from "@/lib/types"
@@ -31,6 +32,8 @@ function initials(nome: string) {
 
 export function UsersTable({ currentUserId }: { currentUserId: string }) {
   const { users, isLoading, refresh } = useUsers()
+  const { perfis, isLoading: profilesLoading } = useCatalogs()
+  const profiles = perfis.length ? perfis.map((profile) => ({ id: profile.id, role: profile.id === "ADM" ? "admin" as Role : profile.nome as Role, label: profile.nome })) : allProfiles
 
   async function handleProfileChange(userId: string, perfilId: string) {
     const profile = allProfiles.find((item) => item.id === perfilId)
@@ -91,13 +94,13 @@ export function UsersTable({ currentUserId }: { currentUserId: string }) {
                         {roleLabel(u.role)} (você)
                       </Badge>
                     ) : (
-                      <Select value={u.perfilId ?? allProfiles.find((p) => p.role === u.role)?.id ?? "PAR"} onValueChange={(v) => handleProfileChange(u.id, v)}>
+                      <Select disabled={profilesLoading} value={u.perfilId ?? profiles.find((p) => p.role === u.role)?.id ?? "PAR"} onValueChange={(v) => handleProfileChange(u.id, v)}>
                         <SelectTrigger className="w-44">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
-                            {allProfiles.map((profile) => (
+                            {profiles.map((profile) => (
                               <SelectItem key={profile.id} value={profile.id}>
                                 {profile.id} — {profile.label}
                               </SelectItem>

@@ -126,6 +126,15 @@ export interface PermissionMatrixEntry {
 
 export type SessionUser = User
 
+export interface PlatformCatalogs {
+  perfis: Array<{ id: string; nome: string; descricao?: string }>
+  modulos: Array<{ id: string; nome: string; rota: string; icone: string; ordem: number; ativo: boolean }>
+  permissoes: Array<{ id: string; modulo_id: string; nome: string; descricao: string; ativo: boolean }>
+  statusProjetos: Array<{ id: string; codigo: string; nome: string; cor: string; ordem: number; ativo: boolean; permite_edicao: boolean }>
+  tiposProjetos: Array<{ id: string; codigo: string; nome: string; descricao: string; ativo: boolean }>
+  tiposRelatorios: Array<{ id: string; codigo: string; nome: string; descricao: string; formatos: string; ativo: boolean }>
+}
+
 /** Parâmetros administráveis da plataforma (administração > parâmetros). */
 export interface PlatformSettings {
   areasOrganizacionais: string[]

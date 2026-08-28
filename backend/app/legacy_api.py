@@ -299,11 +299,45 @@ async def current(request: Request):
     return row
 
 
-async def require(request, roles=()):
+async def require(request, roles=(), permission: str | None = None):
     u = await current(request)
-    if roles and u["role"] not in roles:
+    if permission:
+        p = await db()
+        profile_id = u.get("perfil_id") or {"admin": "ADM", "gerente": "GER", "auditor": "AUD", "patrocinador": "PAT", "participante": "PAR", "visualizador": "VIS", "gestor": "GES"}.get(normalized_role(u.get("role")))
+        allowed = await p.fetchval("select 1 from perfil_permissoes where perfil_id=$1 and permissao_id=$2 and permitido=true", profile_id, permission)
+        if not allowed:
+            raise HTTPException(403, "Usuário sem permissão para esta operação")
+    elif roles and normalized_role(u["role"]) not in {normalized_role(role) for role in roles}:
         raise HTTPException(403, "Usuário sem permissão para esta operação")
     return u
+
+
+@app.get("/api/perfis")
+async def profiles(request: Request):
+    await current(request)
+    p = await db()
+    return {"perfis": [dump(row) for row in await p.fetch("select * from perfis order by nome")]}
+
+
+@app.get("/api/configuracoes-sistema")
+async def system_settings(request: Request):
+    u = await require(request, ("admin",))
+    p = await db()
+    return {"configuracoes": [dump(row) for row in await p.fetch("select * from configuracoes_sistema where ativo=true order by grupo, chave")]}
+
+
+@app.get("/api/catalogos")
+async def catalogs(request: Request):
+    await current(request)
+    p = await db()
+    return {
+        "perfis": [dump(row) for row in await p.fetch("select * from perfis order by nome")],
+        "modulos": [dump(row) for row in await p.fetch("select * from modulos where ativo=true order by ordem, nome")],
+        "permissoes": [dump(row) for row in await p.fetch("select * from permissoes where ativo=true order by id")],
+        "statusProjetos": [dump(row) for row in await p.fetch("select * from status_projetos where ativo=true order by ordem, nome")],
+        "tiposProjetos": [dump(row) for row in await p.fetch("select * from tipos_projetos where ativo=true order by nome")],
+        "tiposRelatorios": [dump(row) for row in await p.fetch("select * from tipos_relatorios where ativo=true order by nome")],
+    }
 
 
 async def audit(u, action, entity, eid, details=""):

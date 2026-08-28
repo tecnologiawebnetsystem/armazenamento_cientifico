@@ -279,6 +279,10 @@ Não altere uma migration que já foi aplicada. Crie outra migration incremental
 
 ## 7. Tabelas e campos
 
+### Catálogos parametrizados
+
+A parametrização administrativa utiliza `perfis`, `permissoes`, `perfil_permissoes`, `modulos`, `perfil_modulos`, `status_projetos`, `tipos_projetos`, `configuracoes_sistema`, `tipos_relatorios` e `menus`. O seed inicial também cria módulos, permissões, status, tipos de projeto e tipos de relatório de forma idempotente. O endpoint autenticado `GET /api/catalogos` fornece os catálogos ativos para o frontend; novos cadastros devem enviar IDs/códigos, usando nomes somente para exibição. O seed é idempotente e cria os valores iniciais.
+
 > Os nomes físicos atuais não usam o prefixo `app_`.
 
 ### perfis
