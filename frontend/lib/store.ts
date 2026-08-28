@@ -80,6 +80,32 @@ export function findUserById(id: string | null): User | null {
   return store.users.find((u) => u.id === id) ?? null
 }
 
+export function upsertExternalUser(input: {
+  id: string
+  nome?: string | null
+  email: string
+  cargo?: string | null
+  area?: string | null
+  role?: string | null
+  criadoEm?: string | null
+}): User {
+  const store = getStore()
+  const existing = store.users.find((user) => user.id === input.id)
+  const user: User = {
+    id: input.id,
+    nome: input.nome || input.email,
+    email: input.email,
+    cargo: input.cargo || "",
+    area: input.area || "",
+    role: (input.role === "administrador" ? "admin" : input.role || "participante") as Role,
+    criadoEm: input.criadoEm || new Date().toISOString(),
+  }
+
+  if (existing) Object.assign(existing, user)
+  else store.users.push(user)
+  return user
+}
+
 export function getProjectRole(userId: string, projectId: string): string | null {
   const store = getStore()
   const member = store.projectMembers.find((m) => m.userId === userId && m.projectId === projectId)

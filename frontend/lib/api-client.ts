@@ -63,7 +63,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ message: res.statusText }))
-    throw new ApiError(res.status, body.message ?? "Erro inesperado na requisição")
+    throw new ApiError(res.status, body.message ?? body.detail ?? "Erro inesperado na requisição")
   }
 
   if (res.status === 204) return undefined as T
