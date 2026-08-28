@@ -171,7 +171,7 @@ class SQLitePool:
     def _query(sql: str, args: tuple) -> tuple[str, tuple]:
         # Converte o subconjunto de SQL compartilhado usado pela API para SQLite.
         values = list(args)
-        any_pattern = re.compile(r"\$(\d+)=any\(([a-zA-Z_][a-zA-Z0-9_]*)\)")
+        any_pattern = re.compile(r"\$(\d+)=any\(([a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*|[a-zA-Z_][a-zA-Z0-9_]*)\)")
 
         def replace_any(match):
             index = int(match.group(1)) - 1
@@ -872,12 +872,16 @@ async def reports(
 async def access_map(request: Request):
     u = await require(request)
     p = await db()
-    visibility = (
-        ""
-        if u["role"] in ("admin", "patrocinador", "auditor")
-        else " where $1=any(p.managers_ids) or $1=any(p.participants_ids)"
-    )
-    args = [] if not visibility else [u["id"]]
+    if settings.database_engine == "sqlite" and u["role"] not in ("admin", "patrocinador", "auditor"):
+        visibility = " where EXISTS (select 1 from json_each(p.managers_ids) where value=?) or EXISTS (select 1 from json_each(p.participants_ids) where value=?)"
+        args = [u["id"], u["id"]]
+    else:
+        visibility = (
+            ""
+            if u["role"] in ("admin", "patrocinador", "auditor")
+            else " where $1=any(p.managers_ids) or $1=any(p.participants_ids)"
+        )
+        args = [] if not visibility else [u["id"]]
     rows = await p.fetch(
         f"""select u.id as user_id,u.name as user_name,u.email as user_email,u.role as user_role,u.area,p.id as project_id,p.name as project_name,p.status as project_status,f.id as resource_id,f.name as resource_name,f.kind as resource_type,'leitura' as access_level,f.updated_at as last_viewed_at from files f join projects p on p.id=f.project_id left join users u on u.id=f.created_by{visibility} order by f.updated_at desc""",
         *args,
