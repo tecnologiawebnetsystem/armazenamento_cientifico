@@ -16,6 +16,14 @@ class ProjectCreate(BaseModel):
     participantesIds: list[str] = Field(default_factory=list)
 
 
+class ProjectMemberOut(BaseModel):
+    projectId: str
+    userId: str
+    papel: str
+    adicionadoEm: datetime
+    user: dict
+
+
 class ProjectOut(BaseModel):
     id: str
     nome: str

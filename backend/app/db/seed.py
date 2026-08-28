@@ -7,6 +7,7 @@ from app.db.base import Base
 from app.modules.audit.models import ActivityLog
 from app.modules.files.models import File, FileShare
 from app.modules.files.permissions_model import FilePermission
+from app.modules.projects.member_model import ProjectMember
 from app.modules.projects.models import Project
 from app.modules.users.models import User
 from app.modules.users.profile_model import Perfil
@@ -67,7 +68,7 @@ SEED_DEMO_PROJECTS = [
 
 async def initialize_database(engine) -> None:
     # Importações registram todos os modelos no metadata antes da criação.
-    _ = (ActivityLog, File, FileShare, FilePermission, Project, User, Perfil, Module, Permission, ProfileModule, ProfilePermission, ProjectStatusCatalog, ProjectType, ReportType, SystemSetting, MenuItem)
+    _ = (ActivityLog, File, FileShare, FilePermission, ProjectMember, Project, User, Perfil, Module, Permission, ProfileModule, ProfilePermission, ProjectStatusCatalog, ProjectType, ReportType, SystemSetting, MenuItem)
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
         await connection.run_sync(_create_compatibility_tables)
@@ -158,11 +159,8 @@ async def initialize_database(engine) -> None:
                 if member.id in seen_member_ids:
                     continue
                 seen_member_ids.add(member.id)
-                await session.execute(text("""
-                    INSERT INTO project_members(project_id, user_id, papel, created_at)
-                    VALUES (:project_id, :user_id, :papel, :created_at)
-                    ON CONFLICT(project_id, user_id) DO NOTHING
-                """), {"project_id": project.id, "user_id": member.id, "papel": papel, "created_at": now})
+                if not await session.get(ProjectMember, {"project_id": project.id, "user_id": member.id}):
+                    session.add(ProjectMember(project_id=project.id, user_id=member.id, role=papel, created_at=now))
 
         demo_files = [
             ("arquivo", "Manual de Governança.pdf", 245760, "application/pdf"),
