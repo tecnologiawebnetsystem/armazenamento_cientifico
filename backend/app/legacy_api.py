@@ -3,18 +3,23 @@ from __future__ import annotations
 import csv
 import io
 import json
+import logging
 import math
 import os
+import re
 from datetime import UTC, datetime
 from typing import Literal
 from uuid import uuid4
 
+import aiosqlite
 import asyncpg
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, EmailStr, Field
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 Role = Literal[
     "admin", "gerente", "patrocinador", "auditor", "participante", "visualizador", "gestor"
@@ -147,18 +152,82 @@ app = FastAPI(
     redoc_url=None,
     openapi_url=None,
 )
-pool: asyncpg.Pool | None = None
+class SQLitePool:
+    """Adaptador mínimo do contrato asyncpg usado pela API legada."""
+
+    def __init__(self, database_url: str):
+        path = database_url.split("///", 1)[-1]
+        self.path = os.path.abspath(path)
+        self.database_url = database_url
+
+    async def close(self):
+        return None
+
+    @staticmethod
+    def _query(sql: str, args: tuple) -> tuple[str, tuple]:
+        sql = re.sub(r"\$\d+", "?", sql)
+        sql = sql.replace("now()", "CURRENT_TIMESTAMP")
+        sql = sql.replace(" ilike ", " LIKE ")
+        sql = sql.replace(" is not distinct from ", " IS ")
+        return sql, args
+
+    async def fetchrow(self, sql: str, *args):
+        query, values = self._query(sql, args)
+        async with aiosqlite.connect(self.path) as connection:
+            connection.row_factory = aiosqlite.Row
+            cursor = await connection.execute(query, values)
+            return await cursor.fetchone()
+
+    async def fetch(self, sql: str, *args):
+        query, values = self._query(sql, args)
+        async with aiosqlite.connect(self.path) as connection:
+            connection.row_factory = aiosqlite.Row
+            cursor = await connection.execute(query, values)
+            return await cursor.fetchall()
+
+    async def fetchval(self, sql: str, *args):
+        row = await self.fetchrow(sql, *args)
+        return row[0] if row else None
+
+    async def execute(self, sql: str, *args):
+        query, values = self._query(sql, args)
+        async with aiosqlite.connect(self.path) as connection:
+            await connection.execute(query, values)
+            await connection.commit()
+        return "OK"
+
+
+pool: asyncpg.Pool | SQLitePool | None = None
 
 
 @app.on_event("startup")
 async def startup():
     global pool
-    url = os.getenv("DATABASE_URL")
+    url = settings.database_url
+    logger.info(
+        "database_startup engine=%s url_scheme=%s database_url_configured=%s",
+        settings.database_engine,
+        url.split("://", 1)[0] if url else "none",
+        bool(url),
+    )
+    if settings.database_engine == "sqlite":
+        try:
+            pool = SQLitePool(url)
+            await pool.fetchval("select 1")
+            logger.info("database_connected engine=sqlite path=%s", pool.path)
+        except Exception:
+            pool = None
+            logger.exception("database_connection_failed engine=sqlite")
+        return
     if url:
         try:
             pool = await asyncpg.create_pool(url, min_size=1, max_size=10, command_timeout=30)
+            logger.info("database_connected engine=postgresql")
         except (OSError, asyncpg.PostgresError):
             pool = None
+            logger.exception("database_connection_failed engine=postgresql")
+    else:
+        logger.error("database_not_configured reason=empty_DATABASE_URL")
 
 
 @app.on_event("shutdown")
@@ -169,6 +238,7 @@ async def shutdown():
 
 async def db():
     if not pool:
+        logger.error("database_unavailable endpoint_request=true")
         raise HTTPException(503, "Banco de dados não configurado")
     return pool
 
@@ -230,6 +300,7 @@ async def health():
 
 @app.post("/api/auth/login")
 async def login(x: Login, response: Response):
+    logger.info("login_attempt email=%s", str(x.email))
     p = await db()
     if settings.database_engine == "sqlite":
         u = await p.fetchrow("select * from users where lower(email)=lower(?)", str(x.email))
@@ -238,7 +309,9 @@ async def login(x: Login, response: Response):
         u = await p.fetchrow("select * from users where lower(email)=lower($1)", str(x.email))
         expires = "now()+interval '8 hours'"
     if not u:
+        logger.warning("login_rejected reason=user_not_found email=%s", str(x.email))
         raise HTTPException(401, "E-mail não cadastrado")
+    logger.info("login_user_found user_id=%s role=%s", u["id"], u["role"])
     sid = str(uuid4())
     await p.execute(
         f"insert into sessions(id,user_id,expires_at) values($1,$2,{expires})" if settings.database_engine != "sqlite" else "insert into sessions(id,user_id,expires_at) values(?,?,datetime('now', '+8 hours'))",
@@ -254,6 +327,7 @@ async def login(x: Login, response: Response):
         max_age=28800,
     )
     await audit(u, "login", "sessao", sid)
+    logger.info("login_success user_id=%s", u["id"])
     return {"user": user(u)}
 
 
