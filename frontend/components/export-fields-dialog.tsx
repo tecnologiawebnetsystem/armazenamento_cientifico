@@ -21,7 +21,7 @@ type Props = {
 
 // Ajuste visual rápido da modal: teste estes dois valores aos poucos.
 // Largura: max-w-4xl, max-w-5xl, max-w-6xl ou max-w-7xl.
-export const EXPORT_DIALOG_WIDTH_CLASS = "max-w-7xl"
+export const EXPORT_DIALOG_WIDTH_CLASS = "max-w-none sm:w-[min(96vw,72rem)]"
 // Altura: use min-h-[70vh] max-h-[92vh] e ajuste os percentuais conforme necessário.
 export const EXPORT_DIALOG_HEIGHT_CLASS = "min-h-[78vh] max-h-[94vh]"
 
@@ -73,7 +73,7 @@ export function ExportFieldsDialog({ open, onOpenChange, title, fields, defaultF
         </section>
         <section className="flex flex-col gap-3" aria-labelledby="export-fields-title">
           <div><h3 id="export-fields-title" className="font-semibold">Campos incluídos</h3><p className="text-sm text-muted-foreground">Selecione pelo menos um campo para cada arquivo.</p></div>
-          <div className="grid max-h-56 gap-2 overflow-y-auto rounded-lg border p-3 sm:grid-cols-2">
+          <div className="grid max-h-72 gap-2 overflow-y-auto rounded-lg border p-3 sm:grid-cols-2 lg:grid-cols-3">
             {fields.map((field) => <label key={field.key} className="flex cursor-pointer items-center gap-3 rounded-md p-2 text-sm hover:bg-muted/50"><Checkbox checked={selectedFields.includes(field.key)} onCheckedChange={(checked) => toggleField(field.key, checked === true)} /><span>{field.label}</span></label>)}
           </div>
         </section>
