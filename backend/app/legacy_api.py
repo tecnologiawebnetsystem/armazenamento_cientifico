@@ -307,6 +307,7 @@ async def require(request, roles=()):
 
 async def audit(u, action, entity, eid, details=""):
     p = await db()
+    await p.execute("create table if not exists activity_logs (id text primary key, user_id text, action text not null, entity text not null, entity_id text, details text, created_at timestamp not null)")
     await p.execute(
         "insert into activity_logs(id,user_id,action,entity,entity_id,details,created_at) values($1,$2,$3,$4,$5,$6,now())",
         str(uuid4()),
@@ -566,6 +567,7 @@ async def add_member(pid: str, x: MemberInput, request: Request):
         x.userId,
         x.papel,
     )
+    await audit(u, "adicionar-membro", "projeto", pid, f"usuário={x.userId}; papel={x.papel}")
     return {"message": "Membro adicionado"}
 
 
@@ -581,6 +583,7 @@ async def remove_member(pid: str, userId: str, request: Request):
     await p.execute(
         "delete from project_members where project_id=$1 and user_id=$2", pid, userId
     )
+    await audit(u, "remover-membro", "projeto", pid, f"usuário={userId}")
 
 
 @app.get("/api/files")
@@ -664,6 +667,7 @@ async def patch_file(fid: str, x: FilePatch, request: Request):
             v,
             fid,
         )
+    await audit(u, "editar-arquivo", "arquivo", fid, ",".join(vals))
     return {"file": dump_file(await p.fetchrow("select * from files where id=$1", fid))}
 
 
@@ -689,6 +693,7 @@ async def share(fid: str, x: ShareInput, request: Request):
         x.userId,
         x.nivel,
     )
+    await audit(u, "compartilhar-arquivo", "arquivo", fid, f"usuário={x.userId}; nível={x.nivel}")
     return {"message": "Compartilhamento atualizado"}
 
 
@@ -713,6 +718,7 @@ async def user_role(uid: str, x: RolePatch, request: Request):
     r = await p.fetchrow("update users set role=$1 where id=$2 returning *", x.role, uid)
     if not r:
         raise HTTPException(404, "Usuário não encontrado")
+    await audit(u, "alterar-perfil", "usuário", uid, x.role)
     return {"user": user(r)}
 
 
@@ -781,6 +787,7 @@ async def activity_logs(
 @app.get("/api/activity-logs/export")
 async def export_logs(request: Request, format: Literal["csv", "txt"] = "csv"):
     data = (await activity_logs(request))["logs"]
+    await audit(await current(request), "exportar-logs", "auditoria", None, f"formato={format}")
     out = io.StringIO()
     if format == "csv":
         w = csv.writer(out)
@@ -948,6 +955,7 @@ async def export_access_map(
     if format == "pdf":
         raise HTTPException(422, "Exportação PDF ainda não está disponível no backend")
     data = await access_map(request)
+    await audit(await current(request), "exportar-mapa-acessos", "relatorio", None, f"formato={format}")
     selected = [item for item in fields.split(",") if item]
     labels = {
         "usuario": ("Usuário", "userName"), "email": ("E-mail", "userEmail"),

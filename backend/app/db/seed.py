@@ -154,6 +154,13 @@ def _create_compatibility_tables(connection) -> None:
             key VARCHAR(100) PRIMARY KEY, value TEXT NOT NULL
         )
     """))
+    connection.execute(text("""
+        CREATE TABLE IF NOT EXISTS activity_logs (
+            id VARCHAR(36) PRIMARY KEY, user_id VARCHAR(36), action VARCHAR(100) NOT NULL,
+            entity VARCHAR(100) NOT NULL, entity_id VARCHAR(36), details TEXT, created_at TIMESTAMP NOT NULL
+        )
+    """))
     connection.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_user_id ON sessions(user_id)"))
+    connection.execute(text("CREATE INDEX IF NOT EXISTS ix_activity_logs_created_at ON activity_logs(created_at)"))
 
 __all__ = ["initialize_database"]
