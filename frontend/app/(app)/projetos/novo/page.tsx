@@ -8,7 +8,7 @@ export default async function NovoProjetoPage() {
   const user = findUserById(userId)
   if (!user) redirect("/login")
 
-  const canCreate = user.role === "admin" || user.role === "gerente"
+  const canCreate = user.role === "admin"
   if (!canCreate) redirect("/projetos")
 
   return (

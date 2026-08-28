@@ -25,7 +25,7 @@ export default function ProjetoDetalhePage({ params }: { params: Promise<{ id: s
     return null
   }
 
-  const canEdit = user.role === "admin" || user.role === "gerente"
+  const canEdit = user.role === "admin"
   const canDelete = user.role === "admin"
   return (
     <div className="flex flex-col gap-6">

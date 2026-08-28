@@ -450,7 +450,7 @@ async def list_projects(
 
 @app.post("/api/projects")
 async def create_project(x: ProjectInput, request: Request):
-    u = await require(request, ("admin", "gerente"))
+    u = await require(request, ("admin",))
     p = await db()
     if await p.fetchval("select 1 from projects where code=$1", x.codigo):
         raise HTTPException(409, "Código de projeto já existente")
@@ -488,12 +488,10 @@ async def get_project(pid: str, request: Request):
 
 @app.patch("/api/projects/{pid}")
 async def patch_project(pid: str, x: ProjectPatch, request: Request):
-    u = await require(request, ("admin", "gerente"))
+    u = await require(request, ("admin",))
     r = await visible(u, pid)
     if not r:
         raise HTTPException(404, "Projeto não encontrado")
-    if u["role"] == "gerente" and u["id"] not in r["managers_ids"]:
-        raise HTTPException(403, "Gerente não pertence a este projeto")
     fields = {
         "nome": "name",
         "areaResponsavel": "responsible_area",
