@@ -10,6 +10,7 @@ const sections = [
   { id: "execucao", label: "Rodar o sistema", icon: SquareTerminal },
   { id: "sqlite-guia", label: "SQLite passo a passo", icon: Database },
   { id: "endpoints", label: "Endpoints da API", icon: Server },
+  { id: "auditoria", label: "Auditoria e logs", icon: Database },
 ]
 
 const guides = [
@@ -17,6 +18,7 @@ const guides = [
   { id: "execucao", title: "Rodar o sistema", description: "O frontend roda em uma pasta própria e conversa com o backend FastAPI pela API HTTP.", command: "cd frontend\npnpm install\npnpm dev\n\n# em outro terminal\ncd backend\nuvicorn app.main:app --reload --port 8080" },
   { id: "sqlite-guia", title: "SQLite passo a passo", description: "O SQLite é o banco local usado para desenvolvimento. O backend cria a pasta data, aplica a estrutura e executa o seed idempotente.", command: "cd backend\npython -m venv .venv\nsource .venv/bin/activate  # Windows: .venv\\Scripts\\Activate.ps1\npip install -r requirements.txt\n\n# crie backend/.env a partir do exemplo\nDATABASE_ENGINE=sqlite\nDATABASE_URL=sqlite+aiosqlite:///./data/sigac.db\nSEED_DATABASE=true\n\nalembic upgrade head\nuvicorn app.main:app --reload --port 8080" },
   { id: "endpoints", title: "Endpoints da API", description: "A documentação interativa da API fica disponível no navegador quando o backend está rodando.", command: "http://localhost:8080/docs\nhttp://localhost:8080/health" },
+  { id: "auditoria", title: "Auditoria e logs", description: "A tabela activity_logs registra as ações realizadas na plataforma para rastreabilidade e conformidade.", command: "Tabela: activity_logs\n\nCampos principais:\nid           — identificador do evento\nuser_id      — usuário responsável\naction       — ação executada\nentity       — entidade afetada\nentity_id    — identificador da entidade\ndetails      — detalhes adicionais\ncreated_at   — data e hora do evento\n\nEndpoint de consulta:\nGET /api/activity-logs\n\nAções registradas incluem login, logout, criação e edição de projetos, alterações de status, gestão de membros, permissões de arquivos, alterações de usuários e exportações." },
 ]
 
 export default function DeveloperWikiPage() {

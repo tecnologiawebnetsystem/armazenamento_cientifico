@@ -21,7 +21,7 @@ export type ShareLevel = "leitura" | "edicao" | "proprietario"
 
 export type AccessRequestStatus = "pendente" | "aprovado" | "negado"
 
-export type ProjectStatus = "ativo" | "concluido" | "suspenso"
+export type ProjectStatus = "ativo" | "concluido" | "suspenso" | "inativo" | "em_andamento"
 
 export interface User {
   id: string
@@ -32,6 +32,7 @@ export interface User {
   avatarUrl?: string
   /** Papel global do usuário na plataforma (independe do papel por projeto). */
   role: Role
+  perfilId?: string
   criadoEm: string
 }
 
@@ -124,6 +125,15 @@ export interface PermissionMatrixEntry {
 }
 
 export type SessionUser = User
+
+export interface PlatformCatalogs {
+  perfis: Array<{ id: string; nome: string; descricao?: string }>
+  modulos: Array<{ id: string; nome: string; rota: string; icone: string; ordem: number; ativo: boolean }>
+  permissoes: Array<{ id: string; modulo_id: string; nome: string; descricao: string; ativo: boolean }>
+  statusProjetos: Array<{ id: string; codigo: string; nome: string; cor: string; ordem: number; ativo: boolean; permite_edicao: boolean }>
+  tiposProjetos: Array<{ id: string; codigo: string; nome: string; descricao: string; ativo: boolean }>
+  tiposRelatorios: Array<{ id: string; codigo: string; nome: string; descricao: string; formatos: string; ativo: boolean }>
+}
 
 /** Parâmetros administráveis da plataforma (administração > parâmetros). */
 export interface PlatformSettings {

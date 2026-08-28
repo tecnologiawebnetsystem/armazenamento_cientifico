@@ -41,7 +41,7 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
   const [codigo, setCodigo] = useState("")
   const [criadoEm, setCriadoEm] = useState(new Date().toISOString().slice(0, 10))
   const [areaResponsavel, setAreaResponsavel] = useState("")
-  const [gestoresIds, setGestoresIds] = useState<string[]>(currentUser.role === "gerente" ? [currentUser.id] : [])
+  const [gestoresIds, setGestoresIds] = useState<string[]>(currentUser.perfilId === "GER" || currentUser.role === "gerente" ? [currentUser.id] : [])
   const [grupoAdEscrita, setGrupoAdEscrita] = useState<string[]>([])
   const [grupoAdLeitura, setGrupoAdLeitura] = useState<string[]>([])
   const [roleIdentidadeEscrita, setRoleIdentidadeEscrita] = useState<string[]>([])
@@ -50,7 +50,7 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
   const [pastaMae, setPastaMae] = useState("")
   const [descricao, setDescricao] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const gestores = users.filter((u) => u.role === "gerente" || u.role === "admin" || u.role === "patrocinador")
+  const gestores = users.filter((u) => ["ADM", "GER", "PAT"].includes(u.perfilId ?? "") || ["admin", "gerente", "patrocinador"].includes(u.role))
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

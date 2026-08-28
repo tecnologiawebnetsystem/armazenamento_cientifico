@@ -8,11 +8,17 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useUsers } from "@/hooks/use-users"
+import { useCatalogs } from "@/hooks/use-catalogs"
 import { roleLabel } from "@/hooks/use-permissions"
 import { updateUserRole, ApiError } from "@/lib/api-client"
 import type { Role } from "@/lib/types"
 
-const allRoles: Role[] = ["admin", "gestor", "participante", "visualizador"]
+const allProfiles = [
+  { id: "ADM", role: "admin" as Role, label: "Administrador" },
+  { id: "GES", role: "gestor" as Role, label: "Gestor" },
+  { id: "PAR", role: "participante" as Role, label: "Participante" },
+  { id: "VIS", role: "visualizador" as Role, label: "Visualizador" },
+]
 
 function initials(nome: string) {
   return nome
@@ -26,10 +32,15 @@ function initials(nome: string) {
 
 export function UsersTable({ currentUserId }: { currentUserId: string }) {
   const { users, isLoading, refresh } = useUsers()
+  const { perfis, isLoading: profilesLoading } = useCatalogs()
+  const profiles = perfis.length ? perfis : allProfiles.map((profile) => ({ id: profile.id, nome: profile.label, descricao: "" }))
 
-  async function handleRoleChange(userId: string, role: Role) {
+  async function handleProfileChange(userId: string, perfilId: string) {
+    const profile = profiles.find((item) => item.id === perfilId)
+    if (!profile) return
+    const role = profile.id === "ADM" ? "admin" : profile.nome.toLowerCase() as Role
     try {
-      await updateUserRole(userId, role)
+      await updateUserRole(userId, role, perfilId)
       toast.success("Papel do usuário atualizado.")
       refresh()
     } catch (err) {
@@ -58,7 +69,7 @@ export function UsersTable({ currentUserId }: { currentUserId: string }) {
                 <TableHead>Usuário</TableHead>
                 <TableHead>Área</TableHead>
                 <TableHead>Cargo</TableHead>
-                <TableHead>Papel global</TableHead>
+                <TableHead>Perfil</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -84,15 +95,15 @@ export function UsersTable({ currentUserId }: { currentUserId: string }) {
                         {roleLabel(u.role)} (você)
                       </Badge>
                     ) : (
-                      <Select value={u.role} onValueChange={(v) => handleRoleChange(u.id, v as Role)}>
+                      <Select disabled={profilesLoading} value={u.perfilId ?? profiles.find((p) => p.nome.toLowerCase() === u.role || (u.role === "admin" && p.id === "ADM"))?.id ?? "PAR"} onValueChange={(v) => handleProfileChange(u.id, v)}>
                         <SelectTrigger className="w-44">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
-                            {allRoles.map((r) => (
-                              <SelectItem key={r} value={r}>
-                                {roleLabel(r)}
+                            {profiles.map((profile) => (
+                              <SelectItem key={profile.id} value={profile.id}>
+                                {profile.id} — {profile.label}
                               </SelectItem>
                             ))}
                           </SelectGroup>

@@ -15,9 +15,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const target = store.users.find((u) => u.id === id)
   if (!target) return NextResponse.json({ message: "Usuário não encontrado." }, { status: 404 })
 
-  const { role } = await request.json()
+  const { role, perfilId } = await request.json()
   const papelAnterior = target.role
   target.role = role
+  target.perfilId = perfilId
 
   logActivity(
     user.id,

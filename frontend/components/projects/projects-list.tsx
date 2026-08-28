@@ -108,8 +108,8 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
     [projects],
   )
 
-  const canManage = (project: Project) =>
-    user?.role === "admin" || (user ? project.gestoresIds?.includes(user.id) : false)
+  const canManage = (_project: Project) => user?.perfilId === "ADM" || user?.role === "admin"
+
 
   const stats = useMemo(() => {
     const ativos = projects.filter((p) => p.status === "ativo").length

@@ -37,8 +37,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const project = store.projects.find((p) => p.id === id)
   if (!project) return NextResponse.json({ message: "Projeto não encontrado." }, { status: 404 })
 
-  if (!canAccessProject(user.id, id, "write")) {
-    return NextResponse.json({ message: "Sem permissão para editar este projeto." }, { status: 403 })
+  if (user.role !== "admin") {
+    return NextResponse.json({ message: "Apenas administradores podem editar projetos." }, { status: 403 })
   }
 
   let body: unknown

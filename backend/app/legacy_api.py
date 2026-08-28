@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 Role = Literal[
     "admin", "gerente", "patrocinador", "auditor", "participante", "visualizador", "gestor"
 ]
-ProjectStatus = Literal["ativo", "concluido", "suspenso"]
+ProjectStatus = Literal["ativo", "concluido", "suspenso", "inativo", "em_andamento"]
 
 
 def now():
@@ -82,6 +82,7 @@ def user(row):
         "cargo": d["cargo"],
         "area": d["area"],
         "role": normalized_role(d["role"]),
+        "perfilId": d.get("perfil_id"),
         "criadoEm": d["created_at"],
     }
 
@@ -298,15 +299,50 @@ async def current(request: Request):
     return row
 
 
-async def require(request, roles=()):
+async def require(request, roles=(), permission: str | None = None):
     u = await current(request)
-    if roles and u["role"] not in roles:
+    if permission:
+        p = await db()
+        profile_id = u.get("perfil_id") or {"admin": "ADM", "gerente": "GER", "auditor": "AUD", "patrocinador": "PAT", "participante": "PAR", "visualizador": "VIS", "gestor": "GES"}.get(normalized_role(u.get("role")))
+        allowed = await p.fetchval("select 1 from perfil_permissoes where perfil_id=$1 and permissao_id=$2 and permitido=true", profile_id, permission)
+        if not allowed:
+            raise HTTPException(403, "Usuário sem permissão para esta operação")
+    elif roles and normalized_role(u["role"]) not in {normalized_role(role) for role in roles}:
         raise HTTPException(403, "Usuário sem permissão para esta operação")
     return u
 
 
+@app.get("/api/perfis")
+async def profiles(request: Request):
+    await current(request)
+    p = await db()
+    return {"perfis": [dump(row) for row in await p.fetch("select * from perfis order by nome")]}
+
+
+@app.get("/api/configuracoes-sistema")
+async def system_settings(request: Request):
+    u = await require(request, ("admin",))
+    p = await db()
+    return {"configuracoes": [dump(row) for row in await p.fetch("select * from configuracoes_sistema where ativo=true order by grupo, chave")]}
+
+
+@app.get("/api/catalogos")
+async def catalogs(request: Request):
+    await current(request)
+    p = await db()
+    return {
+        "perfis": [dump(row) for row in await p.fetch("select * from perfis order by nome")],
+        "modulos": [dump(row) for row in await p.fetch("select * from modulos where ativo=true order by ordem, nome")],
+        "permissoes": [dump(row) for row in await p.fetch("select * from permissoes where ativo=true order by id")],
+        "statusProjetos": [dump(row) for row in await p.fetch("select * from status_projetos where ativo=true order by ordem, nome")],
+        "tiposProjetos": [dump(row) for row in await p.fetch("select * from tipos_projetos where ativo=true order by nome")],
+        "tiposRelatorios": [dump(row) for row in await p.fetch("select * from tipos_relatorios where ativo=true order by nome")],
+    }
+
+
 async def audit(u, action, entity, eid, details=""):
     p = await db()
+    await p.execute("create table if not exists activity_logs (id text primary key, user_id text, action text not null, entity text not null, entity_id text, details text, created_at timestamp not null)")
     await p.execute(
         "insert into activity_logs(id,user_id,action,entity,entity_id,details,created_at) values($1,$2,$3,$4,$5,$6,now())",
         str(uuid4()),
@@ -320,10 +356,21 @@ async def audit(u, action, entity, eid, details=""):
 
 async def visible(u, pid):
     p = await db()
+    role = normalized_role(u["role"])
+    if settings.database_engine == "sqlite":
+        row = await p.fetchrow("select * from projects where id=?", pid)
+        if not row:
+            return None
+        if role in ("admin", "patrocinador", "auditor"):
+            return row
+        data = dump(row)
+        if u["id"] in (data.get("managers_ids") or []) or u["id"] in (data.get("participants_ids") or []):
+            return row
+        return None
     return await p.fetchrow(
         "select * from projects where id=$1 and ($2 in ('admin','patrocinador','auditor') or $3=any(managers_ids) or $3=any(participants_ids))",
         pid,
-        normalized_role(u["role"]),
+        role,
         u["id"],
     )
 
@@ -439,7 +486,7 @@ async def list_projects(
 
 @app.post("/api/projects")
 async def create_project(x: ProjectInput, request: Request):
-    u = await require(request, ("admin", "gerente"))
+    u = await require(request, ("admin",))
     p = await db()
     if await p.fetchval("select 1 from projects where code=$1", x.codigo):
         raise HTTPException(409, "Código de projeto já existente")
@@ -477,12 +524,10 @@ async def get_project(pid: str, request: Request):
 
 @app.patch("/api/projects/{pid}")
 async def patch_project(pid: str, x: ProjectPatch, request: Request):
-    u = await require(request, ("admin", "gerente"))
+    u = await require(request, ("admin",))
     r = await visible(u, pid)
     if not r:
         raise HTTPException(404, "Projeto não encontrado")
-    if u["role"] == "gerente" and u["id"] not in r["managers_ids"]:
-        raise HTTPException(403, "Gerente não pertence a este projeto")
     fields = {
         "nome": "name",
         "areaResponsavel": "responsible_area",
@@ -557,6 +602,7 @@ async def add_member(pid: str, x: MemberInput, request: Request):
         x.userId,
         x.papel,
     )
+    await audit(u, "adicionar-membro", "projeto", pid, f"usuário={x.userId}; papel={x.papel}")
     return {"message": "Membro adicionado"}
 
 
@@ -572,6 +618,7 @@ async def remove_member(pid: str, userId: str, request: Request):
     await p.execute(
         "delete from project_members where project_id=$1 and user_id=$2", pid, userId
     )
+    await audit(u, "remover-membro", "projeto", pid, f"usuário={userId}")
 
 
 @app.get("/api/files")
@@ -655,6 +702,7 @@ async def patch_file(fid: str, x: FilePatch, request: Request):
             v,
             fid,
         )
+    await audit(u, "editar-arquivo", "arquivo", fid, ",".join(vals))
     return {"file": dump_file(await p.fetchrow("select * from files where id=$1", fid))}
 
 
@@ -680,6 +728,7 @@ async def share(fid: str, x: ShareInput, request: Request):
         x.userId,
         x.nivel,
     )
+    await audit(u, "compartilhar-arquivo", "arquivo", fid, f"usuário={x.userId}; nível={x.nivel}")
     return {"message": "Compartilhamento atualizado"}
 
 
@@ -704,6 +753,7 @@ async def user_role(uid: str, x: RolePatch, request: Request):
     r = await p.fetchrow("update users set role=$1 where id=$2 returning *", x.role, uid)
     if not r:
         raise HTTPException(404, "Usuário não encontrado")
+    await audit(u, "alterar-perfil", "usuário", uid, x.role)
     return {"user": user(r)}
 
 
@@ -772,6 +822,7 @@ async def activity_logs(
 @app.get("/api/activity-logs/export")
 async def export_logs(request: Request, format: Literal["csv", "txt"] = "csv"):
     data = (await activity_logs(request))["logs"]
+    await audit(await current(request), "exportar-logs", "auditoria", None, f"formato={format}")
     out = io.StringIO()
     if format == "csv":
         w = csv.writer(out)
@@ -919,7 +970,7 @@ async def access_map(request: Request):
                 "resourceName": x["resource_name"],
                 "resourceType": x["resource_type"],
                 "accessLevel": x["access_level"],
-                "lastViewedAt": x["last_viewed_at"].isoformat(),
+                "lastViewedAt": x["last_viewed_at"].isoformat() if x["last_viewed_at"] else None,
             }
             for x in rows
         ],
@@ -939,6 +990,7 @@ async def export_access_map(
     if format == "pdf":
         raise HTTPException(422, "Exportação PDF ainda não está disponível no backend")
     data = await access_map(request)
+    await audit(await current(request), "exportar-mapa-acessos", "relatorio", None, f"formato={format}")
     selected = [item for item in fields.split(",") if item]
     labels = {
         "usuario": ("Usuário", "userName"), "email": ("E-mail", "userEmail"),

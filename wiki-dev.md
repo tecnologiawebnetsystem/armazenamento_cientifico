@@ -279,21 +279,25 @@ Não altere uma migration que já foi aplicada. Crie outra migration incremental
 
 ## 7. Tabelas e campos
 
+### Catálogos parametrizados
+
+A parametrização administrativa utiliza `perfis`, `permissoes`, `perfil_permissoes`, `modulos`, `perfil_modulos`, `status_projetos`, `tipos_projetos`, `configuracoes_sistema`, `tipos_relatorios` e `menus`. O seed inicial também cria módulos, permissões, status, tipos de projeto e tipos de relatório de forma idempotente. O endpoint autenticado `GET /api/catalogos` fornece os catálogos ativos para o frontend; novos cadastros devem enviar IDs/códigos, usando nomes somente para exibição. O seed é idempotente e cria os valores iniciais. Ele deve manter perfis, permissões, módulos, relações perfil-permissão, relações perfil-módulo, status de projetos, tipos de projetos, configurações do sistema, tipos de relatórios e menus. Os menus devem apontar para módulos existentes e usar rotas reais do frontend.
+
 > Os nomes físicos atuais não usam o prefixo `app_`.
 
-### profiles
+### perfis
 
-Catálogo de perfis e permissões.
+Catálogo persistente de perfis e permissões, identificado por IDs fixos.
 
 | Campo | Descrição |
 |---|---|
 | `id` | Chave primária. |
-| `name` | Nome do perfil. |
-| `description` | Descrição funcional. |
-| `permissions` | Permissões associadas. |
-| `created_at`, `updated_at` | Auditoria temporal. |
+| `id` | ID fixo do perfil (`ADM`, `GER`, `AUD`, `PAT`, `PAR`, `VIS`, `GES`). |
+| `nome` | Nome do perfil. |
+| `descricao` | Descrição funcional. |
+| `criado_em` | Data de criação. |
 
-Usada pela administração de perfis e pelo processo de autorização. Endpoints: `GET /api/profiles`, `POST/PATCH/DELETE /api/profiles/{id}` e `GET /api/permissions`.
+Usada pela administração de perfis e pelo processo de autorização. O vínculo dos usuários ocorre por `users.perfil_id -> perfis.id`.
 
 ### users
 
@@ -304,7 +308,7 @@ Usuários que podem iniciar sessão.
 | `id` | Chave primária. |
 | `email` | E-mail único usado no login. |
 | `name` | Nome de exibição. |
-| `profile_id` | FK para `profiles.id`. |
+| `perfil_id` | FK para `perfis.id`, usando IDs fixos (`ADM`, `GER`, `AUD`, `PAT`, `PAR`, `VIS`, `GES`). |
 | `is_active` | Indica se o usuário pode entrar. |
 | `created_at`, `updated_at` | Auditoria temporal. |
 
@@ -399,7 +403,7 @@ Usada em [`frontend/components/administracao/activity-log-table.tsx`](frontend/c
 
 ## 8. Modelagem e diagrama
 
-O relacionamento central parte de `profiles` e `users`, chega a `projects`, usa tabelas de associação para membros e compartilhamentos e registra eventos em `activity_logs`.
+O relacionamento central parte de `perfis` e `users`, chega a `projects`, usa tabelas de associação para membros e compartilhamentos e registra eventos em `activity_logs`.
 
 ### Diagrama ER
 
@@ -407,7 +411,7 @@ A fonte editável está em [`docs/database-erd.mmd`](docs/database-erd.mmd), e a
 
 ```mermaid
 erDiagram
-  profiles ||--o{ users : possui
+  perfis ||--o{ users : possui
   users ||--o{ projects : cria
   users ||--o{ project_members : participa
   projects ||--o{ project_members : possui
@@ -438,7 +442,7 @@ A fonte viva do contrato é o [Swagger](http://localhost:8080/docs) e o arquivo 
 | Sessão | `GET /api/auth/session` | Retorna o usuário atual. |
 | Logout | `POST /api/auth/logout` | Encerra sessão. |
 | Usuários | `GET/POST /api/users`, `GET/PATCH/DELETE /api/users/{id}` | Administração de usuários. |
-| Perfis | `GET /api/profiles`, `POST/PATCH/DELETE /api/profiles/{id}` | Perfis e permissões. |
+| Perfis | `GET /api/perfis` | Catálogo de perfis com IDs fixos e vínculo `users.perfil_id`. |
 | Permissões | `GET /api/permissions` | Consulta permissões disponíveis. |
 | Projetos | `GET/POST /api/projects`, `GET/PATCH/DELETE /api/projects/{id}` | CRUD de projetos. |
 | Membros | `GET/POST /api/projects/{id}/members`, `DELETE /api/projects/{id}/members/{user_id}` | Participantes. |
@@ -487,6 +491,12 @@ A fonte viva do contrato é o [Swagger](http://localhost:8080/docs) e o arquivo 
 
 ## 11. Autenticação e permissões
 
+### Proteção de rotas e páginas de erro
+
+As rotas privadas do frontend são protegidas por `frontend/middleware.ts`, que verifica o cookie HttpOnly `wayon_session_user_id` e redireciona usuários não autenticados para `/login`. A proteção é reforçada por `frontend/app/(app)/layout.tsx`, que valida a sessão no servidor.
+
+As páginas parametrizadas são `frontend/app/not-found.tsx` para 404, `frontend/app/forbidden/page.tsx` para acesso negado e `frontend/app/error.tsx`/`global-error.tsx` para erros inesperados. Nenhuma dessas camadas substitui a autorização no backend.
+
 O backend é a autoridade para identidade, sessão e autorização.
 
 ### Login
@@ -495,7 +505,7 @@ O login local recebe um e-mail, procura um usuário ativo em `users` e cria uma 
 
 ### Perfis e escopo
 
-O usuário possui um `profile_id` e permissões associadas. Cada consulta precisa validar:
+O usuário possui um `perfil_id` com ID fixo e permissões associadas. O catálogo está em `perfis`; o campo `role` é legado e permanece somente para compatibilidade. Cada consulta precisa validar:
 
 - usuário autenticado;
 - vínculo com o projeto;

@@ -14,6 +14,7 @@ import type {
   SessionUser,
   ShareLevel,
   User,
+  PlatformCatalogs,
 } from "@/lib/types"
 
 /**
@@ -95,6 +96,12 @@ export function logout() {
 
 export function getSession() {
   return request<{ user: SessionUser | null }>("/api/auth/session")
+}
+
+/* ------------------------------- Catálogos -------------------------------- */
+
+export function getCatalogs() {
+  return request<PlatformCatalogs>("/api/catalogos")
 }
 
 /* -------------------------------- Projects -------------------------------- */
@@ -264,10 +271,10 @@ export function getUsers() {
   return request<{ users: User[] }>("/api/users")
 }
 
-export function updateUserRole(id: string, role: Role) {
-  return request<User>(`/api/users/${id}/role`, {
+export function updateUserRole(id: string, role: Role, perfilId: string) {
+  return request<User>(`/api/users/${id}`, {
     method: "PATCH",
-    body: JSON.stringify({ role }),
+    body: JSON.stringify({ role, perfilId }),
   })
 }
 

@@ -45,8 +45,8 @@ export async function POST(request: Request) {
   const userId = await getSessionUserId()
   const user = findUserById(userId)
   if (!user) return NextResponse.json({ message: "Não autenticado." }, { status: 401 })
-  if (user.role !== "admin" && user.role !== "gerente") {
-    return NextResponse.json({ message: "Sem permissão para criar projetos." }, { status: 403 })
+  if (user.role !== "admin") {
+    return NextResponse.json({ message: "Apenas administradores podem criar projetos." }, { status: 403 })
   }
 
   let body: Record<string, unknown>
