@@ -5,10 +5,12 @@ import io
 import json
 import math
 import os
+import re
 from datetime import UTC, datetime
 from typing import Literal
 from uuid import uuid4
 
+import aiosqlite
 import asyncpg
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
@@ -147,13 +149,57 @@ app = FastAPI(
     redoc_url=None,
     openapi_url=None,
 )
-pool: asyncpg.Pool | None = None
+class SQLitePool:
+    """Adaptador mínimo do contrato asyncpg usado pela API legada."""
+
+    def __init__(self, database_url: str):
+        path = database_url.split("///", 1)[-1]
+        self.path = os.path.abspath(path)
+
+    @staticmethod
+    def _query(sql: str, args: tuple) -> tuple[str, tuple]:
+        sql = re.sub(r"\$\d+", "?", sql)
+        sql = sql.replace("now()", "CURRENT_TIMESTAMP")
+        sql = sql.replace(" ilike ", " LIKE ")
+        sql = sql.replace(" is not distinct from ", " IS ")
+        return sql, args
+
+    async def fetchrow(self, sql: str, *args):
+        query, values = self._query(sql, args)
+        async with aiosqlite.connect(self.path) as connection:
+            connection.row_factory = aiosqlite.Row
+            cursor = await connection.execute(query, values)
+            return await cursor.fetchone()
+
+    async def fetch(self, sql: str, *args):
+        query, values = self._query(sql, args)
+        async with aiosqlite.connect(self.path) as connection:
+            connection.row_factory = aiosqlite.Row
+            cursor = await connection.execute(query, values)
+            return await cursor.fetchall()
+
+    async def fetchval(self, sql: str, *args):
+        row = await self.fetchrow(sql, *args)
+        return row[0] if row else None
+
+    async def execute(self, sql: str, *args):
+        query, values = self._query(sql, args)
+        async with aiosqlite.connect(self.path) as connection:
+            await connection.execute(query, values)
+            await connection.commit()
+        return "OK"
+
+
+pool: asyncpg.Pool | SQLitePool | None = None
 
 
 @app.on_event("startup")
 async def startup():
     global pool
-    url = os.getenv("DATABASE_URL")
+    url = settings.database_url
+    if settings.database_engine == "sqlite":
+        pool = SQLitePool(url)
+        return
     if url:
         try:
             pool = await asyncpg.create_pool(url, min_size=1, max_size=10, command_timeout=30)
