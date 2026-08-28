@@ -169,11 +169,24 @@ class SQLitePool:
 
     @staticmethod
     def _query(sql: str, args: tuple) -> tuple[str, tuple]:
+        # Converte o subconjunto de SQL compartilhado usado pela API para SQLite.
+        values = list(args)
+        any_pattern = re.compile(r"\$(\d+)=any\(([a-zA-Z_][a-zA-Z0-9_]*)\)")
+
+        def replace_any(match):
+            index = int(match.group(1)) - 1
+            column = match.group(2)
+            if index < 0 or index >= len(values):
+                raise ValueError(f"Placeholder inválido: ${index + 1}")
+            values.insert(index + 1, values[index])
+            return f"EXISTS (SELECT 1 FROM json_each({column}) WHERE value=?)"
+
+        sql = any_pattern.sub(replace_any, sql)
         sql = re.sub(r"\$\d+", "?", sql)
         sql = sql.replace("now()", "CURRENT_TIMESTAMP")
-        sql = sql.replace(" ilike ", " LIKE ")
-        sql = sql.replace(" is not distinct from ", " IS ")
-        return sql, args
+        sql = re.sub(r"\bilike\b", "LIKE", sql, flags=re.IGNORECASE)
+        sql = re.sub(r"\bis not distinct from\b", "IS", sql, flags=re.IGNORECASE)
+        return sql, tuple(values)
 
     async def fetchrow(self, sql: str, *args):
         query, values = self._query(sql, args)
@@ -305,7 +318,7 @@ async def visible(u, pid):
     return await p.fetchrow(
         "select * from projects where id=$1 and ($2 in ('admin','patrocinador','auditor') or $3=any(managers_ids) or $3=any(participants_ids))",
         pid,
-        u["role"],
+        normalized_role(u["role"]),
         u["id"],
     )
 
