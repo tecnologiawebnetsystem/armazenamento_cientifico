@@ -21,5 +21,5 @@ export default function DashboardPage() {
     return <main className="flex flex-col gap-4"><h1 className="text-2xl font-semibold">Dashboard</h1><PageError title="Não foi possível consultar o dashboard" message="Verifique a sessão e a disponibilidade da API." /></main>
   }
 
-  return <ExecutiveDashboard projects={data.projects} totalMembros={data.totalMembros} totalMapas={data.totalMapas} armazenamentoMb={data.armazenamentoMb} pendencias={data.pendencias} activity={data.activity} source={data.source} consultedAt={data.consultedAt} />
+  return <ExecutiveDashboard projects={data.projects} totalMembros={data.totalMembros} totalMapas={data.totalMapas} armazenamentoMb={data.armazenamentoMb} pendencias={data.pendencias} activity={data.activity} />
 }
