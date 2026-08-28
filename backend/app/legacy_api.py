@@ -238,9 +238,28 @@ async def shutdown():
 
 async def db():
     if not pool:
-        logger.error("database_unavailable endpoint_request=true")
+        logger.error(
+            "database_unavailable engine=%s configured=%s",
+            settings.database_engine,
+            bool(settings.database_url),
+        )
         raise HTTPException(503, "Banco de dados não configurado")
     return pool
+
+
+async def database_probe() -> dict:
+    """Executa uma consulta real para confirmar que o banco responde."""
+    p = await db()
+    try:
+        result = await p.fetchval("select 1")
+        details = {"connected": result == 1, "probe_result": result}
+        if isinstance(p, SQLitePool):
+            details.update({"path": p.path, "file_exists": os.path.exists(p.path)})
+        logger.info("database_probe_success details=%s", details)
+        return details
+    except Exception:
+        logger.exception("database_probe_failed engine=%s", settings.database_engine)
+        raise HTTPException(503, "Banco de dados indisponível")
 
 
 async def current(request: Request):
@@ -302,22 +321,32 @@ async def health():
 async def login(x: Login, response: Response):
     logger.info("login_attempt email=%s", str(x.email))
     p = await db()
-    if settings.database_engine == "sqlite":
-        u = await p.fetchrow("select * from users where lower(email)=lower(?)", str(x.email))
-        expires = "datetime('now', '+8 hours')"
-    else:
-        u = await p.fetchrow("select * from users where lower(email)=lower($1)", str(x.email))
-        expires = "now()+interval '8 hours'"
+    logger.debug("login_database_selected engine=%s pool_type=%s", settings.database_engine, type(p).__name__)
+    try:
+        if settings.database_engine == "sqlite":
+            u = await p.fetchrow("select * from users where lower(email)=lower(?)", str(x.email))
+            expires = "datetime('now', '+8 hours')"
+        else:
+            u = await p.fetchrow("select * from users where lower(email)=lower($1)", str(x.email))
+            expires = "now()+interval '8 hours'"
+    except Exception:
+        logger.exception("login_user_query_failed engine=%s", settings.database_engine)
+        raise HTTPException(503, "Falha ao consultar o banco de dados") from None
     if not u:
         logger.warning("login_rejected reason=user_not_found email=%s", str(x.email))
         raise HTTPException(401, "E-mail não cadastrado")
     logger.info("login_user_found user_id=%s role=%s", u["id"], u["role"])
     sid = str(uuid4())
-    await p.execute(
-        f"insert into sessions(id,user_id,expires_at) values($1,$2,{expires})" if settings.database_engine != "sqlite" else "insert into sessions(id,user_id,expires_at) values(?,?,datetime('now', '+8 hours'))",
-        sid,
-        u["id"],
-    )
+    try:
+        await p.execute(
+            f"insert into sessions(id,user_id,expires_at) values($1,$2,{expires})" if settings.database_engine != "sqlite" else "insert into sessions(id,user_id,expires_at) values(?,?,datetime('now', '+8 hours'))",
+            sid,
+            u["id"],
+        )
+        logger.info("login_session_created user_id=%s", u["id"])
+    except Exception:
+        logger.exception("login_session_creation_failed user_id=%s", u["id"])
+        raise HTTPException(503, "Falha ao criar sessão no banco de dados") from None
     response.set_cookie(
         "wayon_session_id",
         sid,
