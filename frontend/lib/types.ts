@@ -21,7 +21,7 @@ export type ShareLevel = "leitura" | "edicao" | "proprietario"
 
 export type AccessRequestStatus = "pendente" | "aprovado" | "negado"
 
-export type ProjectStatus = "ativo" | "concluido" | "suspenso"
+export type ProjectStatus = "ativo" | "concluido" | "suspenso" | "inativo" | "em_andamento"
 
 export interface User {
   id: string
