@@ -22,9 +22,19 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    logger.info("application_startup database_engine=%s", settings.database_engine)
     await connect()
-    yield
-    await disconnect()
+    # A legacy_app é montada como subaplicação; seus eventos de startup
+    # não são executados automaticamente pelo FastAPI principal.
+    from app.legacy_api import startup as legacy_startup, shutdown as legacy_shutdown
+
+    await legacy_startup()
+    try:
+        yield
+    finally:
+        await legacy_shutdown()
+        await disconnect()
+        logger.info("application_shutdown complete=true")
 
 
 def create_app() -> FastAPI:
@@ -102,11 +112,14 @@ def create_app() -> FastAPI:
 
     @application.get("/health", tags=["Health"])
     async def health():
+        database_status = "connected" if legacy_app.pool else "not_configured"
+        logger.info("health_check database=%s engine=%s", database_status, settings.database_engine)
         return {
-            "status": "ok" if settings.database_url else "degradado",
+            "status": "ok" if database_status == "connected" else "degradado",
             "service": "fastapi",
             "version": settings.app_version,
-            "database": "configured" if settings.database_url else "not_configured",
+            "database": database_status,
+            "database_engine": settings.database_engine,
         }
 
     # O legado é o contrato HTTP canônico durante a integração frontend/backend.

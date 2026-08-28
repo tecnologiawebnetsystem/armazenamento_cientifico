@@ -309,7 +309,9 @@ async def login(x: Login, response: Response):
         u = await p.fetchrow("select * from users where lower(email)=lower($1)", str(x.email))
         expires = "now()+interval '8 hours'"
     if not u:
+        logger.warning("login_rejected reason=user_not_found email=%s", str(x.email))
         raise HTTPException(401, "E-mail não cadastrado")
+    logger.info("login_user_found user_id=%s role=%s", u["id"], u["role"])
     sid = str(uuid4())
     await p.execute(
         f"insert into sessions(id,user_id,expires_at) values($1,$2,{expires})" if settings.database_engine != "sqlite" else "insert into sessions(id,user_id,expires_at) values(?,?,datetime('now', '+8 hours'))",
