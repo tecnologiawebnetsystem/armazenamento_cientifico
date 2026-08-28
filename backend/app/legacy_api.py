@@ -64,6 +64,10 @@ def project(row):
     }
 
 
+def normalized_role(role: str | None) -> str:
+    return {"administrador": "admin", "administrator": "admin"}.get(str(role or "").lower(), str(role or "participante").lower())
+
+
 def user(row):
     d = dump(row)
     return {
@@ -72,7 +76,7 @@ def user(row):
         "email": d["email"],
         "cargo": d["cargo"],
         "area": d["area"],
-        "role": d["role"],
+        "role": normalized_role(d["role"]),
         "criadoEm": d["created_at"],
     }
 
@@ -165,11 +169,24 @@ class SQLitePool:
 
     @staticmethod
     def _query(sql: str, args: tuple) -> tuple[str, tuple]:
+        # Converte o subconjunto de SQL compartilhado usado pela API para SQLite.
+        values = list(args)
+        any_pattern = re.compile(r"\$(\d+)=any\(([a-zA-Z_][a-zA-Z0-9_]*)\)")
+
+        def replace_any(match):
+            index = int(match.group(1)) - 1
+            column = match.group(2)
+            if index < 0 or index >= len(values):
+                raise ValueError(f"Placeholder inválido: ${index + 1}")
+            values.insert(index + 1, values[index])
+            return f"EXISTS (SELECT 1 FROM json_each({column}) WHERE value=?)"
+
+        sql = any_pattern.sub(replace_any, sql)
         sql = re.sub(r"\$\d+", "?", sql)
         sql = sql.replace("now()", "CURRENT_TIMESTAMP")
-        sql = sql.replace(" ilike ", " LIKE ")
-        sql = sql.replace(" is not distinct from ", " IS ")
-        return sql, args
+        sql = re.sub(r"\bilike\b", "LIKE", sql, flags=re.IGNORECASE)
+        sql = re.sub(r"\bis not distinct from\b", "IS", sql, flags=re.IGNORECASE)
+        return sql, tuple(values)
 
     async def fetchrow(self, sql: str, *args):
         query, values = self._query(sql, args)
@@ -301,7 +318,7 @@ async def visible(u, pid):
     return await p.fetchrow(
         "select * from projects where id=$1 and ($2 in ('admin','patrocinador','auditor') or $3=any(managers_ids) or $3=any(participants_ids))",
         pid,
-        u["role"],
+        normalized_role(u["role"]),
         u["id"],
     )
 
@@ -688,18 +705,30 @@ async def dashboard_summary(request: Request):
     """Retorna indicadores do dashboard calculados exclusivamente no banco."""
     u = await require(request)
     p = await db()
-    visibility = "" if u["role"] in ("admin", "patrocinador", "auditor") else " where $1=any(managers_ids) or $1=any(participants_ids)"
-    args = [] if not visibility else [u["id"]]
+    role = normalized_role(u["role"])
+    if settings.database_engine == "sqlite":
+        visibility = "" if role in ("admin", "patrocinador", "auditor") else " where EXISTS (select 1 from json_each(managers_ids) where value=?) or EXISTS (select 1 from json_each(participants_ids) where value=?)"
+        args = [] if not visibility else [u["id"], u["id"]]
+    else:
+        visibility = "" if role in ("admin", "patrocinador", "auditor") else " where $1=any(managers_ids) or $1=any(participants_ids)"
+        args = [] if not visibility else [u["id"]]
+    logger.info("dashboard_query user_id=%s role=%s engine=%s visibility=%s", u["id"], role, settings.database_engine, "all" if not visibility else "restricted")
     projects = await p.fetch(f"select * from projects{visibility} order by updated_at desc", *args)
     project_ids = [row["id"] for row in projects]
     members = 0
     files = 0
     storage = 0
     if project_ids:
-        members = await p.fetchval("select count(distinct user_id) from project_members where project_id=any($1::text[])", project_ids) or 0
-        files = await p.fetchval("select count(*) from files where project_id=any($1::text[])", project_ids) or 0
-        storage = await p.fetchval("select coalesce(sum(size_bytes), 0) from files where project_id=any($1::text[])", project_ids) or 0
-    pending = await p.fetchval("select count(*) from access_requests where status='pendente'") if u["role"] in ("admin", "patrocinador", "auditor") else 0
+        if settings.database_engine == "sqlite":
+            placeholders = ",".join("?" for _ in project_ids)
+            members = await p.fetchval(f"select count(distinct user_id) from project_members where project_id in ({placeholders})", *project_ids) or 0
+            files = await p.fetchval(f"select count(*) from files where project_id in ({placeholders})", *project_ids) or 0
+            storage = await p.fetchval(f"select coalesce(sum(size_bytes), 0) from files where project_id in ({placeholders})", *project_ids) or 0
+        else:
+            members = await p.fetchval("select count(distinct user_id) from project_members where project_id=any($1::text[])", project_ids) or 0
+            files = await p.fetchval("select count(*) from files where project_id=any($1::text[])", project_ids) or 0
+            storage = await p.fetchval("select coalesce(sum(size_bytes), 0) from files where project_id=any($1::text[])", project_ids) or 0
+    pending = await p.fetchval("select count(*) from access_requests where status='pendente'") if role in ("admin", "patrocinador", "auditor") else 0
     logs = await p.fetch("select * from activity_logs order by created_at desc limit 8")
     return {"projects": [project(row) for row in projects], "totalMembros": int(members), "totalMapas": int(files), "armazenamentoMb": round(int(storage) / 1048576, 2), "pendencias": int(pending or 0), "activity": [dump(row) for row in logs], "source": "database", "consultedAt": now().isoformat()}
 
