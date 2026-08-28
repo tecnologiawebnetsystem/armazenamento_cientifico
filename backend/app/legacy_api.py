@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import logging
 import math
 import os
 import re
@@ -17,6 +18,8 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, EmailStr, Field
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 Role = Literal[
     "admin", "gerente", "patrocinador", "auditor", "participante", "visualizador", "gestor"
@@ -155,6 +158,10 @@ class SQLitePool:
     def __init__(self, database_url: str):
         path = database_url.split("///", 1)[-1]
         self.path = os.path.abspath(path)
+        self.database_url = database_url
+
+    async def close(self):
+        return None
 
     @staticmethod
     def _query(sql: str, args: tuple) -> tuple[str, tuple]:
@@ -197,14 +204,30 @@ pool: asyncpg.Pool | SQLitePool | None = None
 async def startup():
     global pool
     url = settings.database_url
+    logger.info(
+        "database_startup engine=%s url_scheme=%s database_url_configured=%s",
+        settings.database_engine,
+        url.split("://", 1)[0] if url else "none",
+        bool(url),
+    )
     if settings.database_engine == "sqlite":
-        pool = SQLitePool(url)
+        try:
+            pool = SQLitePool(url)
+            await pool.fetchval("select 1")
+            logger.info("database_connected engine=sqlite path=%s", pool.path)
+        except Exception:
+            pool = None
+            logger.exception("database_connection_failed engine=sqlite")
         return
     if url:
         try:
             pool = await asyncpg.create_pool(url, min_size=1, max_size=10, command_timeout=30)
+            logger.info("database_connected engine=postgresql")
         except (OSError, asyncpg.PostgresError):
             pool = None
+            logger.exception("database_connection_failed engine=postgresql")
+    else:
+        logger.error("database_not_configured reason=empty_DATABASE_URL")
 
 
 @app.on_event("shutdown")
@@ -215,6 +238,7 @@ async def shutdown():
 
 async def db():
     if not pool:
+        logger.error("database_unavailable endpoint_request=true")
         raise HTTPException(503, "Banco de dados não configurado")
     return pool
 
@@ -276,6 +300,7 @@ async def health():
 
 @app.post("/api/auth/login")
 async def login(x: Login, response: Response):
+    logger.info("login_attempt email=%s", str(x.email))
     p = await db()
     if settings.database_engine == "sqlite":
         u = await p.fetchrow("select * from users where lower(email)=lower(?)", str(x.email))
@@ -300,6 +325,7 @@ async def login(x: Login, response: Response):
         max_age=28800,
     )
     await audit(u, "login", "sessao", sid)
+    logger.info("login_success user_id=%s", u["id"])
     return {"user": user(u)}
 
 
