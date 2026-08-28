@@ -65,18 +65,19 @@ Frontend e backend são aplicações independentes e devem ser iniciados em term
 
 ```bash
 cd backend
-python -m venv .venv
+python -m venv venv
 
 # Linux/macOS
 source .venv/bin/activate
 
 # Windows PowerShell
-.venv\\Scripts\\Activate.ps1
+venv\Scripts\activate
 
-pip install -r requirements.txt
+pip install -r requirements.txt --index-url https://jfrog.petrobras.dev.br/artifactory/api/pypi/pypi-group-all/simple --trusted-host jfrog.petrobras.dev.br
+
 cp .env.example .env
 alembic upgrade head
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
+uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
 ```
 
 ### Iniciar o frontend
@@ -85,7 +86,7 @@ Em outro terminal:
 
 ```bash
 cd frontend
-pnpm install
+npm install
 ```
 
 Crie `frontend/.env.local`:
@@ -97,7 +98,8 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 Depois execute:
 
 ```bash
-pnpm dev
+npm run build
+npm run dev
 ```
 
 ### URLs importantes
