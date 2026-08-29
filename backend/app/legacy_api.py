@@ -79,7 +79,7 @@ def project(row):
 
 def row_value(row, key, default=None):
     if isinstance(row, dict):
-        return row_value(row, key, default)
+        return row.get(key, default)
     if hasattr(row, "keys"):
         return row[key] if key in row.keys() else default
     return getattr(row, key, default)
