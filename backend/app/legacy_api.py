@@ -764,9 +764,10 @@ async def unshare(fid: str, userId: str, request: Request):
 
 @app.get("/api/users")
 async def users(request: Request):
-    await require(request, ("admin", "gerente", "patrocinador", "auditor", "solicitante"))
+    await require(request)
     p = await db()
-    return {"users": [user(r) for r in await p.fetch("select * from users order by name")]}
+    rows = await p.fetch("select * from users order by name")
+    return {"users": [user(r) for r in rows], "total": len(rows)}
 
 
 @app.patch("/api/users/{uid}")
@@ -886,14 +887,14 @@ async def export_logs(
     de: str | None = None,
     ate: str | None = None,
 ):
-    data = (await activity_logs(request, usuario=usuario, acao=acao, projeto=projeto, q_search=q, resultado=resultado, de=de, ate=ate, page=1, limit=100)) ["logs"]
     actor = await require(request, ("admin", "auditor"))
+    data = (await activity_logs(request, usuario=usuario, acao=acao, projeto=projeto, q_search=q, resultado=resultado, de=de, ate=ate, page=1, limit=100))["logs"]
     await audit(actor, "exportar-logs", "auditoria", None, f"formato={format}")
     out = io.StringIO()
     if format == "csv":
         w = csv.writer(out)
         columns = {"id": "ID", "usuario": "Usuário", "acao": "Ação", "entidade": "Entidade", "entidadeId": "ID da entidade", "detalhes": "Detalhes", "criadoEm": "Data", "correlationId": "Correlation ID"}
-        selected = [key for key in fields.split(",") if key in columns]
+        selected = [key.strip() for key in fields.split(",") if key.strip() in columns] or list(columns)
         w.writerow([columns[key] for key in selected])
         for x in data:
             w.writerow([x.get(key, "") for key in selected])
