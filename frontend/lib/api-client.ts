@@ -76,8 +76,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export async function downloadFile(path: string): Promise<Blob> {
   const res = await fetchRequest(`${API_BASE_URL}${path}`, { headers: { Accept: "application/octet-stream" } })
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ message: res.statusText }))
-    throw new ApiError(res.status, body.message ?? "Não foi possível gerar o arquivo")
+    const contentType = res.headers.get("content-type") ?? ""
+    let message = res.statusText || "Não foi possível gerar o arquivo"
+    if (contentType.includes("application/json")) {
+      const body = await res.json().catch(() => null)
+      if (typeof body === "string") message = body
+      else if (body && typeof body === "object") message = body.message ?? body.detail ?? message
+    } else {
+      const text = await res.text().catch(() => "")
+      if (text.trim()) message = text.trim()
+    }
+    throw new ApiError(res.status, `${message} (HTTP ${res.status})`)
   }
   return res.blob()
 }

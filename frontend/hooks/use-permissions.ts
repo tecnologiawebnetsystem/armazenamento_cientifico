@@ -31,16 +31,31 @@ export function shareLevelLabel(level: ShareLevel) {
   }
 }
 
-export function roleLabel(role: Role) {
-  switch (role) {
+export function roleLabel(role: Role | string | null | undefined) {
+  switch (String(role ?? "").toLowerCase()) {
     case "admin":
+    case "administrador":
+    case "administrator":
       return "Administrador"
     case "gerente":
+    case "gestor":
+    case "manager":
       return "Gestor"
     case "patrocinador":
+    case "sponsor":
       return "Patrocinador"
     case "auditor":
+    case "audit":
       return "Auditor"
+    case "participante":
+    case "participant":
+      return "Participante"
+    case "visualizador":
+    case "visualizador_leitura":
+    case "viewer":
+      return "Visualizador"
+    default:
+      return String(role ?? "Permissão não informada")
   }
 }
 
