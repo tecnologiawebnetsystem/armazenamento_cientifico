@@ -1,14 +1,12 @@
 import { redirect } from "next/navigation"
-import { getSessionUserId } from "@/lib/session"
-import { findUserById } from "@/lib/store"
+import { getBackendSession } from "@/lib/session"
 import { NewProjectForm } from "@/components/projects/new-project-form"
 
 export default async function NovoProjetoPage() {
-  const userId = await getSessionUserId()
-  const user = findUserById(userId)
+  const user = await getBackendSession()
   if (!user) redirect("/login")
 
-  const canCreate = user.role === "admin"
+  const canCreate = user.role === "admin" || user.role === "gerente" || user.role === "patrocinador"
   if (!canCreate) redirect("/projetos")
 
   return (

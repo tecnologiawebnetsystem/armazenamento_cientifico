@@ -95,7 +95,7 @@ export function UsersTable({ currentUserId }: { currentUserId: string }) {
                         {roleLabel(u.role)} (você)
                       </Badge>
                     ) : (
-                      <Select disabled={profilesLoading} value={u.perfilId ?? profiles.find((p) => p.nome.toLowerCase() === u.role || (u.role === "admin" && p.id === "ADM"))?.id ?? "PAR"} onValueChange={(v) => handleProfileChange(u.id, v)}>
+                      <Select disabled={profilesLoading} value={u.perfilId || "PAR"} onValueChange={(v) => v && handleProfileChange(u.id, v)}>
                         <SelectTrigger className="w-44">
                           <SelectValue />
                         </SelectTrigger>
@@ -103,7 +103,7 @@ export function UsersTable({ currentUserId }: { currentUserId: string }) {
                           <SelectGroup>
                             {profiles.map((profile) => (
                               <SelectItem key={profile.id} value={profile.id}>
-                                {profile.id} — {profile.label}
+                                {profile.id} — {profile.nome}
                               </SelectItem>
                             ))}
                           </SelectGroup>

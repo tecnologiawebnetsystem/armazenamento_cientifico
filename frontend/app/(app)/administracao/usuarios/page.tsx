@@ -1,13 +1,12 @@
 import { redirect } from "next/navigation"
-import { getSessionUserId } from "@/lib/session"
-import { findUserById } from "@/lib/store"
+import { getBackendSession } from "@/lib/session"
 import { UsersTable } from "@/components/administracao/users-table"
 
 export default async function AdministracaoUsuariosPage() {
-  const userId = await getSessionUserId()
-  const user = findUserById(userId)
+  const user = await getBackendSession()
   if (!user) redirect("/login")
   if (user.role !== "admin") redirect("/dashboard")
+  const userId = user.id
 
   return (
     <div className="flex flex-col gap-6">
@@ -18,7 +17,7 @@ export default async function AdministracaoUsuariosPage() {
         </p>
       </div>
 
-      <UsersTable currentUserId={user.id} />
+      <UsersTable currentUserId={userId} />
     </div>
   )
 }
