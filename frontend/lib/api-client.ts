@@ -22,22 +22,21 @@ import type {
  *
  * Nenhum componente deve chamar `fetch` diretamente — toda comunicação com o
  * backend FastAPI passa por aqui. Configure `NEXT_PUBLIC_API_BASE_URL` para a
- * URL do serviço Python em desenvolvimento e produção; não há fallback para
- * dados mockados ou API Routes locais.
+ * URL do serviço Python em desenvolvimento e produção. O cliente nunca usa
+ * dados mockados, estado em memória ou API Routes locais.
  */
 const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
-const API_BASE_URL = configuredApiBaseUrl ? configuredApiBaseUrl.replace(/\/$/, "") : ""
+const API_BASE_URL = (configuredApiBaseUrl || "http://localhost:8080").replace(/\/$/, "")
 
 /**
- * Cliente HTTP único da aplicação. Em desenvolvimento, as rotas relativas
- * (`/api/*`) são a ponte local temporária até o FastAPI receber uma URL pública.
- * Quando `NEXT_PUBLIC_API_BASE_URL` estiver configurada, todas as chamadas vão
- * diretamente para o FastAPI e não existe fallback automático para outra fonte.
+ * Todas as chamadas são direcionadas ao FastAPI configurado; o valor padrão de
+ * desenvolvimento é `http://localhost:8080` para manter SQLite e PostgreSQL
+ * compatíveis sem alterar o código do frontend.
  */
 export const API_CONFIG = {
   baseUrl: API_BASE_URL,
-  usingExternalBackend: Boolean(configuredApiBaseUrl),
-  mode: configuredApiBaseUrl ? "fastapi" : "local-bridge",
+  usingExternalBackend: true,
+  mode: "fastapi",
 } as const
 
 class ApiError extends Error {
@@ -160,7 +159,7 @@ export function getProjectAccessMap(projectId: string) {
 }
 
 export function getProjectMembers(projectId: string) {
-  return request<{ members: (ProjectMember & { user: User })[] }>(`/api/projects/${projectId}/members`)
+  return request<(ProjectMember & { user: User })[]>(`/api/projects/${projectId}/members`).then((members) => ({ members }))
 }
 
 export function addProjectMember(projectId: string, userId: string, papel: ProjectMemberRole) {
@@ -222,17 +221,19 @@ export function deleteFileNode(id: string) {
   return request<void>(`/api/files/${id}`, { method: "DELETE" })
 }
 
-export function shareFileNode(id: string, userId: string, nivel: ShareLevel) {
-  return request<{ file: FileNode }>(`/api/files/${id}/share`, {
+export async function shareFileNode(id: string, userId: string, nivel: ShareLevel) {
+  await request(`/api/files/${id}/permissions`, {
     method: "POST",
-    body: JSON.stringify({ userId, nivel }),
+    body: JSON.stringify({ user_id: userId, level: nivel }),
   })
+  return request<{ file: FileNode }>(`/api/files/${id}`)
 }
 
-export function unshareFileNode(id: string, userId: string) {
-  return request<{ file: FileNode }>(`/api/files/${id}/share?userId=${userId}`, {
+export async function unshareFileNode(id: string, userId: string) {
+  await request<void>(`/api/files/${id}/permissions?user_id=${encodeURIComponent(userId)}`, {
     method: "DELETE",
   })
+  return request<{ file: FileNode }>(`/api/files/${id}`)
 }
 
 /* -------------------------------- Dashboard -------------------------------- */
@@ -270,14 +271,14 @@ export function getProjectReportExportPath(params: { format: "csv" | "txt" | "pd
 /* ---------------------------------- Users --------------------------------- */
 
 export function getUsers() {
-  return request<{ users: User[] }>("/api/users")
+  return request<User[]>("/api/users").then((users) => ({ users }))
 }
 
 export function updateUserRole(id: string, role: Role, perfilId: string) {
-  return request<User>(`/api/users/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify({ role, perfilId }),
-  })
+return request<User>(`/api/users/${id}/role`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    })
 }
 
 /* ----------------------------- Access requests ---------------------------- */

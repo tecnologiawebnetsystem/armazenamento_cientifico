@@ -20,6 +20,7 @@ import type {
   ProjectMember,
   User,
   ProjectMemberRole,
+  Role,
   ShareLevel,
 } from "@/lib/types"
 
