@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
-import { MoreVerticalIcon, UserPlusIcon, Loader2Icon } from "lucide-react"
+import { MoreVerticalIcon, UserPlusIcon, Loader2Icon, UsersIcon } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardAction } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -111,10 +111,15 @@ export function ProjectMembersTab({ projectId, canManage }: { projectId: string;
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Membros e permissões</CardTitle>
-        <CardDescription>Gerencie quem participa do projeto e o papel de cada pessoa.</CardDescription>
+    <Card className="overflow-hidden border-border/80 shadow-sm">
+      <CardHeader className="border-b bg-muted/30 px-5 py-5 sm:px-7">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-petrobras-green text-primary-foreground"><UsersIcon className="size-5" aria-hidden="true" /></div>
+            <div className="flex flex-col gap-1"><CardTitle className="text-xl tracking-tight">Membros e permissões</CardTitle><CardDescription>Controle participantes, papéis e acesso ao projeto.</CardDescription></div>
+          </div>
+          <Badge variant="secondary" className="w-fit">{members.length} {members.length === 1 ? "membro" : "membros"}</Badge>
+        </div>
         {canManage && (
           <CardAction>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -197,7 +202,9 @@ export function ProjectMembersTab({ projectId, canManage }: { projectId: string;
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="flex flex-col gap-1">
+          <div className="overflow-hidden rounded-xl border border-border/80 bg-background">
+            <div className="hidden grid-cols-[minmax(0,1fr)_180px_44px] items-center gap-3 border-b bg-muted/30 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid"><span>Colaborador</span><span>Papel no projeto</span><span /></div>
+            <div className="flex flex-col divide-y divide-border">
             {members.map((member) => (
               <div
                 key={member.userId}
@@ -240,6 +247,7 @@ export function ProjectMembersTab({ projectId, canManage }: { projectId: string;
                 </div>
               </div>
             ))}
+            </div>
           </div>
         )}
       </CardContent>
