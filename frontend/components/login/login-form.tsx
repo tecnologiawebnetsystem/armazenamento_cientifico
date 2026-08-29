@@ -20,7 +20,7 @@ export function LoginForm() {
     setError(null)
     setLoading(true)
     try {
-      const result = await login(email)
+      await login(email)
       router.replace("/dashboard")
       router.refresh()
     } catch (err) {

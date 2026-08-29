@@ -8,7 +8,7 @@ from app.db.base import Base
 class Permission(Base):
     __tablename__ = "permissoes"
     id: Mapped[str] = mapped_column(String(80), primary_key=True)
-    modulo_id: Mapped[str] = mapped_column(String(80), nullable=False)
+    modulo_id: Mapped[str] = mapped_column(ForeignKey("modulos.id", ondelete="CASCADE"), nullable=False, index=True)
     nome: Mapped[str] = mapped_column(String(120), nullable=False)
     descricao: Mapped[str] = mapped_column(Text, default="", nullable=False)
     ativo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

@@ -2,8 +2,7 @@
 
 import { useMemo, useState } from "react"
 import useSWR from "swr"
-import Link from "next/link"
-import { Search, Users, FolderKanban, Files, FolderOpen, ShieldCheck, Clock3, FileBarChart } from "lucide-react"
+import { Search, Users, FolderKanban, Files, FolderOpen, ShieldCheck, Clock3 } from "lucide-react"
 import { ExportButton, ExportFieldsDialog, type ExportField } from "@/components/export-fields-dialog"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -73,5 +72,6 @@ export default function PesquisasPage() {
       <div className="flex flex-wrap gap-2"><Badge variant="outline">Visão: {view}</Badge>{rows.some((row) => row.accessLevel === "gerente" && row.resourceType === "arquivo") && <Badge variant="destructive">Conflitos detectados</Badge>}<Badge variant="secondary">{rows.filter((row) => !row.userEmail).length} sem correspondência</Badge></div>
       <div className="overflow-x-auto rounded-xl border border-border/70 bg-background/80 shadow-sm">      <Table><TableHeader><TableRow><TableHead>Usuário</TableHead><TableHead>Projeto</TableHead><TableHead>Recurso</TableHead><TableHead>Acesso</TableHead><TableHead>Última visualização</TableHead></TableRow></TableHeader><TableBody>{rows.map((row) => <TableRow key={`${row.userId}-${row.resourceId}`}><TableCell><div className="flex flex-col"><span className="font-medium">{row.userName}</span><span className="text-xs text-muted-foreground">{row.userEmail}</span></div></TableCell><TableCell><div className="flex flex-col"><span>{row.projectName}</span><span className="text-xs text-muted-foreground">{row.projectId}</span></div></TableCell><TableCell><div className="flex items-center gap-2"><span className="size-2 rounded-full bg-primary" />{row.resourceName}<span className="text-xs text-muted-foreground">({row.resourceType})</span></div></TableCell><TableCell><Badge variant={row.accessLevel === "edicao" || row.accessLevel === "gerente" ? "default" : "secondary"}>{row.accessLevel}</Badge></TableCell><TableCell><span className="flex items-center gap-2 text-sm text-muted-foreground"><Clock3 className="size-4" />{safeDate(row.lastViewedAt)}</span></TableCell></TableRow>)}</TableBody></Table></div>{rows.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">Nenhum acesso encontrado para os filtros selecionados.</p>}
     </CardContent></Card>
+    <ExportFieldsDialog open={exportOpen} onOpenChange={setExportOpen} title="mapa de acessos" fields={exportFields} onConfirm={exportRows} />
   </main>
 }
