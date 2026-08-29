@@ -648,7 +648,7 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
               </div>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-muted-foreground">Enviado por</span>
-                <span className="text-foreground">{memberById(previewTarget.criadoPor)?.nome ?? "—"}</span>
+                <span className="text-foreground">{previewTarget.criadoPor || "—"}</span>
               </div>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-muted-foreground">Última atualização</span>
