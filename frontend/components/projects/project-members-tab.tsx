@@ -62,7 +62,7 @@ export function ProjectMembersTab({ projectId, canManage }: { projectId: string;
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const availableUsers = useMemo(
-    () => users.filter((u) => !members.some((m) => m.userId === u.id)),
+    () => users.filter((u) => !members.some((m) => String(m.userId) === String(u.id))),
     [users, members],
   )
 
@@ -130,11 +130,11 @@ export function ProjectMembersTab({ projectId, canManage }: { projectId: string;
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        {availableUsers.map((u) => (
-                          <SelectItem key={u.id} value={u.id}>
-                            {u.nome} · {u.area}
+                        {availableUsers.length > 0 ? availableUsers.map((u) => (
+                          <SelectItem key={u.id} value={String(u.id)}>
+                            {u.nome || u.email} · {u.area || "Sem área"}
                           </SelectItem>
-                        ))}
+                        )) : <SelectItem value="__nenhum_usuario__" disabled>Nenhum usuário disponível</SelectItem>}
                       </SelectGroup>
                     </SelectContent>
                   </Select>
