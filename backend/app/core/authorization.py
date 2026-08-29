@@ -3,11 +3,12 @@ from typing import Any, Final
 
 from fastapi import HTTPException
 
-OFFICIAL_ROLES: Final = {"admin", "gerente", "patrocinador", "auditor"}
+OFFICIAL_ROLES: Final = {"admin", "gerente", "patrocinador", "auditor", "solicitante"}
 LEGACY_ROLE_MAP: Final = {
     "gestor": "gerente",
-    "participante": "gerente",
+    "participante": "solicitante",
     "visualizador": "auditor",
+    "solicitante": "solicitante",
 }
 
 

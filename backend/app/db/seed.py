@@ -29,6 +29,7 @@ SEED_PERFIS = [
     ("PAT", "patrocinador", "Acompanhamento e aprovação"),
     ("PAR", "participante", "Participação em projetos"),
     ("VIS", "visualizador", "Acesso somente leitura"),
+    ("SOL", "solicitante", "Solicitação e acompanhamento de acessos"),
     ("GES", "gestor", "Gestão de projeto"),
 ]
 

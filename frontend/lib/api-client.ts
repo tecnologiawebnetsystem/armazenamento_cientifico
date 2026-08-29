@@ -304,8 +304,9 @@ export function getProjectReportExportPath(params: { format: "csv" | "txt" | "pd
 
 /* ---------------------------------- Users --------------------------------- */
 
-export function getUsers() {
-  return request<User[]>("/api/users").then((users) => ({ users }))
+export async function getUsers() {
+  const response = await request<User[] | { users: User[] }>("/api/users")
+  return { users: Array.isArray(response) ? response : (response.users ?? []) }
 }
 
 export function updateUserRole(id: string, role: Role, perfilId: string) {
