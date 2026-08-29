@@ -102,7 +102,7 @@ export function ProjectInfoTab({
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3" aria-label="Resumo do projeto">
         <div className="flex items-center gap-3 border-l-4 border-petrobras-green bg-petrobras-green/5 px-4 py-3">
           <CircleCheckIcon className="size-5 text-petrobras-green" aria-hidden="true" />
           <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status atual</p><p className="font-semibold text-foreground">{statusLabel}</p></div>
