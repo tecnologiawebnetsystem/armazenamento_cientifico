@@ -21,7 +21,7 @@ type Props = {
 
 // Ajuste visual rápido da modal: teste estes dois valores aos poucos.
 // Largura: max-w-4xl, max-w-5xl, max-w-6xl ou max-w-7xl.
-export const EXPORT_DIALOG_WIDTH_CLASS = "max-w-none sm:w-[min(96vw,80rem)]"
+export const EXPORT_DIALOG_WIDTH_CLASS = "sm:max-w-[700px]"
 // Altura: use min-h-[70vh] max-h-[92vh] e ajuste os percentuais conforme necessário.
 export const EXPORT_DIALOG_HEIGHT_CLASS = "min-h-[78vh] max-h-[94vh]"
 
