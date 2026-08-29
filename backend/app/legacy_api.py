@@ -46,6 +46,14 @@ def dump(row):
     return d
 
 
+def isoformat_value(value):
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return str(value)
+
+
 def project(row):
     d = dump(row)
     return {
@@ -352,15 +360,16 @@ async def catalogs(request: Request):
 
 async def audit(u, action, entity, eid, details=""):
     p = await db()
-    await p.execute(
-        "insert into activity_logs(id,user_id,action,entity,entity_id,details,created_at) values($1,$2,$3,$4,$5,$6,now())",
-        str(uuid4()),
-        u["id"],
-        action,
-        entity,
-        eid,
-        details[:4000],
-    )
+    if settings.database_engine == "sqlite":
+        await p.execute(
+            "insert into activity_logs(id,user_id,action,entity,entity_id,details,created_at) values(?,?,?,?,?,?,datetime('now'))",
+            str(uuid4()), u["id"], action, entity, eid or "", details[:4000],
+        )
+    else:
+        await p.execute(
+            "insert into activity_logs(id,user_id,action,entity,entity_id,details,created_at) values($1,$2,$3,$4,$5,$6,now())",
+            str(uuid4()), u["id"], action, entity, eid, details[:4000],
+        )
 
 
 async def visible(u, pid):
@@ -806,29 +815,60 @@ async def dashboard_summary(request: Request):
 async def activity_logs(
     request: Request,
     userId: str | None = None,
+    usuario: str | None = None,
     acao: str | None = None,
     entidade: str | None = None,
+    projeto: str | None = None,
     search: str | None = None,
+    q_search: str | None = Query(None, alias="q"),
     from_: str | None = Query(None, alias="from"),
+    de: str | None = None,
     to: str | None = None,
+    ate: str | None = None,
+    resultado: str | None = None,
+    page: int = 1,
+    limit: int = 10,
 ):
     await require(request, ("admin", "auditor"))
     p = await db()
+    page = max(page, 1)
+    limit = min(max(limit, 1), 100)
+    search = search or q_search
+    user_filter = userId or usuario
+    start = de or from_
+    end = ate or to
+    filters = []
     args = []
-    c = []
-    for col, val in [("user_id", userId), ("action", acao), ("entity", entidade)]:
-        if val:
-            c.append(f"{col}=${len(args) + 1}")
-            args.append(val)
+    placeholder = "?" if settings.database_engine == "sqlite" else "$%d"
+    def bind(value):
+        args.append(value)
+        return "?" if settings.database_engine == "sqlite" else f"${len(args)}"
+    for column, value in (("a.user_id", user_filter), ("a.action", acao), ("a.entity", entidade)):
+        if value:
+            filters.append(f"{column}={bind(value)}")
+    if projeto:
+        filters.append(f"(a.entity_id={bind(projeto)} OR p.id={bind(projeto)})")
     if search:
-        c.append(f"details ilike ${len(args) + 1}")
-        args.append(f"%{search}%")
-    q = (
-        "select * from activity_logs"
-        + ((" where " + " and ".join(c)) if c else "")
-        + " order by created_at desc limit 1000"
-    )
-    return {"logs": [dump(r) for r in await p.fetch(q, *args)]}
+        search_value = f"%{search}%"
+        filters.append(f"(a.details LIKE {bind(search_value)} OR u.name LIKE {bind(search_value)} OR p.name LIKE {bind(search_value)} OR a.action LIKE {bind(search_value)})")
+    if resultado:
+        filters.append("1=0" if resultado == "erro" else "1=1")
+    if start:
+        filters.append(f"date(a.created_at) >= date({bind(start)})")
+    if end:
+        filters.append(f"date(a.created_at) <= date({bind(end)})")
+    where = (" WHERE " + " AND ".join(filters)) if filters else ""
+    join = "LEFT JOIN users u ON u.id=a.user_id LEFT JOIN projects p ON p.id=a.entity_id"
+    count = await p.fetchval(f"SELECT COUNT(*) FROM activity_logs a {join}{where}", *args)
+    offset = (page - 1) * limit
+    args.extend([limit, offset])
+    lim = "LIMIT ? OFFSET ?" if settings.database_engine == "sqlite" else f"LIMIT ${len(args)-1} OFFSET ${len(args)}"
+    rows = await p.fetch(f"SELECT a.*, u.name AS user_name, u.email AS user_email, p.name AS project_name FROM activity_logs a {join}{where} ORDER BY a.created_at DESC {lim}", *args)
+    logs = []
+    for row in rows:
+        item = dump(row)
+        logs.append({"id": item.get("id"), "userId": item.get("user_id"), "acao": item.get("action"), "entidade": item.get("entity"), "entidadeId": item.get("entity_id"), "detalhes": item.get("details") or "", "criadoEm": item.get("created_at"), "resultado": "sucesso", "projetoId": item.get("project_id") or (item.get("entity_id") if item.get("entity") == "projeto" else None), "correlationId": item.get("correlation_id"), "user": {"nome": item.get("user_name"), "email": item.get("user_email")} if item.get("user_name") else None, "projetoNome": item.get("project_name")})
+    return {"logs": logs, "pagination": {"page": page, "limit": limit, "total": int(count or 0), "totalPages": max((int(count or 0) + limit - 1) // limit, 1)}}
 
 
 @app.get("/api/activity-logs/export")
@@ -982,7 +1022,7 @@ async def access_map(request: Request):
                 "resourceName": x["resource_name"],
                 "resourceType": x["resource_type"],
                 "accessLevel": x["access_level"],
-                "lastViewedAt": x["last_viewed_at"].isoformat() if x["last_viewed_at"] else None,
+                "lastViewedAt": isoformat_value(x["last_viewed_at"]),
             }
             for x in rows
         ],
