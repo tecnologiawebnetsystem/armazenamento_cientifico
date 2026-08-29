@@ -199,23 +199,21 @@ export function ProjectMembersTab({ projectId, canManage }: { projectId: string;
                   </Avatar>
                   <div className="flex min-w-0 flex-col">
                     <span className="truncate text-sm font-medium text-foreground">{member.user.nome}</span>
-                    <span className="truncate text-xs text-muted-foreground">{member.user.cargo}</span>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="truncate text-xs text-muted-foreground">{member.user.cargo}</span>
+                      <Badge className="border-petrobras-yellow/50 bg-petrobras-yellow/15 text-foreground" variant="outline">{roleLabel(member.papel)}</Badge>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline">{roleLabel(member.papel)}</Badge>
                   {canManage && (
                     <DropdownMenu>
                       <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="size-8" />}>
                         <MoreVerticalIcon className="size-4" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        {assignableRoles.map((r) => (
-                          <DropdownMenuItem
-                            key={r}
-                            disabled={member.papel === r}
-                            onClick={() => handleRoleChange(member.userId, r)}
-                          >
+                        {assignableRoles.filter((r) => r !== member.papel).map((r) => (
+                          <DropdownMenuItem key={r} onClick={() => handleRoleChange(member.userId, r)}>
                             Definir como {roleLabel(r)}
                           </DropdownMenuItem>
                         ))}

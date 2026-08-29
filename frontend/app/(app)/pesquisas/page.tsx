@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { getAccessMap, getAccessMapExportUrl } from "@/lib/api-client"
+import { downloadFile, getAccessMap, getAccessMapExportUrl } from "@/lib/api-client"
 import type { AccessMapResponse } from "@/lib/types"
 import { PetrobrasLoading } from "@/components/petrobras-loading"
 import { BackButton } from "@/components/navigation/back-button"
@@ -52,10 +52,18 @@ export default function PesquisasPage() {
     { key: "acesso", label: "Nível de acesso" },
     { key: "ultimaVisualizacao", label: "Última visualização" },
   ]
-  const exportRows = (fields: string[], formats: ("csv" | "txt" | "pdf")[]) => {
-    formats.forEach((format) => {
-      window.open(getAccessMapExportUrl({ format, fields: fields.join(","), q: search, type, level, view }), "_blank", "noopener,noreferrer")
-    })
+  const exportRows = async (fields: string[], formats: ("csv" | "txt" | "pdf")[]) => {
+    for (const format of formats) {
+      if (format === "pdf") continue
+      const path = getAccessMapExportUrl({ format, fields: fields.join(","), q: search, type, level, view }).replace(/^https?:\/\/[^/]+/, "")
+      const blob = await downloadFile(path)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `mapa-de-acessos.${format}`
+      link.click()
+      URL.revokeObjectURL(url)
+    }
   }
   const cards: KpiItem[] = [
     { icon: Users, label: "Usuários no escopo", value: String(data.summary.users), tone: "teal" },

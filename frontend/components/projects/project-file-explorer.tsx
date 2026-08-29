@@ -91,8 +91,11 @@ function formatBytes(bytes?: number) {
   return `${bytes} B`
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
+function formatDate(iso?: string | null) {
+  if (!iso) return "—"
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return "—"
+  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
 }
 
 function initials(nome: string) {
