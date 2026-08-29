@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
-import { getSessionUserId } from "@/lib/session"
+import { getBackendSession } from "@/lib/session"
+
 export default async function Page() {
-  const userId = await getSessionUserId()
-  redirect(userId ? "/dashboard" : "/login")
+  const user = await getBackendSession()
+  redirect(user ? "/dashboard" : "/login")
 }
