@@ -34,6 +34,14 @@ import type { Role } from "@/lib/types"
 
 const assignableRoles: Role[] = ["gestor", "participante", "visualizador"]
 
+function normalizedRole(value: unknown): Role | string {
+  const normalized = String(value ?? "").toLowerCase()
+  if (normalized === "gestor" || normalized === "gerente" || normalized === "manager") return "gestor"
+  if (normalized === "participante" || normalized === "participant") return "participante"
+  if (normalized === "visualizador" || normalized === "viewer") return "visualizador"
+  return normalized
+}
+
 function initials(nome: string) {
   return nome
     .split(" ")
@@ -201,7 +209,7 @@ export function ProjectMembersTab({ projectId, canManage }: { projectId: string;
                     <span className="truncate text-sm font-medium text-foreground">{member.user.nome}</span>
                     <div className="flex min-w-0 items-center gap-2">
                       <span className="truncate text-xs text-muted-foreground">{member.user.cargo}</span>
-                      <Badge className="border-petrobras-yellow/50 bg-petrobras-yellow/15 text-foreground" variant="outline">{roleLabel(member.papel)}</Badge>
+                      <Badge className="border-petrobras-yellow/50 bg-petrobras-yellow/15 text-foreground" variant="outline">{roleLabel(normalizedRole(member.papel))}</Badge>
                     </div>
                   </div>
                 </div>
@@ -212,7 +220,7 @@ export function ProjectMembersTab({ projectId, canManage }: { projectId: string;
                         <MoreVerticalIcon className="size-4" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        {assignableRoles.filter((r) => r !== member.papel).map((r) => (
+                        {assignableRoles.filter((r, index, roles) => roles.indexOf(r) === index && r !== normalizedRole(member.papel)).map((r) => (
                           <DropdownMenuItem key={r} onClick={() => handleRoleChange(member.userId, r)}>
                             Definir como {roleLabel(r)}
                           </DropdownMenuItem>
