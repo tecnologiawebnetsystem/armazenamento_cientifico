@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from typing import Any, Final
 
 from fastapi import HTTPException
@@ -15,7 +16,12 @@ def canonical_role(role: str | None) -> str:
 
 
 def ensure_role(user: Any, *allowed_roles: str) -> Any:
-    raw_role = user.get("role") if isinstance(user, dict) else getattr(user, "role", None)
+    if isinstance(user, Mapping):
+        raw_role = user.get("role")
+    elif hasattr(user, "keys"):
+        raw_role = user["role"] if "role" in user.keys() else None
+    else:
+        raw_role = getattr(user, "role", None)
     role = canonical_role(raw_role)
     allowed = {canonical_role(item) for item in allowed_roles}
     if role not in allowed:
