@@ -291,7 +291,9 @@ async def current(request: Request):
         raise HTTPException(401, "Sessão ausente")
     p = await db()
     row = await p.fetchrow(
-        "select u.* from sessions s join users u on u.id=s.user_id where s.id=$1 and s.expires_at>now()",
+        "select u.* from sessions s join users u on u.id=s.user_id where s.id=? and datetime(s.expires_at) > datetime('now')"
+        if settings.database_engine == "sqlite"
+        else "select u.* from sessions s join users u on u.id=s.user_id where s.id=$1 and s.expires_at>now()",
         sid,
     )
     if not row:
@@ -342,7 +344,6 @@ async def catalogs(request: Request):
 
 async def audit(u, action, entity, eid, details=""):
     p = await db()
-    await p.execute("create table if not exists activity_logs (id text primary key, user_id text, action text not null, entity text not null, entity_id text, details text, created_at timestamp not null)")
     await p.execute(
         "insert into activity_logs(id,user_id,action,entity,entity_id,details,created_at) values($1,$2,$3,$4,$5,$6,now())",
         str(uuid4()),
@@ -434,7 +435,10 @@ async def logout(request: Request, response: Response):
     u = await current(request)
     sid = request.cookies.get("wayon_session_id")
     p = await db()
-    await p.execute("delete from sessions where id=$1", sid)
+    await p.execute(
+        "delete from sessions where id=?" if settings.database_engine == "sqlite" else "delete from sessions where id=$1",
+        sid,
+    )
     await audit(u, "logout", "sessao", sid)
     response.delete_cookie("wayon_session_id")
 
