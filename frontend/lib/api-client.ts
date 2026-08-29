@@ -353,7 +353,7 @@ export function getActivityLogs(params: ActivityLogQuery = {}) {
   })
   const query = queryParams.size ? `?${queryParams}` : ""
   return request<{
-    logs: (ActivityLog & { user: User | null })[]
+    logs: (ActivityLog & { user: User | null; projetoNome?: string | null })[]
     pagination: { page: number; limit: number; total: number; totalPages: number }
   }>(`/api/activity-logs${query}`)
 }
