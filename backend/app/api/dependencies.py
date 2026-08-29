@@ -32,4 +32,4 @@ def require_roles(*roles: str):
     return dependency
 
 
-CurrentUser = Annotated[dict, Depends(get_current_user)]
+CurrentUser = Annotated[object, Depends(get_current_user)]
