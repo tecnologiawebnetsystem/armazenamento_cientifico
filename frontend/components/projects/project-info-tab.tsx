@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Loader2Icon, Trash2Icon } from "lucide-react"
+import { Building2Icon, CalendarDaysIcon, CircleCheckIcon, ClipboardListIcon, Loader2Icon, Trash2Icon } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Field, FieldLabel, FieldDescription } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
@@ -98,13 +98,31 @@ export function ProjectInfoTab({
     }
   }
 
+  const statusLabel = statusOptions.find((option) => option.value === status)?.label ?? status
+
   return (
-    <Card className="overflow-hidden border-border/80 shadow-sm">
+    <div className="space-y-5">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="flex items-center gap-3 border-l-4 border-petrobras-green bg-petrobras-green/5 px-4 py-3">
+          <CircleCheckIcon className="size-5 text-petrobras-green" aria-hidden="true" />
+          <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status atual</p><p className="font-semibold text-foreground">{statusLabel}</p></div>
+        </div>
+        <div className="flex items-center gap-3 border-l-4 border-petrobras-blue bg-petrobras-blue/5 px-4 py-3">
+          <Building2Icon className="size-5 text-petrobras-blue" aria-hidden="true" />
+          <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Área responsável</p><p className="font-semibold text-foreground">{areaResponsavel || "Não informada"}</p></div>
+        </div>
+        <div className="flex items-center gap-3 border-l-4 border-muted-foreground/40 bg-muted/30 px-4 py-3">
+          <CalendarDaysIcon className="size-5 text-muted-foreground" aria-hidden="true" />
+          <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Última atualização</p><p className="font-semibold text-foreground">{new Date(project.atualizadoEm).toLocaleDateString("pt-BR")}</p></div>
+        </div>
+      </div>
+
+      <Card className="overflow-hidden border-border/80 shadow-sm">
       <CardHeader className="border-b bg-muted/30 px-5 py-5 sm:px-7">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1.5">
             <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-petrobras-green">Projeto científico</p>
-            <CardTitle className="text-2xl tracking-tight">{project.nome}</CardTitle>
+            <div className="flex items-center gap-3"><div className="flex size-11 items-center justify-center rounded-xl bg-petrobras-green text-primary-foreground"><ClipboardListIcon className="size-6" aria-hidden="true" /></div><CardTitle className="text-2xl tracking-tight">{project.nome}</CardTitle></div>
             <CardDescription>
               {canEdit ? "Atualize os dados essenciais e o contexto deste projeto." : "Visão geral dos dados deste projeto."}
             </CardDescription>
@@ -189,6 +207,7 @@ export function ProjectInfoTab({
           </Button>
         </CardFooter>
       )}
-    </Card>
+      </Card>
+    </div>
   )
 }

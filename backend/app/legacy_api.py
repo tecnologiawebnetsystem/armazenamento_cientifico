@@ -888,7 +888,21 @@ async def export_logs(
     ate: str | None = None,
 ):
     actor = await require(request, ("admin", "auditor"))
-    data = (await activity_logs(request, usuario=usuario, acao=acao, projeto=projeto, q_search=q, resultado=resultado, de=de, ate=ate, page=1, limit=100))["logs"]
+    data = (await activity_logs(
+        request,
+        usuario=usuario,
+        acao=acao,
+        projeto=projeto,
+        search=q,
+        q_search=None,
+        from_=None,
+        de=de,
+        to=None,
+        ate=ate,
+        resultado=resultado,
+        page=1,
+        limit=100,
+    ))["logs"]
     await audit(actor, "exportar-logs", "auditoria", None, f"formato={format}")
     out = io.StringIO()
     if format == "csv":
@@ -903,7 +917,7 @@ async def export_logs(
     else:
         out.write(
             "\n".join(
-                f"{x.get('created_at')} | {x.get('user_id')} | {x.get('action')} | {x.get('entity')}:{x.get('entity_id')} | {x.get('details')}"
+                f"{x.get('criadoEm')} | {x.get('userId')} | {x.get('acao')} | {x.get('entidade')}:{x.get('entidadeId')} | {x.get('detalhes')}"
                 for x in data
             )
         )
