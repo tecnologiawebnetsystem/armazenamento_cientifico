@@ -1066,3 +1066,46 @@ async def patch_settings(request: Request):
             json.dumps(v),
         )
     return {"settings": values}
+
+
+@app.get("/api/access-requests")
+async def access_requests(request: Request):
+    current_user = await require(request)
+    p = await db()
+    if normalized_role(current_user["role"]) == "admin":
+        rows = await p.fetch("select * from access_requests order by created_at desc")
+    else:
+        rows = await p.fetch("select * from access_requests where requester_id=$1 order by created_at desc", current_user["id"])
+    return {"requests": [dump(row) for row in rows]}
+
+
+@app.post("/api/access-requests", status_code=201)
+async def create_access_request(request: Request):
+    current_user = await require(request)
+    payload = await request.json()
+    project_id = payload.get("projetoId") or payload.get("projectId")
+    if not project_id:
+        raise HTTPException(422, "Projeto obrigatório")
+    request_id = str(uuid4())
+    p = await db()
+    await p.execute(
+        "insert into access_requests(id,project_id,requester_id,status,created_at) values($1,$2,$3,$4,$5)",
+        request_id, project_id, current_user["id"], "pendente", now(),
+    )
+    row = await p.fetchrow("select * from access_requests where id=$1", request_id)
+    return {"request": dump(row)}
+
+
+@app.patch("/api/access-requests/{request_id}")
+async def update_access_request(request_id: str, request: Request):
+    current_user = await require(request, ("admin",))
+    payload = await request.json()
+    status = payload.get("status")
+    if status not in {"aprovado", "negado"}:
+        raise HTTPException(422, "Status inválido")
+    p = await db()
+    row = await p.fetchrow("update access_requests set status=$1 where id=$2 returning *", status, request_id)
+    if not row:
+        raise HTTPException(404, "Solicitação não encontrada")
+    await audit(current_user, "atualizar-solicitacao", "solicitacao_acesso", request_id, status)
+    return {"request": dump(row)}

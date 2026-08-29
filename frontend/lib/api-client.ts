@@ -285,9 +285,9 @@ export function getUsers() {
 }
 
 export function updateUserRole(id: string, role: Role, perfilId: string) {
-return request<User>(`/api/users/${id}/role`, {
+return request<User>(`/api/users/${id}`, {
       method: "PATCH",
-      body: JSON.stringify({ role }),
+      body: JSON.stringify({ role, perfilId }),
     })
 }
 
