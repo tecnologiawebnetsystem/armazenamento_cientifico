@@ -3,7 +3,6 @@ from uuid import uuid4
 
 from sqlalchemy import text
 
-from app.db.base import Base
 from app.modules.audit.models import ActivityLog
 from app.modules.catalogs.models import (
     MenuItem,
@@ -16,7 +15,7 @@ from app.modules.catalogs.models import (
     ReportType,
     SystemSetting,
 )
-from app.modules.files.models import File, FileShare
+from app.modules.files.models import File
 from app.modules.files.permissions_model import FilePermission
 from app.modules.projects.member_model import ProjectMember
 from app.modules.projects.models import Project
@@ -64,11 +63,7 @@ SEED_PROJECTS = [
 ]
 
 async def initialize_database(engine) -> None:
-    # Importações registram todos os modelos no metadata antes da criação.
-    _ = (ActivityLog, File, FileShare, FilePermission, ProjectMember, Project, User, Perfil, Module, Permission, ProfileModule, ProfilePermission, ProjectStatusCatalog, ProjectType, ReportType, SystemSetting, MenuItem)
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-        await connection.run_sync(_create_compatibility_tables)
+    # O schema deve existir exclusivamente via Alembic antes da execução deste seed.
 
     from sqlalchemy import select
     from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -155,46 +150,5 @@ async def initialize_database(engine) -> None:
         await session.execute(text("INSERT INTO permission_matrix(id, matrix) VALUES (1, :matrix) ON CONFLICT(id) DO NOTHING"), {"matrix": '{"admin":["*"],"auditor":["read"],"gerente":["read","write"]}'})
 
         await session.commit()
-
-
-def _create_compatibility_tables(connection) -> None:
-    # Sessões e membros ainda consumidos pelos endpoints legados.
-    connection.execute(text("""
-        CREATE TABLE IF NOT EXISTS sessions (
-            id VARCHAR(36) PRIMARY KEY, user_id VARCHAR(36) NOT NULL,
-            expires_at TIMESTAMP NOT NULL
-        )
-    """))
-    connection.execute(text("""
-        CREATE TABLE IF NOT EXISTS project_members (
-            project_id VARCHAR(36) NOT NULL, user_id VARCHAR(36) NOT NULL,
-            papel VARCHAR(40) NOT NULL, created_at TIMESTAMP NOT NULL,
-            PRIMARY KEY (project_id, user_id)
-        )
-    """))
-    connection.execute(text("""
-        CREATE TABLE IF NOT EXISTS access_requests (
-            id VARCHAR(36) PRIMARY KEY, project_id VARCHAR(36), requester_id VARCHAR(36),
-            status VARCHAR(30), created_at TIMESTAMP NOT NULL
-        )
-    """))
-    connection.execute(text("""
-        CREATE TABLE IF NOT EXISTS permission_matrix (
-            id INTEGER PRIMARY KEY, matrix TEXT NOT NULL
-        )
-    """))
-    connection.execute(text("""
-        CREATE TABLE IF NOT EXISTS settings (
-            key VARCHAR(100) PRIMARY KEY, value TEXT NOT NULL
-        )
-    """))
-    connection.execute(text("""
-        CREATE TABLE IF NOT EXISTS activity_logs (
-            id VARCHAR(36) PRIMARY KEY, user_id VARCHAR(36), action VARCHAR(100) NOT NULL,
-            entity VARCHAR(100) NOT NULL, entity_id VARCHAR(36), details TEXT, created_at TIMESTAMP NOT NULL
-        )
-    """))
-    connection.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_user_id ON sessions(user_id)"))
-    connection.execute(text("CREATE INDEX IF NOT EXISTS ix_activity_logs_created_at ON activity_logs(created_at)"))
 
 __all__ = ["initialize_database"]
