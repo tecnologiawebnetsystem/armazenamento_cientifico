@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useActivityLogs, type ActivityLogFilters } from "@/hooks/use-activity-logs"
 import type { ActivityLog } from "@/lib/types"
+import { downloadFile } from "@/lib/api-client"
 import { ExportButton, ExportFieldsDialog, type ExportField } from "@/components/export-fields-dialog"
 
 type ActivityLogWithUser = ActivityLog & { user: { nome?: string; email?: string } | null; projetoNome?: string | null }
@@ -36,7 +37,7 @@ export function ActivityLogTable() {
   const filters: ActivityLogFilters = useMemo(() => ({ q: field(searchParams, "q"), usuario: field(searchParams, "usuario"), projeto: field(searchParams, "projeto"), acao: field(searchParams, "acao"), resultado: field(searchParams, "resultado"), de: field(searchParams, "de"), ate: field(searchParams, "ate"), page: Number(searchParams.get("page") ?? 1), limit: 10 }), [searchParams])
   const { logs, pagination, isLoading, isValidating } = useActivityLogs(filters)
   const update = (key: string, value: string) => { const next = new URLSearchParams(searchParams.toString()); value ? next.set(key, value) : next.delete(key); if (key !== "page") next.set("page", "1"); router.push(`${pathname}?${next}`) }
-  const exportLogs = (fields: string[], formats: ("csv" | "txt" | "pdf")[]) => { formats.forEach((format) => { const next = new URLSearchParams(searchParams.toString()); next.set("format", format); next.set("fields", fields.join(",")); window.open(`/api/activity-logs?${next.toString()}`, "_blank", "noopener,noreferrer") }) }
+  const exportLogs = async (fields: string[], formats: ("csv" | "txt" | "pdf")[]) => { for (const format of formats) { if (format === "pdf") continue; const next = new URLSearchParams(searchParams.toString()); next.set("format", format); next.set("fields", fields.join(",")); const blob = await downloadFile(`/api/activity-logs/export?${next.toString()}`); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `logs-de-auditoria.${format}`; link.click(); URL.revokeObjectURL(url) } }
   const options = useMemo(() => ({ actions: [...new Set(logs.map((log) => log.acao).filter((action) => Boolean(action)))] }), [logs])
   return <Card className="overflow-hidden border-petrobras-blue/15 bg-gradient-to-br from-background via-background to-petrobras-blue/5 shadow-[0_16px_45px_-28px_rgba(0,88,140,0.45)]">
     <CardHeader className="gap-5 border-b border-petrobras-blue/10 bg-gradient-to-r from-petrobras-green/5 via-background to-petrobras-yellow/10 pb-6"><div className="flex flex-wrap items-start justify-between gap-4"><div className="flex items-start gap-3"><div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-petrobras-blue/10 text-petrobras-blue shadow-sm"><HistoryIcon className="size-5" aria-hidden="true" /></div><div><CardTitle className="text-xl">Trilha de auditoria</CardTitle><CardDescription className="mt-1">{pagination.total} eventos no escopo autorizado. {isValidating ? "Atualizando…" : ""}</CardDescription></div></div><div className="flex gap-2"><ExportButton onClick={() => setExportOpen(true)} /></div></div>

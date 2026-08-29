@@ -874,26 +874,28 @@ async def activity_logs(
 
 
 @app.get("/api/activity-logs/export")
-async def export_logs(request: Request, format: Literal["csv", "txt"] = "csv"):
-    data = (await activity_logs(request))["logs"]
+async def export_logs(
+    request: Request,
+    format: Literal["csv", "txt"] = "csv",
+    fields: str = "id,usuario,acao,entidade,entidadeId,detalhes,criadoEm,correlationId",
+    q: str | None = None,
+    usuario: str | None = None,
+    projeto: str | None = None,
+    acao: str | None = None,
+    resultado: str | None = None,
+    de: str | None = None,
+    ate: str | None = None,
+):
+    data = (await activity_logs(request, usuario=usuario, acao=acao, projeto=projeto, q_search=q, resultado=resultado, de=de, ate=ate, page=1, limit=100)) ["logs"]
     await audit(await current(request), "exportar-logs", "auditoria", None, f"formato={format}")
     out = io.StringIO()
     if format == "csv":
         w = csv.writer(out)
-        w.writerow(["data", "usuario", "acao", "entidade", "entidade_id", "detalhes"])
-        [
-            w.writerow(
-                [
-                    x.get("created_at"),
-                    x.get("user_id"),
-                    x.get("action"),
-                    x.get("entity"),
-                    x.get("entity_id"),
-                    x.get("details"),
-                ]
-            )
-            for x in data
-        ]
+        columns = {"id": "ID", "usuario": "Usuário", "acao": "Ação", "entidade": "Entidade", "entidadeId": "ID da entidade", "detalhes": "Detalhes", "criadoEm": "Data", "correlationId": "Correlation ID"}
+        selected = [key for key in fields.split(",") if key in columns]
+        w.writerow([columns[key] for key in selected])
+        for x in data:
+            w.writerow([x.get(key, "") for key in selected])
         media = "text/csv"
         name = "auditoria.csv"
     else:
