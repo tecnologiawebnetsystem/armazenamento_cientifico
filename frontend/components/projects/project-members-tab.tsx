@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { MoreVerticalIcon, UserPlusIcon, Loader2Icon } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardAction } from "@/components/ui/card"
@@ -55,8 +55,12 @@ function initials(nome: string) {
 
 export function ProjectMembersTab({ projectId, canManage }: { projectId: string; canManage: boolean }) {
   const { members, isLoading, error, refresh } = useProjectMembers(projectId)
-  const { users } = useUsers()
+  const { users, isLoading: usersLoading, error: usersError, refresh: refreshUsers } = useUsers()
   const [dialogOpen, setDialogOpen] = useState(false)
+
+  useEffect(() => {
+    if (dialogOpen) void refreshUsers()
+  }, [dialogOpen, refreshUsers])
   const [selectedUserId, setSelectedUserId] = useState("")
   const [selectedRole, setSelectedRole] = useState<Role>("solicitante")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -130,7 +134,7 @@ export function ProjectMembersTab({ projectId, canManage }: { projectId: string;
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        {availableUsers.length > 0 ? availableUsers.map((u) => (
+                        {usersLoading ? <SelectItem value="__carregando__" disabled>Carregando usuários...</SelectItem> : usersError ? <SelectItem value="__erro__" disabled>Não foi possível carregar usuários</SelectItem> : availableUsers.length > 0 ? availableUsers.map((u) => (
                           <SelectItem key={u.id} value={String(u.id)}>
                             {u.nome || u.email} · {u.area || "Sem área"}
                           </SelectItem>

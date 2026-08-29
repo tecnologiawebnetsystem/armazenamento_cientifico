@@ -887,7 +887,8 @@ async def export_logs(
     ate: str | None = None,
 ):
     data = (await activity_logs(request, usuario=usuario, acao=acao, projeto=projeto, q_search=q, resultado=resultado, de=de, ate=ate, page=1, limit=100)) ["logs"]
-    await audit(await current(request), "exportar-logs", "auditoria", None, f"formato={format}")
+    actor = await require(request, ("admin", "auditor"))
+    await audit(actor, "exportar-logs", "auditoria", None, f"formato={format}")
     out = io.StringIO()
     if format == "csv":
         w = csv.writer(out)
