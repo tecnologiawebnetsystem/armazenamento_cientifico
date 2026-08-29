@@ -28,6 +28,7 @@ import {
 } from "lucide-react"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
@@ -349,10 +350,12 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Arquivos do projeto</CardTitle>
-        <CardDescription>Organize pastas, envie arquivos e gerencie os documentos do projeto.</CardDescription>
+    <Card className="overflow-hidden border-border/80 shadow-sm">
+      <CardHeader className="border-b bg-muted/30 px-5 py-5 sm:px-7">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3"><div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-petrobras-green text-primary-foreground"><FoldersIcon className="size-5" aria-hidden="true" /></div><div className="flex flex-col gap-1"><CardTitle className="text-xl tracking-tight">Arquivos do projeto</CardTitle><CardDescription>Organize documentos e pastas com rapidez e segurança.</CardDescription></div></div>
+          <Badge variant="secondary" className="w-fit">{visibleFiles.length} {visibleFiles.length === 1 ? "item" : "itens"}</Badge>
+        </div>
         {canWrite && (
           <CardAction className="flex items-center gap-2">
             <input
@@ -445,7 +448,9 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="flex flex-col divide-y divide-border rounded-lg border border-border">
+          <div className="overflow-hidden rounded-xl border border-border/80 bg-background">
+            <div className="hidden grid-cols-[minmax(0,1fr)_80px_96px_36px] items-center gap-3 border-b bg-muted/30 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid"><span>Nome</span><span className="text-right">Tamanho</span><span className="text-right">Atualizado</span><span /></div>
+            <div className="flex flex-col divide-y divide-border">
             {visibleFiles.map((f) => {
               const actions = getFileActions(f)
               return (
@@ -502,6 +507,7 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
                 </ContextMenu>
               )
             })}
+            </div>
           </div>
         )}
       </CardContent>
