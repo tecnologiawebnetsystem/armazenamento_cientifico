@@ -1,13 +1,8 @@
-import { redirect } from "next/navigation"
 import Image from "next/image"
-import { getSessionUserId } from "@/lib/session"
 import { LoginForm } from "@/components/login/login-form"
 import { LogoMark } from "@/components/brand/logo-mark"
 
-export default async function LoginPage() {
-  const userId = await getSessionUserId()
-  if (userId) redirect("/dashboard")
-
+export default function LoginPage() {
   return (
     <div className="grid min-h-svh lg:grid-cols-[1.1fr_1fr]">
       <div className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-10 lg:flex">
