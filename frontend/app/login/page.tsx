@@ -1,14 +1,12 @@
 import { redirect } from "next/navigation"
 import Image from "next/image"
 import { getSessionUserId } from "@/lib/session"
-import { findUserById } from "@/lib/store"
 import { LoginForm } from "@/components/login/login-form"
 import { LogoMark } from "@/components/brand/logo-mark"
 
 export default async function LoginPage() {
   const userId = await getSessionUserId()
-  const user = findUserById(userId)
-  if (user) redirect("/dashboard")
+  if (userId) redirect("/dashboard")
 
   return (
     <div className="grid min-h-svh lg:grid-cols-[1.1fr_1fr]">

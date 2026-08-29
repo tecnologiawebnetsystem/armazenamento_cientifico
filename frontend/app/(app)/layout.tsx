@@ -1,14 +1,12 @@
 import { redirect } from "next/navigation"
 import { getSessionUserId } from "@/lib/session"
-import { findUserById } from "@/lib/store"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { AppTopbar } from "@/components/layout/app-topbar"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const userId = await getSessionUserId()
-  const user = findUserById(userId)
-  if (!user) redirect("/login")
+  if (!userId) redirect("/login")
 
   return (
     <SidebarProvider>

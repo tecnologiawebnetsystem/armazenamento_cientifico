@@ -187,12 +187,12 @@ export function removeProjectMember(projectId: string, userId: string) {
 export function getFiles(projectId: string, parentId: string | null) {
   const params = new URLSearchParams({ projectId })
   if (parentId) params.set("parentId", parentId)
-  return request<{ files: FileNode[]; breadcrumb: FileNode[] }>(`/api/files?project_id=${encodeURIComponent(projectId)}${parentId ? `&parent_id=${encodeURIComponent(parentId)}` : ""}`)
+  return request<{ files: FileNode[]; breadcrumb: FileNode[] }>(`/api/files?${params.toString()}`)
 }
 
 /** Lista todas as pastas do projeto (sem filtrar por parentId), usada no diálogo de mover item. */
 export function getAllFolders(projectId: string) {
-  return request<{ files: FileNode[] }>(`/api/files?project_id=${encodeURIComponent(projectId)}&all_folders=true`)
+  return request<{ files: FileNode[] }>(`/api/files?projectId=${encodeURIComponent(projectId)}&allFolders=true`)
 }
 
 
