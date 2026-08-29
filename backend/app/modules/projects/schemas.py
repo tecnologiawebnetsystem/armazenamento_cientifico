@@ -16,6 +16,18 @@ class ProjectCreate(BaseModel):
     participantesIds: list[str] = Field(default_factory=list)
 
 
+class ProjectPatch(BaseModel):
+    nome: str | None = Field(default=None, min_length=2, max_length=200)
+    areaResponsavel: str | None = Field(default=None, min_length=1, max_length=160)
+    descricao: str | None = None
+    status: ProjectStatus | None = None
+
+
+class ProjectMemberInput(BaseModel):
+    userId: str = Field(min_length=1)
+    papel: str = Field(min_length=1, max_length=40)
+
+
 class ProjectMemberOut(BaseModel):
     projectId: str
     userId: str

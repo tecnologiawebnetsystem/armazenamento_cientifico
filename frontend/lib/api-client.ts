@@ -177,7 +177,7 @@ export function updateProjectMember(projectId: string, userId: string, papel: Ro
 }
 
 export function removeProjectMember(projectId: string, userId: string) {
-  return request<void>(`/api/projects/${projectId}/members?userId=${userId}`, {
+  return request<void>(`/api/projects/${projectId}/members?user_id=${encodeURIComponent(userId)}`, {
     method: "DELETE",
   })
 }
@@ -187,12 +187,12 @@ export function removeProjectMember(projectId: string, userId: string) {
 export function getFiles(projectId: string, parentId: string | null) {
   const params = new URLSearchParams({ projectId })
   if (parentId) params.set("parentId", parentId)
-  return request<{ files: FileNode[]; breadcrumb: FileNode[] }>(`/api/files?${params.toString()}`)
+  return request<{ files: FileNode[]; breadcrumb: FileNode[] }>(`/api/files?project_id=${encodeURIComponent(projectId)}${parentId ? `&parent_id=${encodeURIComponent(parentId)}` : ""}`)
 }
 
 /** Lista todas as pastas do projeto (sem filtrar por parentId), usada no diálogo de mover item. */
 export function getAllFolders(projectId: string) {
-  return request<{ files: FileNode[] }>(`/api/files?projectId=${projectId}&allFolders=true`)
+  return request<{ files: FileNode[] }>(`/api/files?project_id=${encodeURIComponent(projectId)}&all_folders=true`)
 }
 
 
@@ -206,14 +206,24 @@ export function createFileNode(data: {
 }) {
   return request<{ file: FileNode }>("/api/files", {
     method: "POST",
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      project_id: data.projectId,
+      parent_id: data.parentId,
+      kind: data.tipo,
+      name: data.nome,
+      size_bytes: data.tamanho ?? 0,
+      mime_type: data.mimeType,
+    }),
   })
 }
 
 export function updateFileNode(id: string, data: Partial<Pick<FileNode, "nome" | "parentId">>) {
   return request<{ file: FileNode }>(`/api/files/${id}`, {
     method: "PATCH",
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      ...(data.nome !== undefined ? { name: data.nome } : {}),
+      ...(data.parentId !== undefined ? { parent_id: data.parentId } : {}),
+    }),
   })
 }
 
