@@ -1,12 +1,10 @@
 import { redirect } from "next/navigation"
-import { getSessionUserId } from "@/lib/session"
-import { findUserById } from "@/lib/store"
+import { getBackendSession } from "@/lib/session"
 import { ActivityLogTable } from "@/components/administracao/activity-log-table"
 import { BackButton } from "@/components/navigation/back-button"
 
 export default async function AdministracaoLogsPage() {
-  const userId = await getSessionUserId()
-  const user = findUserById(userId)
+  const user = await getBackendSession()
   if (!user) redirect("/login")
   if (user.role !== "admin" && user.role !== "auditor") redirect("/dashboard")
 
