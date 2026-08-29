@@ -158,8 +158,9 @@ export function getProjectAccessMap(projectId: string) {
   return request<{ projectId: string; groups: Array<{ nome: string; fonte: string; identificadores: string[]; nivel: string }>; members: Array<ProjectMember & { user: User }>; source: string; consultedAt: string }>(`/api/projects/${projectId}/access-map`)
 }
 
-export function getProjectMembers(projectId: string) {
-  return request<(ProjectMember & { user: User })[]>(`/api/projects/${projectId}/members`).then((members) => ({ members }))
+export async function getProjectMembers(projectId: string) {
+  const response = await request<{ members?: Array<ProjectMember & { user: User }> } | Array<ProjectMember & { user: User }>>(`/api/projects/${projectId}/members`)
+  return { members: Array.isArray(response) ? response : (response.members ?? []) }
 }
 
 export function addProjectMember(projectId: string, userId: string, papel: ProjectMemberRole) {

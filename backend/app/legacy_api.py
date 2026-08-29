@@ -591,17 +591,19 @@ async def members(pid: str, request: Request):
     if not r:
         raise HTTPException(404, "Projeto não encontrado")
     p = await db()
-    rows = await p.fetch(
-        "select u.*,m.papel,m.created_at as added_at from project_members m join users u on u.id=m.user_id where m.project_id=$1",
-        pid,
+    member_query = (
+        "select u.*,m.papel,m.created_at as added_at from project_members m join users u on u.id=m.user_id where m.project_id=?"
+        if settings.database_engine == "sqlite"
+        else "select u.*,m.papel,m.created_at as added_at from project_members m join users u on u.id=m.user_id where m.project_id=$1"
     )
+    rows = await p.fetch(member_query, pid)
     return {
         "members": [
             {
                 "projectId": pid,
                 "userId": x["id"],
                 "papel": x["papel"],
-                "adicionadoEm": x["added_at"].isoformat(),
+                "adicionadoEm": isoformat_value(x["added_at"]),
                 "user": user(x),
             }
             for x in rows
