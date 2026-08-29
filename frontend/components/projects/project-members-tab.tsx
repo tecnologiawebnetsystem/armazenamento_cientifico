@@ -32,13 +32,14 @@ import { addProjectMember, removeProjectMember, updateProjectMember, ApiError } 
 import { roleLabel } from "@/hooks/use-permissions"
 import type { Role } from "@/lib/types"
 
-const assignableRoles: Role[] = ["gestor", "participante", "visualizador"]
+const assignableRoles: Role[] = ["solicitante", "patrocinador", "auditor", "gerente"]
 
 function normalizedRole(value: unknown): Role | string {
   const normalized = String(value ?? "").toLowerCase()
-  if (normalized === "gestor" || normalized === "gerente" || normalized === "manager") return "gestor"
-  if (normalized === "participante" || normalized === "participant") return "participante"
+  if (normalized === "gestor" || normalized === "gerente" || normalized === "manager") return "gerente"
+  if (normalized === "participante" || normalized === "participant") return "solicitante"
   if (normalized === "visualizador" || normalized === "viewer") return "visualizador"
+  if (normalized === "solicitante" || normalized === "requester") return "solicitante"
   return normalized
 }
 
@@ -57,7 +58,7 @@ export function ProjectMembersTab({ projectId, canManage }: { projectId: string;
   const { users } = useUsers()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState("")
-  const [selectedRole, setSelectedRole] = useState<Role>("participante")
+  const [selectedRole, setSelectedRole] = useState<Role>("solicitante")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const availableUsers = useMemo(
@@ -74,7 +75,7 @@ export function ProjectMembersTab({ projectId, canManage }: { projectId: string;
       refresh()
       setDialogOpen(false)
       setSelectedUserId("")
-      setSelectedRole("participante")
+      setSelectedRole("solicitante")
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Não foi possível adicionar o membro."
       toast.error(message)

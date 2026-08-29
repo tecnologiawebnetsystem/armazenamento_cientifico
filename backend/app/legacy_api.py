@@ -764,7 +764,7 @@ async def unshare(fid: str, userId: str, request: Request):
 
 @app.get("/api/users")
 async def users(request: Request):
-    await require(request, ("admin", "patrocinador", "auditor"))
+    await require(request, ("admin", "gerente", "patrocinador", "auditor", "solicitante"))
     p = await db()
     return {"users": [user(r) for r in await p.fetch("select * from users order by name")]}
 

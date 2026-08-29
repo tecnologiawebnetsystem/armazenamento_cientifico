@@ -25,6 +25,6 @@ class UserOut(BaseModel):
 
 class UserRoleUpdate(BaseModel):
     role: Literal[
-        "admin", "gerente", "patrocinador", "auditor", "gestor", "participante", "visualizador"
+        "admin", "gerente", "patrocinador", "auditor", "solicitante", "gestor", "participante", "visualizador"
     ]
     perfil_id: str | None = None

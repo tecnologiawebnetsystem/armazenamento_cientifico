@@ -40,13 +40,16 @@ export function roleLabel(role: Role | string | null | undefined) {
     case "gerente":
     case "gestor":
     case "manager":
-      return "Gestor"
+      return "Gerente"
     case "patrocinador":
     case "sponsor":
       return "Patrocinador"
     case "auditor":
     case "audit":
       return "Auditor"
+    case "solicitante":
+    case "requester":
+      return "Solicitante"
     case "participante":
     case "participant":
       return "Participante"
@@ -70,8 +73,16 @@ export function roleDescription(role: Role) {
       return "Acompanha resultados e aprova solicitações de acesso."
     case "auditor":
       return "Somente leitura, com acesso à trilha de auditoria."
+    case "solicitante":
+      return "Solicita acessos e acompanha o andamento das solicitações."
+    case "participante":
+      return "Participa do projeto conforme os acessos concedidos."
+    case "visualizador":
+      return "Consulta informações sem editar."
+    case "gestor":
+      return "Gestão operacional do projeto."
   }
 }
 
 /** Todos os perfis disponíveis, na ordem hierárquica de exibição. */
-export const allRoles: Role[] = ["admin", "patrocinador", "gerente", "auditor"]
+export const allRoles: Role[] = ["admin", "patrocinador", "auditor", "gerente", "solicitante"]
