@@ -69,6 +69,14 @@ def project(row):
     }
 
 
+def row_value(row, key, default=None):
+    if isinstance(row, dict):
+        return row_value(row, key, default)
+    if hasattr(row, "keys"):
+        return row[key] if key in row.keys() else default
+    return getattr(row, key, default)
+
+
 def normalized_role(role: str | None) -> str:
     return {"administrador": "admin", "administrator": "admin"}.get(str(role or "").lower(), str(role or "participante").lower())
 
@@ -305,7 +313,7 @@ async def require(request, roles=(), permission: str | None = None):
     u = await current(request)
     if permission:
         p = await db()
-        profile_id = u.get("perfil_id") or {"admin": "ADM", "gerente": "GER", "auditor": "AUD", "patrocinador": "PAT", "participante": "PAR", "visualizador": "VIS", "gestor": "GES"}.get(normalized_role(u.get("role")))
+        profile_id = row_value(u, "perfil_id") or {"admin": "ADM", "gerente": "GER", "auditor": "AUD", "patrocinador": "PAT", "participante": "PAR", "visualizador": "VIS", "gestor": "GES"}.get(normalized_role(row_value(u, "role")))
         allowed = await p.fetchval("select 1 from perfil_permissoes where perfil_id=$1 and permissao_id=$2 and permitido=true", profile_id, permission)
         if not allowed:
             raise HTTPException(403, "Usuário sem permissão para esta operação")
@@ -1006,20 +1014,20 @@ async def export_access_map(
     rows = data["rows"]
     if q:
         needle = q.lower()
-        rows = [row for row in rows if needle in " ".join(str(row.get(key, "")) for _, key in labels.values()).lower()]
+        rows = [row for row in rows if needle in " ".join(str(row_value(row, key, "")) for _, key in labels.values()).lower()]
     if type != "todos":
-        rows = [row for row in rows if row.get("resourceType") == type]
+        rows = [row for row in rows if row_value(row, "resourceType") == type]
     if level != "todos":
-        rows = [row for row in rows if row.get("accessLevel") == level]
+        rows = [row for row in rows if row_value(row, "accessLevel") == level]
     out = io.StringIO()
     if format == "csv":
         writer = csv.writer(out)
         writer.writerow([labels[key][0] for key in selected if key in labels])
         for row in rows:
-            writer.writerow([row.get(labels[key][1], "") for key in selected if key in labels])
+            writer.writerow([row_value(row, labels[key][1], "") for key in selected if key in labels])
         media, filename = "text/csv", "mapa-de-acessos.csv"
     else:
-        out.write("\n".join(" | ".join(str(row.get(labels[key][1], "")) for key in selected if key in labels) for row in rows))
+        out.write("\n".join(" | ".join(str(row_value(row, labels[key][1], "")) for key in selected if key in labels) for row in rows))
         media, filename = "text/plain", "mapa-de-acessos.txt"
     return StreamingResponse(iter([out.getvalue()]), media_type=media, headers={"Content-Disposition": f"attachment; filename={filename}"})
 
