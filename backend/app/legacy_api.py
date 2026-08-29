@@ -46,6 +46,14 @@ def dump(row):
     return d
 
 
+def isoformat_value(value):
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return str(value)
+
+
 def project(row):
     d = dump(row)
     return {
@@ -1014,7 +1022,7 @@ async def access_map(request: Request):
                 "resourceName": x["resource_name"],
                 "resourceType": x["resource_type"],
                 "accessLevel": x["access_level"],
-                "lastViewedAt": x["last_viewed_at"].isoformat() if x["last_viewed_at"] else None,
+                "lastViewedAt": isoformat_value(x["last_viewed_at"]),
             }
             for x in rows
         ],
