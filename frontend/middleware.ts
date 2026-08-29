@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-const SESSION_COOKIE = "wayon_session_user_id"
+const SESSION_COOKIE = "wayon_session_id"
 const PUBLIC_PATHS = new Set(["/", "/login", "/recuperar-senha"])
 
 export function middleware(request: NextRequest) {
