@@ -96,9 +96,12 @@ def user(row):
         "id": d["id"],
         "nome": d["name"],
         "email": d["email"],
-        "cargo": d["cargo"],
-        "area": d["area"],
-        "role": normalized_role(d["role"]),
+  "cargo": d.get("cargo") or "",
+  "area": d.get("area") or "",
+  "avatarUrl": d.get("avatar_url"),
+  "ultimoLogin": d.get("last_login_at"),
+  "role": normalized_role(d["role"]),
+
         "perfilId": d.get("perfil_id"),
         "criadoEm": d["created_at"],
     }
@@ -425,6 +428,8 @@ async def entra_callback(request: Request, code: str | None = None, state: str |
         identity = await profile(tokens["access_token"])
         email = (identity.get("mail") or identity.get("userPrincipalName") or "").lower()
         graph_groups = await groups(tokens["access_token"])
+        sign_in_activity = identity.get("signInActivity") or {}
+        ultimo_login = sign_in_activity.get("lastSignInDateTime")
     except Exception:
         logger.exception("entra_callback_failed")
         raise HTTPException(502, "Não foi possível consultar o Microsoft Entra ID") from None
@@ -434,6 +439,7 @@ async def entra_callback(request: Request, code: str | None = None, state: str |
         logger.warning("entra_login_rejected reason=user_not_found email=%s entra_id=%s", email, identity.get("id"))
         raise HTTPException(401, "Usuário autenticado não está cadastrado na plataforma")
     logger.info("entra_groups user_id=%s email=%s groups=%s", u["id"], email, [{"id": g.get("id"), "name": g.get("displayName")} for g in graph_groups])
+    logger.info("entra_last_login user_id=%s last_sign_in=%s", u["id"], ultimo_login)
     sid = str(uuid4())
     await p.execute(f"insert into sessions(id,user_id,expires_at) values($1,$2,now()+interval '8 hours')" if settings.database_engine != "sqlite" else "insert into sessions(id,user_id,expires_at) values(?,?,datetime('now', '+8 hours'))", sid, u["id"])
     await audit(u, "login_entra", "sessao", sid, json.dumps({"entra_id": identity.get("id"), "groups": [g.get("displayName") for g in graph_groups]}))

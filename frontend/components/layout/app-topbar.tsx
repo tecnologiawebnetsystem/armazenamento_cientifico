@@ -89,6 +89,7 @@ export function AppTopbar() {
                 <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
                 <span className="text-[11px] leading-4 text-muted-foreground">{user.cargo || "Colaborador"}{user.area ? ` · ${user.area}` : ""}</span>
                 <span className="text-[11px] leading-4 text-muted-foreground">{roleDescription(user.role)}</span>
+                <span className="text-[11px] leading-4 text-muted-foreground">Último login: {user.ultimoLogin ? new Date(user.ultimoLogin).toLocaleString("pt-BR") : "não informado"}</span>
                 <Badge variant="secondary" className="mt-1 w-fit border-0 bg-muted px-1.5 py-0 text-[10px] font-medium text-muted-foreground">
                   {roleLabel(user.role) ?? "Usuário da plataforma"}
                 </Badge>

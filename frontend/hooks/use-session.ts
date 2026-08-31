@@ -18,6 +18,7 @@ export function useSession() {
         cargo: rawUser.cargo || "",
         area: rawUser.area || "",
         avatarUrl: rawUser.avatarUrl || undefined,
+        ultimoLogin: rawUser.ultimoLogin || null,
         role: rawUser.role || "visualizador",
       }
     : null

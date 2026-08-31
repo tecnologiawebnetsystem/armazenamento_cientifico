@@ -49,7 +49,7 @@ async def graph_get(access_token: str, path: str, params: dict | None = None) ->
 
 
 async def profile(access_token: str) -> dict:
-    return await graph_get(access_token, "/me", {"$select": "id,displayName,mail,userPrincipalName,jobTitle,department"})
+    return await graph_get(access_token, "/me", {"$select": "id,displayName,mail,userPrincipalName,jobTitle,department,signInActivity"})
 
 
 async def groups(access_token: str) -> list[dict]:
