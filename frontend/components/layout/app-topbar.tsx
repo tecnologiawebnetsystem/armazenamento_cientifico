@@ -48,7 +48,7 @@ function initials(name: string) {
 export function AppTopbar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { user } = useSession()
+  const { user, isLoading } = useSession()
   const title = pageTitleFor(pathname)
 
   async function handleLogout() {
@@ -67,7 +67,9 @@ export function AppTopbar() {
       <div className="ml-auto flex items-center gap-2 md:gap-3">
         
         <ThemeToggle />
-        {user ? (
+        {isLoading ? (
+          <div className="size-9 animate-pulse rounded-xl bg-muted" aria-label="Carregando perfil" />
+        ) : user ? (
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label={`Abrir perfil de ${user.nome}`}
@@ -85,7 +87,9 @@ export function AppTopbar() {
               <div className="flex flex-col gap-1 px-2 py-2" role="presentation">
                 <span className="truncate text-sm font-semibold text-foreground">{user.nome}</span>
                 <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
+                <span className="text-[11px] leading-4 text-muted-foreground">{user.cargo || "Colaborador"}{user.area ? ` · ${user.area}` : ""}</span>
                 <span className="text-[11px] leading-4 text-muted-foreground">{roleDescription(user.role)}</span>
+                <span className="text-[11px] leading-4 text-muted-foreground">Último login: {user.ultimoLogin ? new Date(user.ultimoLogin).toLocaleString("pt-BR") : "não informado"}</span>
                 <Badge variant="secondary" className="mt-1 w-fit border-0 bg-muted px-1.5 py-0 text-[10px] font-medium text-muted-foreground">
                   {roleLabel(user.role) ?? "Usuário da plataforma"}
                 </Badge>

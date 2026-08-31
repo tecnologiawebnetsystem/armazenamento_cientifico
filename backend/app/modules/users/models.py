@@ -14,6 +14,8 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
     cargo: Mapped[str | None] = mapped_column(String(120), nullable=True)
     area: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    last_login_at: Mapped[datetime | None] = mapped_column(nullable=True)
     role: Mapped[str] = mapped_column(String(40), default="participante")
     perfil_id: Mapped[str | None] = mapped_column(ForeignKey("perfis.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(nullable=False)

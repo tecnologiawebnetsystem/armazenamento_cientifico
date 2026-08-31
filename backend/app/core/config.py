@@ -37,6 +37,12 @@ class Settings(BaseModel):
     security_headers_enabled: bool = os.getenv("SECURITY_HEADERS_ENABLED", "true").lower() == "true"
     cookie_domain: str | None = os.getenv("COOKIE_DOMAIN") or None
     audit_retention_days: int = int(os.getenv("AUDIT_RETENTION_DAYS", "365"))
+    entra_tenant_id: str = os.getenv("ENTRA_TENANT_ID", "")
+    entra_client_id: str = os.getenv("ENTRA_CLIENT_ID", "")
+    entra_client_secret: str = os.getenv("ENTRA_CLIENT_SECRET", "")
+    entra_redirect_uri: str = os.getenv("ENTRA_REDIRECT_URI", "http://localhost:8080/api/auth/entra/callback")
+    entra_scopes: str = os.getenv("ENTRA_SCOPES", "openid profile email User.Read GroupMember.Read.All")
+    entra_group_sync_enabled: bool = os.getenv("ENTRA_GROUP_SYNC_ENABLED", "true").lower() == "true"
 
 
 @lru_cache

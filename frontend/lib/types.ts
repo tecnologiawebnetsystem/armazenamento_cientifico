@@ -30,6 +30,7 @@ export interface User {
   cargo: string
   area: string
   avatarUrl?: string
+  ultimoLogin?: string | null
   /** Papel global do usuário na plataforma (independe do papel por projeto). */
   role: Role
   perfilId?: string
