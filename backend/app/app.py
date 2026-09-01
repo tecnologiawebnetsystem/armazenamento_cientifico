@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.exceptions import AppException
-from app.core.logging import configure_logging, set_request_context
+from app.core.logging import configure_logging, reset_request_context, set_request_context
 
 configure_logging(settings.log_level)
 from app.db.session import connect, disconnect
@@ -71,12 +71,14 @@ def create_app() -> FastAPI:
         if len(raw_id) > settings.request_log_max_id_length:
             request_id = str(uuid4())
         started = time.perf_counter()
-        set_request_context(request_id)
+        context_tokens = set_request_context(request_id)
         try:
             response = await call_next(request)
         except Exception:
             logger.exception("request_failed method=%s path=%s", request.method, request.url.path)
             raise
+        finally:
+            reset_request_context(context_tokens)
         duration_ms = round((time.perf_counter() - started) * 1000, 2)
         response.headers["X-Correlation-ID"] = request_id
         if settings.security_headers_enabled:

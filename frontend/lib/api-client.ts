@@ -49,11 +49,12 @@ class ApiError extends Error {
   }
 }
 
-async function fetchRequest(url: string, init?: RequestInit) {
+async function fetchRequest(url: string, init?: RequestInit): Promise<Response> {
   if (isProduction && !configuredApiBaseUrl) {
     throw new Error("NEXT_PUBLIC_API_BASE_URL precisa estar configurada em produção.")
   }
-  return fetch(url,{
+
+  return fetch(url, {
     ...init,
     credentials: "include",
     headers: {
@@ -64,11 +65,13 @@ async function fetchRequest(url: string, init?: RequestInit) {
   })
 }
 
+type ApiErrorBody = { message?: string; detail?: string }
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetchRequest(`${API_BASE_URL}${path}`, init)
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ message: res.statusText }))
+    const body = (await res.json().catch(() => ({ message: res.statusText }))) as ApiErrorBody
     throw new ApiError(res.status, body.message ?? body.detail ?? "Erro inesperado na requisição")
   }
 
