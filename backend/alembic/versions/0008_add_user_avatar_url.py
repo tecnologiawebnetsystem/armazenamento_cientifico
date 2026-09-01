@@ -3,9 +3,9 @@
 Revision ID: 0008_add_user_avatar_url
 Revises: 0007_add_solicitante_role
 """
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 revision = "0008_add_user_avatar_url"
 down_revision = "0007_add_solicitante_role"

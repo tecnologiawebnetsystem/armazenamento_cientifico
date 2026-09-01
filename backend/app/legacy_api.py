@@ -82,7 +82,7 @@ def row_value(row, key, default=None):
     if isinstance(row, dict):
         return row.get(key, default)
     if hasattr(row, "keys"):
-        return row[key] if key in row.keys() else default
+        return row.get(key, default)
     return getattr(row, key, default)
 
 
@@ -441,7 +441,7 @@ async def entra_callback(request: Request, code: str | None = None, state: str |
     logger.info("entra_groups user_id=%s email=%s groups=%s", u["id"], email, [{"id": g.get("id"), "name": g.get("displayName")} for g in graph_groups])
     logger.info("entra_last_login user_id=%s last_sign_in=%s", u["id"], ultimo_login)
     sid = str(uuid4())
-    await p.execute(f"insert into sessions(id,user_id,expires_at) values($1,$2,now()+interval '8 hours')" if settings.database_engine != "sqlite" else "insert into sessions(id,user_id,expires_at) values(?,?,datetime('now', '+8 hours'))", sid, u["id"])
+    await p.execute("insert into sessions(id,user_id,expires_at) values($1,$2,now()+interval '8 hours')" if settings.database_engine != "sqlite" else "insert into sessions(id,user_id,expires_at) values(?,?,datetime('now', '+8 hours'))", sid, u["id"])
     await audit(u, "login_entra", "sessao", sid, json.dumps({"entra_id": identity.get("id"), "groups": [g.get("displayName") for g in graph_groups]}))
     redirect = RedirectResponse("/dashboard", status_code=302)
     redirect.set_cookie("wayon_session_id", sid, httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=28800)
@@ -887,7 +887,6 @@ async def activity_logs(
     end = ate or to
     filters = []
     args = []
-    placeholder = "?" if settings.database_engine == "sqlite" else "$%d"
     def bind(value):
         args.append(value)
         return "?" if settings.database_engine == "sqlite" else f"${len(args)}"

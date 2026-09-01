@@ -1,8 +1,10 @@
 """Cria perfis e vínculo perfil_id nos usuários."""
 
 from collections.abc import Sequence
-from alembic import op
+
 import sqlalchemy as sa
+
+from alembic import op
 
 revision: str = "0003_add_perfis"
 down_revision: str | None = "0002_remove_app_prefix"

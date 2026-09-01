@@ -108,7 +108,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
     [projects],
   )
 
-  const canManage = (_project: Project) => user?.perfilId === "ADM" || user?.role === "admin"
+  const canManage = () => user?.perfilId === "ADM" || user?.role === "admin"
 
 
   const stats = useMemo(() => {
@@ -231,7 +231,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
               key={project.id}
               project={project}
               showMeta={showMeta}
-              canManage={canManage(project)}
+              canManage={canManage()}
               onToggleStatus={setTarget}
             />
           ))}
@@ -243,7 +243,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
               key={project.id}
               project={project}
               showMeta={showMeta}
-              canManage={canManage(project)}
+              canManage={canManage()}
               onToggleStatus={setTarget}
               className={i > 0 ? "border-t" : ""}
             />

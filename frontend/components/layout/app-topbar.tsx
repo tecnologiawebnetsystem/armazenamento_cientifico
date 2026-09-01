@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { LogOutIcon, ShieldCheckIcon, UserRoundIcon } from "lucide-react"
+import { LogOutIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
@@ -49,7 +49,7 @@ export function AppTopbar() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, isLoading } = useSession()
-  const title = pageTitleFor(pathname)
+  pageTitleFor(pathname)
 
   async function handleLogout() {
     await logout()

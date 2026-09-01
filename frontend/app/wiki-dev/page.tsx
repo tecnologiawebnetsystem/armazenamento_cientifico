@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useMemo, useState } from "react"
 import { BookOpen, Check, ChevronRight, Copy, Database, FileCode2, GitBranch, Link2, LockKeyhole, Network, Search, Server, Settings2, Table2, Terminal, Wrench } from "lucide-react"
 
@@ -145,7 +146,7 @@ const content: Record<SectionId, Page> = {
 
 function CodeBlock({ code }: { code: string }) {
   const [copied, setCopied] = useState(false)
-  if (code === "__DATABASE_DIAGRAM__") return <figure className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 shadow-sm"><img src="/wiki/database-architecture.png" alt="Diagrama visual da arquitetura do banco de dados" className="h-auto w-full" /><figcaption className="border-t border-white/10 px-4 py-3 text-xs leading-5 text-slate-300">Arquitetura lógica atual: identidade, projetos, arquivos, permissões, grupos corporativos e auditoria.</figcaption></figure>
+  if (code === "__DATABASE_DIAGRAM__") return <figure className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 shadow-sm"><Image src="/wiki/database-architecture.png" alt="Diagrama visual da arquitetura do banco de dados" width={1200} height={760} className="h-auto w-full" /><figcaption className="border-t border-white/10 px-4 py-3 text-xs leading-5 text-slate-300">Arquitetura lógica atual: identidade, projetos, arquivos, permissões, grupos corporativos e auditoria.</figcaption></figure>
   return <div className="relative mt-4"><pre className="overflow-x-auto rounded-xl bg-slate-950 p-4 pr-14 text-sm leading-6 text-slate-100"><code>{code}</code></pre><button type="button" aria-label="Copiar código" onClick={() => { void navigator.clipboard.writeText(code); setCopied(true); window.setTimeout(() => setCopied(false), 1500) }} className="absolute right-3 top-3 rounded-lg p-2 text-slate-300 transition hover:bg-slate-800 hover:text-white">{copied ? <Check className="size-4" /> : <Copy className="size-4" />}</button></div>
 }
 

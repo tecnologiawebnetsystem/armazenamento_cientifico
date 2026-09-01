@@ -3,9 +3,9 @@
 Revision ID: 0009_add_user_last_login_at
 Revises: 0008_add_user_avatar_url
 """
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 revision = "0009_add_user_last_login_at"
 down_revision = "0008_add_user_avatar_url"

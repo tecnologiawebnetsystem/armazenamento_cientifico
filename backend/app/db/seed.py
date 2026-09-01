@@ -3,20 +3,16 @@ from uuid import uuid4
 
 from sqlalchemy import text
 
-from app.modules.audit.models import ActivityLog
 from app.modules.catalogs.models import (
     MenuItem,
     Module,
     Permission,
-    ProfileModule,
     ProfilePermission,
     ProjectStatusCatalog,
     ProjectType,
     ReportType,
     SystemSetting,
 )
-from app.modules.files.models import File
-from app.modules.files.permissions_model import FilePermission
 from app.modules.projects.member_model import ProjectMember
 from app.modules.projects.models import Project
 from app.modules.users.models import User

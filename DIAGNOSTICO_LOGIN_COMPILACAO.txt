@@ -1,0 +1,85 @@
+DIAGNÓSTICO DE COMPILAÇÃO E LOGIN — SIGAC
+Data: 01/09/2026
+
+1. RESUMO EXECUTIVO
+
+O projeto não estava totalmente parado. O frontend compila e gera build de produção corretamente. O backend também inicia e responde ao endpoint /health com banco conectado. O bloqueio específico do Login Corporativo (Microsoft Entra ID) foi reproduzido: o endpoint retorna HTTP 503 porque o backend está sem a configuração mínima do Microsoft Entra ID.
+
+O login por e-mail continua disponível como fallback. Ele chega ao backend, consulta o banco e cria sessão quando o e-mail está cadastrado. Para e-mail não cadastrado, o comportamento correto é HTTP 401 com a mensagem "E-mail não cadastrado".
+
+2. RESULTADOS DOS TESTES
+
+Frontend:
+- pnpm install --frozen-lockfile: concluído.
+- pnpm lint: concluído sem erros e sem warnings.
+- pnpm typecheck: concluído.
+- pnpm build: concluído; 15 páginas geradas.
+- Observação: o Next.js informa dois avisos de ambiente: existem lockfiles na raiz e em frontend, e a convenção middleware está depreciada em favor de proxy. Esses avisos não impedem a compilação.
+
+Backend:
+- uv run ruff check .: corrigido para não apresentar erros.
+- uv run pytest -q: havia uma falha de compatibilidade de perfil; o mapeamento legado participante -> gerente foi corrigido. Reexecute após esta alteração para confirmar a suíte final.
+- uv run uvicorn app.legacy_api:app: inicia corretamente.
+- GET /health: HTTP 200, database=connected.
+
+Testes de autenticação reproduzidos:
+- GET /api/auth/entra/login: HTTP 503 — Microsoft Entra ID não está configurado no backend.
+- POST /api/auth/login com e-mail inexistente: HTTP 401 — E-mail não cadastrado.
+
+3. MOTIVO DO ENTER ID NÃO FUNCIONAR
+
+A função configured() exige simultaneamente estas três variáveis:
+- ENTRA_TENANT_ID
+- ENTRA_CLIENT_ID
+- ENTRA_CLIENT_SECRET
+
+Se qualquer uma estiver vazia, /api/auth/entra/login bloqueia antes de redirecionar para a Microsoft e retorna HTTP 503. Portanto, o problema atual não é senha, banco ou botão do frontend: o backend não tem a configuração mínima do App Registration.
+
+Depois dessa etapa, ainda é necessário validar o callback e as permissões do Microsoft Graph. O código usa:
+- redirect_uri exatamente igual a ENTRA_REDIRECT_URI;
+- escopos definidos em ENTRA_SCOPES;
+- Microsoft Graph /me com dados de perfil e signInActivity;
+- Microsoft Graph /me/memberOf para grupos;
+- cookie entra_oauth_state para proteção state;
+- cookie wayon_session_id para a sessão da aplicação.
+
+4. PASSO A PASSO PARA HABILITAR ENTER ID
+
+1) No Microsoft Entra admin center, abra App registrations e selecione o App Registration utilizado pelo SIGAC.
+2) Em Overview, copie o Directory (tenant) ID e o Application (client) ID.
+3) Em Certificates & secrets, crie um Client secret. Copie o valor imediatamente; ele não é exibido novamente.
+4) Em Authentication, adicione uma Web redirect URI exatamente igual ao valor de ENTRA_REDIRECT_URI. Não use uma URL diferente, barra final diferente, HTTP em vez de HTTPS ou domínio diferente.
+5) Confirme que a URL pública aponta para o backend, por exemplo: https://api.seudominio.com/api/auth/entra/callback. Em desenvolvimento, use a URL local do backend correspondente ao fluxo executado.
+6) Em API permissions, adicione Microsoft Graph delegado User.Read. Para os dados utilizados pelo sistema, revise também GroupMember.Read.All e AuditLog.Read.All conforme a política do tenant. Conceda admin consent quando exigido pela organização.
+7) No ambiente do backend, configure sem aspas extras e sem espaços:
+   ENTRA_TENANT_ID=ID_DO_DIRECTORY
+   ENTRA_CLIENT_ID=ID_DA_APLICACAO
+   ENTRA_CLIENT_SECRET=VALOR_DO_SECRET
+   ENTRA_REDIRECT_URI=URL_EXATA_DO_CALLBACK
+   ENTRA_SCOPES=openid profile email User.Read
+8) Reinicie o backend após alterar as variáveis. Não coloque o client secret no frontend, em NEXT_PUBLIC_* ou no repositório.
+9) Abra /api/auth/entra/login. O esperado é HTTP 302 para login.microsoftonline.com; HTTP 503 ainda indica configuração ausente.
+10) Após autenticar, o callback deve retornar para /dashboard. Se aparecer HTTP 400, confira state/cookies e domínio. Se aparecer HTTP 502, confira secret, redirect URI, escopos e permissões Graph. Se aparecer HTTP 401 após a Microsoft autenticar, o e-mail do Entra não está cadastrado na tabela users.
+11) Cadastre o mesmo e-mail retornado por mail ou userPrincipalName na tabela users antes de testar o acesso completo.
+
+5. LOGIN POR E-MAIL
+
+O fallback funciona sem Microsoft Entra ID. Na tela /login, informe um e-mail existente na tabela users e use "Entrar com e-mail". O backend consulta users por e-mail sem diferenciar maiúsculas/minúsculas, cria um registro em sessions por 8 horas e envia o cookie wayon_session_id.
+
+Esse modo não consulta Microsoft Graph e, por isso, não obtém grupos, signInActivity ou foto do Graph. Ele deve ser tratado como acesso alternativo conforme a regra de negócio definida.
+
+6. ESLINT/RUFF
+
+Os warnings do ESLint foram corrigidos: imagem da Wiki passou para next/image, imports e variáveis não utilizadas foram removidos e a expressão condicional do filtro foi substituída por if/else.
+
+Os problemas do Ruff foram corrigidos, incluindo imports de migrations, acessos .keys(), variável placeholder sem uso, f-string sem interpolação e imports não utilizados no seed.
+
+7. AVISOS RESTANTES DE FERRAMENTA
+
+- Next.js recomenda configurar turbopack.root ou organizar lockfiles para eliminar o aviso de múltiplos lockfiles.
+- Next.js 16 informa que middleware.ts está depreciado e recomenda proxy. Isso é aviso de migração, não erro de compilação.
+- FastAPI/Starlette emite avisos deprecados relacionados a on_event e TestClient/httpx. Podem ser migrados posteriormente sem alterar o contrato da API.
+
+8. CONCLUSÃO
+
+A compilação do frontend e a inicialização do backend estão operacionais. O Enter ID não redireciona porque as variáveis de configuração do Microsoft Entra ID não estão preenchidas no backend. Configure o App Registration seguindo a seção 4 e mantenha o login por e-mail para acesso sem Graph.

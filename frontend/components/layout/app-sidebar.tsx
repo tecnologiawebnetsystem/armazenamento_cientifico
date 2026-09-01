@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
-import { SearchIcon } from "lucide-react"
 import { LogoMark } from "@/components/brand/logo-mark"
 import {
   Sidebar,
@@ -25,7 +24,7 @@ import { filterNavForRole, navGroups } from "@/lib/nav-config"
 export function AppSidebar() {
   const pathname = usePathname()
   const { user } = useSession()
-  const [search, setSearch] = useState("")
+  const [search] = useState("")
 
   const groups = user ? filterNavForRole(navGroups, user.role).map((group) => ({ ...group, items: group.items.filter((item) => item.title.toLowerCase().includes(search.toLowerCase())) })).filter((group) => group.items.length) : []
 
