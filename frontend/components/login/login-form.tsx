@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Building2Icon, ShieldCheckIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export function LoginForm() {
@@ -38,8 +39,26 @@ export function LoginForm() {
           </div>
         </header>
 
-        <div className="flex flex-col gap-8 px-6 py-8">
+          <div className="flex flex-col gap-8 px-6 py-8">
+          {loading ? (
+            <div className="flex min-h-52 flex-col items-center justify-center gap-5 text-center" role="status" aria-live="polite">
+              <div className="relative flex size-16 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-inner shadow-primary/10">
+                <Spinner className="size-7" aria-label="Carregando autenticação" />
+                <span className="absolute inset-0 rounded-2xl border border-accent/40 motion-safe:animate-ping" aria-hidden="true" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <p className="font-semibold tracking-tight text-foreground">Conectando com o acesso corporativo</p>
+                <p className="text-sm leading-6 text-muted-foreground">Estamos validando suas credenciais com segurança. Aguarde um momento.</p>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <span className="size-1.5 rounded-full bg-primary motion-safe:animate-pulse" aria-hidden="true" />
+                Redirecionando para o ambiente Petrobras
+              </div>
+            </div>
+          ) : (
+            <>
           {error && (
+
             <Alert variant="destructive">
               <AlertTitle>Falha na autenticação</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
@@ -54,6 +73,8 @@ export function LoginForm() {
             </Button>
             <p className="pt-1 text-xs text-muted-foreground">© 2026 Petrobras. Todos os direitos reservados.</p>
           </div>
+            </>
+          )}
         </div>
 
       </div>
