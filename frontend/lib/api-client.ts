@@ -26,6 +26,7 @@ import type {
  * dados mockados, estado em memória ou API Routes locais.
  */
 const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
+const isProduction = process.env.NODE_ENV === "production"
 const API_BASE_URL = (configuredApiBaseUrl || "http://localhost:8080").replace(/\/$/, "")
 
 /**
@@ -49,7 +50,10 @@ class ApiError extends Error {
 }
 
 async function fetchRequest(url: string, init?: RequestInit) {
-  return fetch(url, {
+  if (isProduction && !configuredApiBaseUrl) {
+    throw new Error("NEXT_PUBLIC_API_BASE_URL precisa estar configurada em produção.")
+  }
+  return fetch(url,{
     ...init,
     credentials: "include",
     headers: {

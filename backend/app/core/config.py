@@ -24,7 +24,10 @@ class Settings(BaseModel):
         if x.strip()
     ]
     cookie_name: str = os.getenv("COOKIE_NAME", "wayon_session_id")
-    cookie_secure: bool = os.getenv("COOKIE_SECURE", "false").lower() == "true"
+    cookie_secure: bool = os.getenv(
+        "COOKIE_SECURE",
+        "true" if os.getenv("ENVIRONMENT", "development").lower() == "production" else "false",
+    ).lower() == "true"
     session_hours: int = int(os.getenv("SESSION_HOURS", "8"))
     db_min_size: int = int(os.getenv("DB_MIN_SIZE", "1"))
     db_max_size: int = int(os.getenv("DB_MAX_SIZE", "10"))

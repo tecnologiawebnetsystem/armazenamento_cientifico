@@ -17,22 +17,23 @@ RESULTADOS POSITIVOS
 
 ACHADOS DE ATENÇÃO
 1. ALTO — Dependências npm vulneráveis
-   pnpm audit encontrou vulnerabilidades transitivas em Next 16.2.6, sharp 0.34.5, postcss 8.4.31, brace-expansion 5.0.6, js-yaml 4.2.0, fast-uri 3.1.2 e ip-address 10.2.0.
-   Correção recomendada: atualizar Next para >=16.2.11, sharp para >=0.35.0 e executar atualização do lockfile; atualizar transitivas para as versões corrigidas. Validar build e testes após a atualização.
-   Observação: parte dos achados vem de ferramentas de desenvolvimento (shadcn/eslint), mas Next/sharp/postcss afetam o runtime/build e devem ser priorizados.
+   STATUS: PARCIALMENTE CORRIGIDO.
+   Next.js e eslint-config-next foram atualizados de 16.2.6 para 16.2.11 e o lockfile foi regenerado.
+   O build foi validado com sucesso após a atualização. O pnpm audit ainda identifica vulnerabilidades transitivas, principalmente brace-expansion 5.0.6, vindas de shadcn e ferramentas de lint/build.
+   STATUS: PENDENTE — não é seguro forçar overrides genéricos sem validar o grafo completo, pois isso pode quebrar ferramentas ou alterar o runtime. Requer atualização upstream ou confirmação no SCA oficial.
 
 2. MÉDIO — Fallback HTTP local
-   frontend/lib/api-client.ts, frontend/lib/session.ts e login-form.tsx usam http://localhost como fallback quando NEXT_PUBLIC_API_BASE_URL não está configurada.
-   Impacto: configuração incorreta em produção pode enviar sessão para endpoint não seguro ou indisponível.
-   Correção recomendada: falhar explicitamente em produção quando a variável não existir; manter localhost apenas em desenvolvimento.
+   STATUS: CORRIGIDO NO CLIENTE PRINCIPAL.
+   frontend/lib/api-client.ts agora falha explicitamente em produção quando NEXT_PUBLIC_API_BASE_URL não está configurada; localhost continua disponível somente para desenvolvimento.
+   Ainda é necessário configurar a URL HTTPS correta no ambiente de produção.
 
 3. MÉDIO — Login por e-mail sem segundo fator
    POST /api/auth/login valida o e-mail cadastrado e cria sessão. Isso é esperado como fallback solicitado, mas é uma superfície de autenticação mais fraca que Entra ID.
    Correção recomendada: restringir domínio permitido, exigir senha/OTP ou limitar o fluxo a ambiente controlado; registrar auditoria e aplicar rate limiting.
 
 4. MÉDIO — Cookies dependentes de configuração
-   wayon_session_id usa secure conforme COOKIE_SECURE. Em produção, COOKIE_SECURE deve ser true e o serviço deve operar exclusivamente em HTTPS.
-   Verificar também SameSite e domínio quando frontend/backend estiverem em hosts distintos.
+   STATUS: ENDURECIDO.
+   O backend agora assume COOKIE_SECURE=true automaticamente quando ENVIRONMENT=production, sem impedir override explícito. O serviço de produção ainda deve operar exclusivamente em HTTPS e validar SameSite/domínio quando frontend e backend estiverem em hosts distintos.
 
 5. MÉDIO — CORS com credenciais
    Como allow_credentials=true, qualquer origem indevida em CORS pode permitir requisições autenticadas.
@@ -60,10 +61,10 @@ CAUSA MAIS PROVÁVEL DO ENTER ID
 Quando as variáveis Entra não estão preenchidas, o backend não consegue gerar a URL OAuth e responde indisponível/configuração ausente. Se a autenticação abre mas falha no retorno, as causas mais prováveis são redirect URI diferente, secret expirado, consentimento ausente, permissões Graph insuficientes, cookie Secure em HTTP ou CORS/origem divergente.
 
 PRÓXIMAS AÇÕES PRIORITÁRIAS
-1. Atualizar dependências vulneráveis e regenerar lockfile.
-2. Configurar e validar variáveis Entra em produção.
-3. Adicionar rate limiting ao login por e-mail e Entra callback.
-4. Fazer scan oficial no Checkmarx com SAST, SCA e IaC; revisar cada exceção no .vscode/.checkmarxIgnored.
+1. Configurar e validar variáveis Entra em produção.
+2. Adicionar rate limiting ao login por e-mail e callback Entra — mudança de comportamento/infraestrutura, não aplicada automaticamente.
+3. Fazer scan oficial no Checkmarx com SAST, SCA e IaC; revisar cada exceção no .vscode/.checkmarxIgnored.
+4. Confirmar e atualizar dependências transitivas restantes conforme o grafo aprovado.
 5. Reexecutar testes, build, pnpm audit e o scan oficial após as atualizações.
 
-STATUS: análise local concluída; vulnerabilidades de dependência requerem atualização antes de considerar o projeto sem achados.
+STATUS: correções seguras aplicadas; itens externos ou que alteram o modelo de autenticação permanecem documentados e não foram mascarados.
