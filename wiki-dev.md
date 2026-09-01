@@ -323,7 +323,9 @@ Projetos científicos e metadados.
 | `id` | Chave primária. |
 | `name` | Nome do projeto. |
 | `description` | Descrição. |
-| `owner_id` | FK para `users.id`. |
+| `responsible_area` | Área responsável pelo projeto. |
+| `write_group`, `read_group` | Grupos corporativos com acesso de escrita/leitura. |
+| `write_identity_role`, `read_identity_role` | Roles de identidade para autorização. |
 | `status` | Situação do projeto. |
 | `created_at`, `updated_at` | Auditoria temporal. |
 
@@ -360,9 +362,10 @@ Metadados dos arquivos científicos.
 
 Endpoints: `GET/POST /api/files` e `GET/PATCH/DELETE /api/files/{id}`.
 
-### file_shares
+### file_permissions
 
-Compartilhamentos e permissões concedidas para arquivos.
+Permissões diretas ou por grupo concedidas para arquivos. A relação aceita `user_id` ou `group_id`, registra `nivel` e pode indicar `inherited_from`.
+
 
 | Campo | Descrição |
 |---|---|
@@ -416,14 +419,14 @@ erDiagram
   users ||--o{ project_members : participa
   projects ||--o{ project_members : possui
   projects ||--o{ files : armazena
-  files ||--o{ file_shares : compartilha
-  users ||--o{ file_shares : recebe
+  files ||--o{ file_permissions : compartilha
+  users ||--o{ file_permissions : recebe
   users ||--o{ activity_logs : gera
 ```
 
 ### Decisões de modelagem
 
-- `project_members` e `file_shares` resolvem relações muitos-para-muitos;
+- `project_members` e `file_permissions` resolvem relações muitos-para-muitos;
 - Essas tabelas também armazenam atributos da relação, como `role` e `permission`;
 - `activity_logs` deve ser tratado como append-only;
 - E-mails únicos impedem identidades duplicadas;
@@ -498,6 +501,14 @@ As rotas privadas do frontend são protegidas por `frontend/middleware.ts`, que 
 As páginas parametrizadas são `frontend/app/not-found.tsx` para 404, `frontend/app/forbidden/page.tsx` para acesso negado e `frontend/app/error.tsx`/`global-error.tsx` para erros inesperados. Nenhuma dessas camadas substitui a autorização no backend.
 
 O backend é a autoridade para identidade, sessão e autorização.
+
+### Microsoft Entra ID
+
+O login corporativo usa OAuth 2.0 / OpenID Connect. O frontend inicia o fluxo no backend em `/api/auth/entra/login`; o callback `/api/auth/entra/callback` valida o `state`, troca o `code`, consulta a identidade e cria uma sessão HttpOnly. O backend é a única camada que conhece o segredo.
+
+Todas as configurações ficam em `backend/.env`, carregadas por `python-dotenv`: `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET`, `ENTRA_REDIRECT_URI`, `ENTRA_SCOPES`, `ENTRA_GROUPS` e `ENTRA_GROUP_SYNC_ENABLED`. Os valores reais não devem estar no frontend, em `NEXT_PUBLIC_*`, em logs ou no Git; use `backend/.env.example` apenas como modelo.
+
+`ENTRA_GROUPS` aceita IDs ou nomes separados por vírgula. O backend registra grupos e o último login na auditoria, e rejeita configuração parcial na inicialização.
 
 ### Login
 
@@ -720,6 +731,7 @@ SQLite não deve ser usado como base persistente em uma implantação com múlti
 - [Estrutura do banco](docs/database-structure.txt)
 - [Diagrama Mermaid](docs/database-erd.mmd)
 - [Diagrama SVG](docs/database-erd.svg)
+- [Diagrama visual PNG](frontend/public/wiki/database-architecture.png)
 - [Endpoints documentados](docs/api-endpoints.md)
 - [Arquitetura](docs/ARCHITECTURE.md)
 - [Schema SQLite](backend/database/sqlite-schema.sql)
