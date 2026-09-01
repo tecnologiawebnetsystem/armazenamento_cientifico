@@ -18,7 +18,14 @@ def _async_database_url() -> str:
     if settings.database_engine == "sqlite" and url.startswith("sqlite+aiosqlite:///"):
         database_path = url.removeprefix("sqlite+aiosqlite:///")
         if database_path not in (":memory:", ""):
-            Path(database_path).parent.mkdir(parents=True, exist_ok=True)
+            # Caminhos relativos devem ser resolvidos a partir de `backend`,
+            # independentemente do diretório usado para iniciar o Uvicorn.
+            path = Path(database_path)
+            if not path.is_absolute():
+                path = Path(__file__).resolve().parents[2] / path
+            path.parent.mkdir(parents=True, exist_ok=True)
+            url = f"sqlite+aiosqlite:///{path.as_posix()}"
+    return url
     if url.startswith("postgresql://"):
         return url.replace("postgresql://", "postgresql+asyncpg://", 1)
     if url.startswith("postgres://"):
