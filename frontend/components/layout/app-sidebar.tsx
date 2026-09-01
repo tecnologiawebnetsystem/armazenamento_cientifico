@@ -30,11 +30,11 @@ export function AppSidebar() {
   const groups = user ? filterNavForRole(navGroups, user.role).map((group) => ({ ...group, items: group.items.filter((item) => item.title.toLowerCase().includes(search.toLowerCase())) })).filter((group) => group.items.length) : []
 
   return (
-    <Sidebar collapsible="icon" className="border-sidebar-border transition-[width] duration-200 md:flex">
+    <Sidebar collapsible="icon" className="border-sidebar-border/70 bg-sidebar shadow-xl shadow-sidebar/10 transition-[width] duration-200 md:flex">
       <SidebarHeader className="gap-0 p-0">
         {/* Faixa da marca Petrobras */}
-        <div className="h-1 w-full bg-gradient-to-r from-sidebar-primary via-primary to-sidebar-primary" />
-        <SidebarMenu className="p-2">
+        <div className="h-1 w-full bg-gradient-to-r from-sidebar-primary via-sidebar-primary/70 to-sidebar-primary" />
+        <SidebarMenu className="p-3">
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
@@ -58,8 +58,8 @@ export function AppSidebar() {
       <SidebarContent className="gap-1 px-1 py-2">
         
         {groups.map((group) => (
-          <SidebarGroup key={group.label} className="py-1">
-            <SidebarGroupLabel className="text-[10px] font-semibold tracking-[0.14em] text-sidebar-foreground/45 uppercase">
+          <SidebarGroup key={group.label} className="border-b border-sidebar-border/40 px-2 py-3 last:border-b-0">
+            <SidebarGroupLabel className="h-7 px-2 text-[10px] font-semibold tracking-[0.16em] text-sidebar-foreground/55 uppercase">
               {group.label}
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -71,14 +71,14 @@ export function AppSidebar() {
                       {isActive ? (
                         <span
                           aria-hidden
-                          className="absolute top-1/2 left-0 h-5 w-1 -translate-y-1/2 rounded-r-full bg-sidebar-primary group-data-[collapsible=icon]:hidden"
+                          className="absolute top-1/2 left-0 h-6 w-0.5 -translate-y-1/2 rounded-r-full bg-sidebar-primary shadow-[0_0_10px_var(--sidebar-primary)] group-data-[collapsible=icon]:hidden"
                         />
                       ) : null}
                       <SidebarMenuButton
                         render={<Link href={item.url} />}
                         isActive={isActive}
                         tooltip={item.title}
-                        className="h-9 gap-2.5 data-active:bg-sidebar-accent data-active:font-semibold data-active:shadow-[inset_0_1px_0_0_var(--sidebar-border)] [&_svg]:text-sidebar-foreground/70 data-active:[&_svg]:text-sidebar-primary"
+                        className="h-10 gap-3 rounded-lg px-3 text-[13px] font-medium text-sidebar-foreground/78 transition-all duration-200 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground data-active:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-foreground data-active:shadow-[inset_0_1px_0_0_var(--sidebar-border),0_6px_16px_color-mix(in_oklch,var(--sidebar)_35%,transparent)] [&_svg]:text-sidebar-foreground/60 data-active:[&_svg]:text-sidebar-primary"
                       >
                         <item.icon />
                         <span className="truncate">{item.title}</span>
