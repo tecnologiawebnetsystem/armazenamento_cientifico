@@ -3,7 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from dotenv import load_dotenv
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
@@ -42,7 +42,26 @@ class Settings(BaseModel):
     entra_client_secret: str = os.getenv("ENTRA_CLIENT_SECRET", "")
     entra_redirect_uri: str = os.getenv("ENTRA_REDIRECT_URI", "http://localhost:8080/api/auth/entra/callback")
     entra_scopes: str = os.getenv("ENTRA_SCOPES", "openid profile email User.Read GroupMember.Read.All")
+    entra_groups: list[str] = Field(default_factory=lambda: _csv("ENTRA_GROUPS"))
     entra_group_sync_enabled: bool = os.getenv("ENTRA_GROUP_SYNC_ENABLED", "true").lower() == "true"
+
+    @model_validator(mode="after")
+    def validate_entra(self) -> "Settings":
+        required = {
+            "ENTRA_TENANT_ID": self.entra_tenant_id,
+            "ENTRA_CLIENT_ID": self.entra_client_id,
+            "ENTRA_CLIENT_SECRET": self.entra_client_secret,
+        }
+        if any(value.strip() for value in required.values()) and not all(value.strip() for value in required.values()):
+            missing = ", ".join(name for name, value in required.items() if not value.strip())
+            raise ValueError(f"Configuração Entra ID incompleta; faltando: {missing}")
+        if any(required.values()) and (not self.entra_redirect_uri.strip() or not self.entra_scopes.strip()):
+            raise ValueError("Configuração Entra ID incompleta; callback e escopos são obrigatórios")
+        return self
+
+
+def _csv(name: str) -> list[str]:
+    return [item.strip() for item in os.getenv(name, "").split(",") if item.strip()]
 
 
 @lru_cache
