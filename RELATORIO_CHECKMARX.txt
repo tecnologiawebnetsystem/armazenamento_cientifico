@@ -1,0 +1,70 @@
+RELATÓRIO DE ANÁLISE DE SEGURANÇA — ARMAZENAMENTO CIENTÍFICO
+Data: 01/09/2026
+
+ESCOPO
+Análise estática equivalente a uma triagem Checkmarx sobre frontend Next.js e backend FastAPI, incluindo padrões de código, autenticação, autorização, cookies, CORS, SQL parametrizado, segredos e dependências.
+
+LIMITAÇÃO
+Não há conector/CLI Checkmarx disponível neste ambiente. O scanner Semgrep também não está instalado. Portanto, este documento é uma análise técnica local e não substitui o relatório oficial do Checkmarx na plataforma da organização.
+
+RESULTADOS POSITIVOS
+- Não foram encontrados eval(), exec(), os.system(), pickle, yaml.load inseguro, innerHTML ou dangerouslySetInnerHTML no código auditado.
+- Sessão usa cookie HttpOnly e o frontend não persiste sessão em localStorage.
+- Rotas de banco utilizam parâmetros separados dos valores; não foi identificada concatenação direta de entrada de usuário em valores SQL.
+- CORS está configurado por lista de origens, com credenciais habilitadas.
+- Há camadas de autorização por perfil e vínculo com projeto/arquivo.
+- Ruff, pytest e ESLint foram executados anteriormente sem falhas funcionais.
+
+ACHADOS DE ATENÇÃO
+1. ALTO — Dependências npm vulneráveis
+   STATUS: PARCIALMENTE CORRIGIDO.
+   Next.js e eslint-config-next foram atualizados de 16.2.6 para 16.2.11 e o lockfile foi regenerado.
+   O build foi validado com sucesso após a atualização. O pnpm audit ainda identifica vulnerabilidades transitivas, principalmente brace-expansion 5.0.6, vindas de shadcn e ferramentas de lint/build.
+   STATUS: PENDENTE — não é seguro forçar overrides genéricos sem validar o grafo completo, pois isso pode quebrar ferramentas ou alterar o runtime. Requer atualização upstream ou confirmação no SCA oficial.
+
+2. MÉDIO — Fallback HTTP local
+   STATUS: CORRIGIDO NO CLIENTE PRINCIPAL.
+   frontend/lib/api-client.ts agora falha explicitamente em produção quando NEXT_PUBLIC_API_BASE_URL não está configurada; localhost continua disponível somente para desenvolvimento.
+   Ainda é necessário configurar a URL HTTPS correta no ambiente de produção.
+
+3. MÉDIO — Login por e-mail sem segundo fator
+   POST /api/auth/login valida o e-mail cadastrado e cria sessão. Isso é esperado como fallback solicitado, mas é uma superfície de autenticação mais fraca que Entra ID.
+   Correção recomendada: restringir domínio permitido, exigir senha/OTP ou limitar o fluxo a ambiente controlado; registrar auditoria e aplicar rate limiting.
+
+4. MÉDIO — Cookies dependentes de configuração
+   STATUS: ENDURECIDO.
+   O backend agora assume COOKIE_SECURE=true automaticamente quando ENVIRONMENT=production, sem impedir override explícito. O serviço de produção ainda deve operar exclusivamente em HTTPS e validar SameSite/domínio quando frontend e backend estiverem em hosts distintos.
+
+5. MÉDIO — CORS com credenciais
+   Como allow_credentials=true, qualquer origem indevida em CORS pode permitir requisições autenticadas.
+   Correção recomendada: manter somente origens exatas de produção/preview confiáveis; nunca usar wildcard.
+
+6. BAIXO — Dados de desenvolvimento no repositório
+   backend/data/sigac.db e arquivos docker-compose.local.yml contêm credenciais locais de desenvolvimento.
+   Confirmar que não existem dados reais, tokens ou credenciais reutilizadas. Manter fora do artefato de produção e rotacionar qualquer segredo reaproveitado.
+
+ENTER ID / MICROSOFT ENTRA ID
+O fluxo depende destas variáveis no backend: ENTRA_TENANT_ID, ENTRA_CLIENT_ID, ENTRA_CLIENT_SECRET, ENTRA_REDIRECT_URI e permissões Microsoft Graph.
+Passo a passo:
+1. Criar/usar um App Registration no Microsoft Entra ID.
+2. Copiar Application (client) ID para ENTRA_CLIENT_ID.
+3. Copiar Directory (tenant) ID para ENTRA_TENANT_ID.
+4. Criar um client secret e copiar o valor uma única vez para ENTRA_CLIENT_SECRET.
+5. Registrar exatamente a URL ENTRA_REDIRECT_URI/api/auth/entra/callback como Web redirect URI.
+6. Garantir que a URL pública use HTTPS e seja a mesma usada pelo botão Login Corporativo.
+7. Conceder permissões Graph necessárias para User.Read e consulta de grupos; aplicar consentimento administrativo se exigido.
+8. Configurar COOKIE_SECURE=true em produção e permitir no CORS a origem exata do frontend.
+9. Reiniciar o backend após alterar variáveis.
+10. Abrir /api/auth/entra/login, autenticar, confirmar retorno ao callback e verificar a criação do cookie wayon_session_id.
+
+CAUSA MAIS PROVÁVEL DO ENTER ID
+Quando as variáveis Entra não estão preenchidas, o backend não consegue gerar a URL OAuth e responde indisponível/configuração ausente. Se a autenticação abre mas falha no retorno, as causas mais prováveis são redirect URI diferente, secret expirado, consentimento ausente, permissões Graph insuficientes, cookie Secure em HTTP ou CORS/origem divergente.
+
+PRÓXIMAS AÇÕES PRIORITÁRIAS
+1. Configurar e validar variáveis Entra em produção.
+2. Adicionar rate limiting ao login por e-mail e callback Entra — mudança de comportamento/infraestrutura, não aplicada automaticamente.
+3. Fazer scan oficial no Checkmarx com SAST, SCA e IaC; revisar cada exceção no .vscode/.checkmarxIgnored.
+4. Confirmar e atualizar dependências transitivas restantes conforme o grafo aprovado.
+5. Reexecutar testes, build, pnpm audit e o scan oficial após as atualizações.
+
+STATUS: correções seguras aplicadas; itens externos ou que alteram o modelo de autenticação permanecem documentados e não foram mascarados.

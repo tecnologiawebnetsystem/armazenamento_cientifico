@@ -7,6 +7,7 @@ import logging
 import math
 import os
 import re
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import Literal
 from uuid import uuid4
@@ -82,7 +83,7 @@ def row_value(row, key, default=None):
     if isinstance(row, dict):
         return row.get(key, default)
     if hasattr(row, "keys"):
-        return row[key] if key in row.keys() else default
+        return row.get(key, default)
     return getattr(row, key, default)
 
 
@@ -115,7 +116,7 @@ class ProjectInput(BaseModel):
     nome: str = Field(min_length=2, max_length=200)
     codigo: str = Field(min_length=1, max_length=50)
     areaResponsavel: str
-    gestoresIds: list[str] = []
+    gestoresIds: list[str] = Field(default_factory=list)
     grupoAdEscrita: str = ""
     grupoAdLeitura: str = ""
     roleIdentidadeEscrita: str = ""
@@ -124,7 +125,7 @@ class ProjectInput(BaseModel):
     pastaMae: str = ""
     descricao: str = ""
     status: ProjectStatus = "ativo"
-    participantesIds: list[str] = []
+    participantesIds: list[str] = Field(default_factory=list)
 
 
 class ProjectPatch(BaseModel):
@@ -174,10 +175,20 @@ class PermissionMatrix(BaseModel):
     matrix: list[dict]
 
 
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    await startup()
+    try:
+        yield
+    finally:
+        await shutdown()
+
+
 app = FastAPI(
     title="Armazenamento Científico API",
     version="2.0.0",
     description="API REST para gestão de projetos, arquivos, acessos e auditoria.",
+    lifespan=lifespan,
     docs_url=None,
     redoc_url=None,
     openapi_url=None,
@@ -243,7 +254,6 @@ class SQLitePool:
 pool: asyncpg.Pool | SQLitePool | None = None
 
 
-@app.on_event("startup")
 async def startup():
     global pool
     url = settings.database_url
@@ -273,7 +283,6 @@ async def startup():
         logger.error("database_not_configured reason=empty_DATABASE_URL")
 
 
-@app.on_event("shutdown")
 async def shutdown():
     if pool:
         await pool.close()
@@ -441,7 +450,7 @@ async def entra_callback(request: Request, code: str | None = None, state: str |
     logger.info("entra_groups user_id=%s email=%s groups=%s", u["id"], email, [{"id": g.get("id"), "name": g.get("displayName")} for g in graph_groups])
     logger.info("entra_last_login user_id=%s last_sign_in=%s", u["id"], ultimo_login)
     sid = str(uuid4())
-    await p.execute(f"insert into sessions(id,user_id,expires_at) values($1,$2,now()+interval '8 hours')" if settings.database_engine != "sqlite" else "insert into sessions(id,user_id,expires_at) values(?,?,datetime('now', '+8 hours'))", sid, u["id"])
+    await p.execute("insert into sessions(id,user_id,expires_at) values($1,$2,now()+interval '8 hours')" if settings.database_engine != "sqlite" else "insert into sessions(id,user_id,expires_at) values(?,?,datetime('now', '+8 hours'))", sid, u["id"])
     await audit(u, "login_entra", "sessao", sid, json.dumps({"entra_id": identity.get("id"), "groups": [g.get("displayName") for g in graph_groups]}))
     redirect = RedirectResponse("/dashboard", status_code=302)
     redirect.set_cookie("wayon_session_id", sid, httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=28800)
@@ -887,7 +896,6 @@ async def activity_logs(
     end = ate or to
     filters = []
     args = []
-    placeholder = "?" if settings.database_engine == "sqlite" else "$%d"
     def bind(value):
         args.append(value)
         return "?" if settings.database_engine == "sqlite" else f"${len(args)}"

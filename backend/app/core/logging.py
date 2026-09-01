@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import sys
-from contextvars import ContextVar
+from contextvars import ContextVar, Token
 from typing import Any
 
 correlation_id_var: ContextVar[str] = ContextVar("correlation_id", default="-")
@@ -34,6 +34,15 @@ def configure_logging(level: str = "INFO") -> None:
     root.setLevel(level.upper())
 
 
-def set_request_context(correlation_id: str, user_id: str = "-") -> None:
-    correlation_id_var.set(correlation_id)
-    user_id_var.set(user_id)
+def set_request_context(correlation_id: str, user_id: str = "-") -> tuple[Token[str], Token[str]]:
+    """Define o contexto observável e retorna tokens para restauração segura."""
+    correlation_token = correlation_id_var.set(correlation_id)
+    user_token = user_id_var.set(user_id)
+    return correlation_token, user_token
+
+
+def reset_request_context(tokens: tuple[Token[str], Token[str]]) -> None:
+    """Restaura o contexto anterior ao fim da requisição."""
+    correlation_token, user_token = tokens
+    correlation_id_var.reset(correlation_token)
+    user_id_var.reset(user_token)

@@ -130,8 +130,8 @@
     --chart-3: oklch(0.6 0.12 160);
     --chart-4: oklch(0.52 0.08 155);
     --chart-5: oklch(0.75 0.05 150);
-    /* Verde profundo corporativo para o menu no modo escuro */
-    --sidebar: oklch(0.19 0.055 155);
+    /* Petrobras: verde profundo oficial para navegação e marca */
+    --sidebar: oklch(0.31 0.115 151);
     --sidebar-foreground: oklch(0.94 0.012 150);
     --sidebar-primary: oklch(0.82 0.17 82);
     --sidebar-primary-foreground: oklch(0.18 0.05 155);
@@ -139,6 +139,35 @@
     --sidebar-accent-foreground: oklch(0.98 0.008 150);
     --sidebar-border: oklch(0.42 0.08 154 / 58%);
     --sidebar-ring: oklch(0.82 0.17 82);
+}
+
+/* O login permanece claro mesmo quando a preferência persistida do navegador é escura. */
+.light {
+    color-scheme: light;
+    --background: oklch(0.985 0.004 150);
+    --foreground: oklch(0.2 0.025 155);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.2 0.025 155);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.2 0.025 155);
+    --primary: oklch(0.575 0.155 151);
+    --primary-foreground: oklch(0.99 0 0);
+    --secondary: oklch(0.95 0.012 152);
+    --secondary-foreground: oklch(0.26 0.03 155);
+    --muted: oklch(0.955 0.008 152);
+    --muted-foreground: oklch(0.48 0.025 155);
+    --accent: oklch(0.82 0.17 82);
+    --accent-foreground: oklch(0.28 0.06 70);
+    --border: oklch(0.9 0.01 152);
+    --input: oklch(0.9 0.01 152);
+    --ring: oklch(0.575 0.155 151);
+    --sidebar: oklch(0.28 0.06 155);
+    --sidebar-foreground: oklch(0.95 0.01 150);
+    --sidebar-primary: oklch(0.82 0.17 82);
+    --sidebar-primary-foreground: oklch(0.24 0.05 155);
+    --sidebar-accent: oklch(0.36 0.07 154);
+    --sidebar-accent-foreground: oklch(0.97 0.008 150);
+    --sidebar-border: oklch(0.38 0.07 154);
 }
 
 @layer base {

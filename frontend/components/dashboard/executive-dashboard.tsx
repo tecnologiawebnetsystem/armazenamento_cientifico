@@ -5,7 +5,6 @@ import {
   GaugeIcon,
   MapIcon,
   UsersIcon,
-  FileBarChartIcon,
   ArrowRightIcon,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -33,8 +32,8 @@ export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazen
   const areas = Array.from(new Set(projects.map((project) => project.areaResponsavel))).filter(Boolean).slice(0, 5)
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="relative flex flex-col gap-5 overflow-hidden rounded-2xl border border-petrobras-blue/15 bg-gradient-to-br from-petrobras-blue/[0.08] via-background to-petrobras-yellow/[0.12] p-5 shadow-sm sm:flex-row sm:items-end sm:justify-between sm:p-7">
+    <div className="sw-motion flex flex-col gap-7">
+      <header className="relative flex flex-col gap-5 overflow-hidden rounded-2xl border border-petrobras-green/20 bg-gradient-to-br from-petrobras-green/[0.10] via-background to-petrobras-yellow/[0.16] p-5 shadow-md shadow-petrobras-green/5 sm:flex-row sm:items-end sm:justify-between sm:p-7">
         <div className="flex flex-col gap-2">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">SIGAC · visão executiva</p>
           <h1 className="font-heading text-3xl font-semibold tracking-tight text-balance">Portfólio científico em foco</h1>

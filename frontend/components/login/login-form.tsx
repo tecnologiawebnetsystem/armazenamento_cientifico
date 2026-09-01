@@ -1,20 +1,43 @@
 "use client"
 
-import { useState } from "react"
-import { Building2Icon, ShieldCheckIcon } from "lucide-react"
+import { FormEvent, useState } from "react"
+import { Building2Icon, MailIcon, ShieldCheckIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/spinner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { login } from "@/lib/api-client"
 
 export function LoginForm() {
+  const [email, setEmail] = useState("")
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState<"email" | "corporate" | null>(null)
 
   function handleCorporateLogin() {
     setError(null)
-    setLoading(true)
+    setLoading("corporate")
     const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080").replace(/\/$/, "")
     window.location.assign(`${apiBase}/api/auth/entra/login`)
+  }
+
+  async function handleEmailLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const normalizedEmail = email.trim()
+    if (!normalizedEmail) {
+      setError("Informe seu e-mail para continuar.")
+      return
+    }
+
+    setError(null)
+    setLoading("email")
+    try {
+      await login(normalizedEmail)
+      window.location.assign("/dashboard")
+    } catch (loginError) {
+      setError(loginError instanceof Error ? loginError.message : "Não foi possível validar seu acesso.")
+      setLoading(null)
+    }
   }
 
   return (
@@ -57,22 +80,51 @@ export function LoginForm() {
             </div>
           ) : (
             <>
-          {error && (
+              {error && (
+                <Alert variant="destructive">
+                  <AlertTitle>Falha na autenticação</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
 
-            <Alert variant="destructive">
-              <AlertTitle>Falha na autenticação</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+              <form className="flex flex-col gap-4" onSubmit={handleEmailLogin}>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="login-email">E-mail cadastrado</Label>
+                  <div className="relative">
+                    <MailIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                    <Input
+                      id="login-email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      placeholder="nome@empresa.com.br"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      disabled={loading !== null}
+                      className="pl-9"
+                      required
+                    />
+                  </div>
+                </div>
+                <Button type="submit" size="lg" disabled={loading !== null} className="w-full">
+                  {loading === "email" ? <Spinner aria-label="Validando e-mail" /> : "Entrar com e-mail"}
+                </Button>
+              </form>
 
-          <div className="flex flex-col gap-3 text-center">
-            <p className="text-sm leading-6 text-muted-foreground">Colaboradores Petrobras devem acessar utilizando o botão Login corporativo abaixo.</p>
-            <Button type="button" size="lg" variant="outline" onClick={handleCorporateLogin} disabled={loading} className="mx-auto w-full max-w-xs border-petrobras-green bg-gradient-to-r from-petrobras-green via-petrobras-green to-petrobras-yellow text-primary-foreground shadow-lg shadow-petrobras-yellow/25 transition-all hover:brightness-105 hover:shadow-xl hover:shadow-petrobras-yellow/35">
-              <Building2Icon data-icon="inline-start" />
-              Login Corporativo
-            </Button>
-            <p className="pt-1 text-xs text-muted-foreground">© 2026 Petrobras. Todos os direitos reservados.</p>
-          </div>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true">
+                <span className="h-px flex-1 bg-border" />
+                <span>ou</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+
+              <div className="flex flex-col gap-3 text-center">
+                <p className="text-sm leading-6 text-muted-foreground">Prefira o acesso corporativo para consultar grupos e informações do Microsoft Graph.</p>
+                <Button type="button" size="lg" variant="outline" onClick={handleCorporateLogin} disabled={loading !== null} className="w-full border-petrobras-green bg-gradient-to-r from-petrobras-green via-petrobras-green to-petrobras-yellow text-primary-foreground shadow-lg shadow-petrobras-yellow/25 transition-all hover:brightness-105 hover:shadow-xl hover:shadow-petrobras-yellow/35">
+                  <Building2Icon data-icon="inline-start" />
+                  {loading === "corporate" ? "Conectando..." : "Login Corporativo (Enter ID)"}
+                </Button>
+                <p className="pt-1 text-xs text-muted-foreground">© 2026 Petrobras. Todos os direitos reservados.</p>
+              </div>
             </>
           )}
         </div>

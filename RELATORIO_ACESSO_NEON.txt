@@ -1,0 +1,94 @@
+RELATÓRIO DE ACESSO E INVENTÁRIO — NEON
+Projeto: royal-cell-43358504
+Integração: neon-lime-chair
+Gerado em: 01/09/2026
+
+1. CONFIGURAÇÃO DE ACESSO
+
+DATABASE_URL: configurada pela integração Neon (valor completo omitido por segurança)
+Host: ep-empty-dawn-au1weg98-pooler.c-10.us-east-1.aws.neon.tech
+Banco: neondb
+Usuário: neondb_owner
+Senha: configurada e não exibida neste arquivo
+
+Variáveis disponíveis no projeto:
+- DATABASE_URL
+- DATABASE_URL_UNPOOLED
+- NEON_PROJECT_ID
+- PGHOST / PGHOST_UNPOOLED
+- PGDATABASE
+- PGUSER
+- PGPASSWORD (não exibir)
+- POSTGRES_URL
+- POSTGRES_URL_NON_POOLING
+
+Para o backend:
+DATABASE_ENGINE=postgresql
+DATABASE_URL_POSTGRESQL=${DATABASE_URL}
+
+2. TABELAS PÚBLICAS IDENTIFICADAS NO NEON
+
+access_requests
+activity_logs
+configuracoes_sistema
+file_permissions
+file_shares
+files
+menus
+modulos
+perfil_modulos
+perfil_permissoes
+perfis
+permission_matrix
+permissoes
+project_members
+projects
+sessions
+settings
+status_projetos
+tipos_projetos
+tipos_relatorios
+users
+
+Total: 21 tabelas públicas.
+
+3. ESTRUTURA E REGISTROS
+
+A estrutura completa de colunas, tipos, nulabilidade e defaults foi conferida diretamente no information_schema.columns do Neon.
+As contagens de registros foram conferidas diretamente no Neon para todas as tabelas públicas e correspondem à carga migrada do SQLite.
+
+Registros sensíveis não são reproduzidos neste relatório. A tabela sessions pode conter tokens de sessão e não deve ser exportada para um arquivo compartilhável. Credenciais, tokens, hashes de senha e segredos também não são exibidos.
+
+4. COMO VISUALIZAR OS REGISTROS COM SEGURANÇA
+
+Use consultas somente leitura no Neon, sempre selecionando apenas as colunas necessárias:
+
+SELECT id, email, name FROM users ORDER BY id;
+SELECT id, name, status FROM projects ORDER BY id;
+SELECT id, action, entity, created_at FROM activity_logs ORDER BY created_at DESC;
+SELECT file_id, user_id, level FROM file_permissions ORDER BY file_id;
+
+Não executar SELECT * nas tabelas users, sessions ou qualquer tabela que contenha tokens, credenciais ou dados pessoais.
+
+5. SELEÇÃO DO BANCO LOCAL
+
+SQLite:
+DATABASE_ENGINE=sqlite
+DATABASE_URL_SQLITE=sqlite+aiosqlite:///./data/sigac.db
+
+Neon/PostgreSQL:
+DATABASE_ENGINE=postgresql
+DATABASE_URL_POSTGRESQL=<usar a DATABASE_URL fornecida pela integração Neon>
+
+O backend escolhe a URL com base em DATABASE_ENGINE. Nenhuma migração Alembic repetida é necessária para a carga já realizada no Neon.
+
+6. STATUS
+
+- Integração Neon: conectada.
+- Banco: acessível.
+- Tabelas públicas: 21.
+- Schema: consultado e registrado.
+- Registros: contagens conferidas.
+- Dados sensíveis: deliberadamente omitidos deste arquivo.
+
+Observação de segurança: não versionar este relatório se ele for complementado com dados reais de usuários, sessões, tokens, senhas ou credenciais.

@@ -3,8 +3,9 @@
 Revision ID: 0007_add_solicitante_role
 Revises: 0006_compatibilidade_relacional
 """
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 revision = "0007_add_solicitante_role"
 down_revision = "0006_compatibilidade_relacional"

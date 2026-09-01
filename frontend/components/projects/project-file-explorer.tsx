@@ -99,16 +99,6 @@ function formatDate(iso?: string | null) {
   return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
 }
 
-function initials(nome: string) {
-  return nome
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0])
-    .join("")
-    .toUpperCase()
-}
-
 function FileTypeIcon({ file, className }: { file: FileNode; className?: string }) {
   if (file.tipo === "pasta") return <FolderIcon className={className ?? "size-4 shrink-0 text-primary"} />
 

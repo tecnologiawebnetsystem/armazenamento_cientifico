@@ -8,15 +8,20 @@ from pydantic import BaseModel, Field, model_validator
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 
+def _database_url() -> str:
+    engine = os.getenv("DATABASE_ENGINE", "sqlite").lower()
+    if engine not in {"sqlite", "postgresql", "postgres", "neon"}:
+        raise ValueError("DATABASE_ENGINE deve ser sqlite ou postgresql")
+    if engine == "sqlite":
+        return os.getenv("DATABASE_URL_SQLITE") or os.getenv("DATABASE_URL") or "sqlite+aiosqlite:///./data/sigac.db"
+    return os.getenv("DATABASE_URL_POSTGRESQL") or os.getenv("DATABASE_URL") or ""
+
+
 class Settings(BaseModel):
     app_name: str = "SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico API"
     app_version: str = "3.1.0"
     database_engine: str = os.getenv("DATABASE_ENGINE", "sqlite").lower()
-    database_url: str = os.getenv(
-        "DATABASE_URL",
-        "sqlite+aiosqlite:///./data/sigac.db" if os.getenv("DATABASE_ENGINE", "sqlite").lower() == "sqlite"
-        else "postgresql+asyncpg://sigac:sigac_dev_password@localhost:5432/sigac",
-    )
+    database_url: str = _database_url()
     seed_database: bool = os.getenv("SEED_DATABASE", "true").lower() == "true"
     cors_origins: list[str] = [
         x.strip()
@@ -24,7 +29,10 @@ class Settings(BaseModel):
         if x.strip()
     ]
     cookie_name: str = os.getenv("COOKIE_NAME", "wayon_session_id")
-    cookie_secure: bool = os.getenv("COOKIE_SECURE", "false").lower() == "true"
+    cookie_secure: bool = os.getenv(
+        "COOKIE_SECURE",
+        "true" if os.getenv("ENVIRONMENT", "development").lower() == "production" else "false",
+    ).lower() == "true"
     session_hours: int = int(os.getenv("SESSION_HOURS", "8"))
     db_min_size: int = int(os.getenv("DB_MIN_SIZE", "1"))
     db_max_size: int = int(os.getenv("DB_MAX_SIZE", "10"))

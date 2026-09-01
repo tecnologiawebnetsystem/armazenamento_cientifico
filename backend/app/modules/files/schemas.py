@@ -48,4 +48,4 @@ class FileOut(BaseModel):
 
 class FileListOut(BaseModel):
     files: list[FileOut]
-    breadcrumb: list[dict] = []
+    breadcrumb: list[dict] = Field(default_factory=list)

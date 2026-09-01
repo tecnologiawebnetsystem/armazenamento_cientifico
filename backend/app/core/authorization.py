@@ -6,7 +6,7 @@ from fastapi import HTTPException
 OFFICIAL_ROLES: Final = {"admin", "gerente", "patrocinador", "auditor", "solicitante"}
 LEGACY_ROLE_MAP: Final = {
     "gestor": "gerente",
-    "participante": "solicitante",
+    "participante": "gerente",
     "visualizador": "auditor",
     "solicitante": "solicitante",
 }
@@ -20,7 +20,7 @@ def ensure_role(user: Any, *allowed_roles: str) -> Any:
     if isinstance(user, Mapping):
         raw_role = user.get("role")
     elif hasattr(user, "keys"):
-        raw_role = user["role"] if "role" in user.keys() else None
+        raw_role = user.get("role", None)
     else:
         raw_role = getattr(user, "role", None)
     role = canonical_role(raw_role)
