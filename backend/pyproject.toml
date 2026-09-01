@@ -29,6 +29,9 @@ asyncio_mode = "auto"
 pythonpath = ["."]
 testpaths = ["tests"]
 markers = ["integration: testes que exigem PostgreSQL configurado"]
+filterwarnings = [
+  "ignore:Using `httpx` with `starlette.testclient` is deprecated:starlette.exceptions.StarletteDeprecationWarning",
+]
 
 [tool.ruff]
 line-length = 100

@@ -7,6 +7,7 @@ import logging
 import math
 import os
 import re
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import Literal
 from uuid import uuid4
@@ -174,10 +175,20 @@ class PermissionMatrix(BaseModel):
     matrix: list[dict]
 
 
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    await startup()
+    try:
+        yield
+    finally:
+        await shutdown()
+
+
 app = FastAPI(
     title="Armazenamento Científico API",
     version="2.0.0",
     description="API REST para gestão de projetos, arquivos, acessos e auditoria.",
+    lifespan=lifespan,
     docs_url=None,
     redoc_url=None,
     openapi_url=None,
@@ -243,7 +254,6 @@ class SQLitePool:
 pool: asyncpg.Pool | SQLitePool | None = None
 
 
-@app.on_event("startup")
 async def startup():
     global pool
     url = settings.database_url
@@ -273,7 +283,6 @@ async def startup():
         logger.error("database_not_configured reason=empty_DATABASE_URL")
 
 
-@app.on_event("shutdown")
 async def shutdown():
     if pool:
         await pool.close()

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 
 const PUBLIC_PATHS = new Set(["/", "/login", "/recuperar-senha"])
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const isPublic = PUBLIC_PATHS.has(pathname) || pathname.startsWith("/_next/") || pathname.startsWith("/api/auth/") || pathname === "/favicon.ico"
   if (isPublic) return NextResponse.next()
