@@ -58,7 +58,7 @@ export function AppTopbar() {
   }
 
   return (
-    <header className="relative flex min-h-16 shrink-0 items-center gap-2 border-b border-border/70 bg-background/95 px-3 backdrop-blur sm:gap-3 sm:px-4 md:min-h-18 md:px-6">
+    <header className="relative flex min-h-16 shrink-0 items-center gap-2 border-b border-border/70 bg-card px-3 shadow-sm sm:gap-3 sm:px-4 md:min-h-18 md:px-6">
       <div className="absolute inset-x-0 top-0 h-0.5 bg-primary" aria-hidden="true" />
       <SidebarTrigger className="size-9 rounded-xl border border-border/70 bg-muted/30 text-muted-foreground hover:bg-primary/10 hover:text-primary" />
       <Separator orientation="vertical" className="mx-1 h-7 bg-border/70" />

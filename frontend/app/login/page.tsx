@@ -4,7 +4,7 @@ import { LogoMark } from "@/components/brand/logo-mark"
 
 export default function LoginPage() {
   return (
-    <div className="grid min-h-svh lg:grid-cols-[1.1fr_1fr]">
+    <div className="light grid min-h-svh bg-background text-foreground lg:grid-cols-[1.1fr_1fr]">
       <div className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-10 lg:flex">
         <Image
           src="/images/login-hero.png"
