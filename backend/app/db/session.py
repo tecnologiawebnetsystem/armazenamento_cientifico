@@ -25,7 +25,6 @@ def _async_database_url() -> str:
                 path = Path(__file__).resolve().parents[2] / path
             path.parent.mkdir(parents=True, exist_ok=True)
             url = f"sqlite+aiosqlite:///{path.as_posix()}"
-    return url
     if url.startswith("postgresql://"):
         return url.replace("postgresql://", "postgresql+asyncpg://", 1)
     if url.startswith("postgres://"):

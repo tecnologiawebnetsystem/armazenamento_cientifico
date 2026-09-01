@@ -116,7 +116,7 @@ class ProjectInput(BaseModel):
     nome: str = Field(min_length=2, max_length=200)
     codigo: str = Field(min_length=1, max_length=50)
     areaResponsavel: str
-    gestoresIds: list[str] = []
+    gestoresIds: list[str] = Field(default_factory=list)
     grupoAdEscrita: str = ""
     grupoAdLeitura: str = ""
     roleIdentidadeEscrita: str = ""
@@ -125,7 +125,7 @@ class ProjectInput(BaseModel):
     pastaMae: str = ""
     descricao: str = ""
     status: ProjectStatus = "ativo"
-    participantesIds: list[str] = []
+    participantesIds: list[str] = Field(default_factory=list)
 
 
 class ProjectPatch(BaseModel):
