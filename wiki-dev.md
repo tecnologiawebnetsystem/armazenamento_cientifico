@@ -8,7 +8,7 @@
 
 - [1. Visão geral](#1-visão-geral)
 - [2. Como executar](#2-como-executar)
-- [3. SQLite passo a passo](#3-sqlite-passo-a-passo)
+- [3. SQLite e PostgreSQL/Neon](#3-sqlite-e-postgresql-passo-a-passo)
 - [4. Estrutura do frontend](#4-estrutura-do-frontend)
 - [5. Estrutura do backend](#5-estrutura-do-backend)
 - [6. Banco de dados](#6-banco-de-dados)
@@ -148,7 +148,7 @@ COOKIE_SECURE=true
 ENVIRONMENT=production
 ```
 
-O valor de `DATABASE_ENGINE` decide o driver usado pela API. Nunca versionar credenciais reais; use as variáveis de ambiente do projeto ou o arquivo `.env` local não versionado.
+O valor de `DATABASE_ENGINE` decide o driver usado pela API. Nunca versionar credenciais reais; use as variáveis de ambiente do projeto ou o arquivo `.env` local não versionado. O arquivo [`ACESSO_BANCO_NEON.txt`](ACESSO_BANCO_NEON.txt) contém o guia de configuração sem expor senhas ou tokens.
 
 O caminho `./data/sigac.db` é relativo ao diretório em que a API é iniciada. Execute o Uvicorn dentro de `backend/` para gerar:
 
@@ -209,7 +209,7 @@ O frontend está em [`frontend/`](frontend/) e é uma instalação Next.js indep
 | [`frontend/tests/`](frontend/tests/) | Testes E2E e verificações do frontend. |
 | [`frontend/package.json`](frontend/package.json) | Scripts e dependências JavaScript. |
 | [`frontend/tsconfig.json`](frontend/tsconfig.json) | Configuração do TypeScript e aliases. |
-| [`frontend/next.config.mjs`](frontend/next.config.mjs) | Configuração do Next.js. |
+| [`frontend/next.config.ts`](frontend/next.config.ts) | Configuração do Next.js. |
 | [`frontend/components.json`](frontend/components.json) | Configuração do shadcn/ui. |
 | [`frontend/.env.local`](frontend/.env.local) | Variáveis locais não versionadas. |
 

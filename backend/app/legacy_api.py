@@ -267,17 +267,23 @@ async def startup():
         logger.error("database_not_configured reason=empty_DATABASE_URL")
         return
     try:
-        pool = await asyncpg.create_pool(
-            url.replace("channel_binding=require&", "").replace("&channel_binding=require", "").replace("?channel_binding=require", "?").replace("sslmode=require&", "").replace("&sslmode=require", "").replace("?sslmode=require", "?"),
-            min_size=settings.db_min_size,
-            max_size=settings.db_max_size,
-            command_timeout=settings.db_command_timeout,
-            ssl="require",
-        )
-        logger.info("database_connected engine=postgresql")
-    except (OSError, asyncpg.PostgresError):
+        if settings.database_engine == "sqlite":
+            pool = SQLitePool(url)
+            await pool.fetchval("select 1")
+            logger.info("database_connected engine=sqlite path=%s", pool.path)
+        else:
+            postgres_url = url.replace("channel_binding=require&", "").replace("&channel_binding=require", "").replace("?channel_binding=require", "?").replace("sslmode=require&", "").replace("&sslmode=require", "").replace("?sslmode=require", "?")
+            pool = await asyncpg.create_pool(
+                postgres_url,
+                min_size=settings.db_min_size,
+                max_size=settings.db_max_size,
+                command_timeout=settings.db_command_timeout,
+                ssl="require",
+            )
+            logger.info("database_connected engine=postgresql")
+    except (OSError, asyncpg.PostgresError, aiosqlite.Error):
         pool = None
-        logger.exception("database_connection_failed engine=postgresql")
+        logger.exception("database_connection_failed engine=%s", settings.database_engine)
 
 
 async def shutdown():
