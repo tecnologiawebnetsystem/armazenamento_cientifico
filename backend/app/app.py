@@ -48,7 +48,7 @@ Cobre gestão de projetos científicos, arquivos, controle de acessos, relatóri
 parametrizados e auditoria.
 
 ### Banco de dados
-A API funciona com **SQLite** (desenvolvimento) e **PostgreSQL/Neon** (produção).
+A API funciona com **SQLite** (desenvolvimento) e **PostgreSQL* (produção).
 O banco ativo é definido por `DATABASE_ENGINE`; quando essa variável não é
 informada, o engine é inferido automaticamente pelo esquema da `DATABASE_URL`.
 
@@ -79,7 +79,7 @@ def create_app() -> FastAPI:
         title=settings.app_name,
         version=settings.app_version,
         description=API_DESCRIPTION,
-        summary="Gestão de acesso ao armazenamento científico com suporte a SQLite e PostgreSQL/Neon.",
+        summary="Gestão de acesso ao armazenamento científico com suporte a SQLite e PostgreSQL.",
         openapi_tags=TAGS_METADATA,
         contact={"name": "Equipe SIGAC", "email": "sigac@petrobras.com.br"},
         license_info={"name": "Uso interno Petrobras"},

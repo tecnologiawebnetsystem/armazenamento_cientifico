@@ -13,7 +13,7 @@ def _resolve_engine() -> str:
 
     Se DATABASE_ENGINE for informado, ele tem prioridade. Caso contrário,
     o engine é inferido a partir do esquema da DATABASE_URL — assim um
-    deploy que fornece apenas uma DATABASE_URL PostgreSQL (ex.: Neon)
+    deploy que fornece apenas uma DATABASE_URL PostgreSQL.
     funciona sem exigir variáveis extras.
     """
     explicit = os.getenv("DATABASE_ENGINE")
