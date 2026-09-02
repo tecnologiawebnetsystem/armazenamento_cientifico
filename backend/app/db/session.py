@@ -110,6 +110,20 @@ async def _ensure_sqlite_compatibility() -> None:
         for column, definition in compatibility_columns.items():
             if column not in columns:
                 await connection.execute(text(f"ALTER TABLE users ADD COLUMN {column} {definition}"))
+        member_columns = {
+            row[1]
+            for row in (await connection.exec_driver_sql("PRAGMA table_info(project_members)")).all()
+        }
+        if "role" not in member_columns:
+            await connection.execute(text("ALTER TABLE project_members ADD COLUMN role TEXT NOT NULL DEFAULT 'participante'"))
+        menu_columns = {
+            row[1]
+            for row in (await connection.exec_driver_sql("PRAGMA table_info(menus)")).all()
+        }
+        menu_compatibility = {"module_id": "TEXT", "parent_id": "TEXT", "name": "TEXT", "route": "TEXT NOT NULL DEFAULT ''", "icon": "TEXT NOT NULL DEFAULT 'circle'", "display_order": "INTEGER NOT NULL DEFAULT 0", "active": "INTEGER NOT NULL DEFAULT 1"}
+        for column, definition in menu_compatibility.items():
+            if column not in menu_columns:
+                await connection.execute(text(f"ALTER TABLE menus ADD COLUMN {column} {definition}"))
 
 
 async def connect() -> None:

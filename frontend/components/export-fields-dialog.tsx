@@ -85,6 +85,6 @@ export function ExportFieldsDialog({ open, onOpenChange, title, fields, defaultF
   </Dialog>
 }
 
-export function ExportButton({ onClick }: { onClick: () => void }) {
-  return <Button onClick={onClick} className="bg-gradient-to-r from-petrobras-green via-petrobras-teal to-petrobras-blue text-primary-foreground shadow-sm hover:opacity-90"><DownloadIcon data-icon="inline-start" />Exportar</Button>
+export function ExportButton({ onClick, disabled = false }: { onClick: () => void; disabled?: boolean }) {
+  return <Button onClick={onClick} disabled={disabled} className="bg-gradient-to-r from-petrobras-green via-petrobras-teal to-petrobras-blue text-primary-foreground shadow-sm hover:opacity-90"><DownloadIcon data-icon="inline-start" />Exportar</Button>
 }

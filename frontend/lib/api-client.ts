@@ -285,6 +285,12 @@ export function getDashboardSummary() {
 
 /* --------------------------------- Reports --------------------------------- */
 
+export type ConfiguredReportField = { id: string; report_code: string; field_key: string; label: string; source_key: string; display_order: number; active: boolean }
+
+export function getReportFields(reportCode: string) {
+  return request<{ reportCode: string; fields: ConfiguredReportField[] }>(`/api/report-fields?report_code=${encodeURIComponent(reportCode)}`)
+}
+
 export function getAccessMap() {
   return request<AccessMapResponse>("/api/access-map")
 }
