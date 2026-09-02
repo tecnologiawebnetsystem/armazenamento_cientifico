@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/sidebar"
 import { useSession } from "@/hooks/use-session"
 import { filterNavForRole, navGroups } from "@/lib/nav-config"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export function AppSidebar() {
   const pathname = usePathname()
@@ -93,6 +94,9 @@ export function AppSidebar() {
 
       <SidebarFooter className="p-0">
         <SidebarSeparator className="mx-0" />
+        <div className="p-3 group-data-[collapsible=icon]:p-2">
+          <ThemeToggle />
+        </div>
       </SidebarFooter>
 
       <SidebarRail />
