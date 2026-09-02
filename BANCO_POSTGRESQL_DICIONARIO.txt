@@ -1,0 +1,345 @@
+DOCUMENTAÇÃO DO BANCO DE DADOS POSTGRESQL / NEON
+SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico
+
+Objetivo
+--------
+Este documento explica a finalidade de cada tabela do PostgreSQL, o motivo de sua criação e os principais campos. A documentação foi baseada no schema PostgreSQL utilizado pela aplicação.
+
+Convenções
+----------
+PK = chave primária.
+FK = chave estrangeira.
+NOT NULL = campo obrigatório.
+NULL = campo opcional.
+jsonb = estrutura JSON armazenada pelo PostgreSQL.
+timestamptz = data e hora com fuso horário.
+
+1. IDENTIDADE E SESSÃO
+======================
+
+users — Usuários do sistema
+Finalidade: armazena as pessoas que podem acessar e utilizar o sistema.
+Motivo: é a identidade central usada no login, nas permissões e na auditoria.
+Campos:
+- id: identificador único (PK).
+- name: nome de exibição do usuário (obrigatório).
+- email: e-mail usado no login (obrigatório e único na regra de negócio).
+- job_title: cargo do usuário, quando informado pelo Entra ID.
+- area: área ou setor do usuário.
+- role: papel legado do usuário; padrão participante.
+- profile_id: perfil de acesso do usuário (FK para profiles.id).
+- avatar_url: endereço da foto do perfil; vazio utiliza o avatar padrão no frontend.
+- last_login_at: data e hora do último login.
+- created_at: data de criação do usuário.
+
+profiles — Perfis de acesso
+Finalidade: catálogo dos perfis de autorização do sistema.
+Motivo: centraliza as permissões atribuídas ao usuário sem depender de regras espalhadas no código.
+Campos:
+- id: identificador do perfil (PK), como ADM, GER, AUD, VIS ou GES.
+- name: nome do perfil.
+- description: descrição do perfil.
+- created_at: data de criação.
+
+sessions — Sessões autenticadas
+Finalidade: registra as sessões ativas dos usuários.
+Motivo: permite manter a sessão no servidor, usando cookie seguro e expiração controlada.
+Campos:
+- id: identificador da sessão (PK), utilizado no cookie.
+- user_id: usuário da sessão (FK para users.id).
+- expires_at: data e hora de expiração.
+
+2. PROJETOS
+===========
+
+projects — Projetos científicos
+Finalidade: entidade principal dos projetos administrados pelo SIGAC.
+Motivo: arquivos, membros, grupos e solicitações de acesso dependem do projeto.
+Campos:
+- id: identificador único (PK).
+- name: nome do projeto.
+- code: código único do projeto.
+- responsible_area: área responsável.
+- managers_ids: lista JSON com IDs dos gestores.
+- write_group: grupo corporativo com permissão de escrita.
+- read_group: grupo corporativo com permissão de leitura.
+- write_identity_role: papel do Entra ID para escrita.
+- read_identity_role: papel do Entra ID para leitura.
+- snow_task_number: número da demanda no ServiceNow.
+- parent_folder: pasta raiz do projeto no armazenamento.
+- description: descrição do projeto.
+- status: status atual do projeto.
+- participants_ids: lista JSON de participantes.
+- created_at: data de criação.
+- updated_at: data da última atualização.
+
+project_members — Membros dos projetos
+Finalidade: relaciona usuários aos projetos.
+Motivo: resolve a relação muitos-para-muitos entre usuários e projetos e registra o papel do usuário no projeto.
+Campos:
+- project_id: projeto relacionado (PK/FK para projects.id).
+- user_id: usuário relacionado (PK/FK para users.id).
+- role: papel do usuário no projeto.
+- created_at: data do vínculo.
+
+project_groups — Grupos autorizados por projeto
+Finalidade: relaciona grupos corporativos aos projetos.
+Motivo: permite conceder acesso a equipes inteiras, especialmente grupos sincronizados do Entra ID.
+Campos:
+- project_id: projeto relacionado (PK/FK para projects.id).
+- group_id: grupo relacionado (PK/FK para groups.id).
+- role: papel do grupo no projeto.
+- created_at: data do vínculo.
+
+3. ARQUIVOS E CONTEÚDO
+======================
+
+files — Arquivos e pastas
+Finalidade: armazena os metadados dos arquivos e pastas.
+Motivo: representa a árvore de conteúdo dos projetos sem armazenar o arquivo binário diretamente nesta tabela.
+Campos:
+- id: identificador único (PK).
+- project_id: projeto proprietário (FK para projects.id).
+- parent_id: pasta pai; permite formar a árvore de diretórios (FK para files.id).
+- kind: tipo do item, arquivo ou pasta.
+- name: nome do arquivo ou pasta.
+- size_bytes: tamanho em bytes.
+- mime_type: tipo MIME do arquivo.
+- created_by: usuário que criou o item (FK para users.id).
+- last_viewed_at: data da última visualização.
+- created_at: data de criação.
+- updated_at: data da atualização.
+
+file_permissions — Permissões de arquivos
+Finalidade: guarda permissões específicas concedidas a usuários ou grupos.
+Motivo: permite controle granular além das permissões herdadas do projeto.
+Campos:
+- file_id: arquivo relacionado (FK para files.id).
+- user_id: usuário autorizado, quando a permissão é individual (FK para users.id).
+- group_id: grupo autorizado, quando a permissão é por grupo (FK para groups.id).
+- access_level: nível de acesso concedido.
+- inherited_from: origem da permissão herdada.
+- created_at: data da concessão.
+
+file_shares — Compartilhamentos
+Finalidade: registra compartilhamentos diretos de arquivos com usuários.
+Motivo: separa o compartilhamento explícito das permissões gerais e herdadas.
+Campos:
+- file_id: arquivo compartilhado (PK/FK para files.id).
+- user_id: usuário que recebeu o compartilhamento (PK/FK para users.id).
+- access_level: nível de acesso.
+- created_at: data do compartilhamento.
+
+4. GRUPOS CORPORATIVOS
+======================
+
+groups — Grupos corporativos
+Finalidade: catálogo de grupos de usuários, normalmente sincronizados com o Entra ID.
+Motivo: permite administrar acesso por equipe ou área em vez de usuário individual.
+Campos:
+- id: identificador do grupo (PK).
+- name: nome do grupo.
+- description: descrição do grupo.
+- created_at: data de criação.
+
+user_groups — Usuários por grupo
+Finalidade: relaciona usuários aos grupos corporativos.
+Motivo: resolve a relação muitos-para-muitos e registra se o vínculo é manual ou sincronizado.
+Campos:
+- user_id: usuário (PK/FK para users.id).
+- group_id: grupo (PK/FK para groups.id).
+- source: origem do vínculo, manual ou Entra ID.
+- created_at: data do vínculo.
+
+5. SEGURANÇA E NAVEGAÇÃO
+========================
+
+modules — Módulos funcionais
+Finalidade: representa os grandes módulos do sistema.
+Motivo: organiza menus e permissões por área funcional.
+Campos:
+- id: identificador do módulo (PK).
+- name: nome do módulo.
+- route: rota principal.
+- icon: ícone utilizado na navegação.
+- display_order: ordem de exibição.
+- active: indica se está ativo.
+
+menus — Menus e submenus
+Finalidade: armazena os itens de navegação exibidos no frontend.
+Motivo: permite menu dinâmico e hierárquico sem fixar toda a navegação no código.
+Campos:
+- id: identificador (PK).
+- module_id: módulo relacionado (FK para modules.id).
+- parent_id: menu pai, quando for submenu.
+- name: nome exibido.
+- route: rota de navegação.
+- icon: ícone do menu.
+- display_order: ordem de exibição.
+- active: indica se está ativo.
+
+permissions — Permissões atômicas
+Finalidade: catálogo das ações autorizáveis do sistema.
+Motivo: define ações como consultar, criar, editar, excluir e exportar por módulo.
+Campos:
+- id: identificador (PK).
+- module_id: módulo relacionado (FK para modules.id).
+- name: nome da permissão.
+- description: descrição da ação.
+- active: indica se está ativa.
+
+profile_modules — Perfil por módulo
+Finalidade: define quais módulos cada perfil pode visualizar.
+Motivo: controla a visibilidade dos módulos na aplicação.
+Campos:
+- profile_id: perfil (PK/FK para profiles.id).
+- module_id: módulo (PK/FK para modules.id).
+- can_view: indica se o perfil pode visualizar o módulo.
+
+profile_permissions — Perfil por permissão
+Finalidade: relaciona perfis às permissões atômicas.
+Motivo: implementa o controle de acesso baseado em perfis.
+Campos:
+- profile_id: perfil (PK/FK para profiles.id).
+- permission_id: permissão (PK/FK para permissions.id).
+- allowed: indica se a permissão está autorizada.
+
+permission_matrix — Matriz consolidada de permissões
+Finalidade: armazena a matriz completa de permissões em JSONB.
+Motivo: facilita a leitura e edição da matriz administrativa completa.
+Campos:
+- id: identificador do registro (PK).
+- matrix: estrutura JSON com perfis, módulos e permissões.
+
+access_requests — Solicitações de acesso
+Finalidade: registra pedidos de acesso a projetos.
+Motivo: cria uma fila controlada para aprovação, sem conceder acesso automaticamente.
+Campos:
+- id: identificador da solicitação (PK).
+- project_id: projeto solicitado (FK para projects.id).
+- requester_id: usuário solicitante (FK para users.id).
+- status: pendente, aprovado ou negado.
+- created_at: data da solicitação.
+
+6. TABELAS DE CATÁLOGO
+======================
+
+project_statuses — Status de projetos
+Finalidade: catálogo dos status possíveis dos projetos.
+Motivo: evita valores livres e padroniza filtros, cores e regras de edição.
+Campos:
+- id: identificador (PK).
+- code: código do status.
+- name: nome exibido.
+- color: cor visual do status.
+- display_order: ordem de exibição.
+- active: indica se está ativo.
+- allows_edit: indica se projetos nesse status podem ser editados.
+
+project_types — Tipos de projetos
+Finalidade: catálogo de tipos e categorias de projetos.
+Motivo: padroniza a classificação para filtros e relatórios.
+Campos:
+- id: identificador (PK).
+- code: código do tipo.
+- name: nome do tipo.
+- description: descrição.
+- active: indica se está ativo.
+
+7. RELATÓRIOS PARAMETRIZADOS
+============================
+
+report_types — Tipos de relatório
+Finalidade: catálogo dos relatórios disponíveis.
+Motivo: identifica relatórios por código estável e informa formatos suportados.
+Campos:
+- id: identificador (PK).
+- code: código do relatório, como projetos ou acessos.
+- name: nome exibido.
+- description: descrição.
+- formats: formatos suportados, como csv, pdf ou xlsx.
+- active: indica se está disponível.
+
+report_fields — Campos dos relatórios
+Finalidade: define as colunas exportáveis de cada relatório.
+Motivo: permite ativar, desativar, renomear e reordenar campos sem alterar o código do frontend ou backend.
+Campos:
+- id: identificador (PK).
+- report_code: código do relatório relacionado.
+- field_key: chave lógica do campo.
+- label: rótulo exibido ao usuário.
+- source_key: campo de origem no registro do relatório.
+- display_order: ordem do campo na tela/exportação.
+- active: indica se o campo será utilizado.
+
+8. CONFIGURAÇÃO E AUDITORIA
+===========================
+
+system_settings — Configurações do sistema
+Finalidade: armazena parâmetros configuráveis em chave e valor.
+Motivo: permite alterar comportamentos sem modificar o código da aplicação.
+Campos:
+- key: chave única do parâmetro (PK).
+- value: valor armazenado.
+- value_type: tipo do valor, como string, number ou bool.
+- description: explicação do parâmetro.
+- group_name: grupo de configuração.
+- active: indica se está ativo.
+
+activity_logs — Auditoria de atividades
+Finalidade: registra ações importantes realizadas no sistema.
+Motivo: fornece rastreabilidade de quem fez o quê, em qual recurso e em que momento.
+Campos:
+- id: identificador do evento (PK).
+- user_id: usuário responsável, quando identificado (FK para users.id).
+- action: ação executada, como create, update ou export.
+- entity: entidade/tabela afetada.
+- entity_id: identificador do registro afetado.
+- details: detalhes adicionais do evento.
+- created_at: data e hora do evento.
+
+schema_migrations — Controle de migrations
+Finalidade: registra as alterações de banco já aplicadas.
+Motivo: garante evolução versionada, controlada e idempotente do schema.
+Campos:
+- version: identificador da migration (PK).
+- applied_at: data e hora da aplicação.
+
+Resumo dos relacionamentos
+-------------------------
+- users.profile_id -> profiles.id
+- sessions.user_id -> users.id
+- project_members.project_id -> projects.id
+- project_members.user_id -> users.id
+- project_groups.project_id -> projects.id
+- project_groups.group_id -> groups.id
+- files.project_id -> projects.id
+- files.parent_id -> files.id
+- files.created_by -> users.id
+- file_permissions.file_id -> files.id
+- file_permissions.user_id -> users.id
+- file_permissions.group_id -> groups.id
+- file_shares.file_id -> files.id
+- file_shares.user_id -> users.id
+- user_groups.user_id -> users.id
+- user_groups.group_id -> groups.id
+- menus.module_id -> modules.id
+- permissions.module_id -> modules.id
+- profile_modules.profile_id -> profiles.id
+- profile_modules.module_id -> modules.id
+- profile_permissions.profile_id -> profiles.id
+- profile_permissions.permission_id -> permissions.id
+- access_requests.project_id -> projects.id
+- access_requests.requester_id -> users.id
+
+Manutenção
+----------
+Ao criar, remover ou alterar uma tabela, atualize simultaneamente:
+1. os models em backend/app/modules;
+2. a migration em backend/alembic/versions;
+3. os schemas SQL em backend/database;
+4. o seed em backend/app/db/seed.py;
+5. este arquivo de documentação;
+6. a seção Banco PostgreSQL da página frontend/app/wiki-dev/page.tsx.
+
+Fim do documento.
