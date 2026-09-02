@@ -76,7 +76,7 @@ export function AppTopbar() {
               className="flex items-center gap-2 rounded-xl border-l border-border/70 pl-2 outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-primary/40 md:pl-3"
             >
               <Avatar className="size-9 rounded-xl ring-2 ring-primary/10">
-                {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={user.nome} /> : null}
+                <AvatarImage src={user.avatarUrl || "/images/default-avatar.png"} alt={user.avatarUrl ? `Foto de ${user.nome}` : `Avatar padrão de ${user.nome}`} />
                 <AvatarFallback className="rounded-xl bg-primary text-[11px] font-bold text-primary-foreground">
                   {initials(user.nome)}
                 </AvatarFallback>
