@@ -7,8 +7,9 @@ pytestmark = pytest.mark.integration
 
 @pytest.mark.asyncio
 async def test_postgres_connection_and_schema():
-    if not os.getenv("DATABASE_URL"):
-        pytest.skip("DATABASE_URL não configurada para teste de integração")
+    database_url = os.getenv("DATABASE_URL", "")
+    if not database_url.startswith(("postgresql://", "postgres://")):
+        pytest.skip("DATABASE_URL PostgreSQL não configurada para teste de integração")
     asyncpg = pytest.importorskip("asyncpg")
     try:
         conn = await asyncpg.connect(os.environ["DATABASE_URL"])

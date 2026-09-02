@@ -84,11 +84,41 @@ async def get_session() -> AsyncIterator[AsyncSession]:
         yield session
 
 
+async def _ensure_sqlite_compatibility() -> None:
+    if engine is None or settings.database_engine != "sqlite":
+        return
+    from sqlalchemy import text
+
+    from app.db import seed as _seed_models  # noqa: F401
+    from app.db.base import Base
+
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+        columns = {
+            row[1]
+            for row in (await connection.exec_driver_sql("PRAGMA table_info(users)")).all()
+        }
+        compatibility_columns = {
+            "job_title": "VARCHAR(120)",
+            "area": "VARCHAR(120)",
+            "avatar_url": "VARCHAR(500)",
+            "last_login_at": "DATETIME",
+            "role": "VARCHAR(40) NOT NULL DEFAULT 'participante'",
+            "profile_id": "VARCHAR(20)",
+            "created_at": "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        }
+        for column, definition in compatibility_columns.items():
+            if column not in columns:
+                await connection.execute(text(f"ALTER TABLE users ADD COLUMN {column} {definition}"))
+
+
 async def connect() -> None:
     configure_engine()
-    if engine is not None and settings.seed_database:
-        from app.db.seed import initialize_database
-        await initialize_database(engine)
+    if engine is not None:
+        await _ensure_sqlite_compatibility()
+        if settings.seed_database:
+            from app.db.seed import initialize_database
+            await initialize_database(engine)
 
 
 async def disconnect() -> None:
