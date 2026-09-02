@@ -94,6 +94,7 @@ async def _ensure_sqlite_compatibility() -> None:
 
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
+        await connection.execute(text("CREATE TABLE IF NOT EXISTS permission_matrix (id INTEGER PRIMARY KEY, matrix TEXT NOT NULL)"))
         columns = {
             row[1]
             for row in (await connection.exec_driver_sql("PRAGMA table_info(users)")).all()
