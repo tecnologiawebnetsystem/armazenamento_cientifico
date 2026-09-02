@@ -148,7 +148,7 @@ COOKIE_SECURE=true
 ENVIRONMENT=production
 ```
 
-O valor de `DATABASE_ENGINE` decide o driver usado pela API. Nunca versionar credenciais reais; use as variáveis de ambiente do projeto ou o arquivo `.env` local não versionado.
+O valor de `DATABASE_ENGINE` decide o driver usado pela API. Nunca versionar credenciais reais; use as variáveis de ambiente do projeto ou o arquivo `.env` local não versionado. O arquivo [`ACESSO_BANCO_NEON.txt`](ACESSO_BANCO_NEON.txt) contém o guia de configuração sem expor senhas ou tokens.
 
 O caminho `./data/sigac.db` é relativo ao diretório em que a API é iniciada. Execute o Uvicorn dentro de `backend/` para gerar:
 
