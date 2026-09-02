@@ -10,6 +10,7 @@ from app.modules.catalogs.models import (
     ProfilePermission,
     ProjectStatusCatalog,
     ProjectType,
+    ReportField,
     ReportType,
     SystemSetting,
 )
@@ -42,6 +43,23 @@ SEED_PERMISSIONS = [
 SEED_STATUS = [("ATIVO", "ativo", "Ativo", "green", 10, True), ("INATIVO", "inativo", "Inativo", "slate", 20, False), ("CONCLUIDO", "concluido", "Concluído", "blue", 30, False), ("SUSPENSO", "suspenso", "Suspenso", "amber", 40, True)]
 SEED_TYPES = [("CIENTIFICO", "cientifico", "Científico", "Projetos científicos"), ("TECNOLOGIA", "tecnologia", "Tecnologia", "Projetos de tecnologia")]
 SEED_REPORTS = [("PROJETOS", "projetos", "Relatório de projetos", "csv,xlsx,pdf"), ("ACESSOS", "acessos", "Mapa de acessos", "csv,xlsx,pdf")]
+SEED_REPORT_FIELDS = [
+    ("projetos-nome", "projetos", "nome", "Nome do projeto", "projectName", 10),
+    ("projetos-codigo", "projetos", "codigo", "Código", "projectCode", 20),
+    ("projetos-area", "projetos", "area", "Área responsável", "area", 30),
+    ("projetos-status", "projetos", "status", "Status", "status", 40),
+    ("projetos-mapas", "projetos", "mapas", "Mapas", "totalMapas", 50),
+    ("projetos-membros", "projetos", "membros", "Membros", "totalMembros", 60),
+    ("acessos-usuario", "acessos", "usuario", "Usuário", "userName", 10),
+    ("acessos-email", "acessos", "email", "E-mail", "userEmail", 20),
+    ("acessos-perfil", "acessos", "perfil", "Perfil", "userRole", 30),
+    ("acessos-area", "acessos", "area", "Área", "area", 40),
+    ("acessos-projeto", "acessos", "projeto", "Projeto", "projectName", 50),
+    ("acessos-recurso", "acessos", "recurso", "Recurso", "resourceName", 60),
+    ("acessos-tipo", "acessos", "tipo", "Tipo de recurso", "resourceType", 70),
+    ("acessos-acesso", "acessos", "acesso", "Nível de acesso", "accessLevel", 80),
+    ("acessos-ultima", "acessos", "ultimaVisualizacao", "Última visualização", "lastViewedAt", 90),
+]
 SEED_SETTINGS = [("limite_arquivo_mb", "100", "number", "Tamanho máximo de arquivo", "arquivos"), ("retencao_logs_dias", "365", "number", "Retenção de auditoria", "auditoria")]
 SEED_MENUS = [("menu-projetos", "projetos", "Projetos", "/projetos", "folder", 10), ("menu-usuarios", "usuarios", "Usuários", "/usuarios", "users", 20), ("menu-relatorios", "relatorios", "Relatórios", "/relatorios", "chart", 30)]
 
@@ -91,6 +109,9 @@ async def initialize_database(engine) -> None:
         for report_id, code, name, formats in SEED_REPORTS:
             if not await session.get(ReportType, report_id):
                 session.add(ReportType(id=report_id, codigo=code, nome=name, descricao=name, formatos=formats, ativo=True))
+        for field_id, report_code, field_key, label, source_key, display_order in SEED_REPORT_FIELDS:
+            if not await session.get(ReportField, field_id):
+                session.add(ReportField(id=field_id, report_code=report_code, field_key=field_key, label=label, source_key=source_key, display_order=display_order, active=True))
         for key, value, kind, description, group in SEED_SETTINGS:
             if not await session.get(SystemSetting, key):
                 session.add(SystemSetting(chave=key, valor=value, tipo=kind, descricao=description, grupo=group, ativo=True))

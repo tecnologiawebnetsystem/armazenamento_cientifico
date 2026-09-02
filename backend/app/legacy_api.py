@@ -360,6 +360,17 @@ async def system_settings(request: Request):
     return {"configuracoes": [dump(row) for row in await p.fetch("select * from configuracoes_sistema where ativo=true order by grupo, chave")]}
 
 
+@app.get("/api/report-fields")
+async def report_fields(request: Request, report_code: str = Query(..., min_length=1, max_length=60)):
+    await current(request)
+    p = await db()
+    if settings.database_engine == "sqlite":
+        rows = await p.fetch("select id, report_code, field_key, label, source_key, display_order, active from report_fields where report_code=? and active=1 order by display_order, label", report_code)
+    else:
+        rows = await p.fetch("select id, report_code, field_key, label, source_key, display_order, active from report_fields where report_code=$1 and active=true order by display_order, label", report_code)
+    return {"reportCode": report_code, "fields": [dump(row) for row in rows]}
+
+
 @app.get("/api/catalogos")
 async def catalogs(request: Request):
     await current(request)
@@ -370,8 +381,9 @@ async def catalogs(request: Request):
         "permissoes": [dump(row) for row in await p.fetch("select * from permissoes where ativo=true order by id")],
         "statusProjetos": [dump(row) for row in await p.fetch("select * from status_projetos where ativo=true order by ordem, nome")],
         "tiposProjetos": [dump(row) for row in await p.fetch("select * from tipos_projetos where ativo=true order by nome")],
-        "tiposRelatorios": [dump(row) for row in await p.fetch("select * from tipos_relatorios where ativo=true order by nome")],
-    }
+  "tiposRelatorios": [dump(row) for row in await p.fetch("select * from tipos_relatorios where ativo=true order by nome")],
+  "camposRelatorios": [dump(row) for row in await p.fetch("select * from report_fields where active=true order by report_code, display_order, label")],
+  }
 
 
 async def audit(u, action, entity, eid, details=""):

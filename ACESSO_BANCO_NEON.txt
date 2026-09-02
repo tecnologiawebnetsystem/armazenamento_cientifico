@@ -1,63 +1,26 @@
-GUIA DE ACESSO AO BANCO NEON
-============================
+GUIA DE ACESSO AO BANCO — SQLITE E NEON
+========================================
+Atualizado em: 02/09/2026
 
-Este arquivo NÃO contém credenciais reais.
-As variáveis DATABASE_URL e demais credenciais devem permanecer no ambiente da Vercel/v0 ou em backend/.env local, que não deve ser versionado.
+Este arquivo não contém credenciais reais. Nunca versionar senhas, tokens ou URLs completas.
 
-PROJETO
--------
-NEON_PROJECT_ID=${NEON_PROJECT_ID}
-Banco: ${PGDATABASE:-neondb}
-Host: ${PGHOST}
-Usuário: ${PGUSER}
+SQLite local:
+DATABASE_ENGINE=sqlite
+DATABASE_URL=sqlite+aiosqlite:///./data/sigac.db
+SEED_DATABASE=true
+ENVIRONMENT=development
 
-CONFIGURAÇÃO DO BACKEND
------------------------
+PostgreSQL/Neon:
 DATABASE_ENGINE=postgresql
-DATABASE_URL=<usar a variável DATABASE_URL fornecida pela integração Neon>
+DATABASE_URL=<variável DATABASE_URL do ambiente Neon>
 SEED_DATABASE=false
 ENVIRONMENT=production
 COOKIE_SECURE=true
 
-CONEXÃO COM SSL
----------------
-A conexão Neon deve usar SSL. Para ferramentas compatíveis com libpq, utilize:
-sslmode=require
+O backend seleciona o banco conforme DATABASE_ENGINE. A tabela report_fields existe nos schemas SQLite e PostgreSQL e possui os campos parametrizados dos relatórios projetos e acessos.
 
-EXEMPLOS
---------
+Tabela: report_fields
+Colunas: id, report_code, field_key, label, source_key, display_order, active.
+Para ocultar um campo, use active=false; não é necessário alterar o frontend.
 
-1) Backend Python:
-   DATABASE_ENGINE=postgresql
-   DATABASE_URL=postgresql://...Neon...?sslmode=require
-
-2) psql:
-   psql "$DATABASE_URL"
-
-3) Aplicar schema:
-   psql "$DATABASE_URL" -f backend/database/postgresql-schema.sql
-
-4) Conferir tabelas:
-   SELECT table_schema, table_name
-   FROM information_schema.tables
-   WHERE table_schema IN ('public', 'neon_auth')
-   ORDER BY table_schema, table_name;
-
-SEGURANÇA
----------
-- Nunca colocar senha, token ou URL completa com senha neste arquivo.
-- Nunca fazer commit de backend/.env, .env.local ou arquivos com credenciais.
-- Use DATABASE_URL para a aplicação e DATABASE_URL_UNPOOLED apenas quando uma operação exigir conexão direta.
-- As tabelas da aplicação ficam em public; as tabelas gerenciadas de autenticação ficam em neon_auth.
-
-ALTERNAR ENTRE BANCOS
----------------------
-SQLite:
-   DATABASE_ENGINE=sqlite
-   DATABASE_URL=sqlite+aiosqlite:///./data/sigac.db
-
-PostgreSQL/Neon:
-   DATABASE_ENGINE=postgresql
-   DATABASE_URL=<URL Neon com SSL>
-
-A alteração deve ser feita somente no .env ativo.
+Status: SQLite e PostgreSQL/Neon preparados. Migration 0010_report_fields e seed atualizados. Valores reais permanecem somente no ambiente.
