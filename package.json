@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --dir frontend dev",
-    "build": "pnpm --dir frontend build",
+    "build": "pnpm --dir frontend build && rm -rf .next && cp -R frontend/.next .next",
     "start": "pnpm --dir frontend start",
     "lint": "pnpm --dir frontend lint",
     "typecheck": "pnpm --dir frontend typecheck",
