@@ -116,13 +116,17 @@ npm run dev
 
 ---
 
-## 3. SQLite passo a passo
+## 3. SQLite e PostgreSQL passo a passo
 
-O SQLite é usado para desenvolvimento individual. O backend cria o diretório `backend/data`, aplica as migrations e executa o seed idempotente.
+O backend suporta dois bancos selecionáveis pelo `.env`: SQLite para desenvolvimento local e PostgreSQL/Neon para ambientes compartilhados ou produção. O mesmo contrato de API deve funcionar nos dois modos; altere apenas `DATABASE_ENGINE` e `DATABASE_URL`.
 
-### Configuração mínima
+### SQLite local
 
-No arquivo [`backend/.env`](backend/.env):
+O SQLite usa o arquivo `backend/data/sigac.db` e é indicado para desenvolvimento individual.
+
+### Configuração pelo `.env`
+
+#### SQLite local
 
 ```env
 DATABASE_ENGINE=sqlite
@@ -132,6 +136,19 @@ CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 COOKIE_SECURE=false
 ENVIRONMENT=development
 ```
+
+#### PostgreSQL/Neon
+
+```env
+DATABASE_ENGINE=postgresql
+DATABASE_URL=postgresql://usuario:senha@host/neondb?sslmode=require
+SEED_DATABASE=false
+CORS_ORIGINS=https://seu-frontend.example.com
+COOKIE_SECURE=true
+ENVIRONMENT=production
+```
+
+O valor de `DATABASE_ENGINE` decide o driver usado pela API. Nunca versionar credenciais reais; use as variáveis de ambiente do projeto ou o arquivo `.env` local não versionado.
 
 O caminho `./data/sigac.db` é relativo ao diretório em que a API é iniciada. Execute o Uvicorn dentro de `backend/` para gerar:
 
@@ -258,10 +275,10 @@ ruff check .
 
 ### Escolha do banco
 
-- **SQLite:** simples, local e indicado para desenvolvimento individual.
-- **PostgreSQL:** indicado para produção, múltiplas instâncias, backups, concorrência e ambientes compartilhados.
+- **SQLite:** banco local em arquivo, indicado para desenvolvimento individual e testes rápidos.
+- **PostgreSQL/Neon:** banco compartilhado, indicado para homologação, produção, múltiplas instâncias, backups e concorrência.
 
-A troca deve ser feita por `DATABASE_ENGINE` e `DATABASE_URL`, sem espalhar URLs no código.
+A troca é feita no `.env` por `DATABASE_ENGINE` e `DATABASE_URL`, sem alterar o código da aplicação. O frontend continua consumindo os mesmos endpoints nos dois modos.
 
 ### Ciclo de mudança
 

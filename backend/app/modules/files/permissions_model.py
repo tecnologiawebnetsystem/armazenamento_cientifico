@@ -14,7 +14,7 @@ class FilePermission(Base):
     file_id: Mapped[str] = mapped_column(ForeignKey("files.id", ondelete="CASCADE"), primary_key=True)
     user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, nullable=True)
     group_id: Mapped[str | None] = mapped_column(String(36), primary_key=True, nullable=True)
-    level: Mapped[str] = mapped_column(String(20), nullable=False)
+    level: Mapped[str] = mapped_column("access_level", String(20), nullable=False)
     inherited_from: Mapped[str | None] = mapped_column(String(36), nullable=True)
     created_at: Mapped[datetime] = mapped_column(nullable=False)
 

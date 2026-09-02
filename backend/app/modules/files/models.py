@@ -26,7 +26,7 @@ class FileShare(Base):
 
     file_id: Mapped[str] = mapped_column(ForeignKey("files.id"), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    level: Mapped[str] = mapped_column(String(20))
+    level: Mapped[str] = mapped_column("access_level", String(20))
 
 
 __all__ = ["File", "FileShare"]
