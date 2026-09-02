@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { downloadFile, getAccessMap, getAccessMapExportUrl } from "@/lib/api-client"
+import { downloadFile, getAccessMap, getAccessMapExportUrl, getReportFields } from "@/lib/api-client"
 import type { AccessMapResponse } from "@/lib/types"
 import { PetrobrasLoading } from "@/components/petrobras-loading"
 import { BackButton } from "@/components/navigation/back-button"
@@ -32,6 +32,8 @@ export default function PesquisasPage() {
   const [advanced, setAdvanced] = useState(false)
   const [view, setView] = useState("projeto")
   const [exportOpen, setExportOpen] = useState(false)
+  const { data: configuredFields } = useSWR("/api/report-fields?report_code=acessos", () => getReportFields("acessos"))
+  const exportFields: ExportField[] = (configuredFields?.fields ?? []).map((field) => ({ key: field.field_key, label: field.label }))
   const rows = useMemo(() => (data?.rows ?? []).filter((row) => {
     const text = `${row.userName} ${row.userEmail} ${row.projectName} ${row.resourceName}`.toLowerCase()
     return text.includes(search.toLowerCase()) && (type === "todos" || row.resourceType === type) && (level === "todos" || row.accessLevel === level)
@@ -41,17 +43,6 @@ export default function PesquisasPage() {
   if (error || !data) return <main className="flex flex-col gap-6"><h1 className="text-2xl font-semibold">Pesquisas</h1><p className="text-destructive">Não foi possível carregar o mapa de acessos.</p></main>
 
   const accessMetadata = data as AccessMapResponse & { source?: string; consultedAt?: string }
-  const exportFields: ExportField[] = [
-    { key: "usuario", label: "Usuário" },
-    { key: "email", label: "E-mail" },
-    { key: "perfil", label: "Perfil" },
-    { key: "area", label: "Área" },
-    { key: "projeto", label: "Projeto" },
-    { key: "recurso", label: "Recurso" },
-    { key: "tipo", label: "Tipo de recurso" },
-    { key: "acesso", label: "Nível de acesso" },
-    { key: "ultimaVisualizacao", label: "Última visualização" },
-  ]
   const exportRows = async (fields: string[], formats: ("csv" | "txt" | "pdf")[]) => {
     for (const format of formats) {
       if (format === "pdf") continue
@@ -73,7 +64,7 @@ export default function PesquisasPage() {
   ]
 
   return <main className="flex flex-col gap-6">
-    <header className="flex flex-col gap-4"><BackButton /><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="flex flex-col gap-2"><div className="flex items-center gap-2"><ShieldCheck className="text-primary" /><span className="text-xs font-semibold uppercase tracking-widest text-primary">Governança de acesso</span></div><h1 className="text-3xl font-semibold tracking-tight text-balance">Mapa de acessos científicos</h1></div><div className="flex flex-wrap gap-2"><ExportButton onClick={() => setExportOpen(true)} /></div></div><p className="max-w-3xl text-muted-foreground leading-relaxed">Pesquise quem acessa cada projeto, pasta e arquivo. A visão respeita o seu perfil e torna a cadeia de acesso auditável em um único lugar.</p><div className="flex flex-wrap gap-3 text-xs text-muted-foreground"><span>Fonte: {accessMetadata.source ?? "SIGAC Directory"}</span><span>Última atualização: {safeDate(accessMetadata.consultedAt)}</span></div></header>
+    <header className="flex flex-col gap-4"><BackButton /><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="flex flex-col gap-2"><div className="flex items-center gap-2"><ShieldCheck className="text-primary" /><span className="text-xs font-semibold uppercase tracking-widest text-primary">Governança de acesso</span></div><h1 className="text-3xl font-semibold tracking-tight text-balance">Mapa de acessos científicos</h1></div><div className="flex flex-wrap gap-2"><ExportButton onClick={() => setExportOpen(true)} disabled={!exportFields.length} /></div></div><p className="max-w-3xl text-muted-foreground leading-relaxed">Pesquise quem acessa cada projeto, pasta e arquivo. A visão respeita o seu perfil e torna a cadeia de acesso auditável em um único lugar.</p><div className="flex flex-wrap gap-3 text-xs text-muted-foreground"><span>Fonte: {accessMetadata.source ?? "SIGAC Directory"}</span><span>Última atualização: {safeDate(accessMetadata.consultedAt)}</span></div></header>
     <section aria-label="Resumo de acessos"><KpiCards items={cards} /></section>
     <Card className="overflow-hidden border-0 bg-gradient-to-br from-background via-background to-petrobras-teal/5 shadow-sm ring-1 ring-petrobras-blue/15"><CardHeader className="border-b border-petrobras-blue/10 bg-gradient-to-r from-petrobras-green/5 via-background to-petrobras-yellow/10"><CardTitle>Mapa relacional</CardTitle><CardDescription>{data.summary.relationships} relações de acesso identificadas no seu escopo.</CardDescription></CardHeader><CardContent className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 md:flex-row md:flex-wrap"><div className="relative min-w-64 flex-1"><Search className="absolute left-3 top-2.5 text-muted-foreground" /><Input className="pl-9" placeholder="Buscar usuário, projeto, pasta ou arquivo" value={search} onChange={(event) => setSearch(event.target.value)} /></div><Select value={type} onValueChange={(value) => setType(value ?? "todos")}><SelectTrigger className="w-full md:w-40"><SelectValue placeholder="Tipo" /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="todos">Todos os recursos</SelectItem><SelectItem value="pasta">Pastas</SelectItem><SelectItem value="arquivo">Arquivos</SelectItem></SelectGroup></SelectContent></Select><Select value={level} onValueChange={(value) => setLevel(value ?? "todos")}><SelectTrigger className="w-full md:w-44"><SelectValue placeholder="Permissão" /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="todos">Todos os níveis</SelectItem><SelectItem value="leitura">Leitura</SelectItem><SelectItem value="edicao">Edição</SelectItem><SelectItem value="gerente">Gerente</SelectItem><SelectItem value="participante">Participante</SelectItem></SelectGroup></SelectContent></Select><Button variant="outline" size="sm" onClick={() => setAdvanced((value) => !value)}>Filtros avançados</Button>{advanced && <Select value={view} onValueChange={(value) => setView(value ?? "projeto")}><SelectTrigger className="w-full md:w-44"><SelectValue placeholder="Visão" /></SelectTrigger><SelectContent><SelectItem value="projeto">Por projeto</SelectItem><SelectItem value="usuario">Por usuário</SelectItem><SelectItem value="grupo">Por grupo</SelectItem><SelectItem value="nivel">Por nível de acesso</SelectItem></SelectContent></Select>}</div>
