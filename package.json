@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --dir frontend dev",
-    "build": "pnpm exec next build frontend",
+    "build": "pnpm --dir frontend build && node -e \"require('fs').cpSync('frontend/.next', '.next', { recursive: true })\"",
     "start": "pnpm --dir frontend start",
     "lint": "pnpm --dir frontend lint",
     "typecheck": "pnpm --dir frontend typecheck",

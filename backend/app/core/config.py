@@ -9,7 +9,7 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 
 def _database_url() -> str:
-    engine = os.getenv("DATABASE_ENGINE", "postgresql").lower()
+    engine = os.getenv("DATABASE_ENGINE", "sqlite").lower()
     if engine not in {"sqlite", "postgresql", "postgres", "neon"}:
         raise ValueError("DATABASE_ENGINE deve ser sqlite ou postgresql")
     if engine == "sqlite":
@@ -20,7 +20,7 @@ def _database_url() -> str:
 class Settings(BaseModel):
     app_name: str = "SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico API"
     app_version: str = "3.1.0"
-    database_engine: str = os.getenv("DATABASE_ENGINE", "postgresql").lower()
+    database_engine: str = os.getenv("DATABASE_ENGINE", "sqlite").lower()
     database_url: str = _database_url()
     seed_database: bool = os.getenv(
         "SEED_DATABASE",
