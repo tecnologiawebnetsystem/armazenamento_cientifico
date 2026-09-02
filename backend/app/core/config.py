@@ -61,12 +61,14 @@ class Settings(BaseModel):
 
     @model_validator(mode="after")
     def validate_entra(self) -> "Settings":
-        if self.database_engine not in {"postgresql", "postgres", "neon"}:
-            raise ValueError("Produção exige PostgreSQL no Neon; SQLite não é permitido")
+        if self.database_engine not in {"sqlite", "postgresql", "postgres", "neon"}:
+            raise ValueError("DATABASE_ENGINE deve ser sqlite ou postgresql")
         if not self.database_url.strip():
-            raise ValueError("DATABASE_URL é obrigatória para PostgreSQL no Neon")
-        if self.environment.lower() == "production" and not self.database_url.startswith(("postgresql://", "postgres://")):
-            raise ValueError("DATABASE_URL de produção deve usar o esquema PostgreSQL")
+            raise ValueError("DATABASE_URL é obrigatória para o banco selecionado")
+        if self.database_engine == "sqlite" and not self.database_url.startswith(("sqlite://", "sqlite+aiosqlite://")):
+            raise ValueError("SQLite exige uma DATABASE_URL sqlite:// ou sqlite+aiosqlite://")
+        if self.database_engine != "sqlite" and not self.database_url.startswith(("postgresql://", "postgres://")):
+            raise ValueError("PostgreSQL/Neon exige uma DATABASE_URL PostgreSQL")
         if self.db_min_size < 1 or self.db_max_size < self.db_min_size:
             raise ValueError("DB_MIN_SIZE e DB_MAX_SIZE possuem valores inválidos")
         required = {
