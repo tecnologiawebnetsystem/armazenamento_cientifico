@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/sidebar"
 import { useSession } from "@/hooks/use-session"
 import { filterNavForRole, navGroups } from "@/lib/nav-config"
-import { ThemeToggle } from "@/components/theme-toggle"
 
 export function AppSidebar() {
   const pathname = usePathname()
@@ -90,18 +89,6 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
-        <SidebarGroup className="border-b border-sidebar-border/40 px-2 py-3">
-          <SidebarGroupLabel className="h-7 px-2 text-[10px] font-semibold tracking-[0.16em] text-sidebar-foreground/55 uppercase">
-            Preferências
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <ThemeToggle />
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="p-0">
