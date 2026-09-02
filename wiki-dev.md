@@ -423,23 +423,46 @@ Usada em [`frontend/components/administracao/activity-log-table.tsx`](frontend/c
 
 ## 8. Modelagem e diagrama
 
-O relacionamento central parte de `perfis` e `users`, chega a `projects`, usa tabelas de associação para membros e compartilhamentos e registra eventos em `activity_logs`.
+O schema PostgreSQL canônico possui 27 tabelas. O inventário usa os nomes físicos reais; não há tabela `perfis` — o conceito funcional de perfis é implementado por `profiles`.
 
 ### Diagrama ER
 
-A fonte editável está em [`docs/database-erd.mmd`](docs/database-erd.mmd), e a imagem pronta em [`docs/database-erd.svg`](docs/database-erd.svg).
+O Mermaid abaixo é a fonte editável do diagrama. Tabelas sem FK aparecem isoladas, porque não possuem relacionamento declarado no schema.
 
 ```mermaid
 erDiagram
-  perfis ||--o{ users : possui
-  users ||--o{ projects : cria
-  users ||--o{ project_members : participa
+  profiles ||--o{ users : possui
+  users ||--o{ sessions : inicia
+  modules ||--o{ permissions : define
+  profiles ||--o{ profile_permissions : recebe
+  permissions ||--o{ profile_permissions : concede
+  profiles ||--o{ profile_modules : acessa
+  modules ||--o{ profile_modules : habilita
+  modules ||--o{ menus : organiza
   projects ||--o{ project_members : possui
+  users ||--o{ project_members : participa
+  projects ||--o{ project_groups : autoriza
+  groups ||--o{ project_groups : vincula
+  users ||--o{ user_groups : pertence
+  groups ||--o{ user_groups : contem
+  projects ||--o{ project_access_groups : controla
+  projects ||--o{ project_access_roles : controla
   projects ||--o{ files : armazena
-  files ||--o{ file_permissions : compartilha
+  files ||--o{ files : contem
+  files ||--o{ file_shares : compartilha
+  users ||--o{ file_shares : recebe
+  files ||--o{ file_permissions : protege
   users ||--o{ file_permissions : recebe
+  groups ||--o{ file_permissions : recebe
+  projects ||--o{ access_requests : solicita
+  users ||--o{ access_requests : requisita
   users ||--o{ activity_logs : gera
+  report_types ||--o{ report_fields : configura
 ```
+
+### Tabelas sem relacionamentos declarados
+
+`schema_migrations`, `project_statuses`, `project_types`, `system_settings` e `permission_matrix` não possuem FK no schema atual. Elas fazem parte do banco, mas não devem ser conectadas no diagrama por inferência.
 
 ### Decisões de modelagem
 
