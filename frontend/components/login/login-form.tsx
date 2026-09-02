@@ -1,43 +1,35 @@
 "use client"
 
-import { FormEvent, useState } from "react"
+import { FormEvent, useEffect, useRef, useState } from "react"
 import { Building2Icon, MailIcon, ShieldCheckIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/spinner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { login } from "@/lib/api-client"
+import { LoginFieldError } from "@/components/login/login-field-error"
+import { useLogin } from "@/hooks/use-login"
 
-export function LoginForm() {
+export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
   const [email, setEmail] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState<"email" | "corporate" | null>(null)
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const emailRef = useRef<HTMLInputElement>(null)
+  const { loading, error, emailLogin, corporateLogin } = useLogin(nextPath)
 
-  function handleCorporateLogin() {
-    setError(null)
-    setLoading("corporate")
-    const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080").replace(/\/$/, "")
-    window.location.assign(`${apiBase}/api/auth/entra/login`)
+  useEffect(() => emailRef.current?.focus(), [])
+
+  function validateEmail(value: string) {
+    if (!value.trim()) return "Informe seu e-mail para continuar."
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) return "Informe um e-mail válido."
+    return null
   }
 
   async function handleEmailLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const normalizedEmail = email.trim()
-    if (!normalizedEmail) {
-      setError("Informe seu e-mail para continuar.")
-      return
-    }
-
-    setError(null)
-    setLoading("email")
-    try {
-      await login(normalizedEmail)
-      window.location.assign("/dashboard")
-    } catch (loginError) {
-      setError(loginError instanceof Error ? loginError.message : "Não foi possível validar seu acesso.")
-      setLoading(null)
-    }
+    const validationError = validateEmail(email)
+    setEmailError(validationError)
+    if (validationError) return
+    await emailLogin(email.trim())
   }
 
   return (
@@ -93,6 +85,7 @@ export function LoginForm() {
                   <div className="relative">
                     <MailIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                     <Input
+                      ref={emailRef}
                       id="login-email"
                       name="email"
                       type="email"
@@ -101,9 +94,12 @@ export function LoginForm() {
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
                       disabled={loading !== null}
+                      aria-invalid={Boolean(emailError)}
+                      aria-describedby={emailError ? "login-email-error" : undefined}
                       className="pl-9"
                       required
                     />
+                    {emailError && <LoginFieldError id="login-email-error">{emailError}</LoginFieldError>}
                   </div>
                 </div>
                 <Button type="submit" size="lg" disabled={loading !== null} className="w-full">
@@ -119,7 +115,7 @@ export function LoginForm() {
 
               <div className="flex flex-col gap-3 text-center">
                 <p className="text-sm leading-6 text-muted-foreground">Prefira o acesso corporativo para consultar grupos e informações do Microsoft Graph.</p>
-                <Button type="button" size="lg" variant="outline" onClick={handleCorporateLogin} disabled={loading !== null} className="w-full border-petrobras-green bg-gradient-to-r from-petrobras-green via-petrobras-green to-petrobras-yellow text-primary-foreground shadow-lg shadow-petrobras-yellow/25 transition-all hover:brightness-105 hover:shadow-xl hover:shadow-petrobras-yellow/35">
+                <Button type="button" size="lg" variant="outline" onClick={corporateLogin} disabled={loading !== null} className="w-full border-petrobras-green bg-gradient-to-r from-petrobras-green via-petrobras-green to-petrobras-yellow text-primary-foreground shadow-lg shadow-petrobras-yellow/25 transition-all hover:brightness-105 hover:shadow-xl hover:shadow-petrobras-yellow/35">
                   <Building2Icon data-icon="inline-start" />
                   {loading === "corporate" ? "Conectando..." : "Login Corporativo (Enter ID)"}
                 </Button>
