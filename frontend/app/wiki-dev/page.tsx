@@ -1,6 +1,5 @@
 "use client"
 
-import Image from "next/image"
 import { useMemo, useState } from "react"
 import { BookOpen, Check, ChevronRight, Copy, Database, FileCode2, GitBranch, Link2, LockKeyhole, Network, Search, Server, Settings2, Table2, Terminal, Wrench } from "lucide-react"
 
@@ -75,8 +74,8 @@ const content: Record<SectionId, Page> = {
     { title: "activity_logs", text: "Finalidade: trilha de auditoria. Campos: id (PK), user_id (FK users), action, entity, entity_id, details e created_at. Registra mutações, permissões, membros, arquivos, consultas e exportações. Endpoint: GET /api/activity-logs." },
     { title: "Como confirmar no código", text: "Os nomes físicos devem ser conferidos em backend/app/modules/*/models.py, nos schemas database/sqlite-schema.sql e database/postgresql-schema.sql, e no histórico em backend/alembic/versions/. Ambos os bancos devem manter as mesmas tabelas e contratos de API. Os schemas Pydantic mostram os campos expostos pela API, que podem ser diferentes dos campos internos." },
   ] },
-  postgres: { eyebrow: "PostgreSQL", title: "Dicionário do banco PostgreSQL", description: "Documentação de cada uma das 25 tabelas do banco PostgreSQL: finalidade, motivo da criação e detalhe dos campos. Fonte: schema real inspecionado no banco. Tipos: varchar = texto, text = texto longo, bool = booleano, int/bigint = número, timestamptz = data/hora com fuso, jsonb = JSON binário.", blocks: [
-    { title: "Como ler este dicionário", text: "Cada tabela abaixo descreve para que serve, por que existe e seus campos. PK indica chave primária, FK indica chave estrangeira (relacionamento), NOT NULL indica campo obrigatório e default indica o valor padrão. O banco tem 25 tabelas agrupadas em: identidade e sessão, projetos, arquivos, grupos corporativos, segurança e menus, catálogos, relatórios, configuração e auditoria." },
+  postgres: { eyebrow: "PostgreSQL", title: "Dicionário do banco PostgreSQL", description: "Documentação das 27 tabelas do banco PostgreSQL: finalidade, motivo da criação e detalhe dos campos. Fonte: schema real inspecionado no banco. Tipos: varchar = texto, text = texto longo, bool = booleano, int/bigint = número, timestamptz = data/hora com fuso, jsonb = JSON binário.", blocks: [
+    { title: "Como ler este dicionário", text: "Cada tabela abaixo descreve para que serve, por que existe e seus campos. PK indica chave primária, FK indica chave estrangeira (relacionamento), NOT NULL indica campo obrigatório e default indica o valor padrão. O banco tem 27 tabelas agrupadas em: identidade e sessão, projetos, arquivos, grupos corporativos, segurança e menus, catálogos, relatórios, configuração e auditoria." },
 
     { title: "IDENTIDADE E SESSÃO", text: "Grupo responsável por quem acessa o sistema e como a sessão é mantida." },
     { title: "users — usuários do sistema", text: "Finalidade: registrar as pessoas que podem autenticar e operar o sistema. Por que existe: é a identidade central usada por login, autorização e auditoria; sem ela não há sessão nem controle de acesso.", code: "users\n- id            varchar   PK\n- name          varchar   NOT NULL   (nome de exibição)\n- email         varchar   NOT NULL   (identidade única de login)\n- job_title     varchar   NULL       (cargo, vindo do Entra ID)\n- area          varchar   NULL       (área/setor)\n- role          varchar   NOT NULL   default 'participante' (papel legado)\n- profile_id    varchar   NULL  FK -> profiles.id (perfil de permissão)\n- avatar_url    varchar   NULL       (foto de perfil; usa padrão se vazio)\n- last_login_at timestamptz NULL     (último acesso, atualizado no login)\n- created_at    timestamptz NOT NULL default now()" },
@@ -122,8 +121,34 @@ const content: Record<SectionId, Page> = {
     { title: "Fonte de verdade", text: "Este dicionário reflete o schema real inspecionado no PostgreSQL e deve ser mantido junto com os models em backend/app/modules/*/models.py, os schemas em backend/database/postgresql-schema.sql e as migrations em backend/alembic/versions/. SQLite e PostgreSQL mantêm as mesmas tabelas e contratos; ao alterar uma tabela, atualize também esta seção." },
   ] },
   modeling: { eyebrow: "Modelo relacional", title: "Modelagem e diagrama do banco", description: "O relacionamento central parte de users e projects, com tabelas de associação, grupos corporativos e auditoria.", blocks: [
-    { title: "Visão visual do banco", text: "O diagrama abaixo resume a arquitetura de persistência atual e destaca identidade, conteúdo, acesso e auditoria. A imagem é uma referência rápida; os schemas SQLite/PostgreSQL e as migrations continuam sendo as fontes técnicas de verdade.", code: "__DATABASE_DIAGRAM__" },
-    { title: "Diagrama ER", text: "Este diagrama representa as relações lógicas. O diagrama Mermaid abaixo é a fonte editável desta documentação; ele deve ser atualizado junto com qualquer migration ou alteração de relacionamento.", code: "erDiagram\n  perfis ||--o{ users : possui\n  users ||--o{ groups : participa\n  groups ||--o{ user_groups : vincula\n  users ||--o{ projects : cria\n  users ||--o{ project_members : participa\n  projects ||--o{ project_members : possui\n  projects ||--o{ project_groups : autoriza\n  projects ||--o{ files : armazena\n  files ||--o{ file_permissions : protege\n  groups ||--o{ file_permissions : recebe\n  users ||--o{ activity_logs : gera" },
+    { title: "Diagrama ER completo", text: "O diagrama abaixo representa as 27 tabelas do schema PostgreSQL canônico. Tabelas sem FK aparecem isoladas; isso é intencional e evita inventar relacionamentos que não existem no banco.", code: `erDiagram
+  profiles ||--o{ users : possui
+  users ||--o{ sessions : inicia
+  modules ||--o{ permissions : define
+  profiles ||--o{ profile_permissions : recebe
+  permissions ||--o{ profile_permissions : concede
+  profiles ||--o{ profile_modules : acessa
+  modules ||--o{ profile_modules : habilita
+  modules ||--o{ menus : organiza
+  projects ||--o{ project_members : possui
+  users ||--o{ project_members : participa
+  projects ||--o{ project_groups : autoriza
+  groups ||--o{ project_groups : vincula
+  users ||--o{ user_groups : pertence
+  groups ||--o{ user_groups : contem
+  projects ||--o{ project_access_groups : controla
+  projects ||--o{ project_access_roles : controla
+  projects ||--o{ files : armazena
+  files ||--o{ files : contem
+  files ||--o{ file_shares : compartilha
+  users ||--o{ file_shares : recebe
+  files ||--o{ file_permissions : protege
+  users ||--o{ file_permissions : recebe
+  groups ||--o{ file_permissions : recebe
+  projects ||--o{ access_requests : solicita
+  users ||--o{ access_requests : requisita
+  users ||--o{ activity_logs : gera
+  report_types ||--o{ report_fields : configura` },
     { title: "Decisões de modelagem", text: "project_members e file_permissions resolvem relações muitos-para-muitos e permitem guardar atributos da relação, como role e permission. activity_logs é append-only: novos eventos são inseridos e não devem ser editados pelo fluxo normal. E-mails são únicos para impedir dois usuários com a mesma identidade." },
     { title: "Integridade", text: "FKs evitam registros órfãos, índices aceleram filtros por project_id, user_id e created_at, e validações do backend impedem acesso a um projeto que não pertence à sessão. A existência de uma FK não substitui a verificação de autorização." },
   ] },
@@ -193,7 +218,6 @@ const content: Record<SectionId, Page> = {
 
 function CodeBlock({ code }: { code: string }) {
   const [copied, setCopied] = useState(false)
-  if (code === "__DATABASE_DIAGRAM__") return <figure className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 shadow-sm"><Image src="/wiki/database-architecture.png" alt="Diagrama visual da arquitetura do banco de dados" width={1200} height={760} className="h-auto w-full" /><figcaption className="border-t border-white/10 px-4 py-3 text-xs leading-5 text-slate-300">Arquitetura lógica atual: identidade, projetos, arquivos, permissões, grupos corporativos e auditoria.</figcaption></figure>
   return <div className="relative mt-4"><pre className="overflow-x-auto rounded-xl bg-slate-950 p-4 pr-14 text-sm leading-6 text-slate-100"><code>{code}</code></pre><button type="button" aria-label="Copiar código" onClick={() => { void navigator.clipboard.writeText(code); setCopied(true); window.setTimeout(() => setCopied(false), 1500) }} className="absolute right-3 top-3 rounded-lg p-2 text-slate-300 transition hover:bg-slate-800 hover:text-white">{copied ? <Check className="size-4" /> : <Copy className="size-4" />}</button></div>
 }
 
