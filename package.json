@@ -3,11 +3,16 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --dir frontend dev",
-    "build": "pnpm --dir frontend build",
+    "build": "pnpm exec next build frontend",
     "start": "pnpm --dir frontend start",
     "lint": "pnpm --dir frontend lint",
     "typecheck": "pnpm --dir frontend typecheck",
     "test:e2e": "pnpm --dir frontend test:e2e"
+  },
+  "dependencies": {
+    "next": "16.2.11",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
   },
   "packageManager": "pnpm@10.4.1"
 }
