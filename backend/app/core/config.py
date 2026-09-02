@@ -22,7 +22,10 @@ class Settings(BaseModel):
     app_version: str = "3.1.0"
     database_engine: str = os.getenv("DATABASE_ENGINE", "postgresql").lower()
     database_url: str = _database_url()
-    seed_database: bool = os.getenv("SEED_DATABASE", "true").lower() == "true"
+    seed_database: bool = os.getenv(
+        "SEED_DATABASE",
+        "false" if os.getenv("ENVIRONMENT", "development").lower() == "production" else "true",
+    ).lower() == "true"
     cors_origins: list[str] = [
         x.strip()
         for x in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
@@ -40,7 +43,10 @@ class Settings(BaseModel):
     api_prefix: str = os.getenv("API_PREFIX", "/api")
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
     environment: str = os.getenv("ENVIRONMENT", "development")
-    expose_api_docs: bool = os.getenv("EXPOSE_API_DOCS", "true").lower() == "true"
+    expose_api_docs: bool = os.getenv(
+        "EXPOSE_API_DOCS",
+        "false" if os.getenv("ENVIRONMENT", "development").lower() == "production" else "true",
+    ).lower() == "true"
     request_log_max_id_length: int = int(os.getenv("REQUEST_LOG_MAX_ID_LENGTH", "100"))
     security_headers_enabled: bool = os.getenv("SECURITY_HEADERS_ENABLED", "true").lower() == "true"
     cookie_domain: str | None = os.getenv("COOKIE_DOMAIN") or None
@@ -55,6 +61,14 @@ class Settings(BaseModel):
 
     @model_validator(mode="after")
     def validate_entra(self) -> "Settings":
+        if self.database_engine not in {"postgresql", "postgres", "neon"}:
+            raise ValueError("Produção exige PostgreSQL no Neon; SQLite não é permitido")
+        if not self.database_url.strip():
+            raise ValueError("DATABASE_URL é obrigatória para PostgreSQL no Neon")
+        if self.environment.lower() == "production" and not self.database_url.startswith(("postgresql://", "postgres://")):
+            raise ValueError("DATABASE_URL de produção deve usar o esquema PostgreSQL")
+        if self.db_min_size < 1 or self.db_max_size < self.db_min_size:
+            raise ValueError("DB_MIN_SIZE e DB_MAX_SIZE possuem valores inválidos")
         required = {
             "ENTRA_TENANT_ID": self.entra_tenant_id,
             "ENTRA_CLIENT_ID": self.entra_client_id,

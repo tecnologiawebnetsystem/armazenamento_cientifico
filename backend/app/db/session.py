@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from pathlib import Path
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -26,9 +27,13 @@ def _async_database_url() -> str:
             path.parent.mkdir(parents=True, exist_ok=True)
             url = f"sqlite+aiosqlite:///{path.as_posix()}"
     if url.startswith("postgresql://"):
-        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
     if url.startswith("postgres://"):
-        return url.replace("postgres://", "postgresql+asyncpg://", 1)
+        url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+    parts = urlsplit(url)
+    if parts.query:
+        query = [(key, value) for key, value in parse_qsl(parts.query) if key not in {"channel_binding", "sslmode"}]
+        url = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
     return url
 
 

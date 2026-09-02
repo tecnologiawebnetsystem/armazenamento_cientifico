@@ -263,24 +263,21 @@ async def startup():
         url.split("://", 1)[0] if url else "none",
         bool(url),
     )
-    if settings.database_engine == "sqlite":
-        try:
-            pool = SQLitePool(url)
-            await pool.fetchval("select 1")
-            logger.info("database_connected engine=sqlite path=%s", pool.path)
-        except Exception:
-            pool = None
-            logger.exception("database_connection_failed engine=sqlite")
-        return
-    if url:
-        try:
-            pool = await asyncpg.create_pool(url, min_size=1, max_size=10, command_timeout=30)
-            logger.info("database_connected engine=postgresql")
-        except (OSError, asyncpg.PostgresError):
-            pool = None
-            logger.exception("database_connection_failed engine=postgresql")
-    else:
+    if not url:
         logger.error("database_not_configured reason=empty_DATABASE_URL")
+        return
+    try:
+        pool = await asyncpg.create_pool(
+            url.replace("channel_binding=require&", "").replace("&channel_binding=require", "").replace("?channel_binding=require", "?").replace("sslmode=require&", "").replace("&sslmode=require", "").replace("?sslmode=require", "?"),
+            min_size=settings.db_min_size,
+            max_size=settings.db_max_size,
+            command_timeout=settings.db_command_timeout,
+            ssl="require",
+        )
+        logger.info("database_connected engine=postgresql")
+    except (OSError, asyncpg.PostgresError):
+        pool = None
+        logger.exception("database_connection_failed engine=postgresql")
 
 
 async def shutdown():
