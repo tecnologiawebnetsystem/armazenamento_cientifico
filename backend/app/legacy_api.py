@@ -433,20 +433,23 @@ async def health():
 
 
 @app.get("/api/auth/entra/login")
-async def entra_login(response: Response):
+async def entra_login(response: Response, next: str = "/dashboard"):
     if not configured():
         raise HTTPException(503, "Microsoft Entra ID não está configurado no backend")
     state = str(uuid4())
+    safe_next = next if next.startswith("/") and not next.startswith("//") else "/dashboard"
     redirect = RedirectResponse(authorization_url(state), status_code=302)
-    redirect.set_cookie("entra_oauth_state", state, httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=600)
+    redirect.set_cookie("entra_oauth_state", f"{state}|{safe_next}", httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=600)
     return redirect
 
 
 @app.get("/api/auth/entra/callback")
 async def entra_callback(request: Request, code: str | None = None, state: str | None = None):
-    expected_state = request.cookies.get("entra_oauth_state")
+    expected_cookie = request.cookies.get("entra_oauth_state", "")
+    expected_state, _, next_path = expected_cookie.partition("|")
     if not code or not state or not expected_state or state != expected_state:
         raise HTTPException(400, "Callback do Microsoft Entra ID inválido")
+    safe_next = next_path if next_path.startswith("/") and not next_path.startswith("//") else "/dashboard"
     try:
         tokens = await exchange_code(code)
         identity = await profile(tokens["access_token"])
@@ -467,7 +470,7 @@ async def entra_callback(request: Request, code: str | None = None, state: str |
     sid = str(uuid4())
     await p.execute("insert into sessions(id,user_id,expires_at) values($1,$2,now()+interval '8 hours')" if settings.database_engine != "sqlite" else "insert into sessions(id,user_id,expires_at) values(?,?,datetime('now', '+8 hours'))", sid, u["id"])
     await audit(u, "login_entra", "sessao", sid, json.dumps({"entra_id": identity.get("id"), "groups": [g.get("displayName") for g in graph_groups]}))
-    redirect = RedirectResponse("/dashboard", status_code=302)
+    redirect = RedirectResponse(safe_next, status_code=302)
     redirect.set_cookie("wayon_session_id", sid, httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=28800)
     redirect.delete_cookie("entra_oauth_state")
     return redirect
