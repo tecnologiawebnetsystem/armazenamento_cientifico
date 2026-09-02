@@ -117,7 +117,7 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
                 <p className="text-sm leading-6 text-muted-foreground">Prefira o acesso corporativo para consultar grupos e informações do Microsoft Graph.</p>
                 <Button type="button" size="lg" variant="outline" onClick={corporateLogin} disabled={loading !== null} className="w-full border-petrobras-green bg-gradient-to-r from-petrobras-green via-petrobras-green to-petrobras-yellow text-primary-foreground shadow-lg shadow-petrobras-yellow/25 transition-all hover:brightness-105 hover:shadow-xl hover:shadow-petrobras-yellow/35">
                   <Building2Icon data-icon="inline-start" />
-                  {loading === "corporate" ? "Conectando..." : "Login Corporativo (Enter ID)"}
+                  {loading === "corporate" ? "Conectando..." : "Login Corporativo (Entra ID)"}
                 </Button>
                 <p className="pt-1 text-xs text-muted-foreground">© 2026 Petrobras. Todos os direitos reservados.</p>
               </div>
