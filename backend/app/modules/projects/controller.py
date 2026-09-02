@@ -41,7 +41,7 @@ async def list_projects(
     service: Annotated[ProjectService, Depends(get_service)],
     user: CurrentUser,
 ):
-    role = user["role"] if user.get("role") else "participante"
+    role = user["role"] if user["role"] else "participante"
     projects = await service.list_projects(str(user["id"]), str(role))
     return {"projects": [serialize_project(project) for project in projects]}
 
