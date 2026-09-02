@@ -77,7 +77,7 @@ npm run dev
 
 ## Rodar banco, backend e frontend integrados
 
-O backend suporta SQLite localmente e PostgreSQL/Neon em ambientes compartilhados. A escolha é feita exclusivamente no `.env` por `DATABASE_ENGINE` e `DATABASE_URL`; o código da aplicação permanece o mesmo. Para PostgreSQL/Neon, use a URL fornecida pela integração com SSL habilitado.
+O backend suporta SQLite localmente e PostgreSQL em ambientes compartilhados. A escolha é feita exclusivamente no `.env` por `DATABASE_ENGINE` e `DATABASE_URL`; o código da aplicação permanece o mesmo. Para PostgreSQL, use a URL fornecida pela integração com SSL habilitado.
 
 Para conectar o frontend ao FastAPI, crie `frontend/.env.local`:
 
@@ -85,7 +85,7 @@ Para conectar o frontend ao FastAPI, crie `frontend/.env.local`:
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 ```
 
-Com essa variável, o frontend usa o FastAPI como fonte principal e o banco selecionado no backend (`SQLite` ou `PostgreSQL/Neon`) como persistência. As API Routes locais do Next.js permanecem apenas como fallback opcional durante o desenvolvimento. O login continua mockado conforme definido no projeto; logout e sessão são encaminhados ao backend quando o modo integrado estiver ativo.
+Com essa variável, o frontend usa o FastAPI como fonte principal e o banco selecionado no backend (`SQLite` ou `PostgreSQL`) como persistência. As API Routes locais do Next.js permanecem apenas como fallback opcional durante o desenvolvimento. O login continua mockado conforme definido no projeto; logout e sessão são encaminhados ao backend quando o modo integrado estiver ativo.
 
 ## Scripts do frontend
 
@@ -100,7 +100,7 @@ npm run format     # formatação dos arquivos TypeScript/TSX
 
 ## Ordem recomendada para executar tudo
 
-Em um terminal, escolha SQLite ou PostgreSQL/Neon no `.env`, inicie a API seguindo a seção de backend deste README e a [`wiki-dev.md`](wiki-dev.md). Em outro terminal, execute:
+Em um terminal, escolha SQLite ou PostgreSQLno `.env`, inicie a API seguindo a seção de backend deste README e a [`wiki-dev.md`](wiki-dev.md). Em outro terminal, execute:
 
 ```bash
 cd frontend

@@ -1,4 +1,4 @@
-GUIA DE ACESSO AO BANCO — SQLITE E NEON
+GUIA DE ACESSO AO BANCO — SQLITE E PostgreSQL
 ========================================
 Atualizado em: 02/09/2026
 
@@ -10,9 +10,9 @@ DATABASE_URL=sqlite+aiosqlite:///./data/sigac.db
 SEED_DATABASE=true
 ENVIRONMENT=development
 
-PostgreSQL/Neon:
+PostgreSQL:
 DATABASE_ENGINE=postgresql
-DATABASE_URL=<variável DATABASE_URL do ambiente Neon>
+DATABASE_URL=<variável DATABASE_URL do ambiente PostgreSQL>
 SEED_DATABASE=false
 ENVIRONMENT=production
 COOKIE_SECURE=true
@@ -23,4 +23,4 @@ Tabela: report_fields
 Colunas: id, report_code, field_key, label, source_key, display_order, active.
 Para ocultar um campo, use active=false; não é necessário alterar o frontend.
 
-Status: SQLite e PostgreSQL/Neon preparados. Migration 0010_report_fields e seed atualizados. Valores reais permanecem somente no ambiente.
+Status: SQLite e PostgreSQL preparados. Migration 0010_report_fields e seed atualizados. Valores reais permanecem somente no ambiente.

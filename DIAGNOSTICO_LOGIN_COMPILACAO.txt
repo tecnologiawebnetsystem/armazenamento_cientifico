@@ -5,7 +5,7 @@ Atualizado em: 02/09/2026
 Frontend: ESLint, TypeScript e build Next.js aprovados.
 Backend: compilação Python, Ruff e testes aprovados na última execução.
 
-SQLite e PostgreSQL/Neon são selecionados por DATABASE_ENGINE. A tabela report_fields substitui listas fixas no frontend; os relatórios identificam report_code, carregam campos ativos e permitem a seleção antes da exportação.
+SQLite e PostgreSQL são selecionados por DATABASE_ENGINE. A tabela report_fields substitui listas fixas no frontend; os relatórios identificam report_code, carregam campos ativos e permitem a seleção antes da exportação.
 
 Relatórios configurados: projetos e acessos.
 Endpoint: GET /api/report-fields?report_code=<codigo>.

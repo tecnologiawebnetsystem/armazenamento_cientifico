@@ -1,11 +1,11 @@
-RELATÓRIO DE ACESSO E CONFIGURAÇÃO — NEON
+RELATÓRIO DE ACESSO E CONFIGURAÇÃO PostgreSQL
 ==========================================
 Atualizado em: 02/09/2026
 
-DATABASE_URL está disponível pela integração Neon; seu valor foi omitido por segurança.
-Banco: neondb. Engine: PostgreSQL.
+DATABASE_URL está disponível pela integração PostgreSQL; seu valor foi omitido por segurança.
+Banco: postgresqldb. Engine: PostgreSQL.
 
-Tabela report_fields criada e populada no Neon com 15 registros:
+Tabela report_fields criada e populada no PostgreSQL com 15 registros:
 - projetos: 6 campos.
 - acessos: 9 campos.
 

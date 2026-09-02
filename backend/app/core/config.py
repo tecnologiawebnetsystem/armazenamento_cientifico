@@ -10,7 +10,7 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 def _database_url() -> str:
     engine = os.getenv("DATABASE_ENGINE", "sqlite").lower()
-    if engine not in {"sqlite", "postgresql", "postgres", "neon"}:
+    if engine not in {"sqlite", "postgresql", "postgres"}:
         raise ValueError("DATABASE_ENGINE deve ser sqlite ou postgresql")
     if engine == "sqlite":
         return os.getenv("DATABASE_URL_SQLITE") or os.getenv("DATABASE_URL") or "sqlite+aiosqlite:///./data/sigac.db"
@@ -61,14 +61,14 @@ class Settings(BaseModel):
 
     @model_validator(mode="after")
     def validate_entra(self) -> "Settings":
-        if self.database_engine not in {"sqlite", "postgresql", "postgres", "neon"}:
+        if self.database_engine not in {"sqlite", "postgresql", "postgres"}:
             raise ValueError("DATABASE_ENGINE deve ser sqlite ou postgresql")
         if not self.database_url.strip():
             raise ValueError("DATABASE_URL é obrigatória para o banco selecionado")
         if self.database_engine == "sqlite" and not self.database_url.startswith(("sqlite://", "sqlite+aiosqlite://")):
             raise ValueError("SQLite exige uma DATABASE_URL sqlite:// ou sqlite+aiosqlite://")
         if self.database_engine != "sqlite" and not self.database_url.startswith(("postgresql://", "postgres://")):
-            raise ValueError("PostgreSQL/Neon exige uma DATABASE_URL PostgreSQL")
+            raise ValueError("PostgreSQL exige uma DATABASE_URL PostgreSQL")
         if self.db_min_size < 1 or self.db_max_size < self.db_min_size:
             raise ValueError("DB_MIN_SIZE e DB_MAX_SIZE possuem valores inválidos")
         required = {

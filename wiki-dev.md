@@ -8,7 +8,7 @@
 
 - [1. Visão geral](#1-visão-geral)
 - [2. Como executar](#2-como-executar)
-- [3. SQLite e PostgreSQL/Neon](#3-sqlite-e-postgresql-passo-a-passo)
+- [3. SQLite e PostgreSQL](#3-sqlite-e-postgresql-passo-a-passo)
 - [4. Estrutura do frontend](#4-estrutura-do-frontend)
 - [5. Estrutura do backend](#5-estrutura-do-backend)
 - [6. Banco de dados](#6-banco-de-dados)
@@ -118,7 +118,7 @@ npm run dev
 
 ## 3. SQLite e PostgreSQL passo a passo
 
-O backend suporta dois bancos selecionáveis pelo `.env`: SQLite para desenvolvimento local e PostgreSQL/Neon para ambientes compartilhados ou produção. O mesmo contrato de API deve funcionar nos dois modos; altere apenas `DATABASE_ENGINE` e `DATABASE_URL`.
+O backend suporta dois bancos selecionáveis pelo `.env`: SQLite para desenvolvimento local e PostgreSQL para ambientes compartilhados ou produção. O mesmo contrato de API deve funcionar nos dois modos; altere apenas `DATABASE_ENGINE` e `DATABASE_URL`.
 
 ### SQLite local
 
@@ -137,18 +137,18 @@ COOKIE_SECURE=false
 ENVIRONMENT=development
 ```
 
-#### PostgreSQL/Neon
+#### PostgreSQL
 
 ```env
 DATABASE_ENGINE=postgresql
-DATABASE_URL=postgresql://usuario:senha@host/neondb?sslmode=require
+DATABASE_URL=postgresql://usuario:senha@host/postgresqldb?sslmode=require
 SEED_DATABASE=false
 CORS_ORIGINS=https://seu-frontend.example.com
 COOKIE_SECURE=true
 ENVIRONMENT=production
 ```
 
-O valor de `DATABASE_ENGINE` decide o driver usado pela API. Nunca versionar credenciais reais; use as variáveis de ambiente do projeto ou o arquivo `.env` local não versionado. O arquivo [`ACESSO_BANCO_NEON.txt`](ACESSO_BANCO_NEON.txt) contém o guia de configuração sem expor senhas ou tokens.
+O valor de `DATABASE_ENGINE` decide o driver usado pela API. Nunca versionar credenciais reais; use as variáveis de ambiente do projeto ou o arquivo `.env` local não versionado. O arquivo [`ACESSO_BANCO_POSTGRESQL.txt`](ACESSO_BANCO_POSTGRESQL.txt) contém o guia de configuração sem expor senhas ou tokens.
 
 O caminho `./data/sigac.db` é relativo ao diretório em que a API é iniciada. Execute o Uvicorn dentro de `backend/` para gerar:
 
@@ -276,7 +276,7 @@ ruff check .
 ### Escolha do banco
 
 - **SQLite:** banco local em arquivo, indicado para desenvolvimento individual e testes rápidos.
-- **PostgreSQL/Neon:** banco compartilhado, indicado para homologação, produção, múltiplas instâncias, backups e concorrência.
+- **PostgreSQL:** banco compartilhado, indicado para homologação, produção, múltiplas instâncias, backups e concorrência.
 
 A troca é feita no `.env` por `DATABASE_ENGINE` e `DATABASE_URL`, sem alterar o código da aplicação. O frontend continua consumindo os mesmos endpoints nos dois modos.
 
