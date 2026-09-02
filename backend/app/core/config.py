@@ -8,20 +8,40 @@ from pydantic import BaseModel, Field, model_validator
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 
-def _database_url() -> str:
-    engine = os.getenv("DATABASE_ENGINE", "sqlite").lower()
-    if engine not in {"sqlite", "postgresql", "postgres"}:
-        raise ValueError("DATABASE_ENGINE deve ser sqlite ou postgresql")
+def _resolve_engine() -> str:
+    """Determina o banco ativo.
+
+    Se DATABASE_ENGINE for informado, ele tem prioridade. Caso contrário,
+    o engine é inferido a partir do esquema da DATABASE_URL — assim um
+    deploy que fornece apenas uma DATABASE_URL PostgreSQL (ex.: Neon)
+    funciona sem exigir variáveis extras.
+    """
+    explicit = os.getenv("DATABASE_ENGINE")
+    if explicit:
+        engine = explicit.lower()
+        if engine not in {"sqlite", "postgresql", "postgres"}:
+            raise ValueError("DATABASE_ENGINE deve ser sqlite ou postgresql")
+        return "postgresql" if engine == "postgres" else engine
+    url = (os.getenv("DATABASE_URL") or "").lower()
+    if url.startswith(("postgresql://", "postgres://")):
+        return "postgresql"
+    return "sqlite"
+
+
+def _database_url(engine: str) -> str:
     if engine == "sqlite":
         return os.getenv("DATABASE_URL_SQLITE") or os.getenv("DATABASE_URL") or "sqlite+aiosqlite:///./data/sigac.db"
     return os.getenv("DATABASE_URL_POSTGRESQL") or os.getenv("DATABASE_URL") or ""
 
 
+_RESOLVED_ENGINE = _resolve_engine()
+
+
 class Settings(BaseModel):
     app_name: str = "SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico API"
     app_version: str = "3.1.0"
-    database_engine: str = os.getenv("DATABASE_ENGINE", "sqlite").lower()
-    database_url: str = _database_url()
+    database_engine: str = _RESOLVED_ENGINE
+    database_url: str = _database_url(_RESOLVED_ENGINE)
     seed_database: bool = os.getenv(
         "SEED_DATABASE",
         "false" if os.getenv("ENVIRONMENT", "development").lower() == "production" else "true",

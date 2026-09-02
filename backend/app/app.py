@@ -41,11 +41,52 @@ async def lifespan(_: FastAPI):
         logger.info("application_shutdown complete=true")
 
 
+API_DESCRIPTION = """
+API REST do **SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico**.
+
+Cobre gestão de projetos científicos, arquivos, controle de acessos, relatórios
+parametrizados e auditoria.
+
+### Banco de dados
+A API funciona com **SQLite** (desenvolvimento) e **PostgreSQL/Neon** (produção).
+O banco ativo é definido por `DATABASE_ENGINE`; quando essa variável não é
+informada, o engine é inferido automaticamente pelo esquema da `DATABASE_URL`.
+
+### Autenticação
+- **Login manual** por e-mail: `POST /api/auth/login`.
+- **Login corporativo** via Microsoft Entra ID: `GET /api/auth/entra/login`.
+
+A sessão é mantida por cookie (`wayon_session_id`) e persistida no banco.
+
+### Relatórios parametrizados
+Os campos exportáveis de cada relatório ficam nas tabelas `report_types` e
+`report_fields`, consultáveis em `GET /api/report-fields`.
+""".strip()
+
+TAGS_METADATA = [
+    {"name": "Health", "description": "Verificação de disponibilidade da API e do banco."},
+    {"name": "Autenticação", "description": "Login manual por e-mail e login corporativo Microsoft Entra ID."},
+    {"name": "Projetos", "description": "Gestão de projetos científicos e membros."},
+    {"name": "Arquivos", "description": "Arquivos, permissões e compartilhamentos."},
+    {"name": "Usuários", "description": "Usuários, perfis e grupos de acesso."},
+    {"name": "Relatórios", "description": "Relatórios parametrizados e exportações."},
+    {"name": "Auditoria", "description": "Logs de atividade e trilha de auditoria."},
+]
+
+
 def create_app() -> FastAPI:
     application = FastAPI(
         title=settings.app_name,
         version=settings.app_version,
-        description="API REST para gestão de projetos científicos, arquivos, acessos, relatórios e auditoria.",
+        description=API_DESCRIPTION,
+        summary="Gestão de acesso ao armazenamento científico com suporte a SQLite e PostgreSQL/Neon.",
+        openapi_tags=TAGS_METADATA,
+        contact={"name": "Equipe SIGAC", "email": "sigac@petrobras.com.br"},
+        license_info={"name": "Uso interno Petrobras"},
+        servers=[
+            {"url": "/", "description": "Servidor atual"},
+            {"url": "http://localhost:8080", "description": "Desenvolvimento local"},
+        ],
         lifespan=lifespan,
         docs_url="/docs" if settings.expose_api_docs else None,
         redoc_url="/redoc" if settings.expose_api_docs else None,
