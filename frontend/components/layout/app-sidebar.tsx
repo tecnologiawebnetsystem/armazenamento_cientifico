@@ -90,13 +90,22 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
+        <SidebarGroup className="border-b border-sidebar-border/40 px-2 py-3">
+          <SidebarGroupLabel className="h-7 px-2 text-[10px] font-semibold tracking-[0.16em] text-sidebar-foreground/55 uppercase">
+            Preferências
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <ThemeToggle />
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="p-0">
         <SidebarSeparator className="mx-0" />
-        <div className="p-3 group-data-[collapsible=icon]:p-2">
-          <ThemeToggle />
-        </div>
       </SidebarFooter>
 
       <SidebarRail />
