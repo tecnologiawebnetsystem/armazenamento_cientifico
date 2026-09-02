@@ -1,4 +1,4 @@
-DOCUMENTAÇÃO DO BANCO DE DADOS POSTGRESQL / NEON
+DOCUMENTAÇÃO DO BANCO DE DADOS POSTGRESQL
 SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico
 
 Objetivo
