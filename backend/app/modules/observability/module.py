@@ -54,6 +54,12 @@ def read_events(limit: int = 250) -> list[dict[str, Any]]:
     return result
 
 
+def is_observability_event(event: dict[str, Any]) -> bool:
+    endpoint = str(event.get("endpoint") or "").lower()
+    message = str(event.get("message") or "").lower()
+    return endpoint.startswith("/api/observabilidade") or "/api/observabilidade" in message
+
+
 class FrontendEvent(BaseModel):
     level: str = "info"
     message: str = Field(min_length=1, max_length=1200)
@@ -64,7 +70,7 @@ class FrontendEvent(BaseModel):
 
 @router.get("/events")
 async def events(limit: int = Query(default=250, ge=1, le=500), source: str | None = None, status: int | None = None, level: str | None = None, search: str | None = None):
-    items = read_events(limit=MAX_EVENTS)
+    items = [item for item in read_events(limit=MAX_EVENTS) if not is_observability_event(item)]
     # Filtra depois de carregar o histórico completo, para não perder eventos
     # quando a origem/status solicitado não aparece nas últimas N linhas.
     if source:
