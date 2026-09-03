@@ -1,5 +1,11 @@
+import base64
+import datetime as dt
+import decimal
 import re
 import time
+import uuid
+from collections.abc import Mapping
+from enum import Enum
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -16,6 +22,31 @@ BLOCKED = re.compile(r"\b(drop|alter|truncate|create|attach|detach|pragma|vacuum
 
 class ExecuteRequest(BaseModel):
     sql: str = Field(min_length=1, max_length=MAX_SQL_LENGTH)
+
+
+def _json_value(value):
+    """Converte valores dos drivers SQLite/PostgreSQL em valores JSON seguros."""
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, (dt.datetime, dt.date, dt.time)):
+        return value.isoformat()
+    if isinstance(value, (decimal.Decimal, uuid.UUID)):
+        return str(value)
+    if isinstance(value, bytes):
+        return base64.b64encode(value).decode("ascii")
+    if isinstance(value, Enum):
+        return _json_value(value.value)
+    if isinstance(value, Mapping):
+        return {str(key): _json_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_value(item) for item in value]
+    return str(value)
+
+
+def _json_rows(result, limit: int | None = None) -> list[dict[str, object]]:
+    mappings = result.mappings()
+    records = mappings.fetchmany(limit) if limit is not None else mappings.all()
+    return [{str(key): _json_value(value) for key, value in row.items()} for row in records]
 
 
 def _clean_sql(sql: str) -> str:
@@ -60,7 +91,7 @@ async def preview_table(table_name: str, page: int = 1, session: AsyncSession = 
     quoted, columns = await session.run_sync(get_table)
     offset = (page - 1) * MAX_ROWS
     result = await session.execute(text(f"SELECT * FROM {quoted} LIMIT :limit OFFSET :offset"), {"limit": MAX_ROWS, "offset": offset})
-    rows = [dict(row) for row in result.mappings().all()]
+    rows = _json_rows(result)
     return {"table": table_name, "columns": columns, "rows": rows, "page": page, "pageSize": MAX_ROWS, "hasMore": len(rows) == MAX_ROWS}
 
 
@@ -74,8 +105,8 @@ async def execute_sql(payload: ExecuteRequest, session: AsyncSession = Depends(g
     try:
         result = await session.execute(text(sql))
         if kind in {"select", "with"}:
-            rows = [dict(row) for row in result.mappings().fetchmany(MAX_ROWS)]
-            columns = list(result.keys())
+            rows = _json_rows(result, MAX_ROWS)
+            columns = [str(column) for column in result.keys()]  # noqa: SIM118
             await session.rollback()
             return {"kind": "SELECT", "columns": columns, "rows": rows, "rowCount": len(rows), "truncated": len(rows) == MAX_ROWS, "durationMs": round((time.perf_counter() - started) * 1000)}
         affected = result.rowcount if result.rowcount is not None and result.rowcount >= 0 else 0
