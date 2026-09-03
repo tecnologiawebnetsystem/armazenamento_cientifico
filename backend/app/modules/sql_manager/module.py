@@ -1,6 +1,5 @@
 import re
 import time
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -12,7 +11,7 @@ from app.db.session import get_session
 router = APIRouter(prefix="/api/sql-manager", tags=["SQL Manager"])
 MAX_ROWS = 100
 MAX_SQL_LENGTH = 20_000
-BLOCKED = re.compile(r"\b(drop|alter|truncate|create|attach|detach|pragma|vacuum|reindex|grant|revoke|copy|call|execute)\b", re.I)
+BLOCKED = re.compile(r"\b(drop|alter|truncate|create|attach|detach|pragma|vacuum|reindex|grant|revoke|copy|call|execute)\b", re.IGNORECASE)
 
 
 class ExecuteRequest(BaseModel):
@@ -31,7 +30,7 @@ def _clean_sql(sql: str) -> str:
 
 
 def _kind(sql: str) -> str:
-    match = re.match(r"^([a-z]+)", sql.strip(), re.I)
+    match = re.match(r"^([a-z]+)", sql.strip(), re.IGNORECASE)
     return match.group(1).lower() if match else ""
 
 

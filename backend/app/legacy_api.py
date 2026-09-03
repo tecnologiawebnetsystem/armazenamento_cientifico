@@ -421,17 +421,6 @@ async def visible(u, pid):
     )
 
 
-@app.get("/health")
-async def health():
-    ok = bool(pool)
-    return {
-        "status": "ok" if ok else "degradado",
-        "service": "fastapi",
-        "version": app.version,
-        "database": "connected" if ok else "not_configured",
-    }
-
-
 @app.get("/api/auth/entra/login")
 async def entra_login(response: Response, next: str = "/dashboard"):
     if not configured():
