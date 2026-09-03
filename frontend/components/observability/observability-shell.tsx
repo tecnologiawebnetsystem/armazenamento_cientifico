@@ -1,21 +1,420 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Activity, AlertTriangle, ChevronLeft, ChevronRight, Clipboard, Download, Pause, Play, RefreshCw, Search, Server, Wifi, X } from "lucide-react"
-import { getObservabilityEvents, getObservabilityExport, type ObservabilityEvent, type ObservabilityStats } from "@/lib/api-client"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Activity,
+  Database,
+  Globe,
+  Pause,
+  Play,
+  RefreshCw,
+  Search,
+  Server,
+  Wifi,
+  X,
+} from "lucide-react"
 
-const emptyStats: ObservabilityStats = { total: 0, errors: 0, frontend: 0, backend: 0, error_rate: 0, correlated_groups: 0, latency: { average: 0, p50: 0, p95: 0 } }
-const tone: Record<string, string> = { info: "text-emerald-400", warning: "text-amber-400", error: "text-red-400", critical: "text-red-300" }
-function normalize(e: ObservabilityEvent): ObservabilityEvent { const m = e.metadata ?? {}; return { ...e, endpoint: e.endpoint || String(m.endpoint || "") || undefined, status: e.status ?? (typeof m.status === "number" ? m.status : undefined), duration_ms: e.duration_ms ?? (typeof m.duration_ms === "number" ? m.duration_ms : undefined), correlation_id: e.correlation_id || String(m.correlation_id || "") || undefined } }
-function value(v: unknown) { return v === undefined || v === null || v === "" ? "Não informado" : String(v) }
-function Field({ label, value: v }: { label: string; value: unknown }) { return <div className="flex min-w-0 flex-col gap-1 rounded-lg border border-slate-800 bg-slate-950/70 p-3"><span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</span><span className="break-words text-sm text-slate-200">{value(v)}</span></div> }
+import {
+  getObservabilityEvents,
+  type ObservabilityEvent,
+  type ObservabilityStats,
+} from "@/lib/api-client"
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+
+const emptyStats: ObservabilityStats = {
+  total: 0,
+  errors: 0,
+  frontend: 0,
+  backend: 0,
+  error_rate: 0,
+  correlated_groups: 0,
+  latency: { average: 0, p50: 0, p95: 0 },
+}
+
+const tone: Record<string, string> = {
+  info: "text-emerald-400",
+  warning: "text-amber-400",
+  error: "text-red-400",
+  critical: "text-red-300",
+}
+
+function normalize(e: ObservabilityEvent): ObservabilityEvent {
+  const m = e.metadata ?? {}
+  return {
+    ...e,
+    endpoint: e.endpoint || String(m.endpoint || "") || undefined,
+    status: e.status ?? (typeof m.status === "number" ? m.status : undefined),
+    duration_ms:
+      e.duration_ms ?? (typeof m.duration_ms === "number" ? m.duration_ms : undefined),
+    correlation_id:
+      e.correlation_id || String(m.correlation_id || "") || undefined,
+  }
+}
 
 export function ObservabilityShell() {
-  const [events, setEvents] = useState<ObservabilityEvent[]>([]); const [stats, setStats] = useState(emptyStats); const [page, setPage] = useState(1); const [pages, setPages] = useState(1); const [source, setSource] = useState(""); const [level, setLevel] = useState(""); const [status, setStatus] = useState(""); const [search, setSearch] = useState(""); const [endpoint, setEndpoint] = useState(""); const [auto, setAuto] = useState(true); const [connected, setConnected] = useState(false); const [selected, setSelected] = useState<ObservabilityEvent | null>(null)
-  const load = useCallback(async () => { try { const data = await getObservabilityEvents({ source, level, status, search, endpoint, page }); setEvents(data.events.map(normalize)); setStats(data.stats); setPages(data.pagination.total_pages); setConnected(true) } catch { setConnected(false) } }, [source, level, status, search, endpoint, page])
-  useEffect(() => { void load() }, [load]); useEffect(() => { if (!auto) return; const id = window.setInterval(() => void load(), 5000); return () => window.clearInterval(id) }, [auto, load])
-  const clear = () => { setSource(""); setLevel(""); setStatus(""); setSearch(""); setEndpoint(""); setPage(1) }; const filters = { source, level, status, search, endpoint }; const exportFile = async (format: "json" | "csv") => { const blob = await getObservabilityExport(format, Object.fromEntries(Object.entries(filters).filter(([, v]) => v))); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `observabilidade.${format}`; a.click(); URL.revokeObjectURL(url) }
-  const grouped = useMemo(() => events.reduce<Record<string, number>>((acc, e) => { if (e.correlation_id) acc[e.correlation_id] = (acc[e.correlation_id] || 0) + 1; return acc }, {}), [events]); const health = stats.error_rate < 5 ? "Saudável" : stats.error_rate < 10 ? "Atenção" : "Crítico"
-  return <main className="min-h-screen bg-slate-950 text-slate-100"><header className="border-b border-slate-800 bg-slate-900/90 px-6 py-5"><div className="mx-auto flex max-w-7xl items-center justify-between gap-4"><div className="flex items-center gap-4"><div className="flex size-11 items-center justify-center rounded-xl bg-emerald-400 font-black text-slate-950">S</div><div><p className="text-[10px] font-bold uppercase tracking-[.25em] text-emerald-400">SIGAC / Operações</p><h1 className="text-2xl font-bold">Observabilidade</h1></div></div><div className="flex items-center gap-4 text-sm text-slate-400"><span className={connected ? "text-emerald-400" : "text-red-400"}><Wifi className="mr-2 inline size-4" />{connected ? "Conectado" : "Backend indisponível"}</span><button className="rounded-md border border-slate-700 p-2 hover:bg-slate-800" onClick={() => void load()} aria-label="Atualizar"><RefreshCw className="size-4" /></button><button className="rounded-md border border-slate-700 p-2 hover:bg-slate-800" onClick={() => setAuto(!auto)} aria-label={auto ? "Pausar atualização" : "Retomar atualização"}>{auto ? <Pause className="size-4" /> : <Play className="size-4" />}</button></div></div></header><div className="mx-auto flex max-w-7xl flex-col gap-5 p-6"><section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">{[["Saúde", health], ["Eventos", stats.total], ["Erros", stats.errors], ["Taxa de erro", `${stats.error_rate}%`], ["Latência p95", `${stats.latency.p95} ms`]].map(([label, v]) => <div key={String(label)} className="rounded-xl border border-slate-800 bg-slate-900 p-4"><p className="text-xs text-slate-500">{label}</p><p className={`mt-2 text-2xl font-bold ${label === "Saúde" ? (health === "Saudável" ? "text-emerald-400" : "text-amber-400") : "text-slate-100"}`}>{v}</p></div>)}</section>{stats.error_rate >= 5 && <div className="flex items-center gap-3 rounded-xl border border-amber-900/70 bg-amber-950/30 p-4 text-sm text-amber-200"><AlertTriangle className="size-5" />A taxa de erros está acima do nível normal. Revise os eventos críticos e endpoints com falha.</div>}<section className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-800 bg-slate-900 p-4"><div className="relative min-w-56 flex-1"><Search className="absolute left-3 top-2.5 size-4 text-slate-500" /><input aria-label="Buscar eventos" value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} placeholder="Buscar mensagem ou endpoint" className="w-full rounded-lg border border-slate-700 bg-slate-950 py-2 pl-9 pr-3 text-sm outline-none focus:border-emerald-400" /></div><input aria-label="Filtrar endpoint" value={endpoint} onChange={e => { setEndpoint(e.target.value); setPage(1) }} placeholder="Endpoint" className="w-36 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm outline-none focus:border-emerald-400" /><select aria-label="Filtrar origem" value={source} onChange={e => { setSource(e.target.value); setPage(1) }} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"><option value="">Todas origens</option><option value="frontend">Frontend</option><option value="backend">Backend</option></select><select aria-label="Filtrar nível" value={level} onChange={e => { setLevel(e.target.value); setPage(1) }} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"><option value="">Todos níveis</option><option value="error">Erro</option><option value="warning">Aviso</option><option value="info">Info</option></select><select aria-label="Filtrar status" value={status} onChange={e => { setStatus(e.target.value); setPage(1) }} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"><option value="">Todos status</option>{[200, 201, 400, 401, 403, 404, 500].map(s => <option key={s} value={s}>{s}</option>)}</select><button onClick={clear} className="rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800"><X className="mr-1 inline size-4" />Limpar</button><button onClick={() => void exportFile("csv")} className="rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800"><Download className="mr-1 inline size-4" />CSV</button><button onClick={() => void exportFile("json")} className="rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800">JSON</button></section><section className="grid gap-3 sm:grid-cols-3"><div className="rounded-xl border border-slate-800 bg-slate-900 p-4"><p className="text-xs text-slate-500">Latência média / p50</p><p className="mt-2 font-mono text-lg">{stats.latency.average} ms <span className="text-slate-500">/ {stats.latency.p50} ms</span></p></div><div className="rounded-xl border border-slate-800 bg-slate-900 p-4"><p className="text-xs text-slate-500">Eventos correlacionados</p><p className="mt-2 font-mono text-lg">{stats.correlated_groups} grupos</p></div><div className="rounded-xl border border-slate-800 bg-slate-900 p-4"><p className="text-xs text-slate-500">Distribuição</p><p className="mt-2 font-mono text-lg">{stats.frontend} FE <span className="text-slate-500">/</span> {stats.backend} BE</p></div></section><section className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900"><div className="flex items-center justify-between border-b border-slate-800 px-4 py-3"><h2 className="font-semibold">Eventos recentes</h2><span className="text-xs text-slate-500">Página {page} de {pages}</span></div><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-950/60 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3">Nível</th><th className="px-4 py-3">Evento</th><th className="px-4 py-3">Endpoint</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Duração</th><th className="px-4 py-3">Origem</th></tr></thead><tbody className="divide-y divide-slate-800">{events.map((e, i) => <tr key={`${e.timestamp}-${i}`} onClick={() => setSelected(e)} className="cursor-pointer hover:bg-slate-800/60"><td className={`px-4 py-3 font-bold uppercase ${tone[e.level] || "text-slate-400"}`}>{e.level}</td><td className="max-w-sm truncate px-4 py-3 text-slate-200">{e.message}</td><td className="px-4 py-3 font-mono text-xs text-slate-400">{value(e.endpoint)}</td><td className="px-4 py-3">{value(e.status)}</td><td className="px-4 py-3">{e.duration_ms === undefined ? "—" : `${e.duration_ms} ms`}</td><td className="px-4 py-3 text-slate-400"><Server className="mr-1 inline size-3" />{e.source}</td></tr>)}</tbody></table>{!events.length && <div className="p-10 text-center text-sm text-slate-500">Nenhum evento encontrado com os filtros atuais.</div>}</div><div className="flex items-center justify-between border-t border-slate-800 px-4 py-3"><span className="text-xs text-slate-500">{Object.keys(grouped).length} grupos nesta página</span><div className="flex gap-2"><button disabled={page <= 1} onClick={() => setPage(page - 1)} className="rounded border border-slate-700 p-2 disabled:opacity-40" aria-label="Página anterior"><ChevronLeft className="size-4" /></button><button disabled={page >= pages} onClick={() => setPage(page + 1)} className="rounded border border-slate-700 p-2 disabled:opacity-40" aria-label="Próxima página"><ChevronRight className="size-4" /></button></div></div></section></div><Dialog open={!!selected} onOpenChange={open => !open && setSelected(null)}><DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto border-slate-800 bg-slate-900 text-slate-100"><DialogHeader><DialogTitle>Diagnóstico do evento</DialogTitle><DialogDescription className="text-slate-400">Detalhes técnicos, contexto e dados sanitizados do evento selecionado.</DialogDescription></DialogHeader>{selected && <div className="flex flex-col gap-5"><div className="grid gap-3 sm:grid-cols-3"><Field label="Nível" value={selected.level} /><Field label="Origem" value={selected.source} /><Field label="Timestamp" value={new Date(selected.timestamp).toLocaleString("pt-BR")} /><Field label="Endpoint" value={selected.endpoint} /><Field label="Status HTTP" value={selected.status} /><Field label="Duração" value={selected.duration_ms === undefined ? undefined : `${selected.duration_ms} ms`} /><Field label="ID de correlação" value={selected.correlation_id} /></div><div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">Mensagem</p><p className="rounded-lg border border-slate-800 bg-slate-950 p-4 text-sm text-slate-200">{selected.message}</p></div><div><div className="mb-2 flex items-center justify-between"><p className="text-xs font-bold uppercase tracking-wider text-slate-500">Metadados sanitizados</p><button onClick={() => void navigator.clipboard.writeText(JSON.stringify(selected, null, 2))} className="text-xs text-emerald-400 hover:underline"><Clipboard className="mr-1 inline size-3" />Copiar JSON</button></div><pre className="max-h-64 overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-4 text-xs text-slate-400">{JSON.stringify(selected.metadata ?? {}, null, 2)}</pre></div></div>}</DialogContent></Dialog></main>
+  const [events, setEvents] = useState<ObservabilityEvent[]>([])
+  const [stats, setStats] = useState<ObservabilityStats>(emptyStats)
+
+  const [source, setSource] = useState("")
+  const [level, setLevel] = useState("")
+  const [status, setStatus] = useState("") // mantendo string para compatibilidade com API
+  const [search, setSearch] = useState("")
+
+  const [auto, setAuto] = useState(true)
+  const [connected, setConnected] = useState(false)
+
+  const [selectedEvent, setSelectedEvent] = useState<ObservabilityEvent | null>(null)
+  const [lastCount, setLastCount] = useState(0)
+
+  const clearFilters = useCallback(() => {
+    setSource("")
+    setLevel("")
+    setStatus("")
+    setSearch("")
+  }, [])
+
+  const load = useCallback(async () => {
+    try {
+      const prevSize = events.length
+
+      const data = await getObservabilityEvents({
+        source,
+        level,
+        status,
+        search,
+      })
+
+      const normalized = data.events.map(normalize)
+
+      // Contagem simples de "novos eventos" quando o auto está ligado
+      if (auto) {
+        const delta = Math.max(0, normalized.length - prevSize)
+        if (delta > 0) setLastCount((c) => c + delta)
+      }
+
+      setEvents(normalized)
+      setStats(data.stats)
+      setConnected(true)
+    } catch {
+      setConnected(false)
+    }
+  }, [auto, events.length, level, search, source, status])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  useEffect(() => {
+    if (!auto) return
+    const id = window.setInterval(() => void load(), 5000)
+    return () => window.clearInterval(id)
+  }, [auto, load])
+
+  const statuses = useMemo(() => {
+    const setCodes = new Set<number>()
+    for (const e of events) if (typeof e.status === "number") setCodes.add(e.status)
+    return Array.from(setCodes).sort((a, b) => a - b)
+  }, [events])
+
+  const errors = stats.errors
+  const avgLatency = stats.latency.average
+
+  const copyJson = useCallback(async () => {
+    if (!selectedEvent) return
+    const text = JSON.stringify(selectedEvent, null, 2)
+
+    // clipboard API (com fallback)
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      const ta = document.createElement("textarea")
+      ta.value = text
+      ta.style.position = "fixed"
+      ta.style.left = "-9999px"
+      document.body.appendChild(ta)
+      ta.focus()
+      ta.select()
+      document.execCommand("copy")
+      document.body.removeChild(ta)
+    }
+  }, [selectedEvent])
+
+  return (
+    <main className="min-h-screen bg-slate-950 text-slate-100">
+      <header className="border-b border-slate-800 bg-slate-900/90 px-6 py-5">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex size-11 items-center justify-center rounded-xl bg-emerald-500 font-black text-slate-950">
+              S
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
+                SIGAC / Operações
+              </p>
+              <h1 className="text-2xl font-bold tracking-tight">Observabilidade</h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 text-sm text-slate-400">
+            <Wifi className={connected ? "text-emerald-400" : "text-red-400"} />
+            {connected ? "Conectado" : "Backend indisponível"}
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 p-6">
+        <section className="grid gap-4 md:grid-cols-5">
+          {(
+            [
+              { label: "Eventos", value: stats.total, Icon: Activity },
+              { label: "Erros", value: errors, Icon: Database },
+              { label: "Frontend", value: stats.frontend, Icon: Globe },
+              { label: "Backend", value: stats.backend, Icon: Server },
+              { label: "Latência média", value: `${avgLatency} ms`, Icon: Activity },
+            ] as const
+          ).map(({ label, value, Icon }) => (
+            <div
+              key={label}
+              className="rounded-2xl border border-slate-800 bg-slate-900 p-5"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-400">{label}</span>
+                <Icon className="text-emerald-400" />
+              </div>
+              <strong className="mt-3 block text-3xl">{value}</strong>
+            </div>
+          ))}
+        </section>
+
+        <section className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4">
+          <div className="relative min-w-56 flex-1">
+            <Search className="absolute left-3 top-2.5 size-4 text-slate-500" />
+            <input
+              aria-label="Buscar eventos"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar mensagem ou endpoint"
+              className="w-full rounded-lg border border-slate-700 bg-slate-950 py-2 pl-9 pr-3 text-sm outline-none focus:border-emerald-500"
+            />
+          </div>
+
+          <select
+            aria-label="Origem"
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+          >
+            <option value="">Todas as origens</option>
+            <option value="frontend">Frontend</option>
+            <option value="backend">Backend</option>
+          </select>
+
+          <select
+            aria-label="Nível"
+            value={level}
+            onChange={(e) => setLevel(e.target.value)}
+            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+          >
+            <option value="">Todos os níveis</option>
+            <option value="info">Info</option>
+            <option value="warning">Warning</option>
+            <option value="error">Error</option>
+            <option value="critical">Critical</option>
+          </select>
+
+          <select
+            aria-label="Status HTTP"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+          >
+            <option value="">Todos os status</option>
+            {statuses.map((code) => (
+              <option key={code} value={String(code)}>
+                {code}
+              </option>
+            ))}
+          </select>
+
+          {(source || status || level || search) && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1 rounded-lg px-2 py-2 text-sm text-slate-400 hover:text-white"
+            >
+              <X className="size-4" />
+              Limpar
+            </button>
+          )}
+
+          <button
+            onClick={() => {
+              setAuto(!auto)
+              setLastCount(0)
+            }}
+            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+              auto
+                ? "bg-emerald-500 text-slate-950"
+                : "bg-slate-800 text-slate-300"
+            }`}
+          >
+            {auto ? <Pause className="size-4" /> : <Play className="size-4" />}
+            {auto ? "Pausar" : "Continuar"}
+          </button>
+
+          <button
+            aria-label="Atualizar agora"
+            onClick={() => void load()}
+            className="rounded-lg border border-slate-700 p-2 hover:bg-slate-800"
+          >
+            <RefreshCw className="size-4" />
+          </button>
+        </section>
+
+        {lastCount > 0 && (
+          <button
+            onClick={() => setLastCount(0)}
+            className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-left text-sm text-emerald-300"
+          >
+            {lastCount} novos eventos recebidos — clique para dispensar
+          </button>
+        )}
+
+        <section className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900">
+          <div className="border-b border-slate-800 px-5 py-4">
+            <h2 className="font-semibold">Fluxo de eventos</h2>
+            <p className="text-sm text-slate-400">
+              Clique em uma linha para investigar todos os detalhes
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-950 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-5 py-3">Horário</th>
+                  <th>Origem</th>
+                  <th>Nível</th>
+                  <th>Status</th>
+                  <th>Endpoint</th>
+                  <th>Mensagem</th>
+                  <th>Duração</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {events.map((event, index) => (
+                  <tr
+                    key={`${event.timestamp}-${index}`}
+                    tabIndex={0}
+                    onClick={() => setSelectedEvent(event)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") setSelectedEvent(event)
+                    }}
+                    className="cursor-pointer border-t border-slate-800 hover:bg-slate-800/50 focus:bg-slate-800/70 focus:outline-none"
+                  >
+                    <td className="whitespace-nowrap px-5 py-3 font-mono text-xs text-slate-400">
+                      {new Date(event.timestamp).toLocaleTimeString("pt-BR")}
+                    </td>
+                    <td>
+                      <span className="rounded-full bg-slate-800 px-2 py-1 text-xs">
+                        {event.source}
+                      </span>
+                    </td>
+                    <td className={tone[event.level] ?? "text-slate-300"}>{event.level}</td>
+                    <td>{event.status ?? "—"}</td>
+                    <td className="max-w-64 truncate font-mono text-xs">
+                      {event.endpoint ?? "—"}
+                    </td>
+                    <td>{event.message}</td>
+                    <td className="font-mono text-xs text-slate-400">
+                      {event.duration_ms ? `${event.duration_ms} ms` : "—"}
+                    </td>
+                  </tr>
+                ))}
+
+                {events.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-5 py-16 text-center text-slate-500">
+                      Nenhum evento encontrado.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <Dialog
+        open={selectedEvent !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedEvent(null)
+        }}
+      >
+        <DialogContent className="w-full sm:!max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes do evento</DialogTitle>
+            <DialogDescription>
+              Todos os dados registrados para esta linha de observabilidade.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedEvent && (
+            <div className="flex flex-col gap-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                {(
+                  [
+                    ["Origem", selectedEvent.source],
+                    ["Nível", selectedEvent.level],
+                    ["Status", selectedEvent.status ?? "—"],
+                    ["Horário", new Date(selectedEvent.timestamp).toLocaleString("pt-BR")],
+                    ["Endpoint", selectedEvent.endpoint ?? "—"],
+                    ["Duração", selectedEvent.duration_ms ? `${selectedEvent.duration_ms} ms` : "—"],
+                  ] as const
+                ).map(([label, value]) => (
+                  <div
+                    key={String(label)}
+                    className="rounded-lg border border-slate-800 bg-slate-950 p-3"
+                  >
+                    <p className="text-xs text-slate-500">{label}</p>
+                    <p className="mt-1 break-all font-mono text-sm">{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div>
+                <p className="mb-2 text-sm font-medium">Mensagem</p>
+                <p className="rounded-lg border border-slate-800 bg-slate-950 p-3 text-sm">
+                  {selectedEvent.message}
+                </p>
+              </div>
+
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-sm font-medium">JSON completo</p>
+                  <button
+                    onClick={() => void copyJson()}
+                    className="rounded-md border border-slate-700 px-2 py-1 text-xs hover:bg-slate-800"
+                  >
+                    Copiar JSON
+                  </button>
+                </div>
+
+                <pre className="max-h-80 overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-4 text-xs leading-relaxed text-emerald-300">
+                  {JSON.stringify(selectedEvent, null, 2)}
+                </pre>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </main>
+  )
 }
