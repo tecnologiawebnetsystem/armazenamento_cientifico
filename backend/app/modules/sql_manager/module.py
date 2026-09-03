@@ -37,7 +37,7 @@ def _kind(sql: str) -> str:
 @router.get("/tables")
 async def list_tables(session: AsyncSession = Depends(get_session)):
     def read_tables(connection):
-        inspector = inspect(connection)
+        inspector = inspect(connection.bind)
         return [{"name": name, "columns": [{"name": column["name"], "type": str(column["type"])} for column in inspector.get_columns(name)]} for name in sorted(inspector.get_table_names())]
 
     return {"tables": await session.run_sync(read_tables)}
@@ -49,7 +49,7 @@ async def preview_table(table_name: str, page: int = 1, session: AsyncSession = 
         raise HTTPException(400, "Tabela inválida.")
 
     def get_table(connection):
-        inspector = inspect(connection)
+        inspector = inspect(connection.bind)
         names = inspector.get_table_names()
         if table_name not in names:
             raise HTTPException(404, "Tabela não encontrada.")
