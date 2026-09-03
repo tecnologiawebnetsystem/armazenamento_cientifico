@@ -63,14 +63,19 @@ class FrontendEvent(BaseModel):
 
 
 @router.get("/events")
-async def events(limit: int = Query(default=250, ge=1, le=500), source: str | None = None, status: int | None = None):
+async def events(limit: int = Query(default=250, ge=1, le=500), source: str | None = None, status: int | None = None, level: str | None = None, search: str | None = None):
     items = read_events(limit=MAX_EVENTS)
     # Filtra depois de carregar o histórico completo, para não perder eventos
     # quando a origem/status solicitado não aparece nas últimas N linhas.
     if source:
         items = [item for item in items if item.get("source") == source]
-    if status:
+    if status is not None:
         items = [item for item in items if item.get("status") == status]
+    if level:
+        items = [item for item in items if str(item.get("level", "")).lower() == level.lower()]
+    if search:
+        needle = search.lower()
+        items = [item for item in items if needle in json.dumps(item, ensure_ascii=False).lower()]
     counts = {"total": len(items), "errors": sum(1 for i in items if str(i.get("level", "")).lower() in {"error", "critical"}), "frontend": sum(1 for i in items if i.get("source") == "frontend"), "backend": sum(1 for i in items if i.get("source") == "backend")}
     return {"events": items[:limit], "stats": counts}
 
