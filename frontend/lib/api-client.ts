@@ -43,16 +43,17 @@ export const API_CONFIG = {
 export type ObservabilityEvent = { timestamp: string; source: "frontend" | "backend"; level: string; message: string; endpoint?: string; status?: number; duration_ms?: number; correlation_id?: string; metadata?: Record<string, unknown> }
 export type ObservabilityResponse = { events: ObservabilityEvent[]; stats: { total: number; errors: number; frontend: number; backend: number } }
 
-export function getObservabilityEvents(params: { source?: string; status?: string; limit?: number } = {}) {
+export function getObservabilityEvents(params: { source?: string; status?: string; level?: string; search?: string; limit?: number } = {}) {
   const query = new URLSearchParams({ limit: String(params.limit ?? 250) })
   if (params.source) query.set("source", params.source)
   if (params.status) query.set("status", params.status)
+  if (params.level) query.set("level", params.level)
+  if (params.search) query.set("search", params.search)
   return request<ObservabilityResponse>(`/api/observabilidade/events?${query}`)
 }
 
 export function reportFrontendEvent(event: Omit<ObservabilityEvent, "timestamp" | "source">) {
-  if (process.env.NODE_ENV === "production") return Promise.resolve()
-  return request<void>("/api/observabilidade/events", { method: "POST", body: JSON.stringify(event) })
+  return fetchRequest(`${API_BASE_URL}/api/observabilidade/events`, { method: "POST", body: JSON.stringify(event), keepalive: true }).then(() => undefined)
 }
 
 export type SqlTable = { name: string; columns: Array<{ name: string; type: string }> }
