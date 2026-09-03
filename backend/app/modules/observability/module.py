@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+import io
 import json
 import os
 import re
@@ -9,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/observabilidade", tags=["Observabilidade"])
@@ -40,11 +43,11 @@ def append_event(event: dict[str, Any]) -> None:
             LOG_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def read_events(limit: int = 250) -> list[dict[str, Any]]:
+def read_events() -> list[dict[str, Any]]:
     if not LOG_PATH.exists():
         return []
     with _lock:
-        lines = LOG_PATH.read_text(encoding="utf-8").splitlines()[-min(limit, MAX_EVENTS):]
+        lines = LOG_PATH.read_text(encoding="utf-8").splitlines()[-MAX_EVENTS:]
     result = []
     for line in reversed(lines):
         try:
@@ -65,25 +68,62 @@ class FrontendEvent(BaseModel):
     message: str = Field(min_length=1, max_length=1200)
     endpoint: str | None = None
     status: int | None = None
+    duration_ms: float | None = None
+    correlation_id: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-@router.get("/events")
-async def events(limit: int = Query(default=250, ge=1, le=500), source: str | None = None, status: int | None = None, level: str | None = None, search: str | None = None):
-    items = [item for item in read_events(limit=MAX_EVENTS) if not is_observability_event(item)]
-    # Filtra depois de carregar o histórico completo, para não perder eventos
-    # quando a origem/status solicitado não aparece nas últimas N linhas.
+def filtered_events(source: str | None, status: int | None, level: str | None, search: str | None, endpoint: str | None) -> list[dict[str, Any]]:
+    items = [item for item in read_events() if not is_observability_event(item)]
     if source:
         items = [item for item in items if item.get("source") == source]
     if status is not None:
         items = [item for item in items if item.get("status") == status]
     if level:
         items = [item for item in items if str(item.get("level", "")).lower() == level.lower()]
+    if endpoint:
+        items = [item for item in items if endpoint.lower() in str(item.get("endpoint") or "").lower()]
     if search:
         needle = search.lower()
         items = [item for item in items if needle in json.dumps(item, ensure_ascii=False).lower()]
-    counts = {"total": len(items), "errors": sum(1 for i in items if str(i.get("level", "")).lower() in {"error", "critical"}), "frontend": sum(1 for i in items if i.get("source") == "frontend"), "backend": sum(1 for i in items if i.get("source") == "backend")}
-    return {"events": items[:limit], "stats": counts}
+    return items
+
+
+def event_duration(item: dict[str, Any]) -> float | None:
+    value = item.get("duration_ms", item.get("metadata", {}).get("duration_ms"))
+    return float(value) if isinstance(value, (int, float)) else None
+
+
+@router.get("/events")
+async def events(limit: int = Query(default=250, ge=1, le=500), page: int = Query(default=1, ge=1), source: str | None = None, status: int | None = None, level: str | None = None, search: str | None = None, endpoint: str | None = None):
+    items = filtered_events(source, status, level, search, endpoint)
+    durations = sorted(d for item in items if (d := event_duration(item)) is not None)
+    errors = [i for i in items if str(i.get("level", "")).lower() in {"error", "critical"} or (isinstance(i.get("status"), int) and i["status"] >= 400)]
+    latency = {"average": round(sum(durations) / len(durations)) if durations else 0, "p50": round(durations[len(durations) // 2]) if durations else 0, "p95": round(durations[min(len(durations) - 1, int(len(durations) * .95))]) if durations else 0}
+    groups: dict[str, int] = {}
+    for item in items:
+        key = item.get("correlation_id") or item.get("metadata", {}).get("correlation_id")
+        if key:
+            groups[str(key)] = groups.get(str(key), 0) + 1
+    pages = max(1, (len(items) + limit - 1) // limit)
+    start = (page - 1) * limit
+    return {"events": items[start:start + limit], "stats": {"total": len(items), "errors": len(errors), "frontend": sum(i.get("source") == "frontend" for i in items), "backend": sum(i.get("source") == "backend" for i in items), "error_rate": round(len(errors) / len(items) * 100, 1) if items else 0, "latency": latency, "correlated_groups": len(groups)}, "pagination": {"page": page, "limit": limit, "total_pages": pages}}
+
+
+@router.get("/export")
+async def export_events(format: str = Query(default="json", pattern="^(json|csv)$"), source: str | None = None, status: int | None = None, level: str | None = None, search: str | None = None, endpoint: str | None = None):
+    items = filtered_events(source, status, level, search, endpoint)
+    if format == "json":
+        content = json.dumps(items, ensure_ascii=False, indent=2)
+        media = "application/json"
+    else:
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=["timestamp", "source", "level", "message", "endpoint", "status", "duration_ms", "correlation_id"])
+        writer.writeheader()
+        for item in items:
+            writer.writerow({key: item.get(key, item.get("metadata", {}).get(key, "")) for key in writer.fieldnames})
+        content, media = output.getvalue(), "text/csv"
+    return StreamingResponse(iter([content]), media_type=media, headers={"Content-Disposition": f"attachment; filename=observabilidade.{format}"})
 
 
 @router.post("/events", status_code=202)
@@ -96,3 +136,19 @@ async def ingest(event: FrontendEvent, request: Request):
 
 def record_backend(**event: Any) -> None:
     append_event({"source": "backend", **event})
+
+
+@router.get("/health")
+async def health():
+    items = filtered_events(None, None, None, None, None)
+    errors = sum(str(i.get("level", "")).lower() in {"error", "critical"} or (isinstance(i.get("status"), int) and i["status"] >= 400) for i in items)
+    return {"healthy": not items or errors / len(items) < .1, "errors": errors, "total": len(items)}
+
+
+@router.get("/correlations/{correlation_id}")
+async def correlation(correlation_id: str):
+    items = [i for i in filtered_events(None, None, None, None, None) if str(i.get("correlation_id") or i.get("metadata", {}).get("correlation_id") or "") == correlation_id]
+    return {"correlation_id": correlation_id, "events": items}
+
+
+__all__ = ["record_backend", "router"]
