@@ -41,34 +41,22 @@ export const API_CONFIG = {
 } as const
 
 export type ObservabilityEvent = { timestamp: string; source: "frontend" | "backend"; level: string; message: string; endpoint?: string; status?: number; duration_ms?: number; correlation_id?: string; metadata?: Record<string, unknown> }
-export type ObservabilityResponse = { events: ObservabilityEvent[]; stats: { total: number; errors: number; frontend: number; backend: number } }
+export type ObservabilityStats = { total: number; errors: number; frontend: number; backend: number; error_rate: number; correlated_groups: number; latency: { average: number; p50: number; p95: number } }
+export type ObservabilityResponse = { events: ObservabilityEvent[]; stats: ObservabilityStats; pagination: { page: number; limit: number; total_pages: number } }
 
-export function getObservabilityEvents(params: { source?: string; status?: string; level?: string; search?: string; limit?: number } = {}) {
-  const query = new URLSearchParams({ limit: String(params.limit ?? 250) })
-  if (params.source) query.set("source", params.source)
-  if (params.status) query.set("status", params.status)
-  if (params.level) query.set("level", params.level)
-  if (params.search) query.set("search", params.search)
+export function getObservabilityEvents(params: { source?: string; status?: string; level?: string; search?: string; endpoint?: string; page?: number; limit?: number } = {}) {
+  const query = new URLSearchParams({ limit: String(params.limit ?? 50), page: String(params.page ?? 1) })
+  Object.entries(params).forEach(([key, value]) => value !== undefined && value !== "" && key !== "page" && key !== "limit" && query.set(key, String(value)))
   return request<ObservabilityResponse>(`/api/observabilidade/events?${query}`)
+}
+
+export function getObservabilityExport(format: "json" | "csv", params: Record<string, string> = {}) {
+  const query = new URLSearchParams({ format, ...params })
+  return downloadFile(`/api/observabilidade/export?${query}`)
 }
 
 export function reportFrontendEvent(event: Omit<ObservabilityEvent, "timestamp" | "source">) {
   return fetchRequest(`${API_BASE_URL}/api/observabilidade/events`, { method: "POST", body: JSON.stringify(event), keepalive: true }).then(() => undefined)
-}
-
-export type SqlTable = { name: string; columns: Array<{ name: string; type: string }> }
-export type SqlResult = { kind: string; columns: string[]; rows: Array<Record<string, unknown>>; rowCount: number; truncated: boolean; durationMs: number }
-
-export function getSqlTables() {
-  return request<{ tables: SqlTable[] }>("/api/sql-manager/tables")
-}
-
-export function previewSqlTable(name: string, page = 1) {
-  return request<{ table: string; columns: Array<{ name: string; type: string }>; rows: Array<Record<string, unknown>>; page: number; pageSize: number; hasMore: boolean }>(`/api/sql-manager/tables/${encodeURIComponent(name)}/preview?page=${page}`)
-}
-
-export function executeSql(sql: string) {
-  return request<SqlResult>("/api/sql-manager/execute", { method: "POST", body: JSON.stringify({ sql }) })
 }
 
 class ApiError extends Error {
