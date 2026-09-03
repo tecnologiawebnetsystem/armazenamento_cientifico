@@ -35,7 +35,7 @@ def _kind(sql: str) -> str:
 
 
 @router.get("/tables")
-async def list_tables(session: AsyncSession = Depends(get_session)):
+async def list_tables(session: AsyncSession = Depends(get_session)):  # noqa: B008
     def read_tables(connection):
         inspector = inspect(connection.bind)
         return [{"name": name, "columns": [{"name": column["name"], "type": str(column["type"])} for column in inspector.get_columns(name)]} for name in sorted(inspector.get_table_names())]
@@ -44,7 +44,7 @@ async def list_tables(session: AsyncSession = Depends(get_session)):
 
 
 @router.get("/tables/{table_name}/preview")
-async def preview_table(table_name: str, page: int = 1, session: AsyncSession = Depends(get_session)):
+async def preview_table(table_name: str, page: int = 1, session: AsyncSession = Depends(get_session)):  # noqa: B008
     if page < 1 or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table_name):
         raise HTTPException(400, "Tabela inválida.")
 
@@ -65,7 +65,7 @@ async def preview_table(table_name: str, page: int = 1, session: AsyncSession = 
 
 
 @router.post("/execute")
-async def execute_sql(payload: ExecuteRequest, session: AsyncSession = Depends(get_session)):
+async def execute_sql(payload: ExecuteRequest, session: AsyncSession = Depends(get_session)):  # noqa: B008
     sql = _clean_sql(payload.sql)
     kind = _kind(sql)
     if kind not in {"select", "insert", "update", "delete", "with"}:

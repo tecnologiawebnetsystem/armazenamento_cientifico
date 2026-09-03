@@ -27,7 +27,7 @@ import type {
  */
 const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
 const isProduction = process.env.NODE_ENV === "production"
-const API_BASE_URL = (configuredApiBaseUrl || "http://localhost:8080").replace(/\/$/, "")
+const API_BASE_URL = (configuredApiBaseUrl || "").replace(/\/$/, "")
 
 /**
  * Todas as chamadas são direcionadas ao FastAPI configurado; o valor padrão de

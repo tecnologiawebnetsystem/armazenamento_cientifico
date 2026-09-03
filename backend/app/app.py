@@ -99,6 +99,7 @@ def create_app() -> FastAPI:
             probe = await database_probe()
             return {"status": "ok", "service": "fastapi", "version": settings.app_version, "database": "connected", "database_engine": settings.database_engine, "database_probe": probe}
         except Exception:
+            logger.exception("health_database_probe_failed")
             return JSONResponse(status_code=503, content={"status": "degradado", "service": "fastapi", "version": settings.app_version, "database": "unavailable", "database_engine": settings.database_engine})
 
     application.include_router(sql_manager_router)
