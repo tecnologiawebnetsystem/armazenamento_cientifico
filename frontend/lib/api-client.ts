@@ -51,8 +51,7 @@ export function getObservabilityEvents(params: { source?: string; status?: strin
 }
 
 export function reportFrontendEvent(event: Omit<ObservabilityEvent, "timestamp" | "source">) {
-  if (process.env.NODE_ENV === "production") return Promise.resolve()
-  return request<void>("/api/observabilidade/events", { method: "POST", body: JSON.stringify(event) })
+  return fetchRequest(`${API_BASE_URL}/api/observabilidade/events`, { method: "POST", body: JSON.stringify(event), keepalive: true }).then(() => undefined)
 }
 
 export type SqlTable = { name: string; columns: Array<{ name: string; type: string }> }

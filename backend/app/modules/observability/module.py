@@ -65,6 +65,8 @@ class FrontendEvent(BaseModel):
 @router.get("/events")
 async def events(limit: int = Query(default=250, ge=1, le=500), source: str | None = None, status: int | None = None):
     items = read_events(limit=MAX_EVENTS)
+    # Filtra depois de carregar o histórico completo, para não perder eventos
+    # quando a origem/status solicitado não aparece nas últimas N linhas.
     if source:
         items = [item for item in items if item.get("source") == source]
     if status:
