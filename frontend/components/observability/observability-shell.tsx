@@ -1,0 +1,26 @@
+"use client"
+
+import { useCallback, useEffect, useState } from "react"
+import { Activity, Database, Globe, RefreshCw, Server, Wifi } from "lucide-react"
+import { getObservabilityEvents, type ObservabilityEvent } from "@/lib/api-client"
+
+const tone: Record<string, string> = { info: "text-emerald-500", warning: "text-amber-500", error: "text-red-500", critical: "text-red-600" }
+
+export function ObservabilityShell() {
+  const [events, setEvents] = useState<ObservabilityEvent[]>([])
+  const [source, setSource] = useState("")
+  const [status, setStatus] = useState("")
+  const [auto, setAuto] = useState(true)
+  const [connected, setConnected] = useState(false)
+  const load = useCallback(async () => { try { const data = await getObservabilityEvents({ source, status }); setEvents(data.events); setConnected(true) } catch { setConnected(false) } }, [source, status])
+  useEffect(() => { const id = window.setTimeout(() => { void load() }, 0); return () => window.clearTimeout(id) }, [load])
+  useEffect(() => { if (!auto) return; const id = window.setInterval(load, 4000); return () => window.clearInterval(id) }, [auto, load])
+  const errors = events.filter((event) => event.status && event.status >= 400).length
+  const metrics: Array<[string, number, typeof Activity]> = [["Eventos exibidos", events.length, Activity], ["Erros HTTP", errors, Database], ["Frontend", events.filter(e => e.source === "frontend").length, Globe], ["Backend", events.filter(e => e.source === "backend").length, Server]]
+  return <main className="min-h-screen bg-slate-950 text-slate-100">
+    <header className="border-b border-slate-800 bg-slate-900/90 px-6 py-5"><div className="mx-auto flex max-w-7xl items-center justify-between gap-4"><div className="flex items-center gap-4"><div className="flex size-11 items-center justify-center rounded-xl bg-emerald-500 font-black text-slate-950">S</div><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">SIGAC / Operações</p><h1 className="text-2xl font-bold tracking-tight">Observabilidade</h1></div></div><div className="flex items-center gap-3 text-sm text-slate-400"><Wifi className={connected ? "text-emerald-400" : "text-red-400"} />{connected ? "Conectado" : "Backend indisponível"}</div></div></header>
+    <div className="mx-auto flex max-w-7xl flex-col gap-6 p-6"><section className="grid gap-4 md:grid-cols-4">{metrics.map(([label, value, Icon]) => <div key={String(label)} className="rounded-2xl border border-slate-800 bg-slate-900 p-5"><div className="flex items-center justify-between"><span className="text-sm text-slate-400">{label}</span><Icon className="text-emerald-400" /></div><strong className="mt-3 block text-3xl">{value}</strong></div>)}</section>
+      <section className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4"><select aria-label="Origem" value={source} onChange={e => setSource(e.target.value)} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"><option value="">Todas as origens</option><option value="frontend">Frontend</option><option value="backend">Backend</option></select><select aria-label="Status HTTP" value={status} onChange={e => setStatus(e.target.value)} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"><option value="">Todos os status</option>{[200, 400, 501, 502, 503].map(code => <option key={code}>{code}</option>)}</select><button onClick={() => setAuto(!auto)} className={`rounded-lg px-3 py-2 text-sm ${auto ? "bg-emerald-500 text-slate-950" : "bg-slate-800 text-slate-300"}`}>{auto ? "Auto-refresh ativo" : "Auto-refresh pausado"}</button><button aria-label="Atualizar agora" onClick={load} className="ml-auto rounded-lg border border-slate-700 p-2 hover:bg-slate-800"><RefreshCw /></button></section>
+      <section className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900"><div className="border-b border-slate-800 px-5 py-4"><h2 className="font-semibold">Fluxo de eventos</h2><p className="text-sm text-slate-400">Atualiza automaticamente a cada 4 segundos</p></div><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-950 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3">Horário</th><th>Origem</th><th>Status</th><th>Endpoint</th><th>Mensagem</th><th>Duração</th></tr></thead><tbody>{events.map((event, index) => <tr key={`${event.timestamp}-${index}`} className="border-t border-slate-800 hover:bg-slate-800/50"><td className="whitespace-nowrap px-5 py-3 font-mono text-xs text-slate-400">{new Date(event.timestamp).toLocaleTimeString("pt-BR")}</td><td><span className="rounded-full bg-slate-800 px-2 py-1 text-xs">{event.source}</span></td><td className={tone[event.level] ?? "text-slate-300"}>{event.status ?? "—"}</td><td className="max-w-64 truncate font-mono text-xs">{event.endpoint ?? "—"}</td><td>{event.message}</td><td className="font-mono text-xs text-slate-400">{event.duration_ms ? `${event.duration_ms} ms` : "—"}</td></tr>)}{events.length === 0 && <tr><td colSpan={6} className="px-5 py-16 text-center text-slate-500">Nenhum evento encontrado.</td></tr>}</tbody></table></div></section>
+    </div></main>
+}
