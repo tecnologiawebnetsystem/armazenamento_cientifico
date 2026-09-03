@@ -4,7 +4,7 @@ import json
 import os
 import re
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -31,7 +31,7 @@ def sanitize(value: Any) -> Any:
 
 def append_event(event: dict[str, Any]) -> None:
     LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    payload = {"timestamp": datetime.now(timezone.utc).isoformat(), **sanitize(event)}
+    payload = {"timestamp": datetime.now(UTC).isoformat(), **sanitize(event)}
     with _lock:
         with LOG_PATH.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(payload, ensure_ascii=False) + "\n")

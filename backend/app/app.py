@@ -17,9 +17,10 @@ configure_logging(settings.log_level)
 from app.db.session import connect, disconnect
 from app.legacy_api import app as legacy_app
 from app.modules.files.module import router as files_router
+from app.modules.observability.module import record_backend
+from app.modules.observability.module import router as observability_router
 from app.modules.projects.module import router as projects_router
 from app.modules.sql_manager.module import router as sql_manager_router
-from app.modules.observability.module import record_backend, router as observability_router
 from app.modules.users.module import router as users_router
 
 logger = logging.getLogger(__name__)
