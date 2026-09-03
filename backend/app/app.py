@@ -20,7 +20,6 @@ from app.modules.files.module import router as files_router
 from app.modules.observability.module import record_backend
 from app.modules.observability.module import router as observability_router
 from app.modules.projects.module import router as projects_router
-from app.modules.sql_manager.module import router as sql_manager_router
 from app.modules.users.module import router as users_router
 
 logger = logging.getLogger(__name__)
@@ -48,7 +47,6 @@ API REST do **SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científic
 
 TAGS_METADATA = [
     {"name": "Health", "description": "Verificação de disponibilidade da API e do banco."},
-    {"name": "SQL Manager", "description": "Consulta e manutenção controlada das tabelas do banco."},
 ]
 
 
@@ -102,7 +100,6 @@ def create_app() -> FastAPI:
             logger.exception("health_database_probe_failed")
             return JSONResponse(status_code=503, content={"status": "degradado", "service": "fastapi", "version": settings.app_version, "database": "unavailable", "database_engine": settings.database_engine})
 
-    application.include_router(sql_manager_router)
     application.include_router(observability_router)
     application.include_router(projects_router)
     application.include_router(files_router)

@@ -56,21 +56,6 @@ export function reportFrontendEvent(event: Omit<ObservabilityEvent, "timestamp" 
   return fetchRequest(`${API_BASE_URL}/api/observabilidade/events`, { method: "POST", body: JSON.stringify(event), keepalive: true }).then(() => undefined)
 }
 
-export type SqlTable = { name: string; columns: Array<{ name: string; type: string }> }
-export type SqlResult = { kind: string; columns: string[]; rows: Array<Record<string, unknown>>; rowCount: number; truncated: boolean; durationMs: number }
-
-export function getSqlTables() {
-  return request<{ tables: SqlTable[] }>("/api/sql-manager/tables")
-}
-
-export function previewSqlTable(name: string, page = 1) {
-  return request<{ table: string; columns: Array<{ name: string; type: string }>; rows: Array<Record<string, unknown>>; page: number; pageSize: number; hasMore: boolean }>(`/api/sql-manager/tables/${encodeURIComponent(name)}/preview?page=${page}`)
-}
-
-export function executeSql(sql: string) {
-  return request<SqlResult>("/api/sql-manager/execute", { method: "POST", body: JSON.stringify({ sql }) })
-}
-
 class ApiError extends Error {
   status: number
   constructor(status: number, message: string) {
