@@ -19,6 +19,7 @@ from app.legacy_api import app as legacy_app
 from app.modules.files.module import router as files_router
 from app.modules.projects.module import router as projects_router
 from app.modules.sql_manager.module import router as sql_manager_router
+from app.modules.observability.module import record_backend, router as observability_router
 from app.modules.users.module import router as users_router
 
 logger = logging.getLogger(__name__)
@@ -77,7 +78,9 @@ def create_app() -> FastAPI:
             response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
             if settings.environment.lower() == "production":
                 response.headers["Strict-Transport-Security"] = "max-age=63072000"
-        logger.info("request_complete method=%s path=%s status=%s duration_ms=%s", request.method, request.url.path, response.status_code, round((time.perf_counter() - started) * 1000, 2))
+        duration_ms = round((time.perf_counter() - started) * 1000, 2)
+        logger.info("request_complete method=%s path=%s status=%s duration_ms=%s", request.method, request.url.path, response.status_code, duration_ms)
+        record_backend(method=request.method, endpoint=request.url.path, status=response.status_code, duration_ms=duration_ms, correlation_id=request_id, level="error" if response.status_code >= 500 else "warning" if response.status_code >= 400 else "info", message="Requisição concluída")
         return response
 
     @application.exception_handler(AppException)
@@ -98,6 +101,7 @@ def create_app() -> FastAPI:
             return JSONResponse(status_code=503, content={"status": "degradado", "service": "fastapi", "version": settings.app_version, "database": "unavailable", "database_engine": settings.database_engine})
 
     application.include_router(sql_manager_router)
+    application.include_router(observability_router)
     application.include_router(projects_router)
     application.include_router(files_router)
     application.include_router(users_router)

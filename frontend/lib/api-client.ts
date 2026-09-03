@@ -40,6 +40,21 @@ export const API_CONFIG = {
   mode: "fastapi",
 } as const
 
+export type ObservabilityEvent = { timestamp: string; source: "frontend" | "backend"; level: string; message: string; endpoint?: string; status?: number; duration_ms?: number; correlation_id?: string; metadata?: Record<string, unknown> }
+export type ObservabilityResponse = { events: ObservabilityEvent[]; stats: { total: number; errors: number; frontend: number; backend: number } }
+
+export function getObservabilityEvents(params: { source?: string; status?: string; limit?: number } = {}) {
+  const query = new URLSearchParams({ limit: String(params.limit ?? 250) })
+  if (params.source) query.set("source", params.source)
+  if (params.status) query.set("status", params.status)
+  return request<ObservabilityResponse>(`/api/observabilidade/events?${query}`)
+}
+
+export function reportFrontendEvent(event: Omit<ObservabilityEvent, "timestamp" | "source">) {
+  if (process.env.NODE_ENV === "production") return Promise.resolve()
+  return request<void>("/api/observabilidade/events", { method: "POST", body: JSON.stringify(event) })
+}
+
 export type SqlTable = { name: string; columns: Array<{ name: string; type: string }> }
 export type SqlResult = { kind: string; columns: string[]; rows: Array<Record<string, unknown>>; rowCount: number; truncated: boolean; durationMs: number }
 
@@ -83,7 +98,11 @@ async function fetchRequest(url: string, init?: RequestInit): Promise<Response> 
 type ApiErrorBody = { message?: string; detail?: string }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const started = performance.now()
   const res = await fetchRequest(`${API_BASE_URL}${path}`, init)
+  if (typeof window !== "undefined" && !path.startsWith("/api/observabilidade")) {
+    void fetch(`${API_BASE_URL}/api/observabilidade/events`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ level: res.ok ? "info" : "error", message: `${init?.method ?? "GET"} ${path}`, endpoint: path, status: res.status, metadata: { duration_ms: Math.round(performance.now() - started) } }) }).catch(() => undefined)
+  }
 
   if (!res.ok) {
     const body = (await res.json().catch(() => ({ message: res.statusText }))) as ApiErrorBody
