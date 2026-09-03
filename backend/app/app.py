@@ -18,6 +18,7 @@ from app.db.session import connect, disconnect
 from app.legacy_api import app as legacy_app
 from app.modules.files.module import router as files_router
 from app.modules.projects.module import router as projects_router
+from app.modules.sql_manager.module import router as sql_manager_router
 from app.modules.users.module import router as users_router
 
 logger = logging.getLogger(__name__)
@@ -27,8 +28,6 @@ logger = logging.getLogger(__name__)
 async def lifespan(_: FastAPI):
     logger.info("application_startup database_engine=%s", settings.database_engine)
     await connect()
-    # A legacy_app é montada como subaplicação; seus eventos de startup
-    # não são executados automaticamente pelo FastAPI principal.
     from app.legacy_api import shutdown as legacy_shutdown
     from app.legacy_api import startup as legacy_startup
 
@@ -43,64 +42,17 @@ async def lifespan(_: FastAPI):
 
 API_DESCRIPTION = """
 API REST do **SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico**.
-
-Cobre gestão de projetos científicos, arquivos, controle de acessos, relatórios
-parametrizados e auditoria.
-
-### Banco de dados
-A API funciona com **SQLite** (desenvolvimento) e **PostgreSQL* (produção).
-O banco ativo é definido por `DATABASE_ENGINE`; quando essa variável não é
-informada, o engine é inferido automaticamente pelo esquema da `DATABASE_URL`.
-
-### Autenticação
-- **Login manual** por e-mail: `POST /api/auth/login`.
-- **Login corporativo** via Microsoft Entra ID: `GET /api/auth/entra/login`.
-
-A sessão é mantida por cookie (`wayon_session_id`) e persistida no banco.
-
-### Relatórios parametrizados
-Os campos exportáveis de cada relatório ficam nas tabelas `report_types` e
-`report_fields`, consultáveis em `GET /api/report-fields`.
 """.strip()
 
 TAGS_METADATA = [
     {"name": "Health", "description": "Verificação de disponibilidade da API e do banco."},
-    {"name": "Autenticação", "description": "Login manual por e-mail e login corporativo Microsoft Entra ID."},
-    {"name": "Projetos", "description": "Gestão de projetos científicos e membros."},
-    {"name": "Arquivos", "description": "Arquivos, permissões e compartilhamentos."},
-    {"name": "Usuários", "description": "Usuários, perfis e grupos de acesso."},
-    {"name": "Relatórios", "description": "Relatórios parametrizados e exportações."},
-    {"name": "Auditoria", "description": "Logs de atividade e trilha de auditoria."},
+    {"name": "SQL Manager", "description": "Consulta e manutenção controlada das tabelas do banco."},
 ]
 
 
 def create_app() -> FastAPI:
-    application = FastAPI(
-        title=settings.app_name,
-        version=settings.app_version,
-        description=API_DESCRIPTION,
-        summary="Gestão de acesso ao armazenamento científico com suporte a SQLite e PostgreSQL.",
-        openapi_tags=TAGS_METADATA,
-        contact={"name": "Equipe SIGAC", "email": "sigac@petrobras.com.br"},
-        license_info={"name": "Uso interno Petrobras"},
-        servers=[
-            {"url": "/", "description": "Servidor atual"},
-            {"url": "http://localhost:8080", "description": "Desenvolvimento local"},
-        ],
-        lifespan=lifespan,
-        docs_url="/docs" if settings.expose_api_docs else None,
-        redoc_url="/redoc" if settings.expose_api_docs else None,
-        openapi_url="/openapi.json" if settings.expose_api_docs else None,
-    )
-
-    application.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.cors_origins,
-        allow_credentials=True,
-        allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "X-Correlation-ID"],
-        max_age=600,
-    )
+    application = FastAPI(title=settings.app_name, version=settings.app_version, description=API_DESCRIPTION, openapi_tags=TAGS_METADATA, lifespan=lifespan, docs_url="/docs" if settings.expose_api_docs else None, redoc_url="/redoc" if settings.expose_api_docs else None, openapi_url="/openapi.json" if settings.expose_api_docs else None)
+    application.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True, allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "X-Correlation-ID"], max_age=600)
 
     @application.middleware("http")
     async def request_security_and_logging(request: Request, call_next: Any):
@@ -115,12 +67,8 @@ def create_app() -> FastAPI:
         context_tokens = set_request_context(request_id)
         try:
             response = await call_next(request)
-        except Exception:
-            logger.exception("request_failed method=%s path=%s", request.method, request.url.path)
-            raise
         finally:
             reset_request_context(context_tokens)
-        duration_ms = round((time.perf_counter() - started) * 1000, 2)
         response.headers["X-Correlation-ID"] = request_id
         if settings.security_headers_enabled:
             response.headers["X-Content-Type-Options"] = "nosniff"
@@ -129,76 +77,32 @@ def create_app() -> FastAPI:
             response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
             if settings.environment.lower() == "production":
                 response.headers["Strict-Transport-Security"] = "max-age=63072000"
-        logger.info(
-            "request_complete method=%s path=%s status=%s duration_ms=%s client=%s correlation_id=%s",
-            request.method,
-            request.url.path,
-            response.status_code,
-            duration_ms,
-            request.client.host if request.client else "-",
-            request_id,
-        )
+        logger.info("request_complete method=%s path=%s status=%s duration_ms=%s", request.method, request.url.path, response.status_code, round((time.perf_counter() - started) * 1000, 2))
         return response
 
     @application.exception_handler(AppException)
     async def app_exception_handler(_: Request, exc: AppException):
-        return JSONResponse(
-            status_code=exc.status_code,
-            content={"error": exc.error_code, "message": exc.message, "details": exc.details},
-        )
+        return JSONResponse(status_code=exc.status_code, content={"error": exc.error_code, "message": exc.message, "details": exc.details})
 
     @application.exception_handler(RequestValidationError)
     async def validation_exception_handler(_: Request, exc: RequestValidationError):
-        return JSONResponse(
-            status_code=422,
-            content={
-                "error": "ValidationError",
-                "message": "Dados de entrada inválidos",
-                "details": {"fields": exc.errors()},
-            },
-        )
+        return JSONResponse(status_code=422, content={"error": "ValidationError", "message": "Dados de entrada inválidos", "details": {"fields": exc.errors()}})
 
     @application.get("/health", tags=["Health"])
     async def health():
         from app.legacy_api import database_probe
-
         try:
             probe = await database_probe()
-            logger.info("health_check status=ok database=%s", probe)
-            return {
-                "status": "ok",
-                "service": "fastapi",
-                "version": settings.app_version,
-                "database": "connected",
-                "database_engine": settings.database_engine,
-                "database_probe": probe,
-            }
+            return {"status": "ok", "service": "fastapi", "version": settings.app_version, "database": "connected", "database_engine": settings.database_engine, "database_probe": probe}
         except Exception:
-            logger.exception("health_check status=failed engine=%s", settings.database_engine)
-            return JSONResponse(
-                status_code=503,
-                content={
-                    "status": "degradado",
-                    "service": "fastapi",
-                    "version": settings.app_version,
-                    "database": "unavailable",
-                    "database_engine": settings.database_engine,
-                },
-            )
+            return JSONResponse(status_code=503, content={"status": "degradado", "service": "fastapi", "version": settings.app_version, "database": "unavailable", "database_engine": settings.database_engine})
 
-    # Rotas SQLAlchemy novas são registradas antes da aplicação legada para que
-    # os grupos migrados possam ser validados sem depender do store do frontend.
+    application.include_router(sql_manager_router)
     application.include_router(projects_router)
     application.include_router(files_router)
     application.include_router(users_router)
-
-    # O legado é o contrato HTTP canônico durante a integração frontend/backend.
-    # Ele expõe os endpoints consumidos pelo cliente TypeScript, com respostas
-    # compatíveis e autorização baseada na sessão persistida do backend.
     application.mount("/", legacy_app)
 
-    # Aplicações montadas não propagam automaticamente seus paths para o schema
-    # principal. Mesclamos o contrato legado durante a migração, sem duplicar rotas.
     default_openapi = application.openapi
 
     def openapi_with_legacy_paths():
@@ -208,18 +112,14 @@ def create_app() -> FastAPI:
         legacy_schema = legacy_app.openapi()
         for path, path_item in legacy_schema.get("paths", {}).items():
             schema["paths"].setdefault(path, path_item)
-
-        # Rotas de uma aplicação montada mantêm referências locais, como
-        # #/components/schemas/Login. Ao mesclar somente os paths, Swagger UI
-        # não encontra esses schemas no documento OpenAPI principal.
         components = schema.setdefault("components", {})
         for component_group, values in legacy_schema.get("components", {}).items():
-            target_group = components.setdefault(component_group, {})
-            for name, value in values.items():
-                target_group.setdefault(name, value)
-
+            components.setdefault(component_group, {}).update(values)
         application.openapi_schema = schema
         return schema
 
     application.openapi = openapi_with_legacy_paths
     return application
+
+
+app = create_app()
