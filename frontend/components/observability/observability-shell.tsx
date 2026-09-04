@@ -47,14 +47,27 @@ const tone: Record<string, string> = {
 
 function normalize(e: ObservabilityEvent): ObservabilityEvent {
   const m = e.metadata ?? {}
+  const value = (key: string) => {
+    const item = m[key]
+    return item === undefined || item === null || item === "" ? undefined : item
+  }
+  const numberValue = (direct: number | undefined, key: string) => {
+    const item = value(key)
+    return direct ?? (typeof item === "number" ? item : typeof item === "string" && item.trim() !== "" ? Number(item) : undefined)
+  }
+  const endpoint = e.endpoint || String(value("endpoint") ?? "") || undefined
   return {
     ...e,
-    endpoint: e.endpoint || String(m.endpoint || "") || undefined,
-    status: e.status ?? (typeof m.status === "number" ? m.status : undefined),
-    duration_ms:
-      e.duration_ms ?? (typeof m.duration_ms === "number" ? m.duration_ms : undefined),
-    correlation_id:
-      e.correlation_id || String(m.correlation_id || "") || undefined,
+    message: e.message || String(value("message") ?? "Evento registrado"),
+    source: e.source || (String(value("source") ?? "backend") as ObservabilityEvent["source"]),
+    level: e.level || String(value("level") ?? "info"),
+    endpoint,
+    status: numberValue(e.status, "status"),
+    duration_ms: numberValue(e.duration_ms, "duration_ms"),
+    correlation_id: e.correlation_id || String(value("correlation_id") ?? "") || undefined,
+    frontend_page: e.frontend_page || String(value("frontend_page") ?? (e.source === "frontend" ? value("page") ?? "" : "")) || undefined,
+    frontend_file: e.frontend_file || String(value("frontend_file") ?? (e.source === "frontend" ? value("filename") ?? "" : "")) || undefined,
+    backend_file: e.backend_file || String(value("backend_file") ?? (e.source === "backend" ? "backend/app/app.py" : "")) || undefined,
   }
 }
 
@@ -334,7 +347,7 @@ export function ObservabilityShell() {
                     </td>
                     <td>{event.message}</td>
                     <td className="font-mono text-xs text-slate-400">
-                      {event.duration_ms ? `${event.duration_ms} ms` : "—"}
+                      {event.duration_ms !== undefined ? `${event.duration_ms} ms` : "—"}
                     </td>
                   </tr>
                 ))}
@@ -376,7 +389,7 @@ export function ObservabilityShell() {
                     ["Status", selectedEvent.status ?? "—"],
                     ["Horário", new Date(selectedEvent.timestamp).toLocaleString("pt-BR")],
                     ["Endpoint", selectedEvent.endpoint ?? "—"],
-                    ["Duração", selectedEvent.duration_ms ? `${selectedEvent.duration_ms} ms` : "—"],
+                    ["Duração", selectedEvent.duration_ms !== undefined ? `${selectedEvent.duration_ms} ms` : "—"],
                   ] as const
                 ).map(([label, value]) => (
                   <div
@@ -384,16 +397,32 @@ export function ObservabilityShell() {
                     className="rounded-lg border border-slate-800 bg-slate-950 p-3"
                   >
                     <p className="text-xs text-slate-500">{label}</p>
-                    <p className="mt-1 break-all font-mono text-sm">{value}</p>
+                    <p className="mt-1 break-all font-mono text-sm font-semibold text-slate-100">{value}</p>
                   </div>
                 ))}
               </div>
 
               <div>
                 <p className="mb-2 text-sm font-medium">Mensagem</p>
-                <p className="rounded-lg border border-slate-800 bg-slate-950 p-3 text-sm">
-                  {selectedEvent.message}
+                <p className="rounded-lg border border-slate-800 bg-slate-950 p-3 text-sm font-medium text-slate-100">
+                  {selectedEvent.message || "—"}
                 </p>
+              </div>
+
+              <div>
+                <p className="mb-2 text-sm font-medium">Rastreamento do código</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {([
+                    ["Página do frontend", selectedEvent.frontend_page],
+                    ["Arquivo do frontend", selectedEvent.frontend_file],
+                    ["Arquivo do backend", selectedEvent.backend_file],
+                  ] as const).map(([label, value]) => (
+                    <div key={label} className="rounded-lg border border-slate-800 bg-slate-950 p-3">
+                      <p className="text-xs text-slate-500">{label}</p>
+                      <p className="mt-1 break-all font-mono text-sm text-slate-100">{value || "Não identificado"}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div>

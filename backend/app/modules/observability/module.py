@@ -73,8 +73,26 @@ class FrontendEvent(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+def enrich_event(item: dict[str, Any]) -> dict[str, Any]:
+    """Expõe referências úteis sem alterar o log bruto armazenado."""
+    metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+    enriched = dict(item)
+    for key in ("endpoint", "status", "duration_ms", "correlation_id", "message", "level"):
+        if enriched.get(key) in (None, "") and metadata.get(key) not in (None, ""):
+            enriched[key] = metadata[key]
+    endpoint = str(enriched.get("endpoint") or "")
+    if enriched.get("source") == "backend":
+        enriched.setdefault("backend_file", "backend/app/app.py")
+        if endpoint.startswith("/api/observabilidade"):
+            enriched["backend_file"] = "backend/app/modules/observability/module.py"
+    if enriched.get("source") == "frontend":
+        enriched.setdefault("frontend_page", metadata.get("page") or endpoint or None)
+        enriched.setdefault("frontend_file", metadata.get("filename") or None)
+    return enriched
+
+
 def filtered_events(source: str | None, status: int | None, level: str | None, search: str | None, endpoint: str | None) -> list[dict[str, Any]]:
-    items = [item for item in read_events() if not is_observability_event(item)]
+    items = [enrich_event(item) for item in read_events() if not is_observability_event(item)]
     if source:
         items = [item for item in items if item.get("source") == source]
     if status is not None:
