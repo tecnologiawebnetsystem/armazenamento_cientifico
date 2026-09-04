@@ -85,7 +85,7 @@ async def initialize_database(engine) -> None:
 
     factory = async_sessionmaker(engine, expire_on_commit=False)
     async with factory() as session:
-        existing = {row.email for row in (await session.scalars(select(User))).all()}
+        existing_users = {row.email: row for row in (await session.scalars(select(User))).all()}
         now = datetime.now(UTC)
         existing_perfis = {row.id for row in (await session.scalars(select(Perfil))).all()}
         for perfil_id, nome, descricao in SEED_PERFIS:
@@ -126,8 +126,16 @@ async def initialize_database(engine) -> None:
         users = []
         seed_users = SEED_USERS
         for name, email, role in seed_users:
-            if email not in existing:
-                users.append(User(id=str(uuid4()), name=name, email=email, role=role, perfil_id=perfil_ids.get(role, "PAR"), created_at=now))
+            perfil_id = perfil_ids.get(role, "PAR")
+            user = existing_users.get(email)
+            if user is None:
+                users.append(User(id=str(uuid4()), name=name, email=email, role=role, perfil_id=perfil_id, created_at=now))
+            else:
+                # O seed é idempotente e também aplica alterações de função/perfil
+                # em usuários que já existem no banco.
+                user.name = name
+                user.role = role
+                user.perfil_id = perfil_id
         session.add_all(users)
         await session.flush()
 
