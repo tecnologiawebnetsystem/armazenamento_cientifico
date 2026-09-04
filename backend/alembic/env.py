@@ -22,6 +22,7 @@ def migration_database_url() -> str:
         return url
 
     parts = urlsplit(url)
+    scheme = "sqlite+aiosqlite" if parts.scheme == "sqlite" else parts.scheme
     database_path = unquote(parts.path)
     # URLs SQLite relativas podem chegar como /./data/... no Windows.
     database_path = database_path.removeprefix("/")
@@ -29,9 +30,9 @@ def migration_database_url() -> str:
         absolute_path = (Path(__file__).resolve().parents[1] / database_path).resolve()
         absolute_path.parent.mkdir(parents=True, exist_ok=True)
         # as_posix() gera C:/... no Windows, formato aceito pelo SQLAlchemy.
-        return f"{parts.scheme}:///{absolute_path.as_posix()}"
+        return f"{scheme}:///{absolute_path.as_posix()}"
 
-    return urlunsplit((parts.scheme, parts.netloc, database_path, parts.query, parts.fragment))
+    return urlunsplit((scheme, parts.netloc, database_path, parts.query, parts.fragment))
 
 
 DATABASE_URL = migration_database_url()

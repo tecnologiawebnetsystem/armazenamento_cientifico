@@ -33,6 +33,11 @@ def upgrade():
             sa.UniqueConstraint("report_code", "field_key", name="uq_report_fields_code_key"),
         )
 
+    # Recreate o inspector para evitar cache após criar a tabela.
+    inspector = sa.inspect(bind)
+    if "report_fields" not in inspector.get_table_names():
+        return
+
     index_names = {index["name"] for index in inspector.get_indexes("report_fields")}
     if "ix_report_fields_report_code" not in index_names:
         op.create_index("ix_report_fields_report_code", "report_fields", ["report_code"])
