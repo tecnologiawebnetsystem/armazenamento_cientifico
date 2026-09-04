@@ -17,9 +17,11 @@ def _has_table(name: str) -> bool:
 
 
 def upgrade() -> None:
-    if _has_table("users"):
-        with op.batch_alter_table("users") as batch:
-            batch.create_foreign_key("fk_users_perfil_id_perfis", "perfis", ["perfil_id"], ["id"], ondelete="SET NULL")
+    if _has_table("users") and _has_table("perfis"):
+        user_columns = {column["name"] for column in sa.inspect(op.get_bind()).get_columns("users")}
+        if "perfil_id" in user_columns:
+            with op.batch_alter_table("users") as batch:
+                batch.create_foreign_key("fk_users_perfil_id_perfis", "perfis", ["perfil_id"], ["id"], ondelete="SET NULL")
     if _has_table("permissoes"):
         with op.batch_alter_table("permissoes") as batch:
             batch.create_foreign_key("fk_permissoes_modulo_id_modulos", "modulos", ["modulo_id"], ["id"], ondelete="CASCADE")

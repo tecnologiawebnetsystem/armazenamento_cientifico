@@ -17,7 +17,7 @@ def upgrade() -> None:
     inspector = sa.inspect(bind)
     tables = set(inspector.get_table_names())
 
-    if "sessions" not in tables:
+    if "sessions" not in tables and "users" in tables:
         op.create_table(
             "sessions",
             sa.Column("id", sa.String(36), primary_key=True),
@@ -26,7 +26,7 @@ def upgrade() -> None:
         )
         op.create_index("ix_sessions_user_id", "sessions", ["user_id"])
 
-    if "access_requests" not in tables:
+    if "access_requests" not in tables and {"projects", "users"}.issubset(tables):
         op.create_table(
             "access_requests",
             sa.Column("id", sa.String(36), primary_key=True),
