@@ -16,6 +16,9 @@ depends_on = None
 def upgrade() -> None:
     bind = op.get_bind()
     inspector = sa.inspect(bind)
+    if "users" not in inspector.get_table_names():
+        return
+
     columns = {column["name"] for column in inspector.get_columns("users")}
     if "last_login_at" not in columns:
         op.add_column("users", sa.Column("last_login_at", sa.DateTime(), nullable=True))
@@ -24,6 +27,9 @@ def upgrade() -> None:
 def downgrade() -> None:
     bind = op.get_bind()
     inspector = sa.inspect(bind)
+    if "users" not in inspector.get_table_names():
+        return
+
     columns = {column["name"] for column in inspector.get_columns("users")}
     if "last_login_at" in columns:
         op.drop_column("users", "last_login_at")
