@@ -4,6 +4,7 @@ Revision ID: 0009_add_user_last_login_at
 Revises: 0008_add_user_avatar_url
 """
 import sqlalchemy as sa
+from sqlalchemy.exc import NoSuchTableError
 
 from alembic import op
 
@@ -19,7 +20,12 @@ def upgrade() -> None:
     if "users" not in inspector.get_table_names():
         return
 
-    columns = {column["name"] for column in inspector.get_columns("users")}
+    try:
+        columns = {column["name"] for column in inspector.get_columns("users")}
+    except NoSuchTableError:
+        # O banco legado pode estar sem users mesmo após a revisão baseline.
+        return
+
     if "last_login_at" not in columns:
         op.add_column("users", sa.Column("last_login_at", sa.DateTime(), nullable=True))
 
@@ -30,6 +36,10 @@ def downgrade() -> None:
     if "users" not in inspector.get_table_names():
         return
 
-    columns = {column["name"] for column in inspector.get_columns("users")}
+    try:
+        columns = {column["name"] for column in inspector.get_columns("users")}
+    except NoSuchTableError:
+        return
+
     if "last_login_at" in columns:
         op.drop_column("users", "last_login_at")
