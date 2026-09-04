@@ -14,7 +14,8 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     inspector = sa.inspect(op.get_bind())
-    if "project_members" not in inspector.get_table_names():
+    tables = set(inspector.get_table_names())
+    if "project_members" not in tables and {"projects", "users"}.issubset(tables):
         op.create_table(
             "project_members",
             sa.Column("project_id", sa.String(36), nullable=False),

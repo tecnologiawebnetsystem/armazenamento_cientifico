@@ -26,7 +26,10 @@ def upgrade() -> None:
             sa.Column("criado_em", sa.DateTime(), nullable=False),
         )
 
-    user_columns = {column["name"] for column in sa.inspect(op.get_bind()).get_columns("users")}
+    if "users" not in tables:
+        return
+
+    user_columns = {column["name"] for column in inspector.get_columns("users")}
     if "perfil_id" not in user_columns:
         with op.batch_alter_table("users", recreate="always") as batch_op:
             batch_op.add_column(sa.Column("perfil_id", sa.String(20), nullable=True))
