@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { logout } from "@/lib/api-client"
 import { useSession } from "@/hooks/use-session"
-import { roleDescription, roleLabel } from "@/hooks/use-permissions"
+import { normalizeRole, roleDescription, roleLabel } from "@/hooks/use-permissions"
 import { navGroups } from "@/lib/nav-config"
 import { AppBreadcrumbs } from "@/components/navigation/app-breadcrumbs"
 import { LogoMark } from "@/components/brand/logo-mark"
@@ -49,6 +49,13 @@ export function AppTopbar() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, isLoading } = useSession()
+  const profileTone = user ? {
+    admin: "border-primary/40 bg-primary/10",
+    gerente: "border-chart-2/40 bg-chart-2/10",
+    patrocinador: "border-chart-4/40 bg-chart-4/10",
+    auditor: "border-muted-foreground/30 bg-muted/70",
+    solicitante: "border-chart-3/40 bg-chart-3/10",
+  }[normalizeRole(user.role)] : "border-border bg-card"
   pageTitleFor(pathname)
 
   async function handleLogout() {
@@ -83,7 +90,7 @@ export function AppTopbar() {
               </Avatar>
               <span className="hidden max-w-36 truncate text-xs font-semibold text-foreground md:inline">{user.nome}</span>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuContent align="end" className={`w-64 border ${profileTone}`}>
               <div className="flex flex-col gap-1 px-2 py-2" role="presentation">
                 <span className="truncate text-sm font-semibold text-foreground">{user.nome}</span>
                 <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>

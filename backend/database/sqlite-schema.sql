@@ -21,3 +21,28 @@ CREATE TABLE IF NOT EXISTS file_permissions (file_id TEXT NOT NULL REFERENCES fi
 CREATE INDEX IF NOT EXISTS idx_user_groups_group ON user_groups(group_id);
 CREATE INDEX IF NOT EXISTS idx_project_groups_group ON project_groups(group_id);
 CREATE INDEX IF NOT EXISTS idx_file_permissions_file ON file_permissions(file_id);
+
+-- Fluxo de acesso e comunicação entre solicitante e gerente.
+CREATE TABLE IF NOT EXISTS access_requests (
+  id TEXT PRIMARY KEY,
+  project_id TEXT REFERENCES projects(id) ON DELETE CASCADE,
+  requester_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente', 'aprovado', 'negado', 'revogado')),
+  requested_role TEXT,
+  justification TEXT NOT NULL DEFAULT '',
+  analyzed_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS notifications (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL DEFAULT '',
+  read_at TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_access_requests_requester ON access_requests(requester_id);
+CREATE INDEX IF NOT EXISTS idx_access_requests_status ON access_requests(status);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, read_at);

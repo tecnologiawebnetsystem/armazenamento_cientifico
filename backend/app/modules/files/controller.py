@@ -37,7 +37,7 @@ async def list_files(
 async def create_file(
     data: FileCreate,
     service: Annotated[FileService, Depends(get_service)],
-    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
+    _: Annotated[dict, Depends(require_roles("admin"))],
 ):
     file = await service.create_file(data, "system")
     return {"file": file}
@@ -48,7 +48,7 @@ async def create_file_permission(
     file_id: str,
     data: FilePermissionCreate,
     session: Session,
-    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
+    _: Annotated[dict, Depends(require_roles("admin"))],
 ):
     if not data.user_id and not data.group_id:
         from fastapi import HTTPException
@@ -84,7 +84,7 @@ async def list_file_permissions(
 async def delete_file_permission(
     file_id: str,
     session: Session,
-    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
+    _: Annotated[dict, Depends(require_roles("admin"))],
     user_id: str | None = None,
     group_id: str | None = None,
 ):
@@ -120,7 +120,7 @@ async def update_file(
     file_id: str,
     data: FileUpdate,
     service: Annotated[FileService, Depends(get_service)],
-    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
+    _: Annotated[dict, Depends(require_roles("admin"))],
 ):
     return {"file": await service.update_file(file_id, data)}
 
@@ -129,6 +129,6 @@ async def update_file(
 async def delete_file(
     file_id: str,
     service: Annotated[FileService, Depends(get_service)],
-    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
+    _: Annotated[dict, Depends(require_roles("admin"))],
 ):
     await service.delete_file(file_id)

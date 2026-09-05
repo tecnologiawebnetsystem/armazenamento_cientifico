@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation"
 import { getBackendSession } from "@/lib/session"
+import { hasCapability } from "@/hooks/use-permissions"
 import { NewProjectForm } from "@/components/projects/new-project-form"
 
 export default async function NovoProjetoPage() {
   const user = await getBackendSession()
   if (!user) redirect("/login")
 
-  const canCreate = user.role === "admin" || user.role === "gerente" || user.role === "patrocinador"
+  const canCreate = hasCapability(user.role, "create")
   if (!canCreate) redirect("/projetos")
 
   return (

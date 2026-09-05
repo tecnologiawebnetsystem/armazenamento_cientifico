@@ -51,7 +51,7 @@ async def create_project(
     data: ProjectCreate,
     service: Annotated[ProjectService, Depends(get_service)],
     session: Annotated[AsyncSession, Depends(get_session)],
-    user: Annotated[dict, Depends(require_roles("admin", "gerente", "patrocinador"))],
+    user: Annotated[dict, Depends(require_roles("admin"))],
 ):
     await service.ensure_code_available(data.codigo)
     now = datetime.now(UTC)
@@ -68,7 +68,7 @@ async def update_project(
     project_id: str,
     data: ProjectPatch,
     session: Annotated[AsyncSession, Depends(get_session)],
-    _: Annotated[dict, Depends(require_roles("admin", "gerente", "patrocinador"))],
+    _: Annotated[dict, Depends(require_roles("admin"))],
 ):
     project = await session.get(Project, project_id)
     if not project:
@@ -86,7 +86,7 @@ async def update_project(
 async def delete_project(
     project_id: str,
     session: Annotated[AsyncSession, Depends(get_session)],
-    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
+    _: Annotated[dict, Depends(require_roles("admin"))],
 ):
     project = await session.get(Project, project_id)
     if project:
@@ -118,7 +118,7 @@ async def add_project_member(
     project_id: str,
     data: ProjectMemberInput,
     session: Annotated[AsyncSession, Depends(get_session)],
-    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
+    _: Annotated[dict, Depends(require_roles("admin"))],
 ):
     user = await session.get(User, data.userId)
     if not user:
@@ -135,7 +135,7 @@ async def update_project_member(
     project_id: str,
     data: ProjectMemberInput,
     session: Annotated[AsyncSession, Depends(get_session)],
-    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
+    _: Annotated[dict, Depends(require_roles("admin"))],
 ):
     member = await session.get(ProjectMember, {"project_id": project_id, "user_id": data.userId})
     if not member:
@@ -152,7 +152,7 @@ async def remove_project_member(
     project_id: str,
     user_id: str,
     session: Annotated[AsyncSession, Depends(get_session)],
-    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
+    _: Annotated[dict, Depends(require_roles("admin"))],
 ):
     member = await session.get(ProjectMember, {"project_id": project_id, "user_id": user_id})
     if member:

@@ -9,15 +9,37 @@ import type { PermissionMatrixEntry, Role, ShareLevel } from "@/lib/types"
  * 2. Compartilhamento por pasta/arquivo (leitura/edição/proprietário) —
  *    refina o que cada membro pode fazer dentro do que o papel já permite.
  */
-export function getRolePermissions(role: Role, matrix: PermissionMatrixEntry[]) {
-  return matrix.find((m) => m.papel === role) ?? matrix[matrix.length - 1]
+export const roleCapabilities = {
+  admin: ["read", "create", "update", "delete", "manage_users", "manage_members", "approve_access", "revoke_access", "audit", "reports", "access_map", "all_projects", "all_folders"],
+  gerente: ["read", "approve_access", "revoke_access", "access_map", "project_scope", "folder_scope"],
+  patrocinador: ["read", "audit", "reports", "access_map", "all_projects", "all_folders"],
+  auditor: ["read", "audit"],
+  solicitante: ["read", "project_scope", "folder_scope"],
+} as const
+
+export type Capability = (typeof roleCapabilities)[keyof typeof roleCapabilities][number]
+
+export function hasCapability(role: Role | string | null | undefined, capability: Capability) {
+  const normalized = normalizeRole(role)
+  return (roleCapabilities[normalized as keyof typeof roleCapabilities] ?? []).includes(capability as never)
 }
 
-export function canEditFile(projectRole: Role, shareLevel: ShareLevel | null) {
-  if (projectRole === "admin" || projectRole === "gerente") return true
-  if (projectRole === "auditor") return false
-  if (!shareLevel) return true
-  return shareLevel === "edicao" || shareLevel === "proprietario"
+export function normalizeRole(role: Role | string | null | undefined): keyof typeof roleCapabilities {
+  const aliases: Record<string, keyof typeof roleCapabilities> = {
+    administrador: "admin", administrator: "admin", gestor: "gerente", manager: "gerente",
+    participante: "solicitante", visualizador: "auditor", viewer: "auditor", sponsor: "patrocinador", requester: "solicitante",
+  }
+  const value = String(role ?? "solicitante").toLowerCase()
+  return aliases[value] ?? (value in roleCapabilities ? value as keyof typeof roleCapabilities : "solicitante")
+}
+
+export function getRolePermissions(role: Role, matrix: PermissionMatrixEntry[]) {
+  return matrix.find((m) => m.papel === normalizeRole(role)) ?? matrix[matrix.length - 1]
+}
+
+export function canEditFile(projectRole: Role, _shareLevel: ShareLevel | null) {
+  if (projectRole === "admin") return true
+  return false
 }
 
 export function shareLevelLabel(level: ShareLevel) {
@@ -68,19 +90,13 @@ export function roleDescription(role: Role) {
     case "admin":
       return "Governança total da plataforma, usuários e parâmetros."
     case "gerente":
-      return "Conduz o projeto: membros, arquivos e compartilhamentos."
+      return "Aprova ou revoga acessos e consulta apenas seu escopo."
     case "patrocinador":
-      return "Acompanha resultados e aprova solicitações de acesso."
+      return "Consulta projetos, relatórios, logs e mapas de acessos."
     case "auditor":
       return "Somente leitura, com acesso à trilha de auditoria."
     case "solicitante":
-      return "Solicita acessos e acompanha o andamento das solicitações."
-    case "participante":
-      return "Participa do projeto conforme os acessos concedidos."
-    case "visualizador":
-      return "Consulta informações sem editar."
-    case "gestor":
-      return "Gestão operacional do projeto."
+      return "Visualiza somente projetos e pastas autorizados."
   }
 }
 
