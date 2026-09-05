@@ -12,7 +12,7 @@
  * - `patrocinador` → Patrocinador (aprova acessos e acompanha resultados)
  * - `auditor`      → Auditor (somente leitura + trilha de auditoria)
  */
-export type Role = "admin" | "gerente" | "patrocinador" | "auditor" | "solicitante" | "participante" | "visualizador" | "gestor"
+export type Role = "admin" | "gerente" | "patrocinador" | "auditor" | "solicitante"
 
 /** Papel global ou de participação dentro de um projeto. */
 export type ProjectMemberRole = Role

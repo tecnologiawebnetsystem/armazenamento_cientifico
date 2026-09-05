@@ -33,15 +33,6 @@ async def list_files(
     return {"files": files, "breadcrumb": []}
 
 
-@router.post("", response_model=dict, status_code=201)
-async def create_file(
-    data: FileCreate,
-    service: Annotated[FileService, Depends(get_service)],
-    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
-):
-    file = await service.create_file(data, "system")
-    return {"file": file}
-
 
 @router.post("/{file_id}/permissions", response_model=FilePermissionOut, status_code=201)
 async def create_file_permission(

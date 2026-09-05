@@ -1,12 +1,9 @@
 "use client"
 
-import { useMemo, useRef, useState } from "react"
-import useSWR from "swr"
+import { useMemo, useState } from "react"
 import { toast } from "sonner"
 import {
   FolderIcon,
-  FolderPlusIcon,
-  UploadIcon,
   MoreVerticalIcon,
   FileIcon,
   FileTextIcon,
@@ -17,12 +14,9 @@ import {
   FileCode2Icon,
   ImageIcon,
   EyeIcon,
-  PencilIcon,
   DownloadIcon,
-  Trash2Icon,
   FoldersIcon,
   Loader2Icon,
-  FolderInputIcon,
   SearchIcon,
   SearchXIcon,
 } from "lucide-react"
@@ -75,13 +69,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useFiles } from "@/hooks/use-files"
-import {
-  createFileNode,
-  deleteFileNode,
-  getAllFolders,
-  updateFileNode,
-  ApiError,
-} from "@/lib/api-client"
 import type { FileNode } from "@/lib/types"
 
 function formatBytes(bytes?: number) {
@@ -131,36 +118,32 @@ type FileAction = {
 export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string; canWrite: boolean }) {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null)
   const { files, breadcrumb, isLoading, refresh } = useFiles(projectId, currentFolderId)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const [search, setSearch] = useState("")
-
-  const [isUploading, setIsUploading] = useState(false)
-  const [newFolderOpen, setNewFolderOpen] = useState(false)
-  const [newFolderName, setNewFolderName] = useState("")
-  const [isCreatingFolder, setIsCreatingFolder] = useState(false)
-
-  const [renameTarget, setRenameTarget] = useState<FileNode | null>(null)
-  const [renameValue, setRenameValue] = useState("")
-  const [isRenaming, setIsRenaming] = useState(false)
-
-  const [deleteTarget, setDeleteTarget] = useState<FileNode | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
-
-  const [previewTarget, setPreviewTarget] = useState<FileNode | null>(null)
-
-  const [moveTarget, setMoveTarget] = useState<FileNode | null>(null)
-  const [moveDestination, setMoveDestination] = useState<string>("root")
-  const [isMoving, setIsMoving] = useState(false)
-  const { data: allFoldersData } = useSWR(
-    moveTarget ? ["all-folders", projectId] : null,
-    () => getAllFolders(projectId),
-  )
-
-  const moveDestinationOptions = useMemo(() => {
-    if (!moveTarget || !allFoldersData) return []
-    // não é possível mover uma pasta para dentro de si mesma
-    return allFoldersData.files.filter((f) => f.id !== moveTarget.id)
-  }, [allFoldersData, moveTarget])
+  const newFolderOpen = false
+  const [renameTarget] = useState<FileNode | null>(null)
+  const [moveTarget] = useState<FileNode | null>(null)
+  const [deleteTarget] = useState<FileNode | null>(null)
+  const [previewTarget] = useState<FileNode | null>(null)
+  const newFolderName = ""
+  const renameValue = ""
+  const moveDestination = "root"
+  const isCreatingFolder = false
+  const isRenaming = false
+  const isMoving = false
+  const isDeleting = false
+  const setNewFolderOpen = (_open: boolean) => undefined
+  const setRenameTarget = (_target: FileNode | null) => undefined
+  const setMoveTarget = (_target: FileNode | null) => undefined
+  const setDeleteTarget = (_target: FileNode | null) => undefined
+  const setPreviewTarget = (_target: FileNode | null) => undefined
+  const setNewFolderName = (_value: string) => undefined
+  const setRenameValue = (_value: string) => undefined
+  const setMoveDestination = (_value: string) => undefined
+  const handleCreateFolder = () => undefined
+  const handleRename = () => undefined
+  const handleMove = () => undefined
+  const handleDelete = () => undefined
+  const moveDestinationOptions: FileNode[] = []
 
   const visibleFiles = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -168,7 +151,8 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
     return files.filter((f) => f.nome.toLowerCase().includes(q))
   }, [files, search])
 
-  async function handleUploadFiles(fileList: FileList) {
+  /* Criação, upload, renomeação, movimentação e exclusão foram removidos: este módulo é somente leitura. */
+  /* async function handleUploadFiles(fileList: FileList) {
     setIsUploading(true)
     try {
       for (const uploaded of Array.from(fileList)) {
@@ -272,9 +256,7 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
     }
   }
 
-  */
-
-  async function handleMove() {
+  /* async function handleMove() {
     if (!moveTarget) return
     setIsMoving(true)
     try {
@@ -291,87 +273,31 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
     }
   }
 
+  */
+
   function handleDownload(file: FileNode) {
     toast.info(`Simulação: em um ambiente real, o download de "${file.nome}" seria iniciado agora.`)
   }
 
-  /** Ações disponíveis para um item — compartilhadas entre o menu de contexto (clique direito) e o menu "⋮". */
   function getFileActions(f: FileNode): FileAction[] {
-    return [
-      f.tipo === "arquivo" && {
-        key: "view",
-        icon: EyeIcon,
-        label: "Visualizar",
-        onClick: () => setPreviewTarget(f),
-      },
-      f.tipo === "arquivo" && {
-        key: "download",
-        icon: DownloadIcon,
-        label: "Baixar",
-        onClick: () => handleDownload(f),
-      },
-      canWrite && {
-        key: "rename",
-        icon: PencilIcon,
-        label: "Renomear",
-        onClick: () => {
-          setRenameTarget(f)
-          setRenameValue(f.nome)
-        },
-      },
-      canWrite && {
-        key: "move",
-        icon: FolderInputIcon,
-        label: "Mover",
-        onClick: () => {
-          setMoveTarget(f)
-          setMoveDestination(f.parentId ?? "root")
-        },
-      },
-      canWrite && {
-        key: "delete",
-        icon: Trash2Icon,
-        label: "Excluir",
-        onClick: () => setDeleteTarget(f),
-        variant: "destructive" as const,
-        separator: true,
-      },
-    ].filter(Boolean) as FileAction[]
+    return f.tipo === "arquivo"
+      ? [
+          { key: "view", icon: EyeIcon, label: "Visualizar", onClick: () => toast.info(`Visualização: ${f.nome}`) },
+          { key: "download", icon: DownloadIcon, label: "Baixar", onClick: () => handleDownload(f) },
+        ]
+      : []
   }
 
   return (
     <Card className="overflow-hidden border-border/80 shadow-sm">
       <CardHeader className="border-b bg-muted/30 px-5 py-5 sm:px-7">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-3"><div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-petrobras-green text-primary-foreground"><FoldersIcon className="size-5" aria-hidden="true" /></div><div className="flex flex-col gap-1"><CardTitle className="text-xl tracking-tight">Arquivos do projeto</CardTitle><CardDescription>Organize documentos e pastas com rapidez e segurança.</CardDescription></div></div>
+          <div className="flex items-start gap-3"><div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-petrobras-green text-primary-foreground"><FoldersIcon className="size-5" aria-hidden="true" /></div><div className="flex flex-col gap-1"><CardTitle className="text-xl tracking-tight">Arquivos do projeto</CardTitle><CardDescription>Consulte documentos e pastas autorizados. A criação e o envio estão desativados.</CardDescription></div></div>
           <Badge variant="secondary" className="w-fit">{visibleFiles.length} {visibleFiles.length === 1 ? "item" : "itens"}</Badge>
         </div>
-        {canWrite && (
-          <CardAction className="flex items-center gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={(e) => {
-                if (e.target.files && e.target.files.length > 0) handleUploadFiles(e.target.files)
-                e.target.value = ""
-              }}
-            />
-            <Button variant="outline" size="sm" onClick={() => setNewFolderOpen(true)}>
-              <FolderPlusIcon data-icon="inline-start" />
-              Nova pasta
-            </Button>
-            <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-              {isUploading ? (
-                <Loader2Icon data-icon="inline-start" className="animate-spin" />
-              ) : (
-                <UploadIcon data-icon="inline-start" />
-              )}
-              Enviar arquivos
-            </Button>
-          </CardAction>
-        )}
+        <CardAction>
+          <Badge variant="outline">Somente leitura</Badge>
+        </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

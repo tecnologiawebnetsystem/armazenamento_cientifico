@@ -7,6 +7,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import type { Role } from "@/lib/types"
+import { normalizeRole } from "@/hooks/use-permissions"
 
 export interface NavItem {
   title: string
@@ -35,7 +36,7 @@ export const navGroups: NavGroup[] = [
         title: "Pesquisas",
         url: "/pesquisas",
         icon: FlaskConicalIcon,
-        roles: ["admin", "patrocinador", "gerente", "auditor"],
+        roles: ["admin", "patrocinador", "gerente"],
       },
       {
         title: "Consultas e relatórios",
@@ -47,7 +48,7 @@ export const navGroups: NavGroup[] = [
   },
   {
     label: "Administração",
-    items: [{ title: "Logs de auditoria", url: "/administracao/logs", icon: HistoryIcon, roles: ["admin", "auditor"] }],
+    items: [{ title: "Logs de auditoria", url: "/administracao/logs", icon: HistoryIcon, roles: ["admin", "patrocinador", "auditor"] }],
   },
 ]
 
@@ -55,7 +56,7 @@ export function filterNavForRole(groups: NavGroup[], role: Role): NavGroup[] {
   return groups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => !item.roles || item.roles.includes(role)),
+      items: group.items.filter((item) => !item.roles || item.roles.includes(normalizeRole(role) as Role)),
     }))
     .filter((group) => group.items.length > 0)
 }
