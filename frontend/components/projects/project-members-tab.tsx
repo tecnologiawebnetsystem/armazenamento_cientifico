@@ -116,7 +116,7 @@ export function ProjectMembersTab({ projectId, canManage }: { projectId: string;
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-3">
             <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-petrobras-green text-primary-foreground"><UsersIcon className="size-5" aria-hidden="true" /></div>
-            <div className="flex flex-col gap-1"><CardTitle className="text-xl tracking-tight">Membros e permissões</CardTitle><CardDescription>Controle participantes, papéis e acesso ao projeto.</CardDescription></div>
+            <div className="flex flex-col gap-1"><CardTitle className="text-xl tracking-tight">Acessos às pastas</CardTitle><CardDescription>Conceda ou revogue acesso selecionando o usuário e o perfil autorizado.</CardDescription></div>
           </div>
           <Badge variant="secondary" className="w-fit">{members.length} {members.length === 1 ? "membro" : "membros"}</Badge>
         </div>

@@ -49,7 +49,6 @@ async def list_projects(
 @router.post("", response_model=dict, status_code=201)
 async def create_project(
     data: ProjectCreate,
-    service: Annotated[ProjectService, Depends(get_service)],
     session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[dict, Depends(require_roles("admin"))],
 ):
@@ -66,7 +65,7 @@ async def create_project(
 @router.patch("/{project_id}", response_model=dict)
 async def update_project(
     project_id: str,
-    data: ProjectPatch,
+    data: ProjectUpdate,
     session: Annotated[AsyncSession, Depends(get_session)],
     _: Annotated[dict, Depends(require_roles("admin"))],
 ):
@@ -118,7 +117,7 @@ async def add_project_member(
     project_id: str,
     data: ProjectMemberInput,
     session: Annotated[AsyncSession, Depends(get_session)],
-    _: Annotated[dict, Depends(require_roles("admin"))],
+    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
 ):
     user = await session.get(User, data.userId)
     if not user:
@@ -135,7 +134,7 @@ async def update_project_member(
     project_id: str,
     data: ProjectMemberInput,
     session: Annotated[AsyncSession, Depends(get_session)],
-    _: Annotated[dict, Depends(require_roles("admin"))],
+    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
 ):
     member = await session.get(ProjectMember, {"project_id": project_id, "user_id": data.userId})
     if not member:
@@ -152,7 +151,7 @@ async def remove_project_member(
     project_id: str,
     user_id: str,
     session: Annotated[AsyncSession, Depends(get_session)],
-    _: Annotated[dict, Depends(require_roles("admin"))],
+    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
 ):
     member = await session.get(ProjectMember, {"project_id": project_id, "user_id": user_id})
     if member:

@@ -33,22 +33,13 @@ async def list_files(
     return {"files": files, "breadcrumb": []}
 
 
-@router.post("", response_model=dict, status_code=201)
-async def create_file(
-    data: FileCreate,
-    service: Annotated[FileService, Depends(get_service)],
-    _: Annotated[dict, Depends(require_roles("admin"))],
-):
-    file = await service.create_file(data, "system")
-    return {"file": file}
-
 
 @router.post("/{file_id}/permissions", response_model=FilePermissionOut, status_code=201)
 async def create_file_permission(
     file_id: str,
     data: FilePermissionCreate,
     session: Session,
-    _: Annotated[dict, Depends(require_roles("admin"))],
+    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
 ):
     if not data.user_id and not data.group_id:
         from fastapi import HTTPException
@@ -84,7 +75,7 @@ async def list_file_permissions(
 async def delete_file_permission(
     file_id: str,
     session: Session,
-    _: Annotated[dict, Depends(require_roles("admin"))],
+    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
     user_id: str | None = None,
     group_id: str | None = None,
 ):
@@ -120,7 +111,7 @@ async def update_file(
     file_id: str,
     data: FileUpdate,
     service: Annotated[FileService, Depends(get_service)],
-    _: Annotated[dict, Depends(require_roles("admin"))],
+    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
 ):
     return {"file": await service.update_file(file_id, data)}
 
@@ -129,6 +120,6 @@ async def update_file(
 async def delete_file(
     file_id: str,
     service: Annotated[FileService, Depends(get_service)],
-    _: Annotated[dict, Depends(require_roles("admin"))],
+    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
 ):
     await service.delete_file(file_id)
