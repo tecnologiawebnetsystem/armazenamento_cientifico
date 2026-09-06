@@ -108,7 +108,7 @@ npm run dev
 |---|---|
 | Aplicação | [http://localhost:3000](http://localhost:3000) |
 | Login | [http://localhost:3000/login](http://localhost:3000/login) |
-| Wiki visual | [http://localhost:3000/wiki-dev](http://localhost:3000/wiki-dev) |
+| Wiki Dev | Este arquivo `wiki-dev.md` |
 | Swagger | [http://localhost:8080/docs](http://localhost:8080/docs) |
 | ReDoc | [http://localhost:8080/redoc](http://localhost:8080/redoc) |
 | OpenAPI JSON | [http://localhost:8080/openapi.json](http://localhost:8080/openapi.json) |
@@ -199,7 +199,7 @@ O frontend está em [`frontend/`](frontend/) e é uma instalação Next.js indep
 | [`frontend/app/`](frontend/app/) | Rotas, layouts, páginas e grupos de rotas do App Router. |
 | [`frontend/app/(app)/`](frontend/app/(app)/) | Área autenticada da aplicação. |
 | [`frontend/app/login/`](frontend/app/login/) | Página e fluxo visual de login. |
-| [`frontend/app/wiki-dev/`](frontend/app/wiki-dev/) | Wiki técnica visual. |
+| [`wiki-dev.md`](wiki-dev.md) | Documentação técnica consolidada; não há página Wiki Dev no frontend. |
 | [`frontend/components/`](frontend/components/) | Componentes reutilizáveis de UI e domínio. |
 | [`frontend/components/ui/`](frontend/components/ui/) | Componentes base do shadcn/ui. |
 | [`frontend/hooks/`](frontend/hooks/) | Hooks para sessão, usuários, projetos, arquivos, permissões e logs. |
@@ -475,6 +475,27 @@ erDiagram
 ---
 
 ## 9. API e endpoints
+
+### Observabilidade operacional
+
+O módulo `observabilidade` concentra eventos operacionais e expõe:
+
+- `GET /api/observabilidade/events`: consulta paginada de eventos com filtros;
+- `GET /api/observabilidade/overview`: visão agregada de métricas, erros, latência, traces correlacionados, dependências e sinais de segurança;
+- `GET /api/observabilidade/health`: saúde operacional;
+- `GET /api/observabilidade/export`: exportação dos eventos.
+
+A correlação usa `correlation_id`; dependências são derivadas dos campos `service`/`dependency`; falhas `401`, `403` e eventos críticos alimentam os indicadores de segurança. A tela `/observabilidade` é a visão unificada para métricas, logs e rastreamento.
+
+### Estado da API
+
+Os endpoints em `backend/app/modules/` são a arquitetura modular preferencial. A `legacy_api.py` ainda fornece compatibilidade para autenticação, relatórios, configurações, permissões, solicitações de acesso, exportações e alguns CRUDs. Rotas duplicadas de projetos, arquivos, usuários e membros devem ser migradas gradualmente para os controllers modulares antes da remoção da camada legada.
+
+### Rotas removidas
+
+A página `/wiki-dev` foi removida intencionalmente. A documentação oficial é somente este arquivo `wiki-dev.md`.
+
+## 9.1. API e endpoints
 
 A fonte viva do contrato é o [Swagger](http://localhost:8080/docs) e o arquivo [`OpenAPI JSON`](http://localhost:8080/openapi.json).
 
@@ -775,10 +796,10 @@ SQLite não deve ser usado como base persistente em uma implantação com múlti
 - [Endpoints documentados](docs/api-endpoints.md)
 - [Arquitetura](docs/ARCHITECTURE.md)
 - [Schema SQLite](backend/database/sqlite-schema.sql)
-- [Wiki visual](frontend/app/wiki-dev/page.tsx)
+- [Wiki Dev](wiki-dev.md)
 
 ---
 
 ## Manutenção desta documentação
 
-Ao alterar tabelas, endpoints, páginas, scripts ou estrutura de pastas, atualize este arquivo junto com a Wiki visual. Evite copiar blocos inteiros de outros documentos: mantenha aqui a referência consolidada e use links para a fonte técnica específica quando houver detalhes adicionais.
+Ao alterar tabelas, endpoints, páginas, scripts ou estrutura de pastas, atualize este arquivo. A Wiki Dev é exclusivamente este Markdown; não existe uma página visual equivalente. Evite copiar blocos inteiros de outros documentos: mantenha aqui a referência consolidada e use links para a fonte técnica específica quando houver detalhes adicionais.

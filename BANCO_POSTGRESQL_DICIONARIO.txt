@@ -340,6 +340,6 @@ Ao criar, remover ou alterar uma tabela, atualize simultaneamente:
 3. os schemas SQL em backend/database;
 4. o seed em backend/app/db/seed.py;
 5. este arquivo de documentação;
-6. a seção Banco PostgreSQL da página frontend/app/wiki-dev/page.tsx.
+6. este arquivo wiki-dev.md, que é a documentação técnica oficial.
 
 Fim do documento.
