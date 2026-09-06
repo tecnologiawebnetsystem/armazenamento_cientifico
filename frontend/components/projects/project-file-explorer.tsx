@@ -117,13 +117,12 @@ type FileAction = {
 
 export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string; canWrite: boolean }) {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null)
-  const { files, breadcrumb, isLoading, refresh } = useFiles(projectId, currentFolderId)
+  const { files, breadcrumb, isLoading } = useFiles(projectId, currentFolderId)
   const [search, setSearch] = useState("")
   const newFolderOpen = false
-  const [renameTarget] = useState<FileNode | null>(null)
-  const [moveTarget] = useState<FileNode | null>(null)
-  const [deleteTarget] = useState<FileNode | null>(null)
-  const [previewTarget] = useState<FileNode | null>(null)
+  const renameTarget: FileNode | null = null
+  const moveTarget: FileNode | null = null
+  const deleteTarget: FileNode | null = null
   const newFolderName = ""
   const renameValue = ""
   const moveDestination = "root"
@@ -131,14 +130,13 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
   const isRenaming = false
   const isMoving = false
   const isDeleting = false
-  const setNewFolderOpen = (_open: boolean) => undefined
-  const setRenameTarget = (_target: FileNode | null) => undefined
-  const setMoveTarget = (_target: FileNode | null) => undefined
-  const setDeleteTarget = (_target: FileNode | null) => undefined
-  const setPreviewTarget = (_target: FileNode | null) => undefined
-  const setNewFolderName = (_value: string) => undefined
-  const setRenameValue = (_value: string) => undefined
-  const setMoveDestination = (_value: string) => undefined
+  const setNewFolderOpen = (...args: [boolean]) => void args
+  const setRenameTarget = (...args: [FileNode | null]) => void args
+  const setMoveTarget = (...args: [FileNode | null]) => void args
+  const setDeleteTarget = (...args: [FileNode | null]) => void args
+  const setNewFolderName = (...args: [string]) => void args
+  const setRenameValue = (...args: [string]) => void args
+  const setMoveDestination = (...args: [string]) => void args
   const handleCreateFolder = () => undefined
   const handleRename = () => undefined
   const handleMove = () => undefined
@@ -428,8 +426,7 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
         )}
       </CardContent>
 
-      {/* Nova pasta */}
-      <Dialog open={newFolderOpen} onOpenChange={setNewFolderOpen}>
+      {false && <Dialog open={newFolderOpen} onOpenChange={setNewFolderOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Nova pasta</DialogTitle>
@@ -454,10 +451,9 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog>}
 
-      {/* Renomear */}
-      <Dialog open={renameTarget !== null} onOpenChange={(open) => !open && setRenameTarget(null)}>
+      {false && <Dialog open={renameTarget !== null} onOpenChange={(open) => !open && setRenameTarget(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Renomear</DialogTitle>
@@ -481,10 +477,9 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog>}
 
-      {/* Mover */}
-      <Dialog open={moveTarget !== null} onOpenChange={(open) => !open && setMoveTarget(null)}>
+      {false && <Dialog open={moveTarget !== null} onOpenChange={(open) => !open && setMoveTarget(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Mover &quot;{moveTarget?.nome}&quot;</DialogTitle>
@@ -522,10 +517,9 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog>}
 
-      {/* Excluir */}
-      <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+      {false && <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir &quot;{deleteTarget?.nome}&quot;?</AlertDialogTitle>
@@ -547,48 +541,9 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
+      </AlertDialog>}
 
-      {/* Pré-visualização */}
-      <Dialog open={previewTarget !== null} onOpenChange={(open) => !open && setPreviewTarget(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {previewTarget && <FileTypeIcon file={previewTarget} className="size-5 text-primary" />}
-              <span className="truncate">{previewTarget?.nome}</span>
-            </DialogTitle>
-            <DialogDescription>
-              Pré-visualização de conteúdo não disponível neste ambiente de demonstração.
-            </DialogDescription>
-          </DialogHeader>
-          {previewTarget && (
-            <div className="flex flex-col gap-2 rounded-lg border border-border p-3 text-sm">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground">Tipo</span>
-                <span className="font-mono text-xs text-foreground">{previewTarget.mimeType ?? "—"}</span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground">Tamanho</span>
-                <span className="text-foreground">{formatBytes(previewTarget.tamanho)}</span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground">Enviado por</span>
-                <span className="text-foreground">{previewTarget.criadoPor || "—"}</span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground">Última atualização</span>
-                <span className="text-foreground">{formatDate(previewTarget.atualizadoEm)}</span>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => previewTarget && handleDownload(previewTarget)}>
-              <DownloadIcon data-icon="inline-start" />
-              Baixar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
 
     </Card>
   )

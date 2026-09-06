@@ -86,7 +86,7 @@ async def initialize_database(engine) -> None:
     factory = async_sessionmaker(engine, expire_on_commit=False)
     async with factory() as session:
         existing_users = {row.email: row for row in (await session.scalars(select(User))).all()}
-        now = datetime.now(UTC)
+        now = datetime.now(UTC).replace(tzinfo=None)
         existing_perfis = {row.id for row in (await session.scalars(select(Perfil))).all()}
         for perfil_id, nome, descricao in SEED_PERFIS:
             if perfil_id not in existing_perfis:

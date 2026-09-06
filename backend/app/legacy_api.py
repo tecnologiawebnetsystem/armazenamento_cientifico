@@ -627,8 +627,11 @@ async def patch_project(pid: str, x: ProjectPatch, request: Request):
     vals = x.model_dump(exclude_unset=True)
     p = await db()
     for k, v in vals.items():
+        column = fields.get(k)
+        if column is None:
+            raise HTTPException(422, f"Campo não permitido: {k}")
         await p.execute(
-            f"update projects set {fields[k]}=$1,updated_at=now() where id=$2", v, pid
+            f"update projects set {column}=$1,updated_at=now() where id=$2", v, pid
         )
     r = await p.fetchrow("select * from projects where id=$1", pid)
     await audit(u, "editar-projeto", "projeto", pid, ",".join(vals))
@@ -780,9 +783,13 @@ async def patch_file(fid: str, x: FilePatch, request: Request):
     if not r or not await visible(u, r["project_id"]):
         raise HTTPException(404, "Arquivo não encontrado")
     vals = x.model_dump(exclude_unset=True)
+    file_fields = {"nome": "name", "parentId": "parent_id"}
     for k, v in vals.items():
+        column = file_fields.get(k)
+        if column is None:
+            raise HTTPException(422, f"Campo não permitido: {k}")
         await p.execute(
-            f"update files set {'name' if k == 'nome' else 'parent_id'}=$1,updated_at=now() where id=$2",
+            f"update files set {column}=$1,updated_at=now() where id=$2",
             v,
             fid,
         )

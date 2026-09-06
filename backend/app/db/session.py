@@ -85,7 +85,25 @@ async def get_session() -> AsyncIterator[AsyncSession]:
 
 
 async def _ensure_sqlite_compatibility() -> None:
-    if engine is None or settings.database_engine != "sqlite":
+    if engine is None:
+        return
+    if settings.database_engine != "sqlite":
+        from sqlalchemy import text
+
+        from app.db import seed as _seed_models
+        from app.db.base import Base
+
+        async with engine.begin() as connection:
+            await connection.run_sync(Base.metadata.create_all)
+
+        compatibility_columns = {
+            "job_title": "VARCHAR(120)", "area": "VARCHAR(120)", "avatar_url": "VARCHAR(500)",
+            "last_login_at": "TIMESTAMP", "role": "VARCHAR(40) DEFAULT 'participante'", "profile_id": "VARCHAR(20)",
+            "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        }
+        async with engine.begin() as connection:
+            for column, definition in compatibility_columns.items():
+                await connection.execute(text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {column} {definition}"))
         return
     from sqlalchemy import text
 
@@ -109,6 +127,8 @@ async def _ensure_sqlite_compatibility() -> None:
             "created_at": "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
         }
         for column, definition in compatibility_columns.items():
+            if column not in compatibility_columns:
+                continue
             if column not in columns:
                 await connection.execute(text(f"ALTER TABLE users ADD COLUMN {column} {definition}"))
         member_columns = {
@@ -123,6 +143,8 @@ async def _ensure_sqlite_compatibility() -> None:
         }
         menu_compatibility = {"module_id": "TEXT", "parent_id": "TEXT", "name": "TEXT", "route": "TEXT NOT NULL DEFAULT ''", "icon": "TEXT NOT NULL DEFAULT 'circle'", "display_order": "INTEGER NOT NULL DEFAULT 0", "active": "INTEGER NOT NULL DEFAULT 1"}
         for column, definition in menu_compatibility.items():
+            if column not in menu_compatibility:
+                continue
             if column not in menu_columns:
                 await connection.execute(text(f"ALTER TABLE menus ADD COLUMN {column} {definition}"))
 
