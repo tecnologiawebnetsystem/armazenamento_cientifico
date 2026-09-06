@@ -186,6 +186,18 @@ export function ObservabilityShell() {
 
       <div className="mx-auto flex max-w-7xl flex-col gap-6 p-6">
         <section className="grid gap-4 md:grid-cols-5">
+          <div className="md:col-span-5 rounded-2xl border border-slate-800 bg-slate-900 p-5">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div><h2 className="font-semibold">Visão unificada de sinais</h2><p className="text-sm text-slate-400">Métricas, logs, rastreamento e segurança da janela operacional.</p></div>
+              <span className="rounded-full border border-emerald-500/30 px-3 py-1 text-xs text-emerald-300">Atualização contínua</span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><p className="text-xs text-slate-500">Erros correlacionados</p><strong className="mt-2 block text-2xl">{stats.correlated_groups}</strong><p className="mt-1 text-xs text-slate-500">grupos de causa raiz</p></div>
+              <div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><p className="text-xs text-slate-500">Falhas de segurança</p><strong className="mt-2 block text-2xl">{events.filter((event) => event.status === 401 || event.status === 403).length}</strong><p className="mt-1 text-xs text-slate-500">401 e 403 observados</p></div>
+              <div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><p className="text-xs text-slate-500">Traces ativos</p><strong className="mt-2 block text-2xl">{stats.correlated_groups}</strong><p className="mt-1 text-xs text-slate-500">correlation IDs</p></div>
+              <div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><p className="text-xs text-slate-500">Saúde operacional</p><strong className="mt-2 block text-2xl text-emerald-400">{stats.error_rate < 10 ? "Estável" : "Atenção"}</strong><p className="mt-1 text-xs text-slate-500">taxa de erro {stats.error_rate}%</p></div>
+            </div>
+          </div>
           {(
             [
               { label: "Eventos", value: stats.total, Icon: Activity },
