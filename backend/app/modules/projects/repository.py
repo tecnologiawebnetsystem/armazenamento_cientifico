@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.projects.member_model import ProjectMember
@@ -18,8 +18,19 @@ class ProjectRepository:
     async def list_visible(self, user_id: str, role: str) -> list[Project]:
         statement = select(Project).order_by(Project.updated_at.desc())
         if role not in {"admin", "patrocinador", "auditor"}:
-            statement = statement.join(ProjectMember, ProjectMember.project_id == Project.id).where(
-                ProjectMember.user_id == user_id
+            statement = statement.where(
+                (Project.managers_ids.contains([user_id]))
+                | exists().where(ProjectMember.project_id == Project.id, ProjectMember.user_id == user_id)
             )
         result = await self.session.scalars(statement)
         return list(result)
+
+    async def can_view(self, project_id: str, user_id: str, role: str) -> bool:
+        if role in {"admin", "patrocinador", "auditor"}:
+            return True
+        project = await self.find_by_id(project_id)
+        if not project:
+            return False
+        if user_id in (project.managers_ids or []) or user_id in (project.participants_ids or []):
+            return True
+        return bool(await self.session.scalar(select(ProjectMember.project_id).where(ProjectMember.project_id == project_id, ProjectMember.user_id == user_id)))

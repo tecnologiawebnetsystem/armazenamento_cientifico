@@ -121,6 +121,8 @@ export function ObservabilityShell() {
   }, [auto, events.length, level, search, source, status])
 
   useEffect(() => {
+    // A carga inicial sincroniza o estado com a API; o callback é memoizado pelos filtros.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load()
   }, [load])
 

@@ -14,6 +14,12 @@ class ProjectCreate(BaseModel):
     descricao: str = ""
     status: ProjectStatus = "ativo"
     participantesIds: list[str] = Field(default_factory=list)
+    grupoAdEscrita: str = ""
+    grupoAdLeitura: str = ""
+    roleIdentidadeEscrita: str = ""
+    roleIdentidadeLeitura: str = ""
+    numeroTarefaSnow: str = ""
+    pastaMae: str = ""
 
 
 class ProjectPatch(BaseModel):
@@ -21,6 +27,10 @@ class ProjectPatch(BaseModel):
     areaResponsavel: str | None = Field(default=None, min_length=1, max_length=160)
     descricao: str | None = None
     status: ProjectStatus | None = None
+    grupoAdEscrita: str | None = None
+    grupoAdLeitura: str | None = None
+    roleIdentidadeEscrita: str | None = None
+    roleIdentidadeLeitura: str | None = None
 
 
 class ProjectMemberInput(BaseModel):
@@ -34,6 +44,22 @@ class ProjectMemberOut(BaseModel):
     papel: str
     adicionadoEm: datetime
     user: dict
+
+
+class AccessMapGroupOut(BaseModel):
+    nome: str
+    fonte: str
+    identificadores: list[str]
+    nivel: str
+
+
+class AccessMapOut(BaseModel):
+    projectId: str
+    groups: list[AccessMapGroupOut]
+    members: list[ProjectMemberOut]
+    source: str
+    consultedAt: datetime
+    gaps: list[str] = Field(default_factory=list)
 
 
 class ProjectOut(BaseModel):

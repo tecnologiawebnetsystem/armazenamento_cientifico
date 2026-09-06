@@ -104,6 +104,8 @@ def create_app() -> FastAPI:
     application.include_router(projects_router)
     application.include_router(files_router)
     application.include_router(users_router)
+    from app.modules.audit.controller import router as audit_router
+    application.include_router(audit_router)
     application.mount("/", legacy_app)
 
     default_openapi = application.openapi
