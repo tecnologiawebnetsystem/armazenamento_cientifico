@@ -10,7 +10,7 @@ from app.db.session import get_session
 
 from .permissions_model import FilePermission
 from .repository import FileRepository
-from .schemas import FileCreate, FileListOut, FilePermissionCreate, FilePermissionOut, FileUpdate
+from .schemas import FileListOut, FilePermissionCreate, FilePermissionOut, FileUpdate
 from .service import FileService
 
 router = APIRouter(prefix="/api/files", tags=["Files"])

@@ -9,7 +9,7 @@ LEGACY_ROLE_MAP: Final = {
     "administrator": "admin",
     "gestor": "gerente",
     "manager": "gerente",
-    "participante": "solicitante",
+    "participante": "gerente",
     "visualizador": "auditor",
     "viewer": "auditor",
     "sponsor": "patrocinador",

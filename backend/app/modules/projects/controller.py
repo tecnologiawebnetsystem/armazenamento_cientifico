@@ -12,8 +12,8 @@ from app.modules.projects.member_model import ProjectMember
 from app.modules.projects.models import Project
 from app.modules.projects.repository import ProjectRepository
 from app.modules.projects.schemas import (
-    AccessMapOut,
     AccessMapGroupOut,
+    AccessMapOut,
     ProjectCreate,
     ProjectMemberInput,
     ProjectMemberOut,
@@ -54,7 +54,7 @@ async def create_project(
     session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[dict, Depends(require_roles("admin"))],
 ):
-    await service.ensure_code_available(data.codigo)
+    await ProjectService(ProjectRepository(session)).ensure_code_available(data.codigo)
     now = datetime.now(UTC)
     project = Project(id=str(uuid4()), name=data.nome, code=data.codigo, responsible_area=data.areaResponsavel,
         managers_ids=data.gestoresIds, description=data.descricao, status=data.status,

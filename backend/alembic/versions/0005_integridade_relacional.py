@@ -34,17 +34,13 @@ def upgrade() -> None:
             batch.create_foreign_key("fk_activity_logs_user_id_users", "users", ["user_id"], ["id"], ondelete="RESTRICT")
 
 
+def _has_constraint(table: str, name: str) -> bool:
+    return any(fk.get("name") == name for fk in sa.inspect(op.get_bind()).get_foreign_keys(table))
+
+
 def downgrade() -> None:
-    if _has_table("activity_logs"):
-        with op.batch_alter_table("activity_logs") as batch:
-            batch.drop_constraint("fk_activity_logs_user_id_users", type_="foreignkey")
-    if _has_table("files"):
-        with op.batch_alter_table("files") as batch:
-            batch.drop_constraint("fk_files_created_by_users", type_="foreignkey")
-            batch.drop_constraint("fk_files_parent_id_files", type_="foreignkey")
-    if _has_table("permissoes"):
-        with op.batch_alter_table("permissoes") as batch:
-            batch.drop_constraint("fk_permissoes_modulo_id_modulos", type_="foreignkey")
-    if _has_table("users"):
-        with op.batch_alter_table("users") as batch:
-            batch.drop_constraint("fk_users_perfil_id_perfis", type_="foreignkey")
+    constraints = (("activity_logs", "fk_activity_logs_user_id_users"), ("files", "fk_files_created_by_users"), ("files", "fk_files_parent_id_files"), ("permissoes", "fk_permissoes_modulo_id_modulos"), ("users", "fk_users_perfil_id_perfis"))
+    for table, name in constraints:
+        if _has_table(table) and _has_constraint(table, name):
+            with op.batch_alter_table(table) as batch:
+                batch.drop_constraint(name, type_="foreignkey")
