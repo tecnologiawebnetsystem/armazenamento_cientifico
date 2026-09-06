@@ -112,6 +112,24 @@ def event_duration(item: dict[str, Any]) -> float | None:
     return float(value) if isinstance(value, (int, float)) else None
 
 
+def event_timestamp(item: dict[str, Any]) -> datetime:
+    try:
+        return datetime.fromisoformat(str(item.get("timestamp", "")))
+    except ValueError:
+        return datetime.min.replace(tzinfo=UTC)
+
+
+def signal_type(item: dict[str, Any]) -> str:
+    metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+    return str(item.get("signal") or metadata.get("signal") or "log").lower()
+
+
+def dependency_name(item: dict[str, Any]) -> str | None:
+    metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+    value = item.get("dependency") or metadata.get("dependency") or metadata.get("service")
+    return str(value) if value else None
+
+
 @router.get("/events")
 async def events(limit: int = Query(default=250, ge=1, le=500), page: int = Query(default=1, ge=1), source: str | None = None, status: int | None = None, level: str | None = None, search: str | None = None, endpoint: str | None = None):
     items = filtered_events(source, status, level, search, endpoint)
@@ -126,6 +144,44 @@ async def events(limit: int = Query(default=250, ge=1, le=500), page: int = Quer
     pages = max(1, (len(items) + limit - 1) // limit)
     start = (page - 1) * limit
     return {"events": items[start:start + limit], "stats": {"total": len(items), "errors": len(errors), "frontend": sum(i.get("source") == "frontend" for i in items), "backend": sum(i.get("source") == "backend" for i in items), "error_rate": round(len(errors) / len(items) * 100, 1) if items else 0, "latency": latency, "correlated_groups": len(groups)}, "pagination": {"page": page, "limit": limit, "total_pages": pages}}
+
+
+@router.get("/overview")
+async def overview(window_minutes: int = Query(default=60, ge=5, le=1440)):
+    now = datetime.now(UTC)
+    cutoff = now.timestamp() - window_minutes * 60
+    items = [item for item in filtered_events(None, None, None, None, None) if event_timestamp(item).timestamp() >= cutoff]
+    buckets: dict[str, dict[str, int | float]] = {}
+    for item in items:
+        stamp = event_timestamp(item)
+        bucket = stamp.replace(second=0, microsecond=0).isoformat()
+        row = buckets.setdefault(bucket, {"timestamp": bucket, "events": 0, "errors": 0, "latency_ms": 0})
+        row["events"] = int(row["events"]) + 1
+        if str(item.get("level", "")).lower() in {"error", "critical"} or (isinstance(item.get("status"), int) and item["status"] >= 400):
+            row["errors"] = int(row["errors"]) + 1
+        duration = event_duration(item)
+        if duration is not None:
+            row["latency_ms"] = max(float(row["latency_ms"]), duration)
+    dependencies: dict[str, dict[str, Any]] = {}
+    for item in items:
+        name = dependency_name(item)
+        if not name:
+            continue
+        dependency = dependencies.setdefault(name, {"name": name, "requests": 0, "errors": 0, "latency_ms": 0, "status": "healthy"})
+        dependency["requests"] += 1
+        if str(item.get("level", "")).lower() in {"error", "critical"} or (isinstance(item.get("status"), int) and item["status"] >= 400):
+            dependency["errors"] += 1
+        duration = event_duration(item)
+        if duration is not None:
+            dependency["latency_ms"] = max(dependency["latency_ms"], duration)
+        if dependency["errors"] > 0:
+            dependency["status"] = "degraded"
+    traces: dict[str, list[dict[str, Any]]] = {}
+    for item in items:
+        correlation_id = item.get("correlation_id") or item.get("metadata", {}).get("correlation_id")
+        if correlation_id:
+            traces.setdefault(str(correlation_id), []).append(item)
+    return {"window_minutes": window_minutes, "generated_at": now.isoformat(), "timeseries": sorted(buckets.values(), key=lambda row: str(row["timestamp"])), "dependencies": list(dependencies.values()), "traces": [{"correlation_id": key, "events": value, "duration_ms": sum(event_duration(event) or 0 for event in value), "has_error": any(str(event.get("level", "")).lower() in {"error", "critical"} for event in value)} for key, value in list(traces.items())[:100]], "security": {"suspicious_events": sum(signal_type(item) == "security" or str(item.get("level", "")).lower() == "critical" for item in items), "auth_failures": sum(item.get("status") in {401, 403} for item in items)}}
 
 
 @router.get("/export")

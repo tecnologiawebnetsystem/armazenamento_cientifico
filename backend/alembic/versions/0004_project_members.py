@@ -30,6 +30,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    if "project_members" in sa.inspect(op.get_bind()).get_table_names():
+    if "project_members" not in sa.inspect(op.get_bind()).get_table_names():
+        return
+    indexes = {index["name"] for index in sa.inspect(op.get_bind()).get_indexes("project_members")}
+    if "ix_project_members_user_id" in indexes:
         op.drop_index("ix_project_members_user_id", table_name="project_members")
-        op.drop_table("project_members")
+    op.drop_table("project_members")

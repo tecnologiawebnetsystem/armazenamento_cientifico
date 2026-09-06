@@ -56,6 +56,18 @@ export type ObservabilityEvent = {
 }
 export type ObservabilityStats = { total: number; errors: number; frontend: number; backend: number; error_rate: number; correlated_groups: number; latency: { average: number; p50: number; p95: number } }
 export type ObservabilityResponse = { events: ObservabilityEvent[]; stats: ObservabilityStats; pagination: { page: number; limit: number; total_pages: number } }
+export type ObservabilityOverview = {
+  window_minutes: number
+  generated_at: string
+  timeseries: Array<{ timestamp: string; events: number; errors: number; latency_ms: number }>
+  dependencies: Array<{ name: string; requests: number; errors: number; latency_ms: number; status: "healthy" | "degraded" }>
+  traces: Array<{ correlation_id: string; events: ObservabilityEvent[]; duration_ms: number; has_error: boolean }>
+  security: { suspicious_events: number; auth_failures: number }
+}
+
+export function getObservabilityOverview(windowMinutes = 60) {
+  return request<ObservabilityOverview>(`/api/observabilidade/overview?window_minutes=${windowMinutes}`)
+}
 
 export function getObservabilityEvents(params: { source?: string; status?: string; level?: string; search?: string; endpoint?: string; page?: number; limit?: number } = {}) {
   const query = new URLSearchParams({ limit: String(params.limit ?? 50), page: String(params.page ?? 1) })
@@ -348,7 +360,7 @@ export function getProjectReportExportPath(params: { format: "csv" | "txt" | "pd
   if (params.status) query.set("status", params.status)
   if (params.area) query.set("area", params.area)
   if (params.gestorId) query.set("gestorId", params.gestorId)
-  return `/api/reports?${query.toString()}`
+  return `/api/reports/export?${query.toString()}`
 }
 
 /* ---------------------------------- Users --------------------------------- */

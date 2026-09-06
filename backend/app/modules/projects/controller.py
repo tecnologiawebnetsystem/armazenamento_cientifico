@@ -12,6 +12,8 @@ from app.modules.projects.member_model import ProjectMember
 from app.modules.projects.models import Project
 from app.modules.projects.repository import ProjectRepository
 from app.modules.projects.schemas import (
+    AccessMapGroupOut,
+    AccessMapOut,
     ProjectCreate,
     ProjectMemberInput,
     ProjectMemberOut,
@@ -52,11 +54,11 @@ async def create_project(
     session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[dict, Depends(require_roles("admin"))],
 ):
-    await service.ensure_code_available(data.codigo)
+    await ProjectService(ProjectRepository(session)).ensure_code_available(data.codigo)
     now = datetime.now(UTC)
     project = Project(id=str(uuid4()), name=data.nome, code=data.codigo, responsible_area=data.areaResponsavel,
         managers_ids=data.gestoresIds, description=data.descricao, status=data.status,
-        participants_ids=data.participantesIds, created_at=now, updated_at=now)
+        participants_ids=data.participantesIds, write_group=data.grupoAdEscrita, read_group=data.grupoAdLeitura, write_identity_role=data.roleIdentidadeEscrita, read_identity_role=data.roleIdentidadeLeitura, snow_task_number=data.numeroTarefaSnow, parent_folder=data.pastaMae, created_at=now, updated_at=now)
     session.add(project)
     await session.commit()
     return {"project": serialize_project(project)}
@@ -65,14 +67,14 @@ async def create_project(
 @router.patch("/{project_id}", response_model=dict)
 async def update_project(
     project_id: str,
-    data: ProjectUpdate,
+    data: ProjectPatch,
     session: Annotated[AsyncSession, Depends(get_session)],
     _: Annotated[dict, Depends(require_roles("admin"))],
 ):
     project = await session.get(Project, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Projeto não encontrado")
-    values = {"name": data.nome, "responsible_area": data.areaResponsavel, "description": data.descricao, "status": data.status}
+    values = {"name": data.nome, "responsible_area": data.areaResponsavel, "description": data.descricao, "status": data.status, "write_group": data.grupoAdEscrita, "read_group": data.grupoAdLeitura, "write_identity_role": data.roleIdentidadeEscrita, "read_identity_role": data.roleIdentidadeLeitura}
     for key, value in values.items():
         if value is not None:
             setattr(project, key, value)
@@ -94,11 +96,40 @@ async def delete_project(
 
 
 @router.get("/{project_id}", response_model=dict)
-async def get_project(project_id: str, session: Annotated[AsyncSession, Depends(get_session)], _: CurrentUser):
+async def get_project(project_id: str, session: Annotated[AsyncSession, Depends(get_session)], user: CurrentUser):
     project = await session.get(Project, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Projeto não encontrado")
+    role = user["role"] or "participante"
+    if not await ProjectRepository(session).can_view(project_id, str(user["id"]), role):
+        raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
     return {"project": serialize_project(project)}
+
+
+@router.get("/{project_id}/access-map", response_model=AccessMapOut)
+async def get_project_access_map(project_id: str, session: Annotated[AsyncSession, Depends(get_session)], user: CurrentUser):
+    project = await session.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Projeto não encontrado")
+    role = user["role"] or "participante"
+    if not await ProjectRepository(session).can_view(project_id, str(user["id"]), role):
+        raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
+    statement = select(ProjectMember, User).join(User, User.id == ProjectMember.user_id).where(ProjectMember.project_id == project_id).order_by(User.name)
+    rows = (await session.execute(statement)).all()
+    members = [ProjectMemberOut(projectId=m.project_id, userId=m.user_id, papel=m.role, adicionadoEm=m.created_at, user={"id": u.id, "nome": u.name, "email": u.email, "cargo": u.cargo, "area": u.area}) for m, u in rows]
+    groups = []
+    gaps = []
+    if project.read_group:
+        groups.append(AccessMapGroupOut(nome=project.read_group, fonte="projeto", identificadores=[project.read_group], nivel="leitura"))
+    else:
+        gaps.append("grupo de leitura não configurado")
+    if project.write_group:
+        groups.append(AccessMapGroupOut(nome=project.write_group, fonte="projeto", identificadores=[project.write_group], nivel="escrita"))
+    else:
+        gaps.append("grupo de escrita não configurado")
+    if not members:
+        gaps.append("projeto sem membros vinculados")
+    return AccessMapOut(projectId=project.id, groups=groups, members=members, source="database", consultedAt=datetime.now(UTC), gaps=gaps)
 
 
 @router.get("/layered", response_model=list[ProjectOut])

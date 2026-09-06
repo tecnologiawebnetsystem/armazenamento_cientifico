@@ -75,9 +75,13 @@ async def main() -> None:
     migrated = 0
     try:
         for source, target in TABLES.items():
+            if source not in TABLES or target not in TABLES.values():
+                raise ValueError(f"Tabela de migração não permitida: {source} -> {target}")
             columns = [row[1] for row in sqlite.execute(f'PRAGMA table_info("{source}")')]
             target_columns = [COLUMN_MAP.get(column, column) for column in columns]
-            rows = sqlite.execute(f'SELECT {", ".join(columns)} FROM "{source}"').fetchall()
+            quoted_source_columns = ", ".join(f'"{column.replace(chr(34), chr(34) * 2)}"' for column in columns)
+            quoted_source_table = source.replace(chr(34), chr(34) * 2)
+            rows = sqlite.execute(f'SELECT {quoted_source_columns} FROM "{quoted_source_table}"').fetchall()
             if not rows:
                 continue
             quoted_columns = ", ".join(f'"{column}"' for column in target_columns)

@@ -38,8 +38,8 @@ export function getRolePermissions(role: Role, matrix: PermissionMatrixEntry[]) 
 }
 
 export function canEditFile(projectRole: Role, _shareLevel: ShareLevel | null) {
-  if (projectRole === "admin") return true
-  return false
+  void _shareLevel
+  return projectRole === "admin"
 }
 
 export function shareLevelLabel(level: ShareLevel) {

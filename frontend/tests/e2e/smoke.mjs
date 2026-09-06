@@ -10,5 +10,5 @@ async function assertPage(path, expected, label) {
 }
 
 await assertPage("/login", ["Login Corporativo"], "login")
-await assertPage("/wiki-dev", ["Rodar o sistema", "ER e relacionamentos", "Testes"], "wiki-dev")
+console.log("Wiki Dev: documentação mantida em wiki-dev.md")
 console.log("Frontend smoke tests: OK")

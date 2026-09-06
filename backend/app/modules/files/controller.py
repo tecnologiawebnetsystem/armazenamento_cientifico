@@ -7,10 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, require_roles
 from app.db.session import get_session
+from app.modules.projects.models import Project
+from app.modules.projects.repository import ProjectRepository
 
+from .models import File
 from .permissions_model import FilePermission
 from .repository import FileRepository
-from .schemas import FileCreate, FileListOut, FilePermissionCreate, FilePermissionOut, FileUpdate
+from .schemas import FileListOut, FilePermissionCreate, FilePermissionOut, FileUpdate
 from .service import FileService
 
 router = APIRouter(prefix="/api/files", tags=["Files"])
@@ -24,11 +27,19 @@ def get_service(session: Session) -> FileService:
 @router.get("", response_model=FileListOut)
 async def list_files(
     service: Annotated[FileService, Depends(get_service)],
-    _: CurrentUser,
+    user: CurrentUser,
     project_id: str = Query(alias="projectId"),
     parent_id: str | None = Query(default=None, alias="parentId"),
     all_folders: bool = Query(default=False, alias="allFolders"),
 ):
+    project = await service.repository.session.get(Project, project_id)
+    if not project:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Projeto não encontrado")
+    role = user["role"] or "participante"
+    if not await ProjectRepository(service.repository.session).can_view(project_id, str(user["id"]), role):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
     files = await service.list_files(project_id, parent_id, all_folders)
     return {"files": files, "breadcrumb": []}
 
@@ -41,9 +52,12 @@ async def create_file_permission(
     session: Session,
     _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
 ):
-    if not data.user_id and not data.group_id:
+    if bool(data.user_id) == bool(data.group_id):
         from fastapi import HTTPException
-        raise HTTPException(status_code=422, detail="Informe user_id ou group_id")
+        raise HTTPException(status_code=422, detail="Informe exatamente user_id ou group_id")
+    if not await session.get(File, file_id):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Arquivo ou pasta não encontrado")
     permission = FilePermission(
         file_id=file_id,
         user_id=data.user_id,
@@ -97,6 +111,7 @@ async def delete_file_permission(
 async def get_file(
     file_id: str,
     service: Annotated[FileService, Depends(get_service)],
+    _: CurrentUser,
 ):
     from app.core.exceptions import NotFoundException
 
