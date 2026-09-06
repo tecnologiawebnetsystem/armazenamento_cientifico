@@ -360,7 +360,7 @@ export function getProjectReportExportPath(params: { format: "csv" | "txt" | "pd
   if (params.status) query.set("status", params.status)
   if (params.area) query.set("area", params.area)
   if (params.gestorId) query.set("gestorId", params.gestorId)
-  return `/api/reports?${query.toString()}`
+  return `/api/reports/export?${query.toString()}`
 }
 
 /* ---------------------------------- Users --------------------------------- */

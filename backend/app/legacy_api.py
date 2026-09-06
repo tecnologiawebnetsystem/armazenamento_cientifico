@@ -1061,6 +1061,60 @@ async def reports(
         "projetos": projects,
     }
 
+def _pdf_document(title: str, headers: list[str], rows: list[list[object]]) -> bytes:
+    import unicodedata
+
+    def clean(value: object) -> str:
+        return unicodedata.normalize("NFKD", str(value or "")).encode("ascii", "ignore").decode().replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")[:180]
+
+    lines = [title, " | ".join(headers)] + [" | ".join(clean(value) for value in row) for row in rows]
+    commands = ["BT", "/F1 9 Tf", "45 790 Td"]
+    for index, line in enumerate(lines[:48]):
+        if index:
+            commands.append("0 -15 Td")
+        commands.append(f"({clean(line)}) Tj")
+    stream = "\\n".join(commands + ["ET"]).encode("latin-1", "replace")
+    objects = [b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>", b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>", b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", b"<< /Length " + str(len(stream)).encode() + b" >>\\nstream\\n" + stream + b"\\nendstream"]
+    pdf = bytearray(b"%PDF-1.4\\n")
+    offsets = [0]
+    for number, obj in enumerate(objects, 1):
+        offsets.append(len(pdf))
+        pdf.extend(f"{number} 0 obj\\n".encode() + obj + b"\\nendobj\\n")
+    startxref = len(pdf)
+    pdf.extend(f"xref\\n0 {len(objects) + 1}\\n0000000000 65535 f \\n".encode())
+    for offset in offsets[1:]:
+        pdf.extend(f"{offset:010d} 00000 n \\n".encode())
+    pdf.extend(f"trailer\\n<< /Size {len(objects) + 1} /Root 1 0 R >>\\nstartxref\\n{startxref}\\n%%EOF".encode())
+    return bytes(pdf)
+
+
+@app.get("/api/reports/export")
+async def export_project_report(request: Request, format: Literal["csv", "txt", "pdf"] = "csv", fields: str = "", status_filter: str | None = Query(None, alias="status"), area: str | None = None, gestor_id: str | None = Query(None, alias="gestorId")):
+    report = await reports(request, status_filter=status_filter, area=area)
+    projects = report["projetos"]
+    if gestor_id:
+        projects = [item for item in projects if gestor_id in (item.get("gestoresIds") or [])]
+    p = await db()
+    field_rows = await p.fetch("select field_key, label, source_key from report_fields where report_code=$1 and active=true order by display_order, label", "projetos")
+    configured = {row["field_key"]: row for row in field_rows}
+    selected_keys = [key.strip() for key in fields.split(",") if key.strip() in configured] or list(configured)
+    headers = [configured[key]["label"] for key in selected_keys]
+    aliases = {"projectName": "nome", "projectCode": "codigo", "area": "areaResponsavel", "totalMapas": "totalMapas", "totalMembros": "totalMembros"}
+    rows = [[item.get(configured[key]["source_key"], item.get(aliases.get(configured[key]["source_key"], configured[key]["source_key"]), "")) for key in selected_keys] for item in projects]
+    await audit(await current(request), "exportar-relatorio-projetos", "relatorio", None, f"formato={format}")
+    if format == "pdf":
+        return Response(_pdf_document("Relatorio de projetos", headers, rows), media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=relatorio-projetos.pdf"})
+    out = io.StringIO()
+    if format == "csv":
+        writer = csv.writer(out)
+        writer.writerow(headers)
+        writer.writerows(rows)
+        media, filename = "text/csv", "relatorio-projetos.csv"
+    else:
+        out.write("\\n".join(" | ".join(str(value or "") for value in row) for row in [headers, *rows]))
+        media, filename = "text/plain", "relatorio-projetos.txt"
+    return StreamingResponse(iter([out.getvalue()]), media_type=media, headers={"Content-Disposition": f"attachment; filename={filename}"})
+
 
 @app.get("/api/access-map")
 async def access_map(request: Request):

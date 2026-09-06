@@ -476,6 +476,12 @@ erDiagram
 
 ## 9. API e endpoints
 
+### Relatórios e exportação
+
+O relatório de projetos usa os dados persistidos de `projects`, `files`, `project_members` e os campos ativos de `report_fields`. A consulta JSON está em `GET /api/reports`; as exportações estão em `GET /api/reports/export` com `format=csv|txt|pdf`, filtros `status`, `area`, `gestorId` e `fields`. Os rótulos e campos são carregados do catálogo `report_fields`; o PDF retorna `application/pdf` com `Content-Disposition` próprio.
+
+A tela de relatórios carrega os status ativos de `GET /api/catalogos`, sem lista fixa de status para o filtro. O backend reaplica a autorização e os filtros antes de gerar CSV, TXT ou PDF.
+
 ### Observabilidade operacional
 
 O módulo `observabilidade` concentra eventos operacionais e expõe:
