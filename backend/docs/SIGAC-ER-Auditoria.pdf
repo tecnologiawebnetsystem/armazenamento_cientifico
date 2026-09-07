@@ -1,57 +1,421 @@
 %PDF-1.4
 1 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+<< /Type /Catalog /Pages 2 0 R >>
 endobj
 2 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+<< /Type /Pages /Kids [3 0 R 5 0 R 7 0 R] /Count 3 >>
 endobj
 3 0 obj
-<< /Length 3293 >>\nstream\nBT /F2 14 Tf 50 790 Td (Resumo executivo) Tj ET\nBT /F1 9 Tf 50 766 Td (O banco ORM possui 16 tabelas: users, profiles, projects, project_members, files, file_permissions,) Tj ET\nBT /F1 9 Tf 50 752 Td (file_shares, modules, menus, permissions, profile_modules, profile_permissions, project_statuses,) Tj ET\nBT /F1 9 Tf 50 738 Td (project_types, report_types, report_fields, system_settings e activity_logs.) Tj ET\nBT /F1 9 Tf 50 716 Td (A cadeia Alembic está linear e tem como head 0011_bootstrap_orm_schema. A revisão 0011 usa) Tj ET\nBT /F1 9 Tf 50 702 Td (Base.metadata.create_all como reparo de compatibilidade; portanto, o estado final depende também dos) Tj ET\nBT /F1 9 Tf 50 688 Td (modelos ORM e não apenas de DDL explícito.) Tj ET\nBT /F1 9 Tf 50 666 Td (Foram identificadas rotas duplicadas entre os routers modulares e a API legada montada em /: projetos,) Tj ET\nBT /F1 9 Tf 50 652 Td (membros, arquivos e usuários. A duplicidade deve ser removida gradualmente ou mantida apenas como camada) Tj ET\nBT /F1 9 Tf 50 638 Td (de compatibilidade documentada.) Tj ET\nBT /F2 14 Tf 50 616 Td (Inventário de endpoints) Tj ET\nBT /F1 9 Tf 50 592 Td (Modulares: /api/projects, /api/projects/{id}, /api/projects/{id}/access-map, /api/projects/{id}/members;) Tj ET\nBT /F1 9 Tf 50 578 Td (/api/files e /api/files/{id}/permissions; /api/users e /api/users/{id}/role; /api/audit/logs;) Tj ET\nBT /F1 9 Tf 50 564 Td (/api/observabilidade/events, /overview, /health e /export.) Tj ET\nBT /F1 9 Tf 50 542 Td (Legados ainda expostos: autenticação, catálogos, configurações, dashboard, relatórios, mapa global de) Tj ET\nBT /F1 9 Tf 50 528 Td (acessos, solicitações de acesso, permissões, settings, activity-logs e exportações.) Tj ET\nBT /F1 9 Tf 50 506 Td (Duplicados: GET/POST/PATCH/DELETE /api/projects, CRUD de /api/projects/{id}, membros, CRUD de arquivos e) Tj ET\nBT /F1 9 Tf 50 492 Td (GET/PATCH de usuários. O OpenAPI combina ambos os conjuntos.) Tj ET\nBT /F1 9 Tf 50 470 Td (Relatórios: GET /api/reports retorna JSON e GET /api/reports/export gera CSV, TXT ou PDF. Campos ativos) Tj ET\nBT /F1 9 Tf 50 456 Td (vêm de report_fields; filtros status, área e gestor são reaplicados no backend. A página /wiki-dev foi) Tj ET\nBT /F1 9 Tf 50 442 Td (removida; a documentação oficial é wiki-dev.md.) Tj ET\nBT /F2 14 Tf 50 420 Td (Tabela users) Tj ET\nBT /F1 9 Tf 50 396 Td (Finalidade: identidade, login, autorização e autoria de auditoria.) Tj ET\nBT /F1 9 Tf 50 374 Td (id VARCHAR\(36\) PK; name VARCHAR\(200\) obrigatório; email VARCHAR\(320\) obrigatório e UNIQUE; job_title) Tj ET\nBT /F1 9 Tf 50 360 Td (VARCHAR\(120\) opcional; area VARCHAR\(120\) opcional; avatar_url VARCHAR\(500\) opcional; last_login_at) Tj ET\nBT /F1 9 Tf 50 346 Td (DATETIME opcional; role VARCHAR\(40\) obrigatório default participante; profile_id VARCHAR\(20\) FK para) Tj ET\nBT /F1 9 Tf 50 332 Td (profiles.id ON DELETE SET NULL; created_at DATETIME obrigatório.) Tj ET\nBT /F1 9 Tf 50 310 Td (Índices: ix_users_email UNIQUE e ix_users_profile_id. O índice de email suporta login e unicidade; o de) Tj ET\nBT /F1 9 Tf 50 296 Td (profile_id suporta consultas por perfil.) Tj ET\nBT /F2 14 Tf 50 274 Td (Tabela profiles) Tj ET\nBT /F1 9 Tf 50 250 Td (Finalidade: catálogo de perfis estáveis de acesso.) Tj ET\nendstream
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 9 0 R >> >> /Contents 4 0 R >>
 endobj
 4 0 obj
-<< /Type /Page /Parent 11 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 3 0 R >>
+<< /Length 3175 >>
+stream
+q
+0.96 0.98 0.97 rg
+0 0 595 842 re
+f
+Q
+0.00 0.35 0.25 rg
+0.90 0.96 0.94 rg
+35 610 160 95 re
+f
+0.00 0.45 0.32 RG
+1 w
+35 610 160 95 re
+S
+0.00 0.35 0.25 rg
+BT
+/F1 11 Tf
+45 687 Td
+(IDENTIDADE) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+45 671 Td
+(profiles  PK id) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+45 657 Td
+(users  PK id) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+45 643 Td
+(sessions  PK id) Tj
+ET
+0.90 0.96 0.94 rg
+215 610 160 95 re
+f
+0.00 0.45 0.32 RG
+1 w
+215 610 160 95 re
+S
+0.00 0.35 0.25 rg
+BT
+/F1 11 Tf
+225 687 Td
+(AUTORIZAÇÃO) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+225 671 Td
+(modules  PK id) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+225 657 Td
+(permissions  PK id) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+225 643 Td
+(profile_permissions  PK/FK) Tj
+ET
+0.90 0.96 0.94 rg
+395 610 160 95 re
+f
+0.00 0.45 0.32 RG
+1 w
+395 610 160 95 re
+S
+0.00 0.35 0.25 rg
+BT
+/F1 11 Tf
+405 687 Td
+(NAVEGAÇÃO) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+405 671 Td
+(profile_modules  PK/FK) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+405 657 Td
+(menus  PK id) Tj
+ET
+0.90 0.96 0.94 rg
+35 430 160 110 re
+f
+0.00 0.45 0.32 RG
+1 w
+35 430 160 110 re
+S
+0.00 0.35 0.25 rg
+BT
+/F1 11 Tf
+45 522 Td
+(PROJETOS) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+45 506 Td
+(projects  PK id) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+45 492 Td
+(project_members  PK/FK) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+45 478 Td
+(project_groups  PK/FK) Tj
+ET
+0.90 0.96 0.94 rg
+215 430 160 110 re
+f
+0.00 0.45 0.32 RG
+1 w
+215 430 160 110 re
+S
+0.00 0.35 0.25 rg
+BT
+/F1 11 Tf
+225 522 Td
+(GRUPOS) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+225 506 Td
+(groups  PK id) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+225 492 Td
+(user_groups  PK/FK) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+225 478 Td
+(project_access_roles) Tj
+ET
+0.90 0.96 0.94 rg
+395 430 160 110 re
+f
+0.00 0.45 0.32 RG
+1 w
+395 430 160 110 re
+S
+0.00 0.35 0.25 rg
+BT
+/F1 11 Tf
+405 522 Td
+(DOCUMENTOS) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+405 506 Td
+(files  PK id) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+405 492 Td
+(file_shares  PK/FK) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+405 478 Td
+(file_permissions) Tj
+ET
+0.90 0.96 0.94 rg
+35 225 160 105 re
+f
+0.00 0.45 0.32 RG
+1 w
+35 225 160 105 re
+S
+0.00 0.35 0.25 rg
+BT
+/F1 11 Tf
+45 312 Td
+(FLUXOS) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+45 296 Td
+(access_requests  PK id) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+45 282 Td
+(notifications  PK id) Tj
+ET
+0.90 0.96 0.94 rg
+215 225 160 105 re
+f
+0.00 0.45 0.32 RG
+1 w
+215 225 160 105 re
+S
+0.00 0.35 0.25 rg
+BT
+/F1 11 Tf
+225 312 Td
+(AUDITORIA) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+225 296 Td
+(activity_logs  PK id) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+225 282 Td
+(user_id  FK users) Tj
+ET
+0.90 0.96 0.94 rg
+395 225 160 105 re
+f
+0.00 0.45 0.32 RG
+1 w
+395 225 160 105 re
+S
+0.00 0.35 0.25 rg
+BT
+/F1 11 Tf
+405 312 Td
+(RELATÓRIOS) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+405 296 Td
+(report_types  PK id) Tj
+ET
+0.25 0.32 0.30 rg
+BT
+/F1 8 Tf
+405 282 Td
+(report_fields  PK id) Tj
+ET
+0.32 0.42 0.39 RG
+0.8 w
+195 655 m 215 655 l S
+375 655 m 395 655 l S
+115 540 m 115 610 l S
+295 540 m 295 610 l S
+475 540 m 475 610 l S
+195 275 m 215 275 l S
+375 275 m 395 275 l S
+0.30 0.40 0.37 rg
+BT
+/F1 9 Tf
+42 160 Td
+(PK = chave primária   FK = chave estrangeira   UK = única   PK/FK = associação N:N) Tj
+ET
+endstream
 endobj
 5 0 obj
-<< /Length 3009 >>\nstream\nBT /F1 9 Tf 50 790 Td (id VARCHAR\(20\) PK; name VARCHAR\(80\) obrigatório e UNIQUE; description VARCHAR\(255\) obrigatório default) Tj ET\nBT /F1 9 Tf 50 776 Td (vazio; created_at DATETIME obrigatório.) Tj ET\nBT /F2 14 Tf 50 754 Td (Tabela projects) Tj ET\nBT /F1 9 Tf 50 730 Td (Finalidade: entidade central dos projetos científicos e sua governança.) Tj ET\nBT /F1 9 Tf 50 708 Td (id VARCHAR\(36\) PK; name VARCHAR\(200\); code VARCHAR\(50\) UNIQUE; responsible_area VARCHAR\(160\);) Tj ET\nBT /F1 9 Tf 50 694 Td (managers_ids JSON; write_group/read_group VARCHAR\(160\); write_identity_role/read_identity_role) Tj ET\nBT /F1 9 Tf 50 680 Td (VARCHAR\(160\); snow_task_number VARCHAR\(120\); parent_folder VARCHAR\(500\); description TEXT; status) Tj ET\nBT /F1 9 Tf 50 666 Td (VARCHAR\(30\); participants_ids JSON; created_at/updated_at DATETIME.) Tj ET\nBT /F1 9 Tf 50 644 Td (Índices: ix_projects_code UNIQUE para identificação; ix_projects_status para filtros de status.) Tj ET\nBT /F1 9 Tf 50 630 Td (managers_ids e participants_ids são JSON e não possuem FK relacional.) Tj ET\nBT /F2 14 Tf 50 608 Td (Tabela project_members) Tj ET\nBT /F1 9 Tf 50 584 Td (Finalidade: associação muitos-para-muitos entre usuários e projetos, com papel no vínculo.) Tj ET\nBT /F1 9 Tf 50 562 Td (project_id VARCHAR\(36\) PK composta e FK para projects.id ON DELETE CASCADE; user_id VARCHAR\(36\) PK) Tj ET\nBT /F1 9 Tf 50 548 Td (composta e FK para users.id ON DELETE CASCADE; role VARCHAR\(40\) obrigatório; created_at DATETIME) Tj ET\nBT /F1 9 Tf 50 534 Td (obrigatório.) Tj ET\nBT /F1 9 Tf 50 512 Td (A chave composta impede o mesmo usuário duas vezes no mesmo projeto. O cascade remove vínculos quando) Tj ET\nBT /F1 9 Tf 50 498 Td (projeto ou usuário é removido.) Tj ET\nBT /F2 14 Tf 50 476 Td (Tabela files) Tj ET\nBT /F1 9 Tf 50 452 Td (Finalidade: árvore de arquivos e pastas; armazena metadados, não o binário.) Tj ET\nBT /F1 9 Tf 50 430 Td (id VARCHAR\(36\) PK; project_id VARCHAR\(36\) obrigatório FK projects; parent_id VARCHAR\(36\) opcional FK) Tj ET\nBT /F1 9 Tf 50 416 Td (files ON DELETE CASCADE; kind, name, size_bytes, mime_type, created_by FK users, created_at e) Tj ET\nBT /F1 9 Tf 50 402 Td (updated_at.) Tj ET\nBT /F1 9 Tf 50 380 Td (parent_id representa a árvore; created_by preserva autoria. Recomenda-se índice em project_id, parent_id) Tj ET\nBT /F1 9 Tf 50 366 Td (e created_by se o volume crescer.) Tj ET\nBT /F2 14 Tf 50 344 Td (Tabelas de acesso a arquivos) Tj ET\nBT /F1 9 Tf 50 320 Td (file_permissions: file_id FK files, user_id ou group_id opcional, access_level, inherited_from e) Tj ET\nBT /F1 9 Tf 50 306 Td (created_at. Representa concessões granulares e herança.) Tj ET\nBT /F1 9 Tf 50 284 Td (file_shares: compartilhamento direto arquivo-usuário, com chave composta file_id + user_id e created_at.) Tj ET\nBT /F1 9 Tf 50 262 Td (Ponto de atenção: validar no banco ou na aplicação que exatamente um entre user_id e group_id seja) Tj ET\nBT /F1 9 Tf 50 248 Td (preenchido.) Tj ET\nendstream
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 9 0 R >> >> /Contents 6 0 R >>
 endobj
 6 0 obj
-<< /Type /Page /Parent 11 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 5 0 R >>
+<< /Length 206 >>
+stream
+q
+0.96 0.98 0.97 rg
+0 0 595 842 re
+f
+Q
+0.00 0.35 0.25 rg
+BT
+/F1 22 Tf
+42 790 Td
+(SIGAC ? Modelo Entidade-Relacionamento) Tj
+ET
+0.30 0.40 0.37 rg
+BT
+/F1 10 Tf
+42 770 Td
+(Auditoria de schema | Página 2) Tj
+ET
+endstream
 endobj
 7 0 obj
-<< /Length 2734 >>\nstream\nBT /F2 14 Tf 50 782 Td (Segurança e menus) Tj ET\nBT /F1 9 Tf 50 758 Td (modules: id PK, name UNIQUE, route, icon, display_order e active. Catálogo de módulos navegáveis.) Tj ET\nBT /F1 9 Tf 50 736 Td (menus: id PK, module_id FK modules SET NULL, parent_id, name, route, icon, display_order e active.) Tj ET\nBT /F1 9 Tf 50 722 Td (parent_id modela hierarquia, mas deve possuir FK auto-referente se a integridade hierárquica for) Tj ET\nBT /F1 9 Tf 50 708 Td (exigida.) Tj ET\nBT /F1 9 Tf 50 686 Td (permissions: id PK, module_id FK modules CASCADE, name, description e active; ix_permissions_module_id.) Tj ET\nBT /F1 9 Tf 50 664 Td (profile_modules: PK composta profile_id + module_id, FKs para profiles/modules, can_view.) Tj ET\nBT /F1 9 Tf 50 642 Td (profile_permissions: PK composta profile_id + permission_id, FKs para profiles/permissions, allowed.) Tj ET\nBT /F2 14 Tf 50 620 Td (Catálogos, relatórios e configuração) Tj ET\nBT /F1 9 Tf 50 596 Td (project_statuses: id PK, code UNIQUE, nome, color, display_order, active e allows_edit.) Tj ET\nBT /F1 9 Tf 50 574 Td (project_types: id PK, code UNIQUE, nome, description e active.) Tj ET\nBT /F1 9 Tf 50 552 Td (report_types: id PK, code UNIQUE, name, description, formats e active.) Tj ET\nBT /F1 9 Tf 50 530 Td (report_fields: id PK, report_code, field_key, label, source_key, display_order e active;) Tj ET\nBT /F1 9 Tf 50 516 Td (ix_report_fields_report_code. A exportação de projetos lê esses campos e resolve os valores persistidos) Tj ET\nBT /F1 9 Tf 50 502 Td (de projects/files/project_members.) Tj ET\nBT /F1 9 Tf 50 480 Td (system_settings: key PK, value, value_type, description, group_name e active.) Tj ET\nBT /F2 14 Tf 50 458 Td (Tabela activity_logs) Tj ET\nBT /F1 9 Tf 50 434 Td (Finalidade: trilha de auditoria de operações administrativas e de negócio.) Tj ET\nBT /F1 9 Tf 50 412 Td (id VARCHAR\(36\) PK; user_id VARCHAR\(36\) obrigatório FK users; action VARCHAR\(80\); entity VARCHAR\(80\);) Tj ET\nBT /F1 9 Tf 50 398 Td (entity_id VARCHAR\(36\) opcional; details TEXT; created_at DATETIME.) Tj ET\nBT /F1 9 Tf 50 376 Td (Índices esperados/recomendados: user_id, action, entity e created_at para filtros por usuário, operação,) Tj ET\nBT /F1 9 Tf 50 362 Td (recurso e período.) Tj ET\nBT /F2 14 Tf 50 340 Td (Cadeia Alembic e conclusão) Tj ET\nBT /F1 9 Tf 50 316 Td (0011_bootstrap_orm_schema -> 0010_report_fields -> 0009_add_user_last_login_at ->) Tj ET\nBT /F1 9 Tf 50 302 Td (0008_add_user_avatar_url -> 0007_add_solicitante_role -> 0006_compatibilidade_relacional ->) Tj ET\nBT /F1 9 Tf 50 288 Td (0005_integridade_relacional -> 0004_project_members -> 0003_add_perfis -> 0002_remove_app_prefix ->) Tj ET\nBT /F1 9 Tf 50 274 Td (0001_baseline.) Tj ET\nendstream
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 9 0 R >> >> /Contents 8 0 R >>
 endobj
 8 0 obj
-<< /Type /Page /Parent 11 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 7 0 R >>
+<< /Length 1417 >>
+stream
+q
+1 1 1 rg
+0 0 595 842 re
+f
+Q
+0.00 0.35 0.25 rg
+BT
+/F1 18 Tf
+42 790 Td
+(Dicionário de dados e regras) Tj
+ET
+0.20 0.26 0.24 rg
+BT
+/F1 10 Tf
+42 750 Td
+(profiles / users: identidade local e perfil funcional.) Tj
+ET
+0.20 0.26 0.24 rg
+BT
+/F1 10 Tf
+42 716 Td
+(modules / permissions: módulos navegáveis e capacidades autorizáveis.) Tj
+ET
+0.20 0.26 0.24 rg
+BT
+/F1 10 Tf
+42 682 Td
+(projects / project_members / project_groups: unidade de trabalho e escopos de acesso.) Tj
+ET
+0.20 0.26 0.24 rg
+BT
+/F1 10 Tf
+42 648 Td
+(files / file_shares / file_permissions: árvore documental e compartilhamento.) Tj
+ET
+0.20 0.26 0.24 rg
+BT
+/F1 10 Tf
+42 614 Td
+(access_requests / notifications: fluxo de solicitação e comunicação.) Tj
+ET
+0.20 0.26 0.24 rg
+BT
+/F1 10 Tf
+42 580 Td
+(activity_logs: trilha de auditoria com ação, entidade e data.) Tj
+ET
+0.20 0.26 0.24 rg
+BT
+/F1 10 Tf
+42 546 Td
+(report_types / report_fields: configuração de relatórios e campos.) Tj
+ET
+0.20 0.26 0.24 rg
+BT
+/F1 10 Tf
+42 512 Td
+(sessions / permission_matrix: sessão persistida e compatibilidade de autorização.) Tj
+ET
+0.20 0.26 0.24 rg
+BT
+/F1 10 Tf
+42 478 Td
+(ON DELETE CASCADE remove dependentes; RESTRICT protege referências; SET NULL preserva o registro.) Tj
+ET
+0.20 0.26 0.24 rg
+BT
+/F1 10 Tf
+42 444 Td
+(Fonte editável: backend/docs/SIGAC-ER-Auditoria.mmd) Tj
+ET
+0.20 0.26 0.24 rg
+BT
+/F1 10 Tf
+42 410 Td
+(Fonte detalhada: backend/docs/SIGAC-ER-Auditoria.md) Tj
+ET
+endstream
 endobj
 9 0 obj
-<< /Length 427 >>\nstream\nBT /F1 9 Tf 50 790 Td (Head único confirmado: 0011_bootstrap_orm_schema.) Tj ET\nBT /F1 9 Tf 50 768 Td (Conclusão: as tabelas ORM estão cobertas no head por create_all, mas a rastreabilidade DDL de 0011 é) Tj ET\nBT /F1 9 Tf 50 754 Td (fraca, pois não explicita alterações e tem downgrade no-op. Recomenda-se substituir o bootstrap por) Tj ET\nBT /F1 9 Tf 50 740 Td (migrations explícitas após validar bancos existentes.) Tj ET\nendstream
-endobj
-10 0 obj
-<< /Type /Page /Parent 11 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 9 0 R >>
-endobj
-11 0 obj
-<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R 10 0 R] /Count 4 >>
-endobj
-12 0 obj
-<< /Type /Catalog /Pages 11 0 R >>
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
 endobj
 xref
-0 13
+0 10
 0000000000 65535 f 
 0000000009 00000 n 
-0000000079 00000 n 
-0000000154 00000 n 
-0000003502 00000 n 
-0000003639 00000 n 
-0000006703 00000 n 
-0000006840 00000 n 
-0000009629 00000 n 
-0000009766 00000 n 
-0000010247 00000 n 
-0000010385 00000 n 
-0000010462 00000 n 
+0000000058 00000 n 
+0000000127 00000 n 
+0000000253 00000 n 
+0000003480 00000 n 
+0000003606 00000 n 
+0000003863 00000 n 
+0000003989 00000 n 
+0000005458 00000 n 
 trailer
-<< /Size 13 /Root 12 0 R >>
+<< /Size 10 /Root 1 0 R >>
 startxref
-10513
+5528
 %%EOF
