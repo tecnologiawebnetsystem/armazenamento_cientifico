@@ -1,62 +1,36 @@
--- Schema SQLite canônico para desenvolvimento e testes locais.
+-- Schema SQLite canônico derivado dos modelos SQLAlchemy.
+-- Não contém as tabelas legadas em português. Execute Alembic para criar o banco físico.
 PRAGMA foreign_keys = ON;
 
-CREATE TABLE IF NOT EXISTS perfis (id TEXT PRIMARY KEY, nome TEXT NOT NULL UNIQUE, descricao TEXT DEFAULT '', criado_em TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS modulos (id TEXT PRIMARY KEY, nome TEXT NOT NULL UNIQUE, rota TEXT NOT NULL DEFAULT '', icone TEXT NOT NULL DEFAULT 'folder', ordem INTEGER NOT NULL DEFAULT 0, ativo INTEGER NOT NULL DEFAULT 1);
-CREATE TABLE IF NOT EXISTS permissoes (id TEXT PRIMARY KEY, modulo_id TEXT NOT NULL REFERENCES modulos(id), nome TEXT NOT NULL, descricao TEXT NOT NULL DEFAULT '', ativo INTEGER NOT NULL DEFAULT 1);
-CREATE TABLE IF NOT EXISTS perfil_permissoes (perfil_id TEXT NOT NULL REFERENCES perfis(id) ON DELETE CASCADE, permissao_id TEXT NOT NULL REFERENCES permissoes(id) ON DELETE CASCADE, permitido INTEGER NOT NULL DEFAULT 1, PRIMARY KEY (perfil_id, permissao_id));
-CREATE TABLE IF NOT EXISTS perfil_modulos (perfil_id TEXT NOT NULL REFERENCES perfis(id) ON DELETE CASCADE, modulo_id TEXT NOT NULL REFERENCES modulos(id) ON DELETE CASCADE, pode_visualizar INTEGER NOT NULL DEFAULT 1, PRIMARY KEY (perfil_id, modulo_id));
-CREATE TABLE IF NOT EXISTS status_projetos (id TEXT PRIMARY KEY, codigo TEXT NOT NULL UNIQUE, nome TEXT NOT NULL, cor TEXT NOT NULL DEFAULT 'slate', ordem INTEGER NOT NULL DEFAULT 0, ativo INTEGER NOT NULL DEFAULT 1, permite_edicao INTEGER NOT NULL DEFAULT 1);
-CREATE TABLE IF NOT EXISTS tipos_projetos (id TEXT PRIMARY KEY, codigo TEXT NOT NULL UNIQUE, nome TEXT NOT NULL, descricao TEXT NOT NULL DEFAULT '', ativo INTEGER NOT NULL DEFAULT 1);
-CREATE TABLE IF NOT EXISTS configuracoes_sistema (chave TEXT PRIMARY KEY, valor TEXT NOT NULL DEFAULT '', tipo TEXT NOT NULL DEFAULT 'string', descricao TEXT NOT NULL DEFAULT '', grupo TEXT NOT NULL DEFAULT 'geral', ativo INTEGER NOT NULL DEFAULT 1);
-CREATE TABLE IF NOT EXISTS tipos_relatorios (id TEXT PRIMARY KEY, codigo TEXT NOT NULL UNIQUE, nome TEXT NOT NULL, descricao TEXT NOT NULL DEFAULT '', formatos TEXT NOT NULL DEFAULT 'csv', ativo INTEGER NOT NULL DEFAULT 1);
-CREATE TABLE IF NOT EXISTS report_types (id TEXT PRIMARY KEY, code TEXT NOT NULL UNIQUE, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', formats TEXT NOT NULL DEFAULT 'csv', active INTEGER NOT NULL DEFAULT 1);
-CREATE TABLE IF NOT EXISTS report_fields (id TEXT PRIMARY KEY, report_code TEXT NOT NULL REFERENCES report_types(code) ON DELETE CASCADE, field_key TEXT NOT NULL, label TEXT NOT NULL, source_key TEXT NOT NULL, display_order INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1, UNIQUE (report_code, field_key));
-CREATE TABLE IF NOT EXISTS menus (id TEXT PRIMARY KEY, modulo_id TEXT REFERENCES modulos(id), parent_id TEXT, nome TEXT NOT NULL, rota TEXT NOT NULL DEFAULT '', icone TEXT NOT NULL DEFAULT 'circle', ordem INTEGER NOT NULL DEFAULT 0, ativo INTEGER NOT NULL DEFAULT 1);
-CREATE TABLE IF NOT EXISTS groups (id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE, description TEXT DEFAULT '', created_at TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS user_groups (user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, group_id TEXT NOT NULL REFERENCES groups(id) ON DELETE CASCADE, source TEXT NOT NULL DEFAULT 'manual', created_at TEXT NOT NULL, PRIMARY KEY (user_id, group_id));
-CREATE TABLE IF NOT EXISTS project_members (project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, papel TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (project_id, user_id));
-CREATE TABLE IF NOT EXISTS project_groups (project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, group_id TEXT NOT NULL REFERENCES groups(id) ON DELETE CASCADE, papel TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (project_id, group_id));
-CREATE TABLE IF NOT EXISTS file_permissions (file_id TEXT NOT NULL REFERENCES files(id) ON DELETE CASCADE, user_id TEXT REFERENCES users(id) ON DELETE CASCADE, group_id TEXT REFERENCES groups(id) ON DELETE CASCADE, nivel TEXT NOT NULL, inherited_from TEXT, created_at TEXT NOT NULL, CHECK (user_id IS NOT NULL OR group_id IS NOT NULL));
-CREATE INDEX IF NOT EXISTS idx_user_groups_group ON user_groups(group_id);
-CREATE INDEX IF NOT EXISTS idx_project_groups_group ON project_groups(group_id);
-CREATE INDEX IF NOT EXISTS idx_file_permissions_file ON file_permissions(file_id);
-
--- Fluxo de acesso e comunicação entre solicitante e gerente.
-CREATE TABLE IF NOT EXISTS access_requests (
-  id TEXT PRIMARY KEY,
-  project_id TEXT REFERENCES projects(id) ON DELETE CASCADE,
-  requester_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  status TEXT NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente', 'aprovado', 'negado', 'revogado')),
-  requested_role TEXT,
-  justification TEXT NOT NULL DEFAULT '',
-  analyzed_by TEXT REFERENCES users(id) ON DELETE SET NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-CREATE TABLE IF NOT EXISTS notifications (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  type TEXT NOT NULL,
-  title TEXT NOT NULL,
-  message TEXT NOT NULL DEFAULT '',
-  read_at TEXT,
-  created_at TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_access_requests_requester ON access_requests(requester_id);
-CREATE INDEX IF NOT EXISTS idx_access_requests_status ON access_requests(status);
-CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, read_at);
-
-CREATE TABLE IF NOT EXISTS activity_logs (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-  action TEXT NOT NULL,
-  entity TEXT NOT NULL,
-  entity_id TEXT,
-  details TEXT NOT NULL DEFAULT '',
-  created_at TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_activity_logs_user ON activity_logs(user_id);
-CREATE INDEX IF NOT EXISTS idx_activity_logs_action ON activity_logs(action);
-CREATE INDEX IF NOT EXISTS idx_activity_logs_entity ON activity_logs(entity);
-CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at ON activity_logs(created_at);
+CREATE TABLE IF NOT EXISTS profiles (id VARCHAR(20) PRIMARY KEY, name VARCHAR(80) NOT NULL UNIQUE, description VARCHAR(255) NOT NULL DEFAULT '', created_at DATETIME NOT NULL);
+CREATE TABLE IF NOT EXISTS users (id VARCHAR(36) PRIMARY KEY, name VARCHAR(200) NOT NULL, email VARCHAR(320) NOT NULL UNIQUE, job_title VARCHAR(120), area VARCHAR(120), role VARCHAR(40) NOT NULL DEFAULT 'participante', profile_id VARCHAR(20) REFERENCES profiles(id) ON DELETE SET NULL, avatar_url VARCHAR(500), last_login_at DATETIME, created_at DATETIME NOT NULL);
+CREATE TABLE IF NOT EXISTS modules (id VARCHAR(80) PRIMARY KEY, name VARCHAR(120) NOT NULL UNIQUE, route VARCHAR(180) NOT NULL DEFAULT '', icon VARCHAR(80) NOT NULL DEFAULT 'folder', display_order INTEGER NOT NULL DEFAULT 0, active BOOLEAN NOT NULL DEFAULT 1);
+CREATE TABLE IF NOT EXISTS permissions (id VARCHAR(80) PRIMARY KEY, module_id VARCHAR(80) NOT NULL REFERENCES modules(id) ON DELETE CASCADE, name VARCHAR(120) NOT NULL, description TEXT NOT NULL DEFAULT '', active BOOLEAN NOT NULL DEFAULT 1);
+CREATE TABLE IF NOT EXISTS profile_permissions (profile_id VARCHAR(20) NOT NULL REFERENCES profiles(id) ON DELETE CASCADE, permission_id VARCHAR(80) NOT NULL REFERENCES permissions(id) ON DELETE CASCADE, allowed BOOLEAN NOT NULL DEFAULT 1, PRIMARY KEY (profile_id, permission_id));
+CREATE TABLE IF NOT EXISTS profile_modules (profile_id VARCHAR(20) NOT NULL REFERENCES profiles(id) ON DELETE CASCADE, module_id VARCHAR(80) NOT NULL REFERENCES modules(id) ON DELETE CASCADE, can_view BOOLEAN NOT NULL DEFAULT 1, PRIMARY KEY (profile_id, module_id));
+CREATE TABLE IF NOT EXISTS project_statuses (id VARCHAR(40) PRIMARY KEY, code VARCHAR(40) NOT NULL UNIQUE, name VARCHAR(100) NOT NULL, color VARCHAR(20) NOT NULL DEFAULT 'slate', display_order INTEGER NOT NULL DEFAULT 0, active BOOLEAN NOT NULL DEFAULT 1, allows_edit BOOLEAN NOT NULL DEFAULT 1);
+CREATE TABLE IF NOT EXISTS project_types (id VARCHAR(40) PRIMARY KEY, code VARCHAR(40) NOT NULL UNIQUE, name VARCHAR(100) NOT NULL, description TEXT NOT NULL DEFAULT '', active BOOLEAN NOT NULL DEFAULT 1);
+CREATE TABLE IF NOT EXISTS system_settings (key VARCHAR(120) PRIMARY KEY, value TEXT NOT NULL DEFAULT '', value_type VARCHAR(30) NOT NULL DEFAULT 'string', description TEXT NOT NULL DEFAULT '', group_name VARCHAR(80) NOT NULL DEFAULT 'general', active BOOLEAN NOT NULL DEFAULT 1);
+CREATE TABLE IF NOT EXISTS report_types (id VARCHAR(60) PRIMARY KEY, code VARCHAR(60) NOT NULL UNIQUE, name VARCHAR(120) NOT NULL, description TEXT NOT NULL DEFAULT '', formats TEXT NOT NULL DEFAULT 'csv', active BOOLEAN NOT NULL DEFAULT 1);
+CREATE TABLE IF NOT EXISTS report_fields (id VARCHAR(60) PRIMARY KEY, report_code VARCHAR(60) NOT NULL REFERENCES report_types(code) ON DELETE CASCADE, field_key VARCHAR(100) NOT NULL, label VARCHAR(160) NOT NULL, source_key VARCHAR(160) NOT NULL, display_order INTEGER NOT NULL DEFAULT 0, active BOOLEAN NOT NULL DEFAULT 1, UNIQUE (report_code, field_key));
+CREATE TABLE IF NOT EXISTS menus (id VARCHAR(80) PRIMARY KEY, module_id VARCHAR(80) REFERENCES modules(id) ON DELETE SET NULL, parent_id VARCHAR(80), name VARCHAR(120) NOT NULL, route VARCHAR(180) NOT NULL DEFAULT '', icon VARCHAR(80) NOT NULL DEFAULT 'circle', display_order INTEGER NOT NULL DEFAULT 0, active BOOLEAN NOT NULL DEFAULT 1);
+CREATE TABLE IF NOT EXISTS projects (id VARCHAR(36) PRIMARY KEY, name VARCHAR(200) NOT NULL, code VARCHAR(50) NOT NULL UNIQUE, responsible_area VARCHAR(160) NOT NULL, managers_ids JSON NOT NULL DEFAULT '[]', write_group VARCHAR(160) NOT NULL DEFAULT '', read_group VARCHAR(160) NOT NULL DEFAULT '', write_identity_role VARCHAR(160) NOT NULL DEFAULT '', read_identity_role VARCHAR(160) NOT NULL DEFAULT '', snow_task_number VARCHAR(120) NOT NULL DEFAULT '', parent_folder VARCHAR(500) NOT NULL DEFAULT '', description TEXT NOT NULL DEFAULT '', status VARCHAR(30) NOT NULL DEFAULT 'ativo', participants_ids JSON NOT NULL DEFAULT '[]', created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL);
+CREATE TABLE IF NOT EXISTS project_members (project_id VARCHAR(36) NOT NULL REFERENCES projects(id) ON DELETE CASCADE, user_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE, role VARCHAR(40) NOT NULL, created_at DATETIME NOT NULL, PRIMARY KEY (project_id, user_id));
+CREATE TABLE IF NOT EXISTS groups (id VARCHAR(36) PRIMARY KEY, name VARCHAR(255) NOT NULL UNIQUE, description TEXT NOT NULL DEFAULT '', created_at DATETIME NOT NULL);
+CREATE TABLE IF NOT EXISTS user_groups (user_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE, group_id VARCHAR(36) NOT NULL REFERENCES groups(id) ON DELETE CASCADE, source VARCHAR(30) NOT NULL DEFAULT 'manual', created_at DATETIME NOT NULL, PRIMARY KEY (user_id, group_id));
+CREATE TABLE IF NOT EXISTS project_groups (project_id VARCHAR(36) NOT NULL REFERENCES projects(id) ON DELETE CASCADE, group_id VARCHAR(36) NOT NULL REFERENCES groups(id) ON DELETE CASCADE, role VARCHAR(40) NOT NULL, created_at DATETIME NOT NULL, PRIMARY KEY (project_id, group_id));
+CREATE TABLE IF NOT EXISTS project_access_groups (id VARCHAR(36) PRIMARY KEY, project_id VARCHAR(36) NOT NULL REFERENCES projects(id) ON DELETE CASCADE, provider VARCHAR(30) NOT NULL DEFAULT 'azure_ad', group_name VARCHAR(255) NOT NULL, access_level VARCHAR(10) NOT NULL CHECK (access_level IN ('read','write')));
+CREATE TABLE IF NOT EXISTS project_access_roles (id VARCHAR(36) PRIMARY KEY, project_id VARCHAR(36) NOT NULL REFERENCES projects(id) ON DELETE CASCADE, provider VARCHAR(30) NOT NULL DEFAULT 'identidade', role_name VARCHAR(255) NOT NULL, access_level VARCHAR(10) NOT NULL CHECK (access_level IN ('read','write')));
+CREATE TABLE IF NOT EXISTS files (id VARCHAR(36) PRIMARY KEY, project_id VARCHAR(36) NOT NULL REFERENCES projects(id) ON DELETE CASCADE, parent_id VARCHAR(36) REFERENCES files(id) ON DELETE CASCADE, kind VARCHAR(20) NOT NULL, name VARCHAR(500) NOT NULL, size_bytes INTEGER NOT NULL DEFAULT 0, mime_type VARCHAR(160), created_by VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE RESTRICT, last_viewed_at DATETIME, created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL);
+CREATE TABLE IF NOT EXISTS file_shares (file_id VARCHAR(36) NOT NULL REFERENCES files(id) ON DELETE CASCADE, user_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE, access_level VARCHAR(20) NOT NULL, created_at DATETIME NOT NULL, PRIMARY KEY (file_id, user_id));
+CREATE TABLE IF NOT EXISTS file_permissions (file_id VARCHAR(36) NOT NULL REFERENCES files(id) ON DELETE CASCADE, user_id VARCHAR(36) REFERENCES users(id) ON DELETE CASCADE, group_id VARCHAR(36) REFERENCES groups(id) ON DELETE CASCADE, access_level VARCHAR(20) NOT NULL, inherited_from VARCHAR(36), created_at DATETIME NOT NULL, CHECK (user_id IS NOT NULL OR group_id IS NOT NULL));
+CREATE TABLE IF NOT EXISTS access_requests (id VARCHAR(36) PRIMARY KEY, project_id VARCHAR(36) NOT NULL REFERENCES projects(id) ON DELETE CASCADE, requester_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE, status VARCHAR(30) NOT NULL, created_at DATETIME NOT NULL);
+CREATE TABLE IF NOT EXISTS notifications (id VARCHAR(36) PRIMARY KEY, user_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE, type VARCHAR(80) NOT NULL, title VARCHAR(200) NOT NULL, message TEXT NOT NULL DEFAULT '', read_at DATETIME, created_at DATETIME NOT NULL);
+CREATE TABLE IF NOT EXISTS activity_logs (id VARCHAR(36) PRIMARY KEY, user_id VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL, action VARCHAR(100) NOT NULL, entity VARCHAR(100) NOT NULL, entity_id VARCHAR(36), details TEXT NOT NULL DEFAULT '', created_at DATETIME NOT NULL);
+CREATE TABLE IF NOT EXISTS sessions (id VARCHAR(36) PRIMARY KEY, user_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE, expires_at DATETIME NOT NULL);
+CREATE TABLE IF NOT EXISTS permission_matrix (id INTEGER PRIMARY KEY, matrix JSON NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
+CREATE INDEX IF NOT EXISTS idx_files_project_parent ON files(project_id, parent_id);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_created ON activity_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_access_requests_project ON access_requests(project_id);
