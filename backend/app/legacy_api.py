@@ -1080,18 +1080,18 @@ def _pdf_document(title: str, headers: list[str], rows: list[list[object]]) -> b
         if index:
             commands.append("0 -15 Td")
         commands.append(f"({clean(line)}) Tj")
-    stream = "\\n".join(commands + ["ET"]).encode("latin-1", "replace")
-    objects = [b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>", b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>", b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", b"<< /Length " + str(len(stream)).encode() + b" >>\\nstream\\n" + stream + b"\\nendstream"]
-    pdf = bytearray(b"%PDF-1.4\\n")
+    stream = "\n".join(commands + ["ET"]).encode("latin-1", "replace")
+    objects = [b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>", b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>", b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", b"<< /Length " + str(len(stream)).encode() + b" >>\nstream\n" + stream + b"\nendstream"]
+    pdf = bytearray(b"%PDF-1.4\n")
     offsets = [0]
     for number, obj in enumerate(objects, 1):
         offsets.append(len(pdf))
-        pdf.extend(f"{number} 0 obj\\n".encode() + obj + b"\\nendobj\\n")
+        pdf.extend(f"{number} 0 obj\n".encode() + obj + b"\nendobj\n")
     startxref = len(pdf)
-    pdf.extend(f"xref\\n0 {len(objects) + 1}\\n0000000000 65535 f \\n".encode())
+    pdf.extend(f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode())
     for offset in offsets[1:]:
-        pdf.extend(f"{offset:010d} 00000 n \\n".encode())
-    pdf.extend(f"trailer\\n<< /Size {len(objects) + 1} /Root 1 0 R >>\\nstartxref\\n{startxref}\\n%%EOF".encode())
+        pdf.extend(f"{offset:010d} 00000 n \n".encode())
+    pdf.extend(f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{startxref}\n%%EOF".encode())
     return bytes(pdf)
 
 
@@ -1142,6 +1142,8 @@ async def access_map(request: Request):
         *args,
     )
     return {
+        "source": "database",
+        "consultedAt": now().isoformat(),
         "summary": {
             "users": len({x["user_id"] for x in rows if x["user_id"]}),
             "projects": len({x["project_id"] for x in rows}),
@@ -1180,8 +1182,6 @@ async def export_access_map(
     level: str = "todos",
     view: str = "projeto",
 ):
-    if format == "pdf":
-        raise HTTPException(422, "Exportação PDF ainda não está disponível no backend")
     data = await access_map(request)
     await audit(await current(request), "exportar-mapa-acessos", "relatorio", None, f"formato={format}")
     selected = [item for item in fields.split(",") if item]
@@ -1200,6 +1200,10 @@ async def export_access_map(
         rows = [row for row in rows if row_value(row, "resourceType") == type]
     if level != "todos":
         rows = [row for row in rows if row_value(row, "accessLevel") == level]
+    if format == "pdf":
+        selected_labels = [labels[key][0] for key in selected if key in labels]
+        selected_rows = [[row_value(row, labels[key][1], "") for key in selected if key in labels] for row in rows]
+        return Response(_pdf_document("Mapa de acessos", selected_labels, selected_rows), media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=mapa-de-acessos.pdf"})
     out = io.StringIO()
     if format == "csv":
         writer = csv.writer(out)

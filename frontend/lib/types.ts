@@ -227,6 +227,8 @@ export interface DashboardSummary {
 }
 
 export interface AccessMapResponse {
+  source: "database"
+  consultedAt: string
   summary: {
     users: number
     projects: number
