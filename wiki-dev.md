@@ -22,7 +22,8 @@
 - [14. Branches, commits e PRs](#14-branches-commits-e-prs)
 - [15. Troubleshooting](#15-troubleshooting)
 - [16. Deploy](#16-deploy)
-- [17. Referências do repositório](#17-referências-do-repositório)
+- [17. Integração corporativa CAV4 e Entra ID](#17-integração-corporativa-cav4-e-entra-id)
+- [18. Referências do repositório](#18-referências-do-repositório)
 
 ---
 
@@ -792,7 +793,25 @@ SQLite não deve ser usado como base persistente em uma implantação com múlti
 
 ---
 
-## 17. Referências do repositório
+## 17. Integração corporativa CAV4 e Entra ID
+
+O login corporativo ainda está em fase de preparação. A aplicação mantém o login local com usuários persistidos no backend; não se deve tratar o login local como integração SSO ou como autenticação mockada.
+
+A arquitetura recomendada é OpenID Connect sobre OAuth 2.0, usando Authorization Code + PKCE com o Microsoft Entra ID. O backend deve validar o retorno do provedor, identificar o colaborador por `oid`/`sub`, localizar ou provisionar o usuário local e aplicar os perfis e permissões do SIGAC. Tokens não devem ser armazenados em `localStorage`; a sessão deve usar cookie seguro e HttpOnly.
+
+O CAV4 deve ser integrado somente após o time proprietário fornecer seu contrato oficial: mecanismo de autenticação, endpoints, scopes, claims, grupos, certificado ou metadata, ambientes e regras de autorização. Não invente endpoints ou permissões do CAV4.
+
+Consulte o checklist completo em [`docs/integracao-login-corporativo-cav4-entraid.md`](docs/integracao-login-corporativo-cav4-entraid.md), que documenta:
+
+- informações necessárias do Entra ID e do CAV4;
+- permissões, claims, grupos e App Roles;
+- endpoints internos e externos;
+- variáveis de ambiente;
+- segurança, homologação, produção e rollback.
+
+---
+
+## 18. Referências do repositório
 
 - [README único do projeto](README.md)
 - [Estrutura do banco](docs/database-structure.txt)
@@ -801,6 +820,7 @@ SQLite não deve ser usado como base persistente em uma implantação com múlti
 - [Diagrama visual PNG](frontend/public/wiki/database-architecture.png)
 - [Endpoints documentados](docs/api-endpoints.md)
 - [Arquitetura](docs/ARCHITECTURE.md)
+- [Integração corporativa CAV4 e Entra ID](docs/integracao-login-corporativo-cav4-entraid.md)
 - [Schema SQLite](backend/database/sqlite-schema.sql)
 - [Wiki Dev](wiki-dev.md)
 
