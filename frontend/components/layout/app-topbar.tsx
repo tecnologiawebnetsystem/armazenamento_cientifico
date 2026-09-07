@@ -1,23 +1,12 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { LogOutIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ThemeToggle } from "@/components/theme-toggle"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { logout } from "@/lib/api-client"
 import { useSession } from "@/hooks/use-session"
-import { normalizeRole, roleDescription, roleLabel } from "@/hooks/use-permissions"
+import { ProfileAvatarMenu } from "@/components/layout/profile-avatar-menu"
 import { navGroups } from "@/lib/nav-config"
 import { AppBreadcrumbs } from "@/components/navigation/app-breadcrumbs"
 import { LogoMark } from "@/components/brand/logo-mark"
@@ -32,37 +21,11 @@ function pageTitleFor(pathname: string) {
   return "SIGAC"
 }
 
-function initials(name: string) {
-  const safeName = name.trim()
-  if (!safeName) return "US"
-
-  return safeName
-    .split(/\s+/)
-    .map((part) => part[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase()
-}
-
 export function AppTopbar() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, isLoading } = useSession()
-  const profileTone = user ? {
-    admin: "border-primary/40 bg-primary/10",
-    gerente: "border-chart-2/40 bg-chart-2/10",
-    patrocinador: "border-chart-4/40 bg-chart-4/10",
-    auditor: "border-muted-foreground/30 bg-muted/70",
-    solicitante: "border-chart-3/40 bg-chart-3/10",
-  }[normalizeRole(user.role)] : "border-border bg-card"
   pageTitleFor(pathname)
-
-  async function handleLogout() {
-    await logout()
-    router.push("/login")
-    router.refresh()
-  }
 
   return (
     <header className="relative flex min-h-16 shrink-0 items-center gap-2 border-b border-border/70 bg-card px-3 shadow-sm sm:gap-3 sm:px-4 md:min-h-18 md:px-6">
@@ -77,37 +40,7 @@ export function AppTopbar() {
         {isLoading ? (
           <div className="size-9 animate-pulse rounded-xl bg-muted" aria-label="Carregando perfil" />
         ) : user ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              aria-label={`Abrir perfil de ${user.nome}`}
-              className="flex items-center gap-2 rounded-xl border-l border-border/70 pl-2 outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-primary/40 md:pl-3"
-            >
-              <Avatar className="size-9 rounded-xl ring-2 ring-primary/10">
-                <AvatarImage src={user.avatarUrl || "/images/default-avatar.png"} alt={user.avatarUrl ? `Foto de ${user.nome}` : `Avatar padrão de ${user.nome}`} />
-                <AvatarFallback className="rounded-xl bg-primary text-[11px] font-bold text-primary-foreground">
-                  {initials(user.nome)}
-                </AvatarFallback>
-              </Avatar>
-              <span className="hidden max-w-36 truncate text-xs font-semibold text-foreground md:inline">{user.nome}</span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className={`w-64 border ${profileTone}`}>
-              <div className="flex flex-col gap-1 px-2 py-2" role="presentation">
-                <span className="truncate text-sm font-semibold text-foreground">{user.nome}</span>
-                <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
-                <span className="text-[11px] leading-4 text-muted-foreground">{user.cargo || "Colaborador"}{user.area ? ` · ${user.area}` : ""}</span>
-                <span className="text-[11px] leading-4 text-muted-foreground">{roleDescription(user.role)}</span>
-                <span className="text-[11px] leading-4 text-muted-foreground">Último login: {user.ultimoLogin ? new Date(user.ultimoLogin).toLocaleString("pt-BR") : "não informado"}</span>
-                <Badge variant="secondary" className="mt-1 w-fit border-0 bg-muted px-1.5 py-0 text-[10px] font-medium text-muted-foreground">
-                  {roleLabel(user.role) ?? "Usuário da plataforma"}
-                </Badge>
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} variant="destructive">
-                <LogOutIcon />
-                Sair
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <ProfileAvatarMenu user={user} onLogout={() => { router.push("/login"); router.refresh() }} />
         ) : null}
       </div>
     </header>
