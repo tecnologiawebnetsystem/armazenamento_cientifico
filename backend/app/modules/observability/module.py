@@ -19,14 +19,19 @@ LOG_PATH = Path(os.getenv("OBSERVABILITY_LOG_PATH", "./data/observability.jsonl"
 MAX_BYTES = 8 * 1024 * 1024
 MAX_EVENTS = 2000
 _lock = threading.Lock()
-_SECRET = re.compile(r"(?i)(authorization|cookie|token|password|secret)=?[^&\s]*")
+_SECRET = re.compile(r"(?i)(authorization|cookie|token|password|secret|client_secret|refresh_token)=?[^&\s]*")
+_SENSITIVE_KEYS = {"authorization", "cookie", "set-cookie", "token", "access_token", "refresh_token", "password", "secret", "client_secret"}
 
 
 def sanitize(value: Any) -> Any:
     if isinstance(value, str):
         return _SECRET.sub(r"\1=[redacted]", value)[:1200]
     if isinstance(value, dict):
-        return {str(k): sanitize(v) for k, v in list(value.items())[:30]}
+        sanitized: dict[str, Any] = {}
+        for key, item in list(value.items())[:30]:
+            name = str(key)
+            sanitized[name] = "[redacted]" if name.lower().replace("-", "_") in _SENSITIVE_KEYS else sanitize(item)
+        return sanitized
     if isinstance(value, list):
         return [sanitize(v) for v in value[:30]]
     return value
