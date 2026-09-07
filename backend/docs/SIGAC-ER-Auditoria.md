@@ -65,4 +65,4 @@ O schema PostgreSQL está mais completo que o schema SQLite versionado. Divergê
 3. Migrar dados após mapear explicitamente nomes legados em português para nomes canônicos em inglês.
 4. Fazer o schema SQLite e PostgreSQL derivarem do mesmo `Base.metadata` ou validar ambos automaticamente em CI.
 5. Adicionar uma verificação que falhe se existirem tabelas legadas duplicadas ou colunas incompatíveis.
-6. Regenerar `SIGAC-ER-Auditoria.pdf` a partir de `SIGAC-ER-Auditoria.mmd` sempre que houver alteração de modelo.
+6. Atualizar manualmente o documento ER e o PDF versionado sempre que houver alteração de modelo.
