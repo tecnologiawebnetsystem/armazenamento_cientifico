@@ -4,6 +4,7 @@ import {
   FlaskConicalIcon,
   HistoryIcon,
   BarChart3Icon,
+  UsersIcon,
   type LucideIcon,
 } from "lucide-react"
 import type { Role } from "@/lib/types"
@@ -48,7 +49,10 @@ export const navGroups: NavGroup[] = [
   },
   {
     label: "Administração",
-    items: [{ title: "Logs de auditoria", url: "/administracao/logs", icon: HistoryIcon, roles: ["admin", "patrocinador", "auditor"] }],
+    items: [
+      { title: "Usuários e acessos", url: "/administracao/usuarios", icon: UsersIcon, roles: ["admin"] },
+      { title: "Logs de auditoria", url: "/administracao/logs", icon: HistoryIcon, roles: ["admin", "patrocinador", "auditor"] },
+    ],
   },
 ]
 
