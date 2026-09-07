@@ -85,7 +85,7 @@ Para conectar o frontend ao FastAPI, crie `frontend/.env.local`:
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 ```
 
-Com essa variável, o frontend usa o FastAPI como fonte principal e o banco selecionado no backend (`SQLite` ou `PostgreSQL`) como persistência. As API Routes locais do Next.js permanecem apenas como fallback opcional durante o desenvolvimento. O login continua mockado conforme definido no projeto; logout e sessão são encaminhados ao backend quando o modo integrado estiver ativo.
+Com essa variável, o frontend usa o FastAPI como fonte principal e o banco selecionado no backend (`SQLite` ou `PostgreSQL`) como persistência. As API Routes locais do Next.js permanecem apenas como fallback opcional durante o desenvolvimento. O login local usa os usuários persistidos no backend; o login corporativo ainda está em preparação e seu levantamento está documentado em [`docs/integracao-login-corporativo-cav4-entraid.md`](docs/integracao-login-corporativo-cav4-entraid.md). Logout e sessão são encaminhados ao backend quando o modo integrado estiver ativo.
 
 ## Scripts do frontend
 
@@ -139,6 +139,6 @@ O smoke test frontend consulta `http://127.0.0.1:3000` e valida os fluxos públi
 - `docs/` — arquitetura, contratos, setup e diagramas.
 - `wiki-dev.md` — documentação técnica consolidada.
 
-A documentação completa dos endpoints está em `docs/api-endpoints.md`.
+A documentação completa dos endpoints está em [`docs/api-endpoints.md`](docs/api-endpoints.md). O levantamento para integração do login corporativo com CAV4 e Microsoft Entra ID está em [`docs/integracao-login-corporativo-cav4-entraid.md`](docs/integracao-login-corporativo-cav4-entraid.md).
 
 Para executar o ambiente completo localmente, consulte [`docs/setup-local-completo.md`](docs/setup-local-completo.md). O schema PostgreSQL está em [`backend/database/projects-schema.sql`](backend/database/projects-schema.sql), o diagrama ER editável em [`docs/database-erd.mmd`](docs/database-erd.mmd), a imagem em [`docs/database-erd.svg`](docs/database-erd.svg) e o guia de execução em [`docs/setup-local-completo.md`](docs/setup-local-completo.md).

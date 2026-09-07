@@ -1,463 +1,68 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import {
-  Activity,
-  Database,
-  Globe,
-  Pause,
-  Play,
-  RefreshCw,
-  Search,
-  Server,
-  Wifi,
-  X,
-} from "lucide-react"
+import { Activity, AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Copy, Download, Pause, Play, RefreshCw, Search, ShieldAlert, Wifi, X } from "lucide-react"
+import { getObservabilityEvents, getObservabilityExport, getObservabilityOverview, type ObservabilityEvent, type ObservabilityOverview, type ObservabilityResponse, type ObservabilityStats } from "@/lib/api-client"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
-import {
-  getObservabilityEvents,
-  type ObservabilityEvent,
-  type ObservabilityStats,
-} from "@/lib/api-client"
+const emptyStats: ObservabilityStats = { total: 0, errors: 0, frontend: 0, backend: 0, error_rate: 0, correlated_groups: 0, latency: { average: 0, p50: 0, p95: 0 } }
+const emptyOverview: ObservabilityOverview = { window_minutes: 60, generated_at: "", timeseries: [], dependencies: [], traces: [], security: { suspicious_events: 0, auth_failures: 0 } }
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-
-const emptyStats: ObservabilityStats = {
-  total: 0,
-  errors: 0,
-  frontend: 0,
-  backend: 0,
-  error_rate: 0,
-  correlated_groups: 0,
-  latency: { average: 0, p50: 0, p95: 0 },
+function eventJson(event: ObservabilityEvent | null, key: "request" | "response") {
+  const value = event?.metadata?.[key] ?? event?.metadata?.[`${key}_json`]
+  if (value === undefined || value === null) return "Não registrado"
+  return typeof value === "string" ? value : JSON.stringify(value, null, 2)
 }
 
-const tone: Record<string, string> = {
-  info: "text-emerald-400",
-  warning: "text-amber-400",
-  error: "text-red-400",
-  critical: "text-red-300",
-}
-
-function normalize(e: ObservabilityEvent): ObservabilityEvent {
-  const m = e.metadata ?? {}
-  const value = (key: string) => {
-    const item = m[key]
-    return item === undefined || item === null || item === "" ? undefined : item
-  }
-  const numberValue = (direct: number | undefined, key: string) => {
-    const item = value(key)
-    return direct ?? (typeof item === "number" ? item : typeof item === "string" && item.trim() !== "" ? Number(item) : undefined)
-  }
-  const endpoint = e.endpoint || String(value("endpoint") ?? "") || undefined
-  return {
-    ...e,
-    message: e.message || String(value("message") ?? "Evento registrado"),
-    source: e.source || (String(value("source") ?? "backend") as ObservabilityEvent["source"]),
-    level: e.level || String(value("level") ?? "info"),
-    endpoint,
-    status: numberValue(e.status, "status"),
-    duration_ms: numberValue(e.duration_ms, "duration_ms"),
-    correlation_id: e.correlation_id || String(value("correlation_id") ?? "") || undefined,
-    frontend_page: e.frontend_page || String(value("frontend_page") ?? (e.source === "frontend" ? value("page") ?? "" : "")) || undefined,
-    frontend_file: e.frontend_file || String(value("frontend_file") ?? (e.source === "frontend" ? value("filename") ?? "" : "")) || undefined,
-    backend_file: e.backend_file || String(value("backend_file") ?? (e.source === "backend" ? "backend/app/app.py" : "")) || undefined,
-  }
-}
+function normalize(data: ObservabilityResponse) { return data }
 
 export function ObservabilityShell() {
-  const [events, setEvents] = useState<ObservabilityEvent[]>([])
-  const [stats, setStats] = useState<ObservabilityStats>(emptyStats)
-
+  const [data, setData] = useState<ObservabilityResponse>({ events: [], stats: emptyStats, pagination: { page: 1, limit: 50, total_pages: 1 } })
+  const [overview, setOverview] = useState<ObservabilityOverview>(emptyOverview)
+  const [selected, setSelected] = useState<ObservabilityEvent | null>(null)
   const [source, setSource] = useState("")
   const [level, setLevel] = useState("")
-  const [status, setStatus] = useState("") // mantendo string para compatibilidade com API
+  const [status, setStatus] = useState("")
+  const [endpoint, setEndpoint] = useState("")
   const [search, setSearch] = useState("")
-
+  const [windowMinutes, setWindowMinutes] = useState("60")
+  const [page, setPage] = useState(1)
   const [auto, setAuto] = useState(true)
   const [connected, setConnected] = useState(false)
-
-  const [selectedEvent, setSelectedEvent] = useState<ObservabilityEvent | null>(null)
-  const [lastCount, setLastCount] = useState(0)
-
-  const clearFilters = useCallback(() => {
-    setSource("")
-    setLevel("")
-    setStatus("")
-    setSearch("")
-  }, [])
+  const [activeTab, setActiveTab] = useState<"request" | "response" | "metadata">("request")
 
   const load = useCallback(async () => {
     try {
-      const prevSize = events.length
+      const [events, metrics] = await Promise.all([
+        getObservabilityEvents({ source, level, status, search, endpoint, page, limit: 50 }),
+        getObservabilityOverview(Number(windowMinutes)),
+      ])
+      setData(normalize(events)); setOverview(metrics); setConnected(true)
+    } catch { setConnected(false) }
+  }, [endpoint, level, page, search, source, status, windowMinutes])
 
-      const data = await getObservabilityEvents({
-        source,
-        level,
-        status,
-        search,
-      })
+  // A carga inicial sincroniza o painel com a API externa.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { void load() }, [load])
+  useEffect(() => { if (!auto) return; const id = window.setInterval(() => void load(), 5000); return () => window.clearInterval(id) }, [auto, load])
 
-      const normalized = data.events.map(normalize)
+  const maxEvents = Math.max(1, ...overview.timeseries.map((item) => item.events))
+  const maxLatency = Math.max(1, ...overview.timeseries.map((item) => item.latency_ms))
+  const statuses = useMemo(() => Array.from(new Set(data.events.map((item) => item.status).filter((value): value is number => typeof value === "number"))).sort((a, b) => a - b), [data.events])
+  const copy = async (value: string) => { await navigator.clipboard?.writeText(value) }
+  const clear = () => { setSource(""); setLevel(""); setStatus(""); setEndpoint(""); setSearch(""); setPage(1) }
 
-      // Contagem simples de "novos eventos" quando o auto está ligado
-      if (auto) {
-        const delta = Math.max(0, normalized.length - prevSize)
-        if (delta > 0) setLastCount((c) => c + delta)
-      }
-
-      setEvents(normalized)
-      setStats(data.stats)
-      setConnected(true)
-    } catch {
-      setConnected(false)
-    }
-  }, [auto, events.length, level, search, source, status])
-
-  useEffect(() => {
-    // A carga inicial sincroniza o estado com a API; o callback é memoizado pelos filtros.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void load()
-  }, [load])
-
-  useEffect(() => {
-    if (!auto) return
-    const id = window.setInterval(() => void load(), 5000)
-    return () => window.clearInterval(id)
-  }, [auto, load])
-
-  const statuses = useMemo(() => {
-    const setCodes = new Set<number>()
-    for (const e of events) if (typeof e.status === "number") setCodes.add(e.status)
-    return Array.from(setCodes).sort((a, b) => a - b)
-  }, [events])
-
-  const errors = stats.errors
-  const avgLatency = stats.latency.average
-
-  const copyJson = useCallback(async () => {
-    if (!selectedEvent) return
-    const text = JSON.stringify(selectedEvent, null, 2)
-
-    // clipboard API (com fallback)
-    try {
-      await navigator.clipboard.writeText(text)
-    } catch {
-      const ta = document.createElement("textarea")
-      ta.value = text
-      ta.style.position = "fixed"
-      ta.style.left = "-9999px"
-      document.body.appendChild(ta)
-      ta.focus()
-      ta.select()
-      document.execCommand("copy")
-      document.body.removeChild(ta)
-    }
-  }, [selectedEvent])
-
-  return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
-      <header className="border-b border-slate-800 bg-slate-900/90 px-6 py-5">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex size-11 items-center justify-center rounded-xl bg-emerald-500 font-black text-slate-950">
-              S
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
-                SIGAC / Operações
-              </p>
-              <h1 className="text-2xl font-bold tracking-tight">Observabilidade</h1>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 text-sm text-slate-400">
-            <Wifi className={connected ? "text-emerald-400" : "text-red-400"} />
-            {connected ? "Conectado" : "Backend indisponível"}
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 p-6">
-        <section className="grid gap-4 md:grid-cols-5">
-          <div className="md:col-span-5 rounded-2xl border border-slate-800 bg-slate-900 p-5">
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <div><h2 className="font-semibold">Visão unificada de sinais</h2><p className="text-sm text-slate-400">Métricas, logs, rastreamento e segurança da janela operacional.</p></div>
-              <span className="rounded-full border border-emerald-500/30 px-3 py-1 text-xs text-emerald-300">Atualização contínua</span>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><p className="text-xs text-slate-500">Erros correlacionados</p><strong className="mt-2 block text-2xl">{stats.correlated_groups}</strong><p className="mt-1 text-xs text-slate-500">grupos de causa raiz</p></div>
-              <div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><p className="text-xs text-slate-500">Falhas de segurança</p><strong className="mt-2 block text-2xl">{events.filter((event) => event.status === 401 || event.status === 403).length}</strong><p className="mt-1 text-xs text-slate-500">401 e 403 observados</p></div>
-              <div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><p className="text-xs text-slate-500">Traces ativos</p><strong className="mt-2 block text-2xl">{stats.correlated_groups}</strong><p className="mt-1 text-xs text-slate-500">correlation IDs</p></div>
-              <div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><p className="text-xs text-slate-500">Saúde operacional</p><strong className="mt-2 block text-2xl text-emerald-400">{stats.error_rate < 10 ? "Estável" : "Atenção"}</strong><p className="mt-1 text-xs text-slate-500">taxa de erro {stats.error_rate}%</p></div>
-            </div>
-          </div>
-          {(
-            [
-              { label: "Eventos", value: stats.total, Icon: Activity },
-              { label: "Erros", value: errors, Icon: Database },
-              { label: "Frontend", value: stats.frontend, Icon: Globe },
-              { label: "Backend", value: stats.backend, Icon: Server },
-              { label: "Latência média", value: `${avgLatency} ms`, Icon: Activity },
-            ] as const
-          ).map(({ label, value, Icon }) => (
-            <div
-              key={label}
-              className="rounded-2xl border border-slate-800 bg-slate-900 p-5"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-400">{label}</span>
-                <Icon className="text-emerald-400" />
-              </div>
-              <strong className="mt-3 block text-3xl">{value}</strong>
-            </div>
-          ))}
-        </section>
-
-        <section className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4">
-          <div className="relative min-w-56 flex-1">
-            <Search className="absolute left-3 top-2.5 size-4 text-slate-500" />
-            <input
-              aria-label="Buscar eventos"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar mensagem ou endpoint"
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 py-2 pl-9 pr-3 text-sm outline-none focus:border-emerald-500"
-            />
-          </div>
-
-          <select
-            aria-label="Origem"
-            value={source}
-            onChange={(e) => setSource(e.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
-          >
-            <option value="">Todas as origens</option>
-            <option value="frontend">Frontend</option>
-            <option value="backend">Backend</option>
-          </select>
-
-          <select
-            aria-label="Nível"
-            value={level}
-            onChange={(e) => setLevel(e.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
-          >
-            <option value="">Todos os níveis</option>
-            <option value="info">Info</option>
-            <option value="warning">Warning</option>
-            <option value="error">Error</option>
-            <option value="critical">Critical</option>
-          </select>
-
-          <select
-            aria-label="Status HTTP"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
-          >
-            <option value="">Todos os status</option>
-            {statuses.map((code) => (
-              <option key={code} value={String(code)}>
-                {code}
-              </option>
-            ))}
-          </select>
-
-          {(source || status || level || search) && (
-            <button
-              onClick={clearFilters}
-              className="flex items-center gap-1 rounded-lg px-2 py-2 text-sm text-slate-400 hover:text-white"
-            >
-              <X className="size-4" />
-              Limpar
-            </button>
-          )}
-
-          <button
-            onClick={() => {
-              setAuto(!auto)
-              setLastCount(0)
-            }}
-            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
-              auto
-                ? "bg-emerald-500 text-slate-950"
-                : "bg-slate-800 text-slate-300"
-            }`}
-          >
-            {auto ? <Pause className="size-4" /> : <Play className="size-4" />}
-            {auto ? "Pausar" : "Continuar"}
-          </button>
-
-          <button
-            aria-label="Atualizar agora"
-            onClick={() => void load()}
-            className="rounded-lg border border-slate-700 p-2 hover:bg-slate-800"
-          >
-            <RefreshCw className="size-4" />
-          </button>
-        </section>
-
-        {lastCount > 0 && (
-          <button
-            onClick={() => setLastCount(0)}
-            className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-left text-sm text-emerald-300"
-          >
-            {lastCount} novos eventos recebidos — clique para dispensar
-          </button>
-        )}
-
-        <section className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900">
-          <div className="border-b border-slate-800 px-5 py-4">
-            <h2 className="font-semibold">Fluxo de eventos</h2>
-            <p className="text-sm text-slate-400">
-              Clique em uma linha para investigar todos os detalhes
-            </p>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-950 text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-5 py-3">Horário</th>
-                  <th>Origem</th>
-                  <th>Nível</th>
-                  <th>Status</th>
-                  <th>Endpoint</th>
-                  <th>Mensagem</th>
-                  <th>Duração</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {events.map((event, index) => (
-                  <tr
-                    key={`${event.timestamp}-${index}`}
-                    tabIndex={0}
-                    onClick={() => setSelectedEvent(event)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") setSelectedEvent(event)
-                    }}
-                    className="cursor-pointer border-t border-slate-800 hover:bg-slate-800/50 focus:bg-slate-800/70 focus:outline-none"
-                  >
-                    <td className="whitespace-nowrap px-5 py-3 font-mono text-xs text-slate-400">
-                      {new Date(event.timestamp).toLocaleTimeString("pt-BR")}
-                    </td>
-                    <td>
-                      <span className="rounded-full bg-slate-800 px-2 py-1 text-xs">
-                        {event.source}
-                      </span>
-                    </td>
-                    <td className={tone[event.level] ?? "text-slate-300"}>{event.level}</td>
-                    <td>{event.status ?? "—"}</td>
-                    <td className="max-w-64 truncate font-mono text-xs">
-                      {event.endpoint ?? "—"}
-                    </td>
-                    <td>{event.message}</td>
-                    <td className="font-mono text-xs text-slate-400">
-                      {event.duration_ms !== undefined ? `${event.duration_ms} ms` : "—"}
-                    </td>
-                  </tr>
-                ))}
-
-                {events.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-5 py-16 text-center text-slate-500">
-                      Nenhum evento encontrado.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
-
-      <Dialog
-        open={selectedEvent !== null}
-        onOpenChange={(open) => {
-          if (!open) setSelectedEvent(null)
-        }}
-      >
-        <DialogContent className="w-full sm:!max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Detalhes do evento</DialogTitle>
-            <DialogDescription>
-              Todos os dados registrados para esta linha de observabilidade.
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedEvent && (
-            <div className="flex flex-col gap-4">
-              <div className="grid gap-3 sm:grid-cols-3">
-                {(
-                  [
-                    ["Origem", selectedEvent.source],
-                    ["Nível", selectedEvent.level],
-                    ["Status", selectedEvent.status ?? "—"],
-                    ["Horário", new Date(selectedEvent.timestamp).toLocaleString("pt-BR")],
-                    ["Endpoint", selectedEvent.endpoint ?? "—"],
-                    ["Duração", selectedEvent.duration_ms !== undefined ? `${selectedEvent.duration_ms} ms` : "—"],
-                  ] as const
-                ).map(([label, value]) => (
-                  <div
-                    key={String(label)}
-                    className="rounded-lg border border-slate-800 bg-slate-950 p-3"
-                  >
-                    <p className="text-xs text-slate-500">{label}</p>
-                    <p className="mt-1 break-all font-mono text-sm font-semibold text-slate-100">{value}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div>
-                <p className="mb-2 text-sm font-medium">Mensagem</p>
-                <p className="rounded-lg border border-slate-800 bg-slate-950 p-3 text-sm font-medium text-slate-100">
-                  {selectedEvent.message || "—"}
-                </p>
-              </div>
-
-              <div>
-                <p className="mb-2 text-sm font-medium">Rastreamento do código</p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {([
-                    ["Página do frontend", selectedEvent.frontend_page],
-                    ["Arquivo do frontend", selectedEvent.frontend_file],
-                    ["Arquivo do backend", selectedEvent.backend_file],
-                  ] as const).map(([label, value]) => (
-                    <div key={label} className="rounded-lg border border-slate-800 bg-slate-950 p-3">
-                      <p className="text-xs text-slate-500">{label}</p>
-                      <p className="mt-1 break-all font-mono text-sm text-slate-100">{value || "Não identificado"}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-sm font-medium">JSON completo</p>
-                  <button
-                    onClick={() => void copyJson()}
-                    className="rounded-md border border-slate-700 px-2 py-1 text-xs hover:bg-slate-800"
-                  >
-                    Copiar JSON
-                  </button>
-                </div>
-
-                <pre className="max-h-80 overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-4 text-xs leading-relaxed text-emerald-300">
-                  {JSON.stringify(selectedEvent, null, 2)}
-                </pre>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </main>
-  )
+  return <main className="min-h-screen bg-slate-950 text-slate-100">
+    <header className="border-b border-slate-800 bg-slate-900 px-6 py-5"><div className="mx-auto flex max-w-7xl items-center justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">SIGAC / Operações</p><h1 className="text-2xl font-bold">Observabilidade</h1><p className="mt-1 text-sm text-slate-400">Diagnóstico operacional, desempenho e inspeção segura de APIs.</p></div><div className="flex items-center gap-3 text-sm text-slate-400"><Wifi className={connected ? "text-emerald-400" : "text-red-400"} />{connected ? "Backend conectado" : "Backend indisponível"}</div></div></header>
+    <div className="mx-auto flex max-w-7xl flex-col gap-6 p-6">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">{[["Eventos", data.stats.total], ["Erros", data.stats.errors], ["Taxa de erro", `${data.stats.error_rate}%`], ["P95", `${data.stats.latency.p95} ms`], ["Falhas de autenticação", overview.security.auth_failures]].map(([label, value]) => <div key={String(label)} className="rounded-2xl border border-slate-800 bg-slate-900 p-4"><p className="text-xs text-slate-500">{label}</p><strong className="mt-2 block text-2xl">{value}</strong></div>)}</section>
+      <section className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5"><div className="mb-4 flex items-center justify-between"><div><h2 className="font-semibold">Volume e latência</h2><p className="text-xs text-slate-500">Últimos {overview.window_minutes} minutos</p></div><select value={windowMinutes} onChange={(e) => setWindowMinutes(e.target.value)} className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs"><option value="60">1 hora</option><option value="360">6 horas</option><option value="1440">24 horas</option></select></div><div className="flex h-44 items-end gap-1 border-b border-l border-slate-700 px-2 pb-1">{overview.timeseries.slice(-60).map((item) => <div key={item.timestamp} title={`${item.events} eventos · ${item.latency_ms} ms`} className="group flex h-full flex-1 items-end gap-px"><div className="w-1/2 rounded-t bg-emerald-400/80" style={{ height: `${Math.max(3, item.events / maxEvents * 100)}%` }} /><div className="w-1/2 rounded-t bg-amber-400/70" style={{ height: `${Math.max(3, item.latency_ms / maxLatency * 100)}%` }} /></div>)}</div><div className="mt-3 flex gap-4 text-xs text-slate-500"><span><i className="mr-1 inline-block size-2 rounded-full bg-emerald-400" />eventos</span><span><i className="mr-1 inline-block size-2 rounded-full bg-amber-400" />latência máxima</span></div></div>
+        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5"><h2 className="font-semibold">Dependências</h2><div className="mt-4 flex flex-col gap-3">{overview.dependencies.length ? overview.dependencies.slice(0, 6).map((item) => <div key={item.name} className="flex items-center justify-between rounded-lg bg-slate-950 p-3"><div><p className="text-sm font-medium">{item.name}</p><p className="text-xs text-slate-500">{item.requests} chamadas · {item.latency_ms} ms</p></div><span className={item.status === "healthy" ? "text-emerald-400" : "text-amber-400"}>{item.status === "healthy" ? <CheckCircle2 /> : <AlertTriangle />}</span></div>) : <p className="text-sm text-slate-500">Nenhuma dependência registrada.</p>}</div></div>
+      </section>
+      <section className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4"><div className="relative min-w-52 flex-1"><Search className="absolute left-3 top-2.5 size-4 text-slate-500" /><input aria-label="Buscar eventos" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} placeholder="Mensagem, endpoint ou correlation ID" className="w-full rounded-lg border border-slate-700 bg-slate-950 py-2 pl-9 pr-3 text-sm outline-none focus:border-emerald-500" /></div><input aria-label="Filtrar endpoint" value={endpoint} onChange={(e) => { setEndpoint(e.target.value); setPage(1) }} placeholder="Endpoint" className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm" /><select aria-label="Origem" value={source} onChange={(e) => { setSource(e.target.value); setPage(1) }} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"><option value="">Todas as origens</option><option value="frontend">Frontend</option><option value="backend">Backend</option></select><select aria-label="Nível" value={level} onChange={(e) => { setLevel(e.target.value); setPage(1) }} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"><option value="">Todos os níveis</option><option value="info">Info</option><option value="warning">Warning</option><option value="error">Error</option><option value="critical">Critical</option></select><select aria-label="Status HTTP" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1) }} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"><option value="">Todos os status</option>{statuses.map((code) => <option key={code} value={code}>{code}</option>)}</select>{(source || level || status || endpoint || search) && <button onClick={clear} className="flex items-center gap-1 text-sm text-slate-400"><X className="size-4" />Limpar</button>}<button onClick={() => setAuto(!auto)} className="flex items-center gap-2 rounded-lg bg-emerald-500 px-3 py-2 text-sm font-medium text-slate-950">{auto ? <Pause /> : <Play />}{auto ? "Pausar" : "Continuar"}</button><button onClick={() => void load()} aria-label="Atualizar agora" className="rounded-lg border border-slate-700 p-2"><RefreshCw className="size-4" /></button><button onClick={() => void getObservabilityExport("json", { source, level, status, endpoint, search })} className="flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm"><Download />Exportar</button></section>
+      <section className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900"><div className="border-b border-slate-800 px-5 py-4"><h2 className="font-semibold">Eventos por endpoint</h2><p className="text-sm text-slate-400">Selecione uma ocorrência para consultar request, response e contexto técnico.</p></div><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-950 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3">Horário</th><th>Origem</th><th>Nível</th><th>Status</th><th>Endpoint</th><th>Duração</th><th>Detalhes</th></tr></thead><tbody>{data.events.map((event, index) => <tr key={`${event.timestamp}-${index}`} tabIndex={0} onClick={() => { setSelected(event); setActiveTab("request") }} onKeyDown={(e) => (e.key === "Enter" ? setSelected(event) : undefined)} className="cursor-pointer border-t border-slate-800 hover:bg-slate-800/60"><td className="whitespace-nowrap px-5 py-3 font-mono text-xs text-slate-400">{new Date(event.timestamp).toLocaleTimeString("pt-BR")}</td><td>{event.source}</td><td className={event.level === "error" || event.level === "critical" ? "text-red-400" : "text-slate-300"}>{event.level}</td><td>{event.status ?? "—"}</td><td className="max-w-72 truncate font-mono text-xs">{event.endpoint ?? "—"}</td><td>{event.duration_ms !== undefined ? `${event.duration_ms} ms` : "—"}</td><td><button className="rounded border border-slate-700 px-2 py-1 text-xs">Inspecionar</button></td></tr>)}{!data.events.length && <tr><td colSpan={7} className="px-5 py-16 text-center text-slate-500">Nenhum evento encontrado.</td></tr>}</tbody></table></div><div className="flex items-center justify-between border-t border-slate-800 px-5 py-3 text-sm text-slate-400"><span>Página {data.pagination.page} de {data.pagination.total_pages}</span><div className="flex gap-2"><button disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className="rounded border border-slate-700 p-2 disabled:opacity-40"><ChevronLeft /></button><button disabled={page >= data.pagination.total_pages} onClick={() => setPage((value) => value + 1)} className="rounded border border-slate-700 p-2 disabled:opacity-40"><ChevronRight /></button></div></div></section>
+    </div>
+    <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}><DialogContent className="max-h-[90vh] w-full overflow-y-auto sm:!max-w-5xl"><DialogHeader><DialogTitle>Inspeção do evento</DialogTitle><DialogDescription>Payloads são exibidos somente quando registrados e já passam por redaction no backend.</DialogDescription></DialogHeader>{selected && <div className="flex flex-col gap-4"><div className="grid gap-3 sm:grid-cols-4">{[["Endpoint", selected.endpoint ?? "—"], ["Status", selected.status ?? "—"], ["Duração", selected.duration_ms ? `${selected.duration_ms} ms` : "—"], ["Correlation ID", selected.correlation_id ?? "—"]].map(([label, value]) => <div key={label} className="rounded-lg border border-slate-800 bg-slate-950 p-3"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 break-all font-mono text-sm">{value}</p></div>)}</div><div className="flex gap-2 border-b border-slate-800">{(["request", "response", "metadata"] as const).map((tab) => <button key={tab} onClick={() => setActiveTab(tab)} className={`border-b-2 px-3 py-2 text-sm ${activeTab === tab ? "border-emerald-400 text-emerald-300" : "border-transparent text-slate-500"}`}>{tab === "request" ? "Request JSON" : tab === "response" ? "Response JSON" : "Metadados"}</button>)}</div><div className="flex items-center justify-between"><div className="flex items-center gap-2 text-sm text-slate-400">{activeTab === "request" && <Activity />} {activeTab === "response" && <ShieldAlert />} {activeTab === "metadata" && <Search />} Inspeção segura</div><button onClick={() => void copy(activeTab === "request" ? eventJson(selected, "request") : activeTab === "response" ? eventJson(selected, "response") : JSON.stringify(selected.metadata ?? {}, null, 2))} className="flex items-center gap-2 rounded border border-slate-700 px-2 py-1 text-xs"><Copy />Copiar</button></div><pre className="max-h-96 overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-4 text-xs leading-relaxed text-emerald-300">{activeTab === "request" ? eventJson(selected, "request") : activeTab === "response" ? eventJson(selected, "response") : JSON.stringify(selected.metadata ?? {}, null, 2)}</pre><p className="text-xs text-slate-500">Mensagem: {selected.message}</p></div>}</DialogContent></Dialog>
+  </main>
 }
