@@ -299,7 +299,7 @@ Não altere uma migration que já foi aplicada. Crie outra migration incremental
 
 ### Catálogos parametrizados
 
-A parametrização administrativa utiliza `perfis`, `permissoes`, `perfil_permissoes`, `modulos`, `perfil_modulos`, `status_projetos`, `tipos_projetos`, `configuracoes_sistema`, `tipos_relatorios` e `menus`. O seed inicial também cria módulos, permissões, status, tipos de projeto e tipos de relatório de forma idempotente. O endpoint autenticado `GET /api/catalogos` fornece os catálogos ativos para o frontend; novos cadastros devem enviar IDs/códigos, usando nomes somente para exibição. O seed é idempotente e cria os valores iniciais. Ele deve manter perfis, permissões, módulos, relações perfil-permissão, relações perfil-módulo, status de projetos, tipos de projetos, configurações do sistema, tipos de relatórios e menus. Os menus devem apontar para módulos existentes e usar rotas reais do frontend.
+A parametrização administrativa utiliza as tabelas canônicas `profiles`, `permissions`, `profile_permissions`, `modules`, `profile_modules`, `project_statuses`, `project_types`, `system_settings`, `report_types` e `menus`. O seed inicial cria os catálogos de forma idempotente. O endpoint autenticado `GET /api/catalogos` fornece os catálogos ativos para o frontend; novos cadastros devem enviar IDs/códigos, usando nomes somente para exibição. Os menus devem apontar para módulos existentes e usar rotas reais do frontend.
 
 > Os nomes físicos atuais não usam o prefixo `app_`.
 
@@ -309,13 +309,12 @@ Catálogo persistente de perfis e permissões, identificado por IDs fixos.
 
 | Campo | Descrição |
 |---|---|
-| `id` | Chave primária. |
-| `id` | ID fixo do perfil (`ADM`, `GER`, `AUD`, `PAT`, `PAR`, `VIS`, `GES`). |
+| `id` | Chave primária e identificador do perfil (`ADM`, `GER`, `AUD`, `PAT`, `PAR`, `VIS`, `GES`). |
 | `nome` | Nome do perfil. |
 | `descricao` | Descrição funcional. |
 | `criado_em` | Data de criação. |
 
-Usada pela administração de perfis e pelo processo de autorização. O vínculo dos usuários ocorre por `users.perfil_id -> perfis.id`.
+Usada pelo processo de autorização. O vínculo dos usuários ocorre por `users.profile_id -> profiles.id`.
 
 ### users
 
@@ -512,8 +511,8 @@ A fonte viva do contrato é o [Swagger](http://localhost:8080/docs) e o arquivo 
 | Login | `POST /api/auth/login` | Inicia sessão por e-mail. |
 | Sessão | `GET /api/auth/session` | Retorna o usuário atual. |
 | Logout | `POST /api/auth/logout` | Encerra sessão. |
-| Usuários | `GET /api/users` | Consulta autenticada para seleção de participantes e membros. |
-| Perfis | `GET /api/perfis` | Catálogo de perfis com IDs fixos e vínculo `users.perfil_id`. |
+| Diretório | `GET /api/users` | Consulta autenticada para seleção de participantes e membros. |
+| Perfis | `GET /api/perfis` | Catálogo de perfis e autorização. |
 | Permissões | `GET /api/permissions` | Consulta permissões disponíveis. |
 | Projetos | `GET/POST /api/projects`, `GET/PATCH/DELETE /api/projects/{id}` | CRUD de projetos. |
 | Membros | `GET/POST /api/projects/{id}/members`, `DELETE /api/projects/{id}/members/{user_id}` | Participantes. |
@@ -541,7 +540,7 @@ A fonte viva do contrato é o [Swagger](http://localhost:8080/docs) e o arquivo 
 |---|---|---|
 | Cliente HTTP | Todos os endpoints | [`frontend/lib/api-client.ts`](frontend/lib/api-client.ts) |
 | Sessão | `/api/auth/session` | [`frontend/hooks/use-session.ts`](frontend/hooks/use-session.ts), [`frontend/app/login/page.tsx`](frontend/app/login/page.tsx) |
-| Usuários | `/api/users` | [`frontend/hooks/use-users.ts`](frontend/hooks/use-users.ts), seleção de membros de projetos |
+| Diretório | `/api/users` | [`frontend/hooks/use-users.ts`](frontend/hooks/use-users.ts), seleção de membros de projetos |
 | Permissões | `/api/permissions` | [`frontend/hooks/use-permissions.ts`](frontend/hooks/use-permissions.ts) |
 | Projetos | `/api/projects` | [`frontend/hooks/use-projects.ts`](frontend/hooks/use-projects.ts), [`frontend/hooks/use-project.ts`](frontend/hooks/use-project.ts), páginas de projetos |
 | Membros | `/api/projects/{id}/members` | [`frontend/hooks/use-project-members.ts`](frontend/hooks/use-project-members.ts) |
