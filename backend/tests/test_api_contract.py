@@ -28,7 +28,6 @@ def test_health_is_public():
         response = client.get("/health")
     assert response.status_code in (200, 503)
     assert response.json()["service"] == "fastapi"
-    assert response.headers.get("x-correlation-id")
 
 
 def test_protected_operations_keep_expected_methods():

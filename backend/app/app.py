@@ -1,7 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
 from typing import Any
-from uuid import UUID, uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -10,7 +9,7 @@ from fastapi.responses import JSONResponse, Response
 
 from app.core.config import settings
 from app.core.exceptions import AppException
-from app.core.logging import configure_logging, reset_request_context, set_request_context
+from app.core.logging import configure_logging
 
 configure_logging(settings.log_level)
 from app.db.session import connect, disconnect
@@ -48,23 +47,11 @@ TAGS_METADATA = [
 
 def create_app() -> FastAPI:
     application = FastAPI(title=settings.app_name, version=settings.app_version, description=API_DESCRIPTION, openapi_tags=TAGS_METADATA, lifespan=lifespan, docs_url="/docs" if settings.expose_api_docs else None, redoc_url="/redoc" if settings.expose_api_docs else None, openapi_url="/openapi.json" if settings.expose_api_docs else None)
-    application.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True, allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "X-Correlation-ID"], max_age=600)
+    application.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True, allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"], allow_headers=["Content-Type"], max_age=600)
 
     @application.middleware("http")
     async def request_security_and_logging(request: Request, call_next: Any):
-        raw_id = request.headers.get("X-Correlation-ID", "")
-        try:
-            request_id = str(UUID(raw_id)) if raw_id else str(uuid4())
-        except ValueError:
-            request_id = str(uuid4())
-        if len(raw_id) > settings.request_log_max_id_length:
-            request_id = str(uuid4())
-        context_tokens = set_request_context(request_id)
-        try:
-            response = await call_next(request)
-        finally:
-            reset_request_context(context_tokens)
-        response.headers["X-Correlation-ID"] = request_id
+        response = await call_next(request)
         if settings.security_headers_enabled:
             response.headers["X-Content-Type-Options"] = "nosniff"
             response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
