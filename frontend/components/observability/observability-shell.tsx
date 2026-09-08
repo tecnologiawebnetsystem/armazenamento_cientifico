@@ -9,9 +9,13 @@ const emptyStats: ObservabilityStats = { total: 0, errors: 0, frontend: 0, backe
 const emptyOverview: ObservabilityOverview = { window_minutes: 60, generated_at: "", timeseries: [], dependencies: [], traces: [], security: { suspicious_events: 0, auth_failures: 0 } }
 
 function eventJson(event: ObservabilityEvent | null, key: "request" | "response") {
-  const value = event?.metadata?.[key] ?? event?.metadata?.[`${key}_json`]
-  if (value === undefined || value === null) return "Não registrado"
-  return typeof value === "string" ? value : JSON.stringify(value, null, 2)
+  const metadata = event?.metadata ?? {}
+  const value = event?.[key === "request" ? "request_body" : "response_body"] ?? metadata[key] ?? metadata[`${key}_json`] ?? metadata[`${key}_body`]
+  if (value === undefined || value === null || value === "") return "Não registrado"
+  if (typeof value === "string") {
+    try { return JSON.stringify(JSON.parse(value), null, 2) } catch { return value }
+  }
+  return JSON.stringify(value, null, 2)
 }
 
 function normalize(data: ObservabilityResponse) { return data }

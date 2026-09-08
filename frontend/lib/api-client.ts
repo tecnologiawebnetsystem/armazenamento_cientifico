@@ -53,6 +53,8 @@ export type ObservabilityEvent = {
   frontend_file?: string
   backend_file?: string
   metadata?: Record<string, unknown>
+  request_body?: unknown
+  response_body?: unknown
 }
 export type ObservabilityStats = { total: number; errors: number; frontend: number; backend: number; error_rate: number; correlated_groups: number; latency: { average: number; p50: number; p95: number } }
 export type ObservabilityResponse = { events: ObservabilityEvent[]; stats: ObservabilityStats; pagination: { page: number; limit: number; total_pages: number } }
