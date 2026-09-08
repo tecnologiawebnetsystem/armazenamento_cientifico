@@ -1,421 +1,141 @@
 %PDF-1.4
 1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
 endobj
 2 0 obj
-<< /Type /Pages /Kids [3 0 R 5 0 R 7 0 R] /Count 3 >>
+<< /Length 755 >>
+stream
+BT
+/F1 20 Tf
+50 790 Td
+(SIGAC ? MODELO ENTIDADE-RELACIONAMENTO) Tj
+/F1 12 Tf
+0 -28 Td
+(Auditoria e dicionario de dados | schema canonico atual) Tj
+/F1 10 Tf
+0 -28 Td
+(ATUALIZACAO) Tj
+/F1 10 Tf
+0 -28 Td
+(Este PDF foi atualizado apos a remocao da tela e da administracao de usuarios.) Tj
+/F1 10 Tf
+0 -28 Td
+(A tabela users permanece porque sustenta autenticacao, sessoes, membros de projetos, arquivos e auditoria.) Tj
+/F1 10 Tf
+0 -28 Td
+(Nao existe mais modulo de gerenciamento administrativo de usuarios.) Tj
+/F1 10 Tf
+0 -28 Td
+(FONTES DE VERDADE) Tj
+/F1 10 Tf
+0 -28 Td
+(Modelos SQLAlchemy, migracoes Alembic e schemas SQL versionados.) Tj
+/F1 10 Tf
+0 -28 Td
+(PK = chave primaria | FK = chave estrangeira | UK = unicidade | PK_FK = PK composta + FK) Tj
+ET
+endstream
 endobj
 3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 9 0 R >> >> /Contents 4 0 R >>
+<< /Type /Page /Parent 8 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 2 0 R >>
 endobj
 4 0 obj
-<< /Length 3175 >>
+<< /Length 805 >>
 stream
-q
-0.96 0.98 0.97 rg
-0 0 595 842 re
-f
-Q
-0.00 0.35 0.25 rg
-0.90 0.96 0.94 rg
-35 610 160 95 re
-f
-0.00 0.45 0.32 RG
-1 w
-35 610 160 95 re
-S
-0.00 0.35 0.25 rg
 BT
-/F1 11 Tf
-45 687 Td
-(IDENTIDADE) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-45 671 Td
-(profiles  PK id) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-45 657 Td
-(users  PK id) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-45 643 Td
-(sessions  PK id) Tj
-ET
-0.90 0.96 0.94 rg
-215 610 160 95 re
-f
-0.00 0.45 0.32 RG
-1 w
-215 610 160 95 re
-S
-0.00 0.35 0.25 rg
-BT
-/F1 11 Tf
-225 687 Td
-(AUTORIZAÇÃO) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-225 671 Td
-(modules  PK id) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-225 657 Td
-(permissions  PK id) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-225 643 Td
-(profile_permissions  PK/FK) Tj
-ET
-0.90 0.96 0.94 rg
-395 610 160 95 re
-f
-0.00 0.45 0.32 RG
-1 w
-395 610 160 95 re
-S
-0.00 0.35 0.25 rg
-BT
-/F1 11 Tf
-405 687 Td
-(NAVEGAÇÃO) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-405 671 Td
-(profile_modules  PK/FK) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-405 657 Td
-(menus  PK id) Tj
-ET
-0.90 0.96 0.94 rg
-35 430 160 110 re
-f
-0.00 0.45 0.32 RG
-1 w
-35 430 160 110 re
-S
-0.00 0.35 0.25 rg
-BT
-/F1 11 Tf
-45 522 Td
-(PROJETOS) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-45 506 Td
-(projects  PK id) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-45 492 Td
-(project_members  PK/FK) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-45 478 Td
-(project_groups  PK/FK) Tj
-ET
-0.90 0.96 0.94 rg
-215 430 160 110 re
-f
-0.00 0.45 0.32 RG
-1 w
-215 430 160 110 re
-S
-0.00 0.35 0.25 rg
-BT
-/F1 11 Tf
-225 522 Td
-(GRUPOS) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-225 506 Td
-(groups  PK id) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-225 492 Td
-(user_groups  PK/FK) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-225 478 Td
-(project_access_roles) Tj
-ET
-0.90 0.96 0.94 rg
-395 430 160 110 re
-f
-0.00 0.45 0.32 RG
-1 w
-395 430 160 110 re
-S
-0.00 0.35 0.25 rg
-BT
-/F1 11 Tf
-405 522 Td
-(DOCUMENTOS) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-405 506 Td
-(files  PK id) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-405 492 Td
-(file_shares  PK/FK) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-405 478 Td
-(file_permissions) Tj
-ET
-0.90 0.96 0.94 rg
-35 225 160 105 re
-f
-0.00 0.45 0.32 RG
-1 w
-35 225 160 105 re
-S
-0.00 0.35 0.25 rg
-BT
-/F1 11 Tf
-45 312 Td
-(FLUXOS) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-45 296 Td
-(access_requests  PK id) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-45 282 Td
-(notifications  PK id) Tj
-ET
-0.90 0.96 0.94 rg
-215 225 160 105 re
-f
-0.00 0.45 0.32 RG
-1 w
-215 225 160 105 re
-S
-0.00 0.35 0.25 rg
-BT
-/F1 11 Tf
-225 312 Td
-(AUDITORIA) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-225 296 Td
-(activity_logs  PK id) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-225 282 Td
-(user_id  FK users) Tj
-ET
-0.90 0.96 0.94 rg
-395 225 160 105 re
-f
-0.00 0.45 0.32 RG
-1 w
-395 225 160 105 re
-S
-0.00 0.35 0.25 rg
-BT
-/F1 11 Tf
-405 312 Td
-(RELATÓRIOS) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-405 296 Td
-(report_types  PK id) Tj
-ET
-0.25 0.32 0.30 rg
-BT
-/F1 8 Tf
-405 282 Td
-(report_fields  PK id) Tj
-ET
-0.32 0.42 0.39 RG
-0.8 w
-195 655 m 215 655 l S
-375 655 m 395 655 l S
-115 540 m 115 610 l S
-295 540 m 295 610 l S
-475 540 m 475 610 l S
-195 275 m 215 275 l S
-375 275 m 395 275 l S
-0.30 0.40 0.37 rg
-BT
-/F1 9 Tf
-42 160 Td
-(PK = chave primária   FK = chave estrangeira   UK = única   PK/FK = associação N:N) Tj
+/F1 20 Tf
+50 790 Td
+(MAPA DE DOMINIOS) Tj
+/F1 12 Tf
+0 -28 Td
+(IDENTIDADE E AUTORIZACAO) Tj
+/F1 10 Tf
+0 -28 Td
+(profiles -> users | modules -> permissions | profiles <-> permissions | profiles <-> modules | menus -> modules | sessions -> users) Tj
+/F1 10 Tf
+0 -28 Td
+(PROJETOS E GRUPOS) Tj
+/F1 10 Tf
+0 -28 Td
+(projects <-> project_members <-> users | projects <-> project_groups <-> groups | users <-> user_groups <-> groups) Tj
+/F1 10 Tf
+0 -28 Td
+(ARQUIVOS) Tj
+/F1 10 Tf
+0 -28 Td
+(projects -> files | files -> files \(pastas\) | files <-> file_shares <-> users | files -> file_permissions -> users/groups) Tj
+/F1 10 Tf
+0 -28 Td
+(GOVERNANCA E RELATORIOS) Tj
+/F1 10 Tf
+0 -28 Td
+(projects -> access_requests -> users | users -> notifications | users -> activity_logs | report_types -> report_fields) Tj
 ET
 endstream
 endobj
 5 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 9 0 R >> >> /Contents 6 0 R >>
+<< /Type /Page /Parent 8 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 4 0 R >>
 endobj
 6 0 obj
-<< /Length 206 >>
+<< /Length 897 >>
 stream
-q
-0.96 0.98 0.97 rg
-0 0 595 842 re
-f
-Q
-0.00 0.35 0.25 rg
 BT
-/F1 22 Tf
-42 790 Td
-(SIGAC ? Modelo Entidade-Relacionamento) Tj
-ET
-0.30 0.40 0.37 rg
-BT
+/F1 20 Tf
+50 790 Td
+(DICIONARIO RESUMIDO) Tj
+/F1 12 Tf
+0 -28 Td
+(profiles: id PK, name UK, description, created_at.) Tj
 /F1 10 Tf
-42 770 Td
-(Auditoria de schema | Página 2) Tj
+0 -28 Td
+(users: id PK, email UK, profile_id FK -> profiles, role, last_login_at.) Tj
+/F1 10 Tf
+0 -28 Td
+(projects: id PK, code UK, name, status, responsible_area, created_at, updated_at.) Tj
+/F1 10 Tf
+0 -28 Td
+(files: id PK, project_id FK, parent_id FK autorreferente, created_by FK, kind, name, size_bytes, mime_type.) Tj
+/F1 10 Tf
+0 -28 Td
+(project_members: project_id PK/FK, user_id PK/FK, role, created_at.) Tj
+/F1 10 Tf
+0 -28 Td
+(file_permissions: file_id FK, user_id/group_id FK, access_level, inherited_from.) Tj
+/F1 10 Tf
+0 -28 Td
+(activity_logs: id PK, user_id FK, action, entity, entity_id, details, created_at.) Tj
+/F1 10 Tf
+0 -28 Td
+(MANUTENCAO) Tj
+/F1 10 Tf
+0 -28 Td
+(Ao alterar o modelo, atualize manualmente o Markdown, o Mermaid e este PDF.) Tj
 ET
 endstream
 endobj
 7 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 9 0 R >> >> /Contents 8 0 R >>
+<< /Type /Page /Parent 8 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 6 0 R >>
 endobj
 8 0 obj
-<< /Length 1417 >>
-stream
-q
-1 1 1 rg
-0 0 595 842 re
-f
-Q
-0.00 0.35 0.25 rg
-BT
-/F1 18 Tf
-42 790 Td
-(Dicionário de dados e regras) Tj
-ET
-0.20 0.26 0.24 rg
-BT
-/F1 10 Tf
-42 750 Td
-(profiles / users: identidade local e perfil funcional.) Tj
-ET
-0.20 0.26 0.24 rg
-BT
-/F1 10 Tf
-42 716 Td
-(modules / permissions: módulos navegáveis e capacidades autorizáveis.) Tj
-ET
-0.20 0.26 0.24 rg
-BT
-/F1 10 Tf
-42 682 Td
-(projects / project_members / project_groups: unidade de trabalho e escopos de acesso.) Tj
-ET
-0.20 0.26 0.24 rg
-BT
-/F1 10 Tf
-42 648 Td
-(files / file_shares / file_permissions: árvore documental e compartilhamento.) Tj
-ET
-0.20 0.26 0.24 rg
-BT
-/F1 10 Tf
-42 614 Td
-(access_requests / notifications: fluxo de solicitação e comunicação.) Tj
-ET
-0.20 0.26 0.24 rg
-BT
-/F1 10 Tf
-42 580 Td
-(activity_logs: trilha de auditoria com ação, entidade e data.) Tj
-ET
-0.20 0.26 0.24 rg
-BT
-/F1 10 Tf
-42 546 Td
-(report_types / report_fields: configuração de relatórios e campos.) Tj
-ET
-0.20 0.26 0.24 rg
-BT
-/F1 10 Tf
-42 512 Td
-(sessions / permission_matrix: sessão persistida e compatibilidade de autorização.) Tj
-ET
-0.20 0.26 0.24 rg
-BT
-/F1 10 Tf
-42 478 Td
-(ON DELETE CASCADE remove dependentes; RESTRICT protege referências; SET NULL preserva o registro.) Tj
-ET
-0.20 0.26 0.24 rg
-BT
-/F1 10 Tf
-42 444 Td
-(Fonte editável: backend/docs/SIGAC-ER-Auditoria.mmd) Tj
-ET
-0.20 0.26 0.24 rg
-BT
-/F1 10 Tf
-42 410 Td
-(Fonte detalhada: backend/docs/SIGAC-ER-Auditoria.md) Tj
-ET
-endstream
+<< /Type /Pages /Kids [3 0 R 5 0 R 7 0 R] /Count 3 >>
 endobj
 9 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+<< /Type /Catalog /Pages 8 0 R >>
 endobj
 xref
 0 10
 0000000000 65535 f 
 0000000009 00000 n 
-0000000058 00000 n 
-0000000127 00000 n 
-0000000253 00000 n 
-0000003480 00000 n 
-0000003606 00000 n 
-0000003863 00000 n 
-0000003989 00000 n 
-0000005458 00000 n 
+0000000079 00000 n 
+0000000885 00000 n 
+0000001011 00000 n 
+0000001867 00000 n 
+0000001993 00000 n 
+0000002941 00000 n 
+0000003067 00000 n 
+0000003136 00000 n 
 trailer
-<< /Size 10 /Root 1 0 R >>
+<< /Size 10 /Root 9 0 R >>
 startxref
-5528
+3185
 %%EOF
