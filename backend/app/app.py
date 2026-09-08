@@ -1,5 +1,4 @@
 import logging
-import time
 from contextlib import asynccontextmanager
 from typing import Any
 from uuid import UUID, uuid4
@@ -17,8 +16,6 @@ configure_logging(settings.log_level)
 from app.db.session import connect, disconnect
 from app.legacy_api import app as legacy_app
 from app.modules.files.module import router as files_router
-from app.modules.observability.module import record_backend
-from app.modules.observability.module import router as observability_router
 from app.modules.projects.module import router as projects_router
 
 logger = logging.getLogger(__name__)
@@ -62,16 +59,6 @@ def create_app() -> FastAPI:
             request_id = str(uuid4())
         if len(raw_id) > settings.request_log_max_id_length:
             request_id = str(uuid4())
-        started = time.perf_counter()
-        request_payload: Any = None
-        if request.method in {"POST", "PUT", "PATCH"}:
-            try:
-                raw_body = await request.body()
-                if raw_body and len(raw_body) <= 64_000:
-                    import json
-                    request_payload = json.loads(raw_body)
-            except (UnicodeDecodeError, ValueError):
-                request_payload = None
         context_tokens = set_request_context(request_id)
         try:
             response = await call_next(request)
@@ -85,19 +72,7 @@ def create_app() -> FastAPI:
             response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
             if settings.environment.lower() == "production":
                 response.headers["Strict-Transport-Security"] = "max-age=63072000"
-        response_payload: Any = None
-        content_type = response.headers.get("content-type", "")
-        if "application/json" in content_type and hasattr(response, "body"):
-            try:
-                import json
-                raw_response = response.body
-                if raw_response and len(raw_response) <= 64_000:
-                    response_payload = json.loads(raw_response)
-            except (AttributeError, UnicodeDecodeError, ValueError):
-                response_payload = None
-        duration_ms = round((time.perf_counter() - started) * 1000, 2)
-        logger.info("request_complete method=%s path=%s status=%s duration_ms=%s", request.method, request.url.path, response.status_code, duration_ms)
-        record_backend(method=request.method, endpoint=request.url.path, status=response.status_code, duration_ms=duration_ms, correlation_id=request_id, request_body=request_payload, response_body=response_payload, level="error" if response.status_code >= 500 else "warning" if response.status_code >= 400 else "info", message="Requisição concluída")
+        logger.info("request_complete method=%s path=%s status=%s", request.method, request.url.path, response.status_code)
         return response
 
     @application.exception_handler(AppException)
@@ -118,7 +93,6 @@ def create_app() -> FastAPI:
             logger.exception("health_database_probe_failed")
             return JSONResponse(status_code=503, content={"status": "degradado", "service": "fastapi", "version": settings.app_version, "database": "unavailable", "database_engine": settings.database_engine})
 
-    application.include_router(observability_router)
     application.include_router(projects_router)
     application.include_router(files_router)
     from app.modules.audit.controller import router as audit_router

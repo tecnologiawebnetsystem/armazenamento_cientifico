@@ -40,52 +40,6 @@ export const API_CONFIG = {
   mode: "fastapi",
 } as const
 
-export type ObservabilityEvent = {
-  timestamp: string
-  source: "frontend" | "backend"
-  level: string
-  message: string
-  endpoint?: string
-  status?: number
-  duration_ms?: number
-  correlation_id?: string
-  frontend_page?: string
-  frontend_file?: string
-  backend_file?: string
-  metadata?: Record<string, unknown>
-  request_body?: unknown
-  response_body?: unknown
-}
-export type ObservabilityStats = { total: number; errors: number; frontend: number; backend: number; error_rate: number; correlated_groups: number; latency: { average: number; p50: number; p95: number } }
-export type ObservabilityResponse = { events: ObservabilityEvent[]; stats: ObservabilityStats; pagination: { page: number; limit: number; total_pages: number } }
-export type ObservabilityOverview = {
-  window_minutes: number
-  generated_at: string
-  timeseries: Array<{ timestamp: string; events: number; errors: number; latency_ms: number }>
-  dependencies: Array<{ name: string; requests: number; errors: number; latency_ms: number; status: "healthy" | "degraded" }>
-  traces: Array<{ correlation_id: string; events: ObservabilityEvent[]; duration_ms: number; has_error: boolean }>
-  security: { suspicious_events: number; auth_failures: number }
-}
-
-export function getObservabilityOverview(windowMinutes = 60) {
-  return request<ObservabilityOverview>(`/api/observabilidade/overview?window_minutes=${windowMinutes}`)
-}
-
-export function getObservabilityEvents(params: { source?: string; status?: string; level?: string; search?: string; endpoint?: string; page?: number; limit?: number } = {}) {
-  const query = new URLSearchParams({ limit: String(params.limit ?? 50), page: String(params.page ?? 1) })
-  Object.entries(params).forEach(([key, value]) => value !== undefined && value !== "" && key !== "page" && key !== "limit" && query.set(key, String(value)))
-  return request<ObservabilityResponse>(`/api/observabilidade/events?${query}`)
-}
-
-export function getObservabilityExport(format: "json" | "csv", params: Record<string, string> = {}) {
-  const query = new URLSearchParams({ format, ...params })
-  return downloadFile(`/api/observabilidade/export?${query}`)
-}
-
-export function reportFrontendEvent(event: Omit<ObservabilityEvent, "timestamp" | "source">) {
-  return fetchRequest(`${API_BASE_URL}/api/observabilidade/events`, { method: "POST", body: JSON.stringify(event), keepalive: true }).then(() => undefined)
-}
-
 class ApiError extends Error {
   status: number
   constructor(status: number, message: string) {
@@ -114,12 +68,7 @@ async function fetchRequest(url: string, init?: RequestInit): Promise<Response> 
 type ApiErrorBody = { message?: string; detail?: string }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const started = performance.now()
   const res = await fetchRequest(`${API_BASE_URL}${path}`, init)
-  if (typeof window !== "undefined" && !path.startsWith("/api/observabilidade")) {
-    void fetch(`${API_BASE_URL}/api/observabilidade/events`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ level: res.ok ? "info" : "error", message: `${init?.method ?? "GET"} ${path}`, endpoint: path, status: res.status, metadata: { duration_ms: Math.round(performance.now() - started) } }) }).catch(() => undefined)
-  }
-
   if (!res.ok) {
     const body = (await res.json().catch(() => ({ message: res.statusText }))) as ApiErrorBody
     throw new ApiError(res.status, body.message ?? body.detail ?? "Erro inesperado na requisição")

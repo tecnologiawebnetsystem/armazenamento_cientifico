@@ -203,7 +203,7 @@ O frontend está em [`frontend/`](frontend/) e é uma instalação Next.js indep
 | [`wiki-dev.md`](wiki-dev.md) | Documentação técnica consolidada; não há página Wiki Dev no frontend. |
 | [`frontend/components/`](frontend/components/) | Componentes reutilizáveis de UI e domínio. |
 | [`frontend/components/ui/`](frontend/components/ui/) | Componentes base do shadcn/ui. |
-| [`frontend/hooks/`](frontend/hooks/) | Hooks para sessão, usuários, projetos, arquivos, permissões e logs. |
+| [`frontend/hooks/`](frontend/hooks/) | Hooks para sessão, usuários, projetos, arquivos e permissões. |
 | [`frontend/lib/`](frontend/lib/) | Cliente HTTP, tipos, estado, navegação e utilitários. |
 | [`frontend/lib/api-client.ts`](frontend/lib/api-client.ts) | Centraliza chamadas para a API. |
 | [`frontend/public/`](frontend/public/) | Imagens, fontes e arquivos estáticos. |
@@ -410,7 +410,7 @@ Trilha de auditoria das operações.
 | `ip_address` | Origem da requisição. |
 | `created_at` | Momento do evento. |
 
-Usada em [`frontend/components/administracao/activity-log-table.tsx`](frontend/components/administracao/activity-log-table.tsx). Endpoint: `GET /api/activity-logs`.
+Disponível para consulta administrativa pelo endpoint `GET /api/activity-logs`.
 
 ### Como confirmar no código
 
@@ -481,17 +481,6 @@ erDiagram
 O relatório de projetos usa os dados persistidos de `projects`, `files`, `project_members` e os campos ativos de `report_fields`. A consulta JSON está em `GET /api/reports`; as exportações estão em `GET /api/reports/export` com `format=csv|txt|pdf`, filtros `status`, `area`, `gestorId` e `fields`. Os rótulos e campos são carregados do catálogo `report_fields`; o PDF retorna `application/pdf` com `Content-Disposition` próprio.
 
 A tela de relatórios carrega os status ativos de `GET /api/catalogos`, sem lista fixa de status para o filtro. O backend reaplica a autorização e os filtros antes de gerar CSV, TXT ou PDF.
-
-### Observabilidade operacional
-
-O módulo `observabilidade` concentra eventos operacionais e expõe:
-
-- `GET /api/observabilidade/events`: consulta paginada de eventos com filtros;
-- `GET /api/observabilidade/overview`: visão agregada de métricas, erros, latência, traces correlacionados, dependências e sinais de segurança;
-- `GET /api/observabilidade/health`: saúde operacional;
-- `GET /api/observabilidade/export`: exportação dos eventos.
-
-A correlação usa `correlation_id`; dependências são derivadas dos campos `service`/`dependency`; falhas `401`, `403` e eventos críticos alimentam os indicadores de segurança. A tela `/observabilidade` é a visão unificada para métricas, logs e rastreamento.
 
 ### Estado da API
 
