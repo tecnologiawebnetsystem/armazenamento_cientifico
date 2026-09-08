@@ -330,7 +330,7 @@ Usuários que podem iniciar sessão.
 | `is_active` | Indica se o usuário pode entrar. |
 | `created_at`, `updated_at` | Auditoria temporal. |
 
-Usada pelo login, sessão e administração de usuários. Endpoints: `POST /api/auth/login`, `GET /api/auth/session` e `GET/POST/PATCH/DELETE /api/users`.
+Usada pelo login, sessão e seleção de participantes em projetos. Endpoints: `POST /api/auth/login`, `GET /api/auth/session` e `GET /api/users` para consulta autenticada.
 
 ### projects
 
@@ -512,7 +512,7 @@ A fonte viva do contrato é o [Swagger](http://localhost:8080/docs) e o arquivo 
 | Login | `POST /api/auth/login` | Inicia sessão por e-mail. |
 | Sessão | `GET /api/auth/session` | Retorna o usuário atual. |
 | Logout | `POST /api/auth/logout` | Encerra sessão. |
-| Usuários | `GET/POST /api/users`, `GET/PATCH/DELETE /api/users/{id}` | Administração de usuários. |
+| Usuários | `GET /api/users` | Consulta autenticada para seleção de participantes e membros. |
 | Perfis | `GET /api/perfis` | Catálogo de perfis com IDs fixos e vínculo `users.perfil_id`. |
 | Permissões | `GET /api/permissions` | Consulta permissões disponíveis. |
 | Projetos | `GET/POST /api/projects`, `GET/PATCH/DELETE /api/projects/{id}` | CRUD de projetos. |
@@ -541,7 +541,7 @@ A fonte viva do contrato é o [Swagger](http://localhost:8080/docs) e o arquivo 
 |---|---|---|
 | Cliente HTTP | Todos os endpoints | [`frontend/lib/api-client.ts`](frontend/lib/api-client.ts) |
 | Sessão | `/api/auth/session` | [`frontend/hooks/use-session.ts`](frontend/hooks/use-session.ts), [`frontend/app/login/page.tsx`](frontend/app/login/page.tsx) |
-| Usuários | `/api/users` | [`frontend/hooks/use-users.ts`](frontend/hooks/use-users.ts), componentes de administração |
+| Usuários | `/api/users` | [`frontend/hooks/use-users.ts`](frontend/hooks/use-users.ts), seleção de membros de projetos |
 | Permissões | `/api/permissions` | [`frontend/hooks/use-permissions.ts`](frontend/hooks/use-permissions.ts) |
 | Projetos | `/api/projects` | [`frontend/hooks/use-projects.ts`](frontend/hooks/use-projects.ts), [`frontend/hooks/use-project.ts`](frontend/hooks/use-project.ts), páginas de projetos |
 | Membros | `/api/projects/{id}/members` | [`frontend/hooks/use-project-members.ts`](frontend/hooks/use-project-members.ts) |

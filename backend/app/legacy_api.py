@@ -830,23 +830,12 @@ async def unshare(fid: str, userId: str, request: Request):
     await p.execute("delete from file_shares where file_id=$1 and user_id=$2", fid, userId)
 
 
-@app.get("/api/users")
-async def users(request: Request):
+@app.get("/api/users", tags=["Directory"])
+async def users_directory(request: Request):
     await require(request)
     p = await db()
     rows = await p.fetch("select * from users order by name")
     return {"users": [user(r) for r in rows], "total": len(rows)}
-
-
-@app.patch("/api/users/{uid}")
-async def user_role(uid: str, x: RolePatch, request: Request):
-    u = await require(request, ("admin",))
-    p = await db()
-    r = await p.fetchrow("update users set role=$1 where id=$2 returning *", x.role, uid)
-    if not r:
-        raise HTTPException(404, "Usuário não encontrado")
-    await audit(u, "alterar-perfil", "usuário", uid, x.role)
-    return {"user": user(r)}
 
 
 @app.get("/api/dashboard/summary", tags=["Dashboard"])

@@ -53,6 +53,8 @@ export type ObservabilityEvent = {
   frontend_file?: string
   backend_file?: string
   metadata?: Record<string, unknown>
+  request_body?: unknown
+  response_body?: unknown
 }
 export type ObservabilityStats = { total: number; errors: number; frontend: number; backend: number; error_rate: number; correlated_groups: number; latency: { average: number; p50: number; p95: number } }
 export type ObservabilityResponse = { events: ObservabilityEvent[]; stats: ObservabilityStats; pagination: { page: number; limit: number; total_pages: number } }
@@ -363,18 +365,11 @@ export function getProjectReportExportPath(params: { format: "csv" | "txt" | "pd
   return `/api/reports/export?${query.toString()}`
 }
 
-/* ---------------------------------- Users --------------------------------- */
+/* --------------------------- Directory lookup ---------------------------- */
 
 export async function getUsers() {
   const response = await request<User[] | { users: User[] }>("/api/users")
   return { users: Array.isArray(response) ? response : (response.users ?? []) }
-}
-
-export function updateUserRole(id: string, role: Role, perfilId: string) {
-return request<User>(`/api/users/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ role, perfilId }),
-    })
 }
 
 /* ----------------------------- Access requests ---------------------------- */
