@@ -1,293 +1,73 @@
-# Integração do login corporativo — CAV4 e Microsoft Entra ID
+# Integração de login corporativo — CAV4 e Microsoft Entra ID
 
-**Projeto:** SIGAC / armazenamento_cientifico  
-**Status:** documento de preparação técnica  
-**Última atualização:** 07/09/2026  
+> Guia prático para entender o que o SIGAC precisa receber, configurar e validar. Não contém valores secretos.
 
-## 1. Objetivo
+## 1. Resumo executivo
 
-Este documento descreve o que deve ser levantado e configurado para integrar o login corporativo da aplicação com o CAV4 e o Microsoft Entra ID (antigo Azure AD). Ele separa claramente:
+O login corporativo pode envolver dois sistemas diferentes:
 
-- o que já existe na aplicação;
-- o que o Entra ID fornece por OpenID Connect (OIDC);
-- o que precisa ser confirmado com o time responsável pelo CAV4;
-- quais endpoints são internos e quais são externos;
-- quais permissões e informações são necessárias para desenvolvimento, homologação e produção.
+- **Microsoft Entra ID:** provedor de identidade OIDC. Autentica o usuário e entrega uma identidade validável.
+- **CAV4:** integração corporativa ainda dependente de contrato técnico oficial. Não devemos inventar endpoints, chaves ou formato de token.
 
-> **Importante:** CAV4 é tratado aqui como um sistema corporativo externo cujo contrato técnico ainda precisa ser confirmado. Não devem ser inventados endpoints, scopes, claims ou formatos de token do CAV4 sem documentação oficial do proprietário do serviço.
+O Entra autentica. O backend do SIGAC valida o token, localiza o usuário local, aplica o perfil interno e cria a sessão.
 
-## 2. Estado atual identificado
+## 2. Fluxo visual
 
-### 2.1 Frontend
-
-- Aplicação Next.js com App Router.
-- Tela de login própria em `/login`.
-- Cliente HTTP centralizado em `frontend/lib/api-client.ts`.
-- Proxy de frontend em `frontend/proxy.ts`.
-- Sessão consumida pelos componentes autenticados por meio de `frontend/hooks/use-session.ts`.
-- A interface já possui controle de navegação e ações por perfil.
-
-### 2.2 Backend
-
-- API Python/FastAPI.
-- Rotas de autenticação e compatibilidade concentradas parcialmente em `backend/app/legacy_api.py`.
-- Dependências de autenticação/autorização em `backend/app/api/dependencies.py`.
-- Regras de perfil em `backend/app/core/authorization.py`.
-- Usuário de aplicação persistido no módulo `backend/app/modules/users`.
-- Os perfis funcionais atuais incluem Administrador, Gerente, Patrocinador, Auditor e Solicitante.
-
-### 2.3 Consequência para o SSO
-
-A integração não deve confiar apenas no token recebido do provedor. O fluxo recomendado é:
-
-1. Entra ID autentica o colaborador.
-2. A aplicação valida o código/token conforme OIDC.
-3. A aplicação identifica o usuário corporativo por `oid` ou `sub` estável.
-4. A aplicação localiza ou provisiona o usuário interno.
-5. A aplicação aplica seus próprios perfis, escopos e permissões.
-6. A sessão interna é criada com os dados mínimos necessários.
-
-## 3. Arquitetura recomendada
-
-```text
-Navegador
-   |
-   | 1. Authorization Code + PKCE
-   v
-SIGAC Frontend / Backend
-   |
-   | 2. Redirecionamento para o tenant corporativo
-   v
-Microsoft Entra ID
-   |
-   | 3. ID token / authorization code
-   v
-SIGAC Backend
-   |
-   | 4. Descoberta/provisionamento de usuário
-   +--------------------+
-   |                    |
-   v                    v
-Banco do SIGAC       CAV4, se necessário
+```mermaid
+sequenceDiagram
+  actor U as Usuário
+  participant F as Frontend SIGAC
+  participant B as Backend SIGAC
+  participant E as Microsoft Entra ID
+  participant C as CAV4
+  participant D as Banco/Sessão
+  U->>F: Clica no login corporativo
+  F->>B: GET /api/auth/entra/start
+  B-->>F: URL de autorização
+  F->>E: Redirecionamento OIDC
+  E-->>F: code + state
+  F->>B: GET /api/auth/entra/callback
+  B->>E: Troca code por tokens
+  E-->>B: ID token / access token
+  B->>B: Valida issuer, audience, tenant, assinatura e expiração
+  B->>D: Localiza/cria usuário e sessão local
+  opt CAV4 contratado
+    B->>C: Consulta conforme contrato oficial
+    C-->>B: Identidade, grupos ou autorização
+  end
+  B-->>F: Aplicação autenticada
 ```
 
-### Decisão recomendada
+## 3. O que o Entra ID precisa fornecer
 
-- Usar **OpenID Connect sobre OAuth 2.0** com fluxo **Authorization Code + PKCE**.
-- Manter o segredo `client_secret` somente no backend quando o aplicativo for confidential client.
-- Não armazenar access tokens no `localStorage`.
-- Usar cookies de sessão `HttpOnly`, `Secure` e `SameSite` compatíveis com o domínio publicado.
-- Separar tenants/clients de desenvolvimento, homologação e produção.
+| Informação | Variável | Obrigatória | Observação |
+|---|---|---:|---|
+| Directory/Tenant ID | `ENTRA_TENANT_ID` | Sim | Identifica o tenant corporativo. |
+| Application/Client ID | `ENTRA_CLIENT_ID` | Sim | Identifica o app registrado. |
+| Client Secret | `ENTRA_CLIENT_SECRET` | Sim no backend | Nunca vai para o frontend ou Git. |
+| Callback | `ENTRA_REDIRECT_URI` | Sim | Deve ser idêntico ao cadastrado no Portal Entra. |
+| Logout callback | `ENTRA_POST_LOGOUT_REDIRECT_URI` | Recomendado | Retorno após logout federado. |
+| Issuer/Authority | `ENTRA_ISSUER` / `ENTRA_AUTHORITY` | Recomendado | Deve apontar para o tenant correto. |
+| Escopos | `ENTRA_SCOPES` | Sim | Mínimo: `openid profile email`. |
 
-## 4. Informações necessárias do time corporativo
+### Redirect URIs
 
-Solicitar os seguintes dados ao time de identidade:
-
-### 4.1 Entra ID
-
-- Tenant ID (`directory_id`).
-- Domínio verificado do tenant.
-- Tipo de conta permitida: somente organização, múltiplos tenants ou contas Microsoft.
-- Client ID da aplicação registrada.
-- Client secret ou certificado, se o cliente for confidential.
-- Data de expiração e processo de rotação do segredo/certificado.
-- Redirect URI de desenvolvimento.
-- Redirect URI de homologação.
-- Redirect URI de produção.
-- Front-channel logout URL, se utilizado.
-- Post-logout redirect URI.
-- Endpoints OIDC oficiais do tenant.
-- Política de Conditional Access aplicável.
-- Requisitos de MFA, dispositivo gerenciado e localização de rede.
-
-### 4.2 CAV4
-
-Confirmar oficialmente:
-
-- Nome completo do produto e equipe proprietária.
-- Ambiente de desenvolvimento, homologação e produção.
-- Método de integração: OIDC, SAML 2.0, OAuth 2.0, API REST, SOAP ou outro.
-- Se o CAV4 é o IdP, um broker de identidade ou apenas um sistema consumidor.
-- URL de discovery/metadata.
-- Issuer, authorization endpoint, token endpoint e logout endpoint, se OIDC.
-- Entity ID, SSO URL e certificado X.509, se SAML.
-- Base URL, endpoints, scopes e método de autenticação, se API.
-- Regras de rede: VPN, allowlist de IP, private link, mTLS ou proxy.
-- Formato de identificador do usuário.
-- Atributos/claims liberados.
-- Grupos ou funções enviados pelo CAV4.
-- Limites de requisição, timeout e política de retry.
-- Processo de revogação e desligamento de usuários.
-- Contato de suporte e janela de mudança.
-
-## 5. Permissões recomendadas no Entra ID
-
-A configuração mínima deve começar com escopo de identidade. Só solicitar permissões adicionais se uma funcionalidade realmente precisar delas.
-
-### 5.1 OpenID Connect básico
-
-Para login e identificação:
-
-- `openid` — obrigatório para ID token.
-- `profile` — nome, sobrenome e informações básicas do perfil.
-- `email` — email quando disponibilizado pelo tenant.
-- `offline_access` — somente se a aplicação precisar renovar acesso sem novo login; evitar se uma sessão curta for suficiente.
-
-### 5.2 Microsoft Graph — somente se necessário
-
-O login básico não exige leitura ampla do Graph. Caso seja necessário consultar grupos ou dados corporativos, validar com o time de segurança uma destas opções:
-
-- `User.Read` — leitura do perfil do usuário autenticado.
-- `GroupMember.Read.All` — leitura de associação a grupos; é privilegiada e normalmente requer consentimento administrativo.
-- `Directory.Read.All` — evitar por ser ampla; usar somente com justificativa formal.
-
-Não solicitar `Mail.*`, `Files.*`, `Sites.*`, `Calendars.*` ou permissões administrativas se o SIGAC não tiver uma funcionalidade que dependa delas.
-
-### 5.3 App roles preferíveis a grupos quando possível
-
-Para autorização corporativa, preferir **App Roles** dedicadas ao SIGAC, por exemplo:
-
-- `SIGAC.Admin` — administração do sistema.
-- `SIGAC.Manager` — gestão operacional.
-- `SIGAC.Sponsor` — acompanhamento/patrocínio.
-- `SIGAC.Auditor` — consulta de auditoria.
-- `SIGAC.Requester` — abertura e acompanhamento de solicitações.
-
-A aplicação deve mapear essas roles para seus perfis internos. A atribuição final de acesso deve continuar sendo validada no backend.
-
-## 6. Claims e informações esperadas
-
-### 6.1 Claims mínimos
-
-| Claim | Uso | Obrigatório |
-|---|---|---:|
-| `iss` | Validar emissor e tenant | Sim |
-| `aud` | Validar client ID da aplicação | Sim |
-| `exp` | Validar expiração | Sim |
-| `iat` | Validar emissão | Recomendado |
-| `nbf` | Validar início de validade | Recomendado |
-| `tid` | Confirmar tenant corporativo | Sim |
-| `oid` | Identificador estável do usuário no tenant | Sim |
-| `sub` | Identificador do sujeito no contexto do aplicativo | Sim |
-| `name` | Nome de exibição | Recomendado |
-| `preferred_username` | Login/identificador apresentado pelo Entra | Recomendado |
-| `email` | Email, quando fornecido | Opcional |
-| `roles` | App Roles do SIGAC | Se adotado |
-| `groups` | Grupos do Entra | Somente se aprovado |
-
-### 6.2 Identidade local
-
-Persistir no usuário interno, no mínimo:
-
-- `entra_tenant_id`;
-- `entra_object_id` (`oid`);
-- `subject` (`sub`), se necessário para o contexto do client;
-- email corporativo;
-- nome completo;
-- status ativo/inativo;
-- perfil SIGAC;
-- data do último login;
-- data de sincronização dos atributos;
-- origem do cadastro: `entra_id`, `cav4` ou manual;
-- identificador do CAV4, quando existir.
-
-Não usar email como chave primária de identidade, pois ele pode mudar.
-
-## 7. Endpoints externos esperados
-
-Os valores abaixo são padrões OIDC e devem ser substituídos pelos valores oficiais do tenant:
+Cadastrar uma URI exata para cada ambiente:
 
 ```text
-GET  https://login.microsoftonline.com/{tenant}/v2.0/.well-known/openid-configuration
-GET  https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize
-POST https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token
-GET  https://graph.microsoft.com/oidc/userinfo       (se habilitado/necessário)
-POST https://login.microsoftonline.com/{tenant}/oauth2/v2.0/logout
+Desenvolvimento: http://localhost:8000/api/auth/entra/callback
+Homologação:     https://hml.exemplo.com/api/auth/entra/callback
+Produção:        https://sigac.exemplo.com/api/auth/entra/callback
 ```
 
-A aplicação deve obter os endpoints pelo documento de discovery quando possível, em vez de duplicar URLs em vários arquivos.
+Os domínios acima são exemplos. Devem ser substituídos pelos endereços oficiais.
 
-### CAV4
+## 4. Variáveis de ambiente
 
-Os endpoints do CAV4 não devem ser codificados antes da confirmação do contrato. Criar uma tabela de preenchimento na homologação:
+### Backend
 
-| Finalidade | Método | URL | Auth | Timeout |
-|---|---|---|---|---:|
-| Discovery/metadata | GET | A confirmar | Público ou mTLS | A confirmar |
-| Autorização | GET | A confirmar | OIDC/SAML | A confirmar |
-| Troca de token | POST | A confirmar | OAuth/mTLS | A confirmar |
-| Perfil/usuário | GET | A confirmar | Bearer/mTLS | A confirmar |
-| Logout/revogação | POST/GET | A confirmar | Conforme contrato | A confirmar |
-| Consulta de grupos/roles | GET | A confirmar | Conforme contrato | A confirmar |
-
-## 8. Endpoints internos que deverão existir
-
-Os nomes abaixo são uma proposta de contrato interno. Devem ser implementados em uma única camada, sem duplicar a mesma responsabilidade em `legacy_api.py` e nos módulos novos.
-
-```text
-GET  /auth/entra/login
-GET  /auth/entra/callback
-POST /auth/logout
-GET  /auth/session
-GET  /auth/me
-POST /auth/refresh              (somente se houver refresh token)
-GET  /auth/health/identity      (admin/observabilidade)
-```
-
-Se o CAV4 participar diretamente do login, acrescentar somente após definir o fluxo:
-
-```text
-GET  /auth/cav4/login
-GET  /auth/cav4/callback
-GET  /auth/cav4/metadata
-```
-
-### Regras dos endpoints internos
-
-- `callback` deve validar `state`, `nonce`, PKCE e troca de código no servidor.
-- Validar assinatura, `iss`, `aud`, `tid`, `exp`, `nbf` e nonce do ID token.
-- Não aceitar perfil vindo apenas do navegador.
-- `auth/session` deve retornar somente dados necessários para a UI.
-- `logout` deve invalidar a sessão local e redirecionar para logout do provedor, quando exigido.
-- Endpoints administrativos devem usar as dependências de autorização existentes.
-- Registrar auditoria sem armazenar tokens ou dados excessivos.
-
-## 9. Mapeamento de autorização
-
-| Identidade corporativa | Perfil interno | Acesso esperado |
-|---|---|---|
-| `SIGAC.Admin` | Administrador | Usuários, perfis, configurações, auditoria e todos os módulos |
-| `SIGAC.Manager` | Gerente | Gestão operacional e projetos conforme escopo |
-| `SIGAC.Sponsor` | Patrocinador | Consulta e acompanhamento de projetos atribuídos |
-| `SIGAC.Auditor` | Auditor | Consulta, relatórios e trilhas de auditoria |
-| `SIGAC.Requester` | Solicitante | Criação e acompanhamento de solicitações próprias |
-
-Se uma pessoa possuir mais de uma role, definir precedência ou permitir composição explícita. O backend deve negar por padrão quando nenhuma role estiver mapeada.
-
-## 10. Segurança e conformidade
-
-- Usar Authorization Code + PKCE.
-- Nunca expor client secret no frontend.
-- Nunca guardar tokens em `localStorage`.
-- Usar cookies `HttpOnly`, `Secure` e política `SameSite` adequada.
-- Restringir `redirect_uri` a URLs exatas.
-- Validar tenant e issuer; não aceitar qualquer tenant.
-- Validar audience específica da aplicação.
-- Implementar proteção CSRF/state e nonce.
-- Aplicar timeout, retry limitado e circuit breaker para CAV4.
-- Redigir tokens, secrets e PII nos logs.
-- Configurar rotação de secrets/certificados.
-- Definir processo de desligamento e revogação.
-- Aplicar menor privilégio no Graph.
-- Manter trilha de auditoria para login, logout, falha, provisionamento e alteração de perfil.
-- Não permitir que claims de grupo substituam as permissões de escopo do SIGAC.
-
-## 11. Ambientes e variáveis necessárias
-
-### Desenvolvimento
-
-```text
-IDENTITY_PROVIDER=entra
+```env
+ENTRA_ENABLED=false
 ENTRA_TENANT_ID=
 ENTRA_CLIENT_ID=
 ENTRA_CLIENT_SECRET=
@@ -295,92 +75,220 @@ ENTRA_ISSUER=
 ENTRA_AUTHORITY=
 ENTRA_REDIRECT_URI=
 ENTRA_POST_LOGOUT_REDIRECT_URI=
-ENTRA_ALLOWED_ROLES=SIGAC.Admin,SIGAC.Manager,SIGAC.Sponsor,SIGAC.Auditor,SIGAC.Requester
+ENTRA_SCOPES=openid profile email
+ENTRA_AUTO_CREATE_USER=false
+
+# Preencher somente após o contrato CAV4 ser aprovado
+CAV4_ENABLED=false
 CAV4_BASE_URL=
 CAV4_CLIENT_ID=
 CAV4_CLIENT_SECRET=
 CAV4_ISSUER=
 CAV4_AUDIENCE=
+CAV4_API_KEY=
 ```
 
-As variáveis do CAV4 só devem ser preenchidas quando o contrato for confirmado. Secrets devem ficar no gerenciador de segredos do ambiente, nunca no Git.
+| Variável | Uso | Exposição |
+|---|---|---|
+| `ENTRA_ENABLED` / `CAV4_ENABLED` | Liga ou desliga o provedor. | Somente backend. |
+| `ENTRA_TENANT_ID` | Restringe o tenant. | Configuração privada. |
+| `ENTRA_CLIENT_ID` | Identifica a aplicação. | Não usar no frontend sem necessidade. |
+| `ENTRA_CLIENT_SECRET` | Troca o código por tokens. | **Nunca expor.** |
+| `CAV4_CLIENT_SECRET` / `CAV4_API_KEY` | Credencial CAV4, se o contrato exigir. | **Nunca expor.** |
+| `*_REDIRECT_URI` | Callback do provedor. | Deve ser exata. |
 
-## 12. Checklist de homologação
+O frontend não deve receber `CLIENT_SECRET`, API keys, access tokens ou chaves privadas. Nunca registrar esses valores em logs.
 
-### Identidade
+## 5. Permissões mínimas no Entra
 
-- [ ] Login com usuário permitido.
-- [ ] Login com usuário não atribuído ao aplicativo.
-- [ ] MFA e Conditional Access.
-- [ ] Token expirado.
-- [ ] Issuer, audience ou tenant inválidos.
-- [ ] Usuário sem email.
-- [ ] Alteração de nome/email.
-- [ ] Usuário desabilitado no Entra.
-- [ ] Usuário sem App Role.
-- [ ] Usuário com múltiplas App Roles.
-- [ ] Logout local e logout federado.
-- [ ] Repetição de callback e replay de `state`.
+Solicitar somente:
 
-### Autorização
+- `openid` — habilita identificação OIDC.
+- `profile` — informações básicas do perfil.
+- `email` — e-mail quando disponível.
+- `offline_access` — somente se houver necessidade real de renovação de token.
+- `User.Read` — somente se o Graph for usado.
+- `GroupMember.Read.All` — somente com aprovação de segurança; é privilegiada.
 
-- [ ] Cada perfil acessa somente seus módulos.
-- [ ] Ações ocultadas no frontend também são recusadas no backend.
-- [ ] Projetos/pastas respeitam escopo individual.
-- [ ] Auditoria registra sucesso e falha sem token.
-- [ ] Alteração de perfil exige permissão administrativa.
+Preferir App Roles próprias do SIGAC em vez de permissões amplas do Graph:
 
-### Integração CAV4
+```text
+SIGAC.Admin
+SIGAC.Manager
+SIGAC.Sponsor
+SIGAC.Auditor
+SIGAC.Requester
+```
 
-- [ ] Discovery/metadata oficial validado.
-- [ ] Certificados e cadeia TLS aprovados.
-- [ ] Allowlist/VPN/mTLS testados.
-- [ ] Timeout e indisponibilidade testados.
-- [ ] Respostas inválidas e rate limit tratados.
-- [ ] Correlação de usuário CAV4 x Entra x SIGAC validada.
+## 6. Claims necessários
 
-## 13. Entregáveis solicitados ao time corporativo
+| Claim | Uso |
+|---|---|
+| `iss` | Validar emissor. |
+| `aud` | Confirmar que o token é para o SIGAC. |
+| `exp` / `nbf` | Validar validade. |
+| `tid` | Confirmar o tenant permitido. |
+| `oid` | Identificador estável do usuário no tenant. Preferido para vínculo. |
+| `sub` | Identificador do sujeito no contexto do app. |
+| `name` | Nome de exibição. |
+| `preferred_username` / `email` | Login e contato, quando disponíveis. |
+| `roles` / `groups` | Autorização corporativa, se aprovada. |
 
-1. Documento de arquitetura do CAV4.
-2. Metadata/discovery de cada ambiente.
-3. Cadastro do aplicativo no Entra ID.
-4. Client ID, tenant ID e mecanismo de secret/certificado.
-5. Redirect URIs aprovadas.
-6. App Roles ou grupos aprovados.
-7. Claims liberados e exemplo de token redigido.
-8. Endpoints externos e requisitos de rede.
-9. Procedimentos de rotação e revogação.
-10. Usuários de teste por perfil.
-11. Critérios de aceite e evidências de homologação.
-12. Contatos de suporte, segurança e identidade.
+Não usar e-mail como única chave de identidade, pois ele pode mudar. O vínculo local deve guardar tenant + `oid` e, quando necessário, `sub`.
 
-## 14. Pontos que ainda precisam de decisão
+## 7. Endpoints do Entra ID
 
-- O CAV4 autentica diretamente ou o Entra ID será o único IdP?
-- O SIGAC precisa consultar dados do CAV4 durante o login ou somente receber identidade do Entra?
-- A autorização virá de App Roles, grupos do Entra, perfis do CAV4 ou combinação?
-- Haverá provisionamento automático ou aprovação manual do usuário interno?
-- Qual é o identificador corporativo oficial para correlação?
-- O acesso será somente pela rede corporativa ou também via internet com Conditional Access?
-- O logout deve encerrar a sessão somente no SIGAC ou também no Entra/CAV4?
-- Qual é o SLA esperado para indisponibilidade do CAV4?
+A URL oficial deve vir do discovery do tenant:
 
-## 15. Critério de pronto
+```text
+GET  https://login.microsoftonline.com/{tenant}/v2.0/.well-known/openid-configuration
+GET  https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize
+POST https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token
+GET  https://graph.microsoft.com/oidc/userinfo       # somente se necessário
+GET  https://login.microsoftonline.com/{tenant}/oauth2/v2.0/logout
+```
 
-A integração estará pronta quando:
+## 8. Endpoints internos do SIGAC
 
-- o fluxo de login estiver documentado e aprovado pelo time de identidade;
-- todos os endpoints externos tiverem owner, ambiente e contrato;
-- as App Roles/permissões estiverem aprovadas;
-- nenhum secret estiver no código ou no Git;
-- usuários de teste cobrirem os cinco perfis;
-- o backend validar tokens independentemente da UI;
-- logout, revogação, auditoria e indisponibilidade tiverem testes;
-- homologação tiver evidências anexadas ao change request.
+| Método | Endpoint | Finalidade |
+|---|---|---|
+| `GET` | `/api/auth/entra/start` | Inicia o redirecionamento OIDC. |
+| `GET` | `/api/auth/entra/callback` | Recebe o código e cria a sessão local. |
+| `POST` | `/api/auth/logout` | Encerra a sessão local. |
+| `GET` | `/api/auth/session` | Retorna a sessão atual. |
+| `GET` | `/api/auth/me` | Dados mínimos do usuário autenticado, se habilitado. |
+
+Os endpoints `CAV4` somente devem ser adicionados quando o contrato for recebido. Possíveis endpoints, ainda **não confirmados**:
+
+```text
+GET /api/auth/cav4/start
+GET /api/auth/cav4/callback
+GET /api/auth/cav4/metadata
+```
+
+O callback deve validar `state`, `nonce`, PKCE, issuer, audience, tenant, assinatura, expiração e usuário autorizado.
+
+## 9. O que o CAV4 precisa fornecer
+
+Solicitar formalmente, sem dados reais no documento:
+
+| Item | Pergunta necessária |
+|---|---|
+| Finalidade | Autentica, fornece autorização ou apenas consulta dados? |
+| URL | Qual base URL de desenvolvimento, homologação e produção? |
+| Endpoint | Qual endpoint de login, token, perfil e logout? |
+| Método | REST, SOAP, OIDC, SAML, redirect ou outro? |
+| Autenticação | API key, Basic, OAuth2, JWT, mTLS ou certificado? |
+| Chaves | Quem fornece client ID, secret, API key ou certificado? |
+| Request | Quais campos e headers são obrigatórios? |
+| Response | Quais campos representam matrícula, e-mail, grupos e status? |
+| Erros | O que significam 401, 403, 404, 409 e 5xx? |
+| Rede | Precisa de VPN, allowlist, proxy ou mTLS? |
+| Limites | Timeout, retry, rate limit e SLA? |
+| Logout | Logout local ou também remoto? |
+| Operação | Quem faz rotação de chaves e presta suporte? |
+
+### Contrato mínimo a preencher
+
+```text
+Nome do serviço:
+Owner técnico:
+Base URL homologação:
+Base URL produção:
+Endpoint:
+Método:
+Content-Type:
+Autenticação:
+Headers:
+Request anonimizado:
+Response de sucesso anonimizado:
+Response de erro:
+Timeout:
+Retry:
+Rate limit:
+Requisitos de rede:
+Processo de rotação:
+Contato de suporte:
+```
+
+Sem esse contrato, CAV4 deve permanecer como integração pendente.
+
+## 10. Segurança
+
+- Usar Authorization Code + PKCE.
+- Validar tenant, issuer, audience, assinatura e expiração no backend.
+- Validar `state` e `nonce` contra replay e CSRF.
+- Usar cookies `HttpOnly`, `Secure` e `SameSite` adequado.
+- Nunca usar `localStorage` para tokens.
+- Separar credenciais por ambiente.
+- Aplicar timeout e retry limitado no CAV4.
+- Redigir tokens, cookies, secrets e PII nos logs.
+- Rotacionar secrets e certificados antes do vencimento.
+- Negar por padrão claims/roles não mapeados.
+- Registrar login, logout, falhas e provisionamento na auditoria.
+
+## 11. Checklist Entra ID
+
+- [ ] App Registration no tenant correto.
+- [ ] Tipo de conta restrito ao tenant corporativo.
+- [ ] Redirect URI exata por ambiente.
+- [ ] Secret ou certificado com expiração controlada.
+- [ ] Escopos mínimos aprovados.
+- [ ] Claims disponíveis no token.
+- [ ] App Roles ou grupos definidos.
+- [ ] Usuários de teste atribuídos.
+- [ ] MFA e Conditional Access testados.
+- [ ] Logout e expiração testados.
+- [ ] Responsável e suporte registrados.
+
+## 12. Checklist CAV4
+
+- [ ] Contrato técnico oficial recebido.
+- [ ] URLs de homologação e produção confirmadas.
+- [ ] Método de autenticação definido.
+- [ ] Credenciais entregues por canal seguro.
+- [ ] Request/response anonimizados documentados.
+- [ ] Timeout, retry e rate limit definidos.
+- [ ] Mapeamento de identidade aprovado.
+- [ ] Códigos de erro conhecidos.
+- [ ] Indisponibilidade testada.
+- [ ] Rotação e revogação definidas.
+- [ ] Owner técnico e SLA definidos.
+
+## 13. Testes de aceite
+
+1. Login válido no tenant correto.
+2. Usuário de outro tenant rejeitado.
+3. `state` ou `nonce` inválido rejeitado.
+4. Código expirado ou reutilizado rejeitado.
+5. Token com issuer/audience incorretos rejeitado.
+6. Usuário sem perfil SIGAC tratado pela política definida.
+7. Usuário desabilitado rejeitado.
+8. Sessão criada e encerrada corretamente.
+9. CAV4 indisponível sem loop de retry.
+10. Logs sem tokens, secrets ou PII desnecessária.
+
+## 14. Responsabilidades
+
+| Responsável | Entrega |
+|---|---|
+| Identidade corporativa | Tenant, app, redirect URI, claims e permissões. |
+| CAV4 | Contrato, endpoints, autenticação, payloads e suporte. |
+| Backend SIGAC | Validação, integração server-side, sessão e auditoria. |
+| Frontend SIGAC | Botão, redirecionamento e mensagens. |
+| Segurança | Escopos, secrets, certificados, logs e rotação. |
+
+## 15. Resumo final
+
+Para o **Entra ID**, são necessários: tenant ID, client ID, secret ou certificado, redirect URI, escopos, claims e App Roles aprovadas.
+
+Para o **CAV4**, são necessários: endpoint oficial, método, autenticação, chaves, payloads, respostas, erros, ambientes, rede, timeout, retry, SLA e owner técnico. Sem essas informações, não é seguro implementar a integração.
+
+> Valores reais devem existir somente no gerenciador seguro de secrets do backend.
 
 ## Referências oficiais
 
-- Microsoft identity platform — OpenID Connect: https://learn.microsoft.com/entra/identity-platform/v2-protocols-oidc
-- Microsoft identity platform — OAuth 2.0 authorization code flow: https://learn.microsoft.com/entra/identity-platform/v2-oauth2-auth-code-flow
-- Microsoft Graph permissions reference: https://learn.microsoft.com/graph/permissions-reference
-- Microsoft identity platform — app roles: https://learn.microsoft.com/entra/identity-platform/howto-add-app-roles-in-apps
+- OIDC: https://learn.microsoft.com/entra/identity-platform/v2-protocols-oidc
+- OAuth Authorization Code: https://learn.microsoft.com/entra/identity-platform/v2-oauth2-auth-code-flow
+- Graph permissions: https://learn.microsoft.com/graph/permissions-reference
+- App roles: https://learn.microsoft.com/entra/identity-platform/howto-add-app-roles-in-apps
