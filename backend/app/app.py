@@ -20,7 +20,6 @@ from app.modules.files.module import router as files_router
 from app.modules.observability.module import record_backend
 from app.modules.observability.module import router as observability_router
 from app.modules.projects.module import router as projects_router
-from app.modules.users.module import router as users_router
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +102,6 @@ def create_app() -> FastAPI:
     application.include_router(observability_router)
     application.include_router(projects_router)
     application.include_router(files_router)
-    application.include_router(users_router)
     from app.modules.audit.controller import router as audit_router
     application.include_router(audit_router)
     application.mount("/", legacy_app)

@@ -363,18 +363,11 @@ export function getProjectReportExportPath(params: { format: "csv" | "txt" | "pd
   return `/api/reports/export?${query.toString()}`
 }
 
-/* ---------------------------------- Users --------------------------------- */
+/* --------------------------- Directory lookup ---------------------------- */
 
 export async function getUsers() {
   const response = await request<User[] | { users: User[] }>("/api/users")
   return { users: Array.isArray(response) ? response : (response.users ?? []) }
-}
-
-export function updateUserRole(id: string, role: Role, perfilId: string) {
-return request<User>(`/api/users/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ role, perfilId }),
-    })
 }
 
 /* ----------------------------- Access requests ---------------------------- */
