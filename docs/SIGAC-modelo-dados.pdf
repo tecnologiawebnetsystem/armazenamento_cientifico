@@ -6,183 +6,925 @@ endobj
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
 endobj
 3 0 obj
-<< /Length 2605 >>
+<< /Length 1793 >>
 stream
-0.96 0.98 0.97 rg 0 0 842 595 re f
-0.07 0.22 0.17 rg
-BT /F2 21 Tf 30 560 Td (SIGAC - Estrutura visual das tabelas) Tj ET
-BT /F1 8 Tf 32 542 Td (PK = chave primaria | FK = chave estrangeira | UK = campo unico | linhas = relacionamentos) Tj ET
-0.03 0.50 0.36 rg 30 380 145 105 re S
-0.03 0.50 0.36 rg 30 463 145 22 re f
-BT /F2 10 Tf 37 470 Td (profiles) Tj ET
-BT /F1 7 Tf 37 447 Td (PK id) Tj ET
-BT /F1 7 Tf 37 435 Td (UK name) Tj ET
-BT /F1 7 Tf 37 423 Td (description) Tj ET
-0.03 0.50 0.36 rg 30 205 145 120 re S
-0.03 0.50 0.36 rg 30 303 145 22 re f
-BT /F2 10 Tf 37 310 Td (users) Tj ET
-BT /F1 7 Tf 37 287 Td (PK id) Tj ET
-BT /F1 7 Tf 37 275 Td (UK email) Tj ET
-BT /F1 7 Tf 37 263 Td (FK profile_id) Tj ET
-BT /F1 7 Tf 37 251 Td (role) Tj ET
-0.76 0.53 0.00 rg 245 380 155 120 re S
-0.76 0.53 0.00 rg 245 478 155 22 re f
-BT /F2 10 Tf 252 485 Td (projects) Tj ET
-BT /F1 7 Tf 252 462 Td (PK id) Tj ET
-BT /F1 7 Tf 252 450 Td (UK code) Tj ET
-BT /F1 7 Tf 252 438 Td (name) Tj ET
-BT /F1 7 Tf 252 426 Td (status) Tj ET
-0.76 0.53 0.00 rg 245 205 155 125 re S
-0.76 0.53 0.00 rg 245 308 155 22 re f
-BT /F2 10 Tf 252 315 Td (files) Tj ET
-BT /F1 7 Tf 252 292 Td (PK id) Tj ET
-BT /F1 7 Tf 252 280 Td (FK project_id) Tj ET
-BT /F1 7 Tf 252 268 Td (FK parent_id) Tj ET
-BT /F1 7 Tf 252 256 Td (name) Tj ET
-0.16 0.50 0.60 rg 480 380 155 110 re S
-0.16 0.50 0.60 rg 480 468 155 22 re f
-BT /F2 10 Tf 487 475 Td (project_members) Tj ET
-BT /F1 7 Tf 487 452 Td (PK/FK project_id) Tj ET
-BT /F1 7 Tf 487 440 Td (PK/FK user_id) Tj ET
-BT /F1 7 Tf 487 428 Td (role) Tj ET
-0.55 0.29 0.61 rg 480 205 155 120 re S
-0.55 0.29 0.61 rg 480 303 155 22 re f
-BT /F2 10 Tf 487 310 Td (activity_logs) Tj ET
-BT /F1 7 Tf 487 287 Td (PK id) Tj ET
-BT /F1 7 Tf 487 275 Td (FK user_id) Tj ET
-BT /F1 7 Tf 487 263 Td (action) Tj ET
-BT /F1 7 Tf 487 251 Td (entity) Tj ET
-0.03 0.50 0.36 rg 705 380 110 110 re S
-0.03 0.50 0.36 rg 705 468 110 22 re f
-BT /F2 10 Tf 712 475 Td (permissions) Tj ET
-BT /F1 7 Tf 712 452 Td (PK id) Tj ET
-BT /F1 7 Tf 712 440 Td (FK module_id) Tj ET
-BT /F1 7 Tf 712 428 Td (code) Tj ET
-0.55 0.29 0.61 rg 705 205 110 110 re S
-0.55 0.29 0.61 rg 705 293 110 22 re f
-BT /F2 10 Tf 712 300 Td (sessions) Tj ET
-BT /F1 7 Tf 712 277 Td (PK id) Tj ET
-BT /F1 7 Tf 712 265 Td (FK user_id) Tj ET
-BT /F1 7 Tf 712 253 Td (expires_at) Tj ET
-0.35 0.50 0.45 RG 1.5 w
-102 380 m 102 325 l S
-175 265 m 245 265 l S
-175 265 m 480 435 l S
-175 265 m 480 265 l S
-400 265 m 480 265 l S
-400 440 m 480 440 l S
-635 435 m 705 435 l S
-175 265 m 705 260 l S
-BT /F1 8 Tf 30 35 Td (Modelo essencial de identidade, projetos, arquivos, permissoes, sessoes e auditoria) Tj ET
+BT /F2 18 Tf 42 805 Td (SIGAC — VISÃO VISUAL | IDENTIDADE E AUTORIZAÇÃO) Tj /F1 8 Tf 0 -25 Td
+(PK = chave primária | FK = chave estrangeira | UK = campo único) Tj
+0 -13 Td
+(TODAS AS TABELAS DESTE DOMÍNIO:) Tj
+0 -13 Td
+(profiles — Perfis funcionais de acesso) Tj
+0 -13 Td
+(  Campos: PK id, UK name, description, created_at) Tj
+0 -13 Td
+(users — Pessoas que usam o sistema) Tj
+0 -13 Td
+(  Campos: PK id, name, UK email, job_title, area, role, FK profile_id, avatar_url, last_login_at, created_at) Tj
+0 -13 Td
+(modules — Módulos navegáveis) Tj
+0 -13 Td
+(  Campos: PK id, UK name, route, icon, display_order, active) Tj
+0 -13 Td
+(permissions — Permissões por módulo) Tj
+0 -13 Td
+(  Campos: PK id, FK module_id, name, description, active) Tj
+0 -13 Td
+(profile_permissions — Perfis ligados a permissões) Tj
+0 -13 Td
+(  Campos: PK profile_id, PK permission_id, allowed) Tj
+0 -13 Td
+(profile_modules — Perfis ligados a módulos) Tj
+0 -13 Td
+(  Campos: PK profile_id, PK module_id, can_view) Tj
+0 -13 Td
+(menus — Itens de navegação) Tj
+0 -13 Td
+(  Campos: PK id, FK module_id, parent_id, name, route, icon, display_order, active) Tj
+0 -13 Td
+(sessions — Sessões autenticadas) Tj
+0 -13 Td
+(  Campos: PK id, FK user_id, expires_at) Tj
+0 -13 Td
+(permission_matrix — Matriz auxiliar de permissões) Tj
+0 -13 Td
+(  Campos: PK id, matrix) Tj
+0 -13 Td
+(RELACIONAMENTOS:) Tj
+0 -13 Td
+(  users.profile_id -> profiles.id) Tj
+0 -13 Td
+(  permissions.module_id -> modules.id) Tj
+0 -13 Td
+(  profile_permissions.profile_id -> profiles.id) Tj
+0 -13 Td
+(  profile_permissions.permission_id -> permissions.id) Tj
+0 -13 Td
+(  profile_modules.profile_id -> profiles.id) Tj
+0 -13 Td
+(  profile_modules.module_id -> modules.id) Tj
+0 -13 Td
+(  menus.module_id -> modules.id) Tj
+0 -13 Td
+(  sessions.user_id -> users.id) Tj
+ET
 endstream
 endobj
 4 0 obj
-<< /Type /Page /Parent 9 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 3 0 R >>
+<< /Type /Page /Parent 41 0 R /MediaBox [0 0 842 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 3 0 R >>
 endobj
 5 0 obj
-<< /Length 2232 >>
+<< /Length 968 >>
 stream
-0.96 0.98 0.97 rg 0 0 842 595 re f
-0.07 0.22 0.17 rg
-BT /F2 21 Tf 35 555 Td (SIGAC - Modelo de dados) Tj ET
-BT /F1 12 Tf 35 530 Td (Tabelas, campos e relacionamentos essenciais) Tj ET
-BT /F1 9 Tf 35 505 Td (PK identifica uma linha. FK aponta para outra tabela. UK impede valores repetidos.) Tj ET
-0.03 0.50 0.36 RG
-35 470 m 807 470 l S
-BT /F2 10 Tf 42 475 Td (profiles) Tj ET
-BT /F1 9 Tf 165 475 Td (Perfis e regras gerais de acesso.) Tj ET
-BT /F1 8 Tf 535 475 Td (id PK; name UK; description) Tj ET
-0.03 0.50 0.36 RG
-35 428 m 807 428 l S
-BT /F2 10 Tf 42 433 Td (users) Tj ET
-BT /F1 9 Tf 165 433 Td (Identidades usadas no login e nos vinculos.) Tj ET
-BT /F1 8 Tf 535 433 Td (id PK; email UK; profile_id FK; role) Tj ET
-0.03 0.50 0.36 RG
-35 386 m 807 386 l S
-BT /F2 10 Tf 42 391 Td (projects) Tj ET
-BT /F1 9 Tf 165 391 Td (Projetos cientificos ou administrativos.) Tj ET
-BT /F1 8 Tf 535 391 Td (id PK; code UK; name; status) Tj ET
-0.03 0.50 0.36 RG
-35 344 m 807 344 l S
-BT /F2 10 Tf 42 349 Td (project_members) Tj ET
-BT /F1 9 Tf 165 349 Td (Liga pessoas aos projetos e define papeis.) Tj ET
-BT /F1 8 Tf 535 349 Td (project_id PK/FK; user_id PK/FK; role) Tj ET
-0.03 0.50 0.36 RG
-35 302 m 807 302 l S
-BT /F2 10 Tf 42 307 Td (files) Tj ET
-BT /F1 9 Tf 165 307 Td (Arquivos e pastas dentro dos projetos.) Tj ET
-BT /F1 8 Tf 535 307 Td (id PK; project_id FK; parent_id FK; name) Tj ET
-0.03 0.50 0.36 RG
-35 260 m 807 260 l S
-BT /F2 10 Tf 42 265 Td (permissions) Tj ET
-BT /F1 9 Tf 165 265 Td (Capacidades que podem ser autorizadas.) Tj ET
-BT /F1 8 Tf 535 265 Td (id PK; module_id FK; code) Tj ET
-0.03 0.50 0.36 RG
-35 218 m 807 218 l S
-BT /F2 10 Tf 42 223 Td (activity_logs) Tj ET
-BT /F1 9 Tf 165 223 Td (Acoes importantes para auditoria.) Tj ET
-BT /F1 8 Tf 535 223 Td (id PK; user_id FK; action; entity) Tj ET
-0.03 0.50 0.36 RG
-35 176 m 807 176 l S
-BT /F2 10 Tf 42 181 Td (sessions) Tj ET
-BT /F1 9 Tf 165 181 Td (Sessoes autenticadas e expiracao.) Tj ET
-BT /F1 8 Tf 535 181 Td (id PK; user_id FK; expires_at) Tj ET
-BT /F2 13 Tf 35 105 Td (Como ler) Tj ET
-BT /F1 9 Tf 35 85 Td (Uma relacao 1:N significa que um registro pode estar ligado a varios.) Tj ET
-BT /F1 9 Tf 35 67 Td (Relacoes N:N usam tabelas de ligacao, como project_members.) Tj ET
+BT /F2 18 Tf 42 805 Td (SIGAC — VISÃO VISUAL | CATÁLOGOS E RELATÓRIOS) Tj /F1 8 Tf 0 -25 Td
+(PK = chave primária | FK = chave estrangeira | UK = campo único) Tj
+0 -13 Td
+(TODAS AS TABELAS DESTE DOMÍNIO:) Tj
+0 -13 Td
+(project_statuses — Catálogo de status) Tj
+0 -13 Td
+(  Campos: PK id, UK code, name, color, display_order, active, allows_edit) Tj
+0 -13 Td
+(project_types — Catálogo de tipos) Tj
+0 -13 Td
+(  Campos: PK id, UK code, name, description, active) Tj
+0 -13 Td
+(system_settings — Configurações gerais) Tj
+0 -13 Td
+(  Campos: PK key, value, value_type, description, group_name, active) Tj
+0 -13 Td
+(report_types — Tipos de relatório) Tj
+0 -13 Td
+(  Campos: PK id, UK code, name, description, formats, active) Tj
+0 -13 Td
+(report_fields — Campos de relatório) Tj
+0 -13 Td
+(  Campos: PK id, FK report_code, UK field_key, label, source_key, display_order, active) Tj
+0 -13 Td
+(RELACIONAMENTOS:) Tj
+0 -13 Td
+(  report_fields.report_code -> report_types.code) Tj
+ET
 endstream
 endobj
 6 0 obj
-<< /Type /Page /Parent 9 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 5 0 R >>
+<< /Type /Page /Parent 41 0 R /MediaBox [0 0 842 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 5 0 R >>
 endobj
 7 0 obj
-<< /Length 1282 >>
+<< /Length 1544 >>
 stream
-0.96 0.98 0.97 rg 0 0 842 595 re f
-0.07 0.22 0.17 rg
-BT /F2 21 Tf 35 555 Td (Relacionamentos e manutencao) Tj ET
-BT /F2 11 Tf 40 510 Td (profiles -> users) Tj ET
-BT /F1 10 Tf 300 510 Td (Um perfil pode ser usado por varios usuarios.) Tj ET
-BT /F2 11 Tf 40 462 Td (projects -> project_members -> users) Tj ET
-BT /F1 10 Tf 300 462 Td (Projetos tem participantes; pessoas podem estar em varios projetos.) Tj ET
-BT /F2 11 Tf 40 414 Td (projects -> files) Tj ET
-BT /F1 10 Tf 300 414 Td (Cada arquivo pertence a um projeto; parent_id representa pastas.) Tj ET
-BT /F2 11 Tf 40 366 Td (users -> activity_logs) Tj ET
-BT /F1 10 Tf 300 366 Td (Acoes auditadas podem ser associadas ao usuario.) Tj ET
-BT /F2 11 Tf 40 318 Td (modules -> permissions) Tj ET
-BT /F1 10 Tf 300 318 Td (Permissoes sao agrupadas por modulo funcional.) Tj ET
-BT /F2 11 Tf 40 270 Td (users -> sessions) Tj ET
-BT /F1 10 Tf 300 270 Td (Um usuario pode ter sessoes ativas ou expiradas.) Tj ET
-BT /F2 14 Tf 35 190 Td (Fonte) Tj ET
-BT /F1 10 Tf 35 165 Td (Baseado em backend/database/sqlite-schema.sql.) Tj ET
-BT /F1 10 Tf 35 140 Td (O diretorio backend/docs foi removido; este PDF e o documento visual unico.) Tj ET
-BT /F1 10 Tf 35 115 Td (Ao alterar tabelas, campos ou relacionamentos, atualize este PDF manualmente.) Tj ET
+BT /F2 18 Tf 42 805 Td (SIGAC — VISÃO VISUAL | PROJETOS E GRUPOS) Tj /F1 8 Tf 0 -25 Td
+(PK = chave primária | FK = chave estrangeira | UK = campo único) Tj
+0 -13 Td
+(TODAS AS TABELAS DESTE DOMÍNIO:) Tj
+0 -13 Td
+(projects — Projetos) Tj
+0 -13 Td
+(  Campos: PK id, name, UK code, responsible_area, managers_ids, write_group, read_group, write_identity_role, read_identity_role, snow_task_numbe) Tj
+0 -13 Td
+(project_members — Participantes de projetos) Tj
+0 -13 Td
+(  Campos: PK project_id, PK user_id, role, created_at) Tj
+0 -13 Td
+(groups — Grupos de usuários) Tj
+0 -13 Td
+(  Campos: PK id, UK name, description, created_at) Tj
+0 -13 Td
+(user_groups — Usuários ligados a grupos) Tj
+0 -13 Td
+(  Campos: PK user_id, PK group_id, source, created_at) Tj
+0 -13 Td
+(project_groups — Projetos ligados a grupos) Tj
+0 -13 Td
+(  Campos: PK project_id, PK group_id, role, created_at) Tj
+0 -13 Td
+(project_access_groups — Grupos externos com acesso) Tj
+0 -13 Td
+(  Campos: PK id, FK project_id, provider, group_name, access_level) Tj
+0 -13 Td
+(project_access_roles — Papéis externos com acesso) Tj
+0 -13 Td
+(  Campos: PK id, FK project_id, provider, role_name, access_level) Tj
+0 -13 Td
+(RELACIONAMENTOS:) Tj
+0 -13 Td
+(  project_members.project_id -> projects.id) Tj
+0 -13 Td
+(  user_groups.group_id -> groups.id) Tj
+0 -13 Td
+(  project_groups.project_id -> projects.id) Tj
+0 -13 Td
+(  project_groups.group_id -> groups.id) Tj
+0 -13 Td
+(  project_access_groups.project_id -> projects.id) Tj
+0 -13 Td
+(  project_access_roles.project_id -> projects.id) Tj
+ET
 endstream
 endobj
 8 0 obj
-<< /Type /Page /Parent 9 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 7 0 R >>
+<< /Type /Page /Parent 41 0 R /MediaBox [0 0 842 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 7 0 R >>
 endobj
 9 0 obj
-<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R] /Count 3 >>
+<< /Length 1266 >>
+stream
+BT /F2 18 Tf 42 805 Td (SIGAC — VISÃO VISUAL | ARQUIVOS E GOVERNANÇA) Tj /F1 8 Tf 0 -25 Td
+(PK = chave primária | FK = chave estrangeira | UK = campo único) Tj
+0 -13 Td
+(TODAS AS TABELAS DESTE DOMÍNIO:) Tj
+0 -13 Td
+(files — Arquivos e pastas) Tj
+0 -13 Td
+(  Campos: PK id, FK project_id, FK parent_id, kind, name, size_bytes, mime_type, FK created_by, last_viewed_at, created_at, updated_at) Tj
+0 -13 Td
+(file_shares — Compartilhamentos diretos) Tj
+0 -13 Td
+(  Campos: PK file_id, PK user_id, access_level, created_at) Tj
+0 -13 Td
+(file_permissions — Permissões de arquivos) Tj
+0 -13 Td
+(  Campos: FK file_id, FK user_id, FK group_id, access_level, inherited_from, created_at) Tj
+0 -13 Td
+(access_requests — Solicitações de acesso) Tj
+0 -13 Td
+(  Campos: PK id, FK project_id, FK requester_id, status, created_at) Tj
+0 -13 Td
+(notifications — Notificações) Tj
+0 -13 Td
+(  Campos: PK id, FK user_id, type, title, message, read_at, created_at) Tj
+0 -13 Td
+(activity_logs — Histórico de auditoria) Tj
+0 -13 Td
+(  Campos: PK id, FK user_id, action, entity, entity_id, details, created_at) Tj
+0 -13 Td
+(RELACIONAMENTOS:) Tj
+0 -13 Td
+(  files.parent_id -> files.id) Tj
+0 -13 Td
+(  file_shares.file_id -> files.id) Tj
+0 -13 Td
+(  file_permissions.file_id -> files.id) Tj
+ET
+endstream
 endobj
 10 0 obj
-<< /Type /Catalog /Pages 9 0 R >>
+<< /Type /Page /Parent 41 0 R /MediaBox [0 0 842 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 9 0 R >>
+endobj
+11 0 obj
+<< /Length 1274 >>
+stream
+BT /F2 18 Tf 42 805 Td (SIGAC — DICIONÁRIO DE DADOS) Tj /F1 8 Tf 0 -25 Td
+(Campos completos | PK, FK, UK e tipo/regra de cada campo) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: profiles — Perfis funcionais de acesso) Tj
+0 -13 Td
+(id | PK | VARCHAR\(20\) PRIMARY KEY | Identificador único) Tj
+0 -13 Td
+(name | UK | VARCHAR\(80\) NOT NULL UNIQUE | Nome) Tj
+0 -13 Td
+(description |  | VARCHAR\(255\) NOT NULL DEFAULT '' | Descrição) Tj
+0 -13 Td
+(created_at |  | DATETIME NOT NULL | Data de criação) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: users — Pessoas que usam o sistema) Tj
+0 -13 Td
+(id | PK | VARCHAR\(36\) PRIMARY KEY | Identificador único) Tj
+0 -13 Td
+(name |  | VARCHAR\(200\) NOT NULL | Nome) Tj
+0 -13 Td
+(email | UK | VARCHAR\(320\) NOT NULL UNIQUE | E-mail) Tj
+0 -13 Td
+(job_title |  | VARCHAR\(120\) | Dado operacional) Tj
+0 -13 Td
+(area |  | VARCHAR\(120\) | Dado operacional) Tj
+0 -13 Td
+(role |  | VARCHAR\(40\) NOT NULL DEFAULT 'participante' | Papel) Tj
+0 -13 Td
+(profile_id | FK -> profiles.id | VARCHAR\(20\) REFERENCES profiles\(id\) ON DELETE SET NULL | Perfil associado) Tj
+0 -13 Td
+(avatar_url |  | VARCHAR\(500\) | Dado operacional) Tj
+0 -13 Td
+(last_login_at |  | DATETIME | Dado operacional) Tj
+0 -13 Td
+(created_at |  | DATETIME NOT NULL | Data de criação) Tj
+ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 41 0 R /MediaBox [0 0 842 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 11 0 R >>
+endobj
+13 0 obj
+<< /Length 1117 >>
+stream
+BT /F2 18 Tf 42 805 Td (SIGAC — DICIONÁRIO DE DADOS) Tj /F1 8 Tf 0 -25 Td
+(Campos completos | PK, FK, UK e tipo/regra de cada campo) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: modules — Módulos navegáveis) Tj
+0 -13 Td
+(id | PK | VARCHAR\(80\) PRIMARY KEY | Identificador único) Tj
+0 -13 Td
+(name | UK | VARCHAR\(120\) NOT NULL UNIQUE | Nome) Tj
+0 -13 Td
+(route |  | VARCHAR\(180\) NOT NULL DEFAULT '' | Dado operacional) Tj
+0 -13 Td
+(icon |  | VARCHAR\(80\) NOT NULL DEFAULT 'folder' | Dado operacional) Tj
+0 -13 Td
+(display_order |  | INTEGER NOT NULL DEFAULT 0 | Dado operacional) Tj
+0 -13 Td
+(active |  | BOOLEAN NOT NULL DEFAULT 1 | Ativo/inativo) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: permissions — Permissões por módulo) Tj
+0 -13 Td
+(id | PK | VARCHAR\(80\) PRIMARY KEY | Identificador único) Tj
+0 -13 Td
+(module_id | FK -> modules.id | VARCHAR\(80\) NOT NULL REFERENCES modules\(id\) ON DELETE CASCADE | Módulo associado) Tj
+0 -13 Td
+(name |  | VARCHAR\(120\) NOT NULL | Nome) Tj
+0 -13 Td
+(description |  | TEXT NOT NULL DEFAULT '' | Descrição) Tj
+0 -13 Td
+(active |  | BOOLEAN NOT NULL DEFAULT 1 | Ativo/inativo) Tj
+ET
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 41 0 R /MediaBox [0 0 842 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 13 0 R >>
+endobj
+15 0 obj
+<< /Length 1134 >>
+stream
+BT /F2 18 Tf 42 805 Td (SIGAC — DICIONÁRIO DE DADOS) Tj /F1 8 Tf 0 -25 Td
+(Campos completos | PK, FK, UK e tipo/regra de cada campo) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: profile_permissions — Perfis ligados a permissões) Tj
+0 -13 Td
+(profile_id | PK FK -> profiles.id | VARCHAR\(20\) NOT NULL REFERENCES profiles\(id\) ON DELETE CASCADE | Perfil associado) Tj
+0 -13 Td
+(permission_id | PK FK -> permissions.id | VARCHAR\(80\) NOT NULL REFERENCES permissions\(id\) ON DELETE CASCADE | Dado operacional) Tj
+0 -13 Td
+(allowed |  | BOOLEAN NOT NULL DEFAULT 1 | Dado operacional) Tj
+0 -13 Td
+(Restrições: PRIMARY KEY \(profile_id, permission_id\)) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: profile_modules — Perfis ligados a módulos) Tj
+0 -13 Td
+(profile_id | PK FK -> profiles.id | VARCHAR\(20\) NOT NULL REFERENCES profiles\(id\) ON DELETE CASCADE | Perfil associado) Tj
+0 -13 Td
+(module_id | PK FK -> modules.id | VARCHAR\(80\) NOT NULL REFERENCES modules\(id\) ON DELETE CASCADE | Módulo associado) Tj
+0 -13 Td
+(can_view |  | BOOLEAN NOT NULL DEFAULT 1 | Dado operacional) Tj
+0 -13 Td
+(Restrições: PRIMARY KEY \(profile_id, module_id\)) Tj
+ET
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 41 0 R /MediaBox [0 0 842 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 15 0 R >>
+endobj
+17 0 obj
+<< /Length 1125 >>
+stream
+BT /F2 18 Tf 42 805 Td (SIGAC — DICIONÁRIO DE DADOS) Tj /F1 8 Tf 0 -25 Td
+(Campos completos | PK, FK, UK e tipo/regra de cada campo) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: project_statuses — Catálogo de status) Tj
+0 -13 Td
+(id | PK | VARCHAR\(40\) PRIMARY KEY | Identificador único) Tj
+0 -13 Td
+(code | UK | VARCHAR\(40\) NOT NULL UNIQUE | Código único) Tj
+0 -13 Td
+(name |  | VARCHAR\(100\) NOT NULL | Nome) Tj
+0 -13 Td
+(color |  | VARCHAR\(20\) NOT NULL DEFAULT 'slate' | Dado operacional) Tj
+0 -13 Td
+(display_order |  | INTEGER NOT NULL DEFAULT 0 | Dado operacional) Tj
+0 -13 Td
+(active |  | BOOLEAN NOT NULL DEFAULT 1 | Ativo/inativo) Tj
+0 -13 Td
+(allows_edit |  | BOOLEAN NOT NULL DEFAULT 1 | Dado operacional) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: project_types — Catálogo de tipos) Tj
+0 -13 Td
+(id | PK | VARCHAR\(40\) PRIMARY KEY | Identificador único) Tj
+0 -13 Td
+(code | UK | VARCHAR\(40\) NOT NULL UNIQUE | Código único) Tj
+0 -13 Td
+(name |  | VARCHAR\(100\) NOT NULL | Nome) Tj
+0 -13 Td
+(description |  | TEXT NOT NULL DEFAULT '' | Descrição) Tj
+0 -13 Td
+(active |  | BOOLEAN NOT NULL DEFAULT 1 | Ativo/inativo) Tj
+ET
+endstream
+endobj
+18 0 obj
+<< /Type /Page /Parent 41 0 R /MediaBox [0 0 842 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 17 0 R >>
+endobj
+19 0 obj
+<< /Length 1150 >>
+stream
+BT /F2 18 Tf 42 805 Td (SIGAC — DICIONÁRIO DE DADOS) Tj /F1 8 Tf 0 -25 Td
+(Campos completos | PK, FK, UK e tipo/regra de cada campo) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: system_settings — Configurações gerais) Tj
+0 -13 Td
+(key | PK | VARCHAR\(120\) PRIMARY KEY | Dado operacional) Tj
+0 -13 Td
+(value |  | TEXT NOT NULL DEFAULT '' | Dado operacional) Tj
+0 -13 Td
+(value_type |  | VARCHAR\(30\) NOT NULL DEFAULT 'string' | Dado operacional) Tj
+0 -13 Td
+(description |  | TEXT NOT NULL DEFAULT '' | Descrição) Tj
+0 -13 Td
+(group_name |  | VARCHAR\(80\) NOT NULL DEFAULT 'general' | Dado operacional) Tj
+0 -13 Td
+(active |  | BOOLEAN NOT NULL DEFAULT 1 | Ativo/inativo) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: report_types — Tipos de relatório) Tj
+0 -13 Td
+(id | PK | VARCHAR\(60\) PRIMARY KEY | Identificador único) Tj
+0 -13 Td
+(code | UK | VARCHAR\(60\) NOT NULL UNIQUE | Código único) Tj
+0 -13 Td
+(name |  | VARCHAR\(120\) NOT NULL | Nome) Tj
+0 -13 Td
+(description |  | TEXT NOT NULL DEFAULT '' | Descrição) Tj
+0 -13 Td
+(formats |  | TEXT NOT NULL DEFAULT 'csv' | Dado operacional) Tj
+0 -13 Td
+(active |  | BOOLEAN NOT NULL DEFAULT 1 | Ativo/inativo) Tj
+ET
+endstream
+endobj
+20 0 obj
+<< /Type /Page /Parent 41 0 R /MediaBox [0 0 842 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 19 0 R >>
+endobj
+21 0 obj
+<< /Length 1536 >>
+stream
+BT /F2 18 Tf 42 805 Td (SIGAC — DICIONÁRIO DE DADOS) Tj /F1 8 Tf 0 -25 Td
+(Campos completos | PK, FK, UK e tipo/regra de cada campo) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: report_fields — Campos de relatório) Tj
+0 -13 Td
+(id | PK | VARCHAR\(60\) PRIMARY KEY | Identificador único) Tj
+0 -13 Td
+(report_code | UK FK -> report_types.code | VARCHAR\(60\) NOT NULL REFERENCES report_types\(code\) ON DELETE CASCADE | Dado operacional) Tj
+0 -13 Td
+(field_key | UK | VARCHAR\(100\) NOT NULL | Dado operacional) Tj
+0 -13 Td
+(label |  | VARCHAR\(160\) NOT NULL | Dado operacional) Tj
+0 -13 Td
+(source_key |  | VARCHAR\(160\) NOT NULL | Dado operacional) Tj
+0 -13 Td
+(display_order |  | INTEGER NOT NULL DEFAULT 0 | Dado operacional) Tj
+0 -13 Td
+(active |  | BOOLEAN NOT NULL DEFAULT 1 | Ativo/inativo) Tj
+0 -13 Td
+(Restrições: UNIQUE \(report_code, field_key\)) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: menus — Itens de navegação) Tj
+0 -13 Td
+(id | PK | VARCHAR\(80\) PRIMARY KEY | Identificador único) Tj
+0 -13 Td
+(module_id | FK -> modules.id | VARCHAR\(80\) REFERENCES modules\(id\) ON DELETE SET NULL | Módulo associado) Tj
+0 -13 Td
+(parent_id |  | VARCHAR\(80\) | Registro pai) Tj
+0 -13 Td
+(name |  | VARCHAR\(120\) NOT NULL | Nome) Tj
+0 -13 Td
+(route |  | VARCHAR\(180\) NOT NULL DEFAULT '' | Dado operacional) Tj
+0 -13 Td
+(icon |  | VARCHAR\(80\) NOT NULL DEFAULT 'circle' | Dado operacional) Tj
+0 -13 Td
+(display_order |  | INTEGER NOT NULL DEFAULT 0 | Dado operacional) Tj
+0 -13 Td
+(active |  | BOOLEAN NOT NULL DEFAULT 1 | Ativo/inativo) Tj
+ET
+endstream
+endobj
+22 0 obj
+<< /Type /Page /Parent 41 0 R /MediaBox [0 0 842 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 21 0 R >>
+endobj
+23 0 obj
+<< /Length 1969 >>
+stream
+BT /F2 18 Tf 42 805 Td (SIGAC — DICIONÁRIO DE DADOS) Tj /F1 8 Tf 0 -25 Td
+(Campos completos | PK, FK, UK e tipo/regra de cada campo) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: projects — Projetos) Tj
+0 -13 Td
+(id | PK | VARCHAR\(36\) PRIMARY KEY | Identificador único) Tj
+0 -13 Td
+(name |  | VARCHAR\(200\) NOT NULL | Nome) Tj
+0 -13 Td
+(code | UK | VARCHAR\(50\) NOT NULL UNIQUE | Código único) Tj
+0 -13 Td
+(responsible_area |  | VARCHAR\(160\) NOT NULL | Dado operacional) Tj
+0 -13 Td
+(managers_ids |  | JSON NOT NULL DEFAULT '[]' | Dado operacional) Tj
+0 -13 Td
+(write_group |  | VARCHAR\(160\) NOT NULL DEFAULT '' | Dado operacional) Tj
+0 -13 Td
+(read_group |  | VARCHAR\(160\) NOT NULL DEFAULT '' | Dado operacional) Tj
+0 -13 Td
+(write_identity_role |  | VARCHAR\(160\) NOT NULL DEFAULT '' | Dado operacional) Tj
+0 -13 Td
+(read_identity_role |  | VARCHAR\(160\) NOT NULL DEFAULT '' | Dado operacional) Tj
+0 -13 Td
+(snow_task_number |  | VARCHAR\(120\) NOT NULL DEFAULT '' | Dado operacional) Tj
+0 -13 Td
+(parent_folder |  | VARCHAR\(500\) NOT NULL DEFAULT '' | Dado operacional) Tj
+0 -13 Td
+(description |  | TEXT NOT NULL DEFAULT '' | Descrição) Tj
+0 -13 Td
+(status |  | VARCHAR\(30\) NOT NULL DEFAULT 'ativo' | Situação) Tj
+0 -13 Td
+(participants_ids |  | JSON NOT NULL DEFAULT '[]' | Dado operacional) Tj
+0 -13 Td
+(created_at |  | DATETIME NOT NULL | Data de criação) Tj
+0 -13 Td
+(updated_at |  | DATETIME NOT NULL | Última alteração) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: project_members — Participantes de projetos) Tj
+0 -13 Td
+(project_id | PK FK -> projects.id | VARCHAR\(36\) NOT NULL REFERENCES projects\(id\) ON DELETE CASCADE | Projeto associado) Tj
+0 -13 Td
+(user_id | PK FK -> users.id | VARCHAR\(36\) NOT NULL REFERENCES users\(id\) ON DELETE CASCADE | Usuário associado) Tj
+0 -13 Td
+(role |  | VARCHAR\(40\) NOT NULL | Papel) Tj
+0 -13 Td
+(created_at |  | DATETIME NOT NULL | Data de criação) Tj
+0 -13 Td
+(Restrições: PRIMARY KEY \(project_id, user_id\)) Tj
+ET
+endstream
+endobj
+24 0 obj
+<< /Type /Page /Parent 41 0 R /MediaBox [0 0 842 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 23 0 R >>
+endobj
+25 0 obj
+<< /Length 1018 >>
+stream
+BT /F2 18 Tf 42 805 Td (SIGAC — DICIONÁRIO DE DADOS) Tj /F1 8 Tf 0 -25 Td
+(Campos completos | PK, FK, UK e tipo/regra de cada campo) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: groups — Grupos de usuários) Tj
+0 -13 Td
+(id | PK | VARCHAR\(36\) PRIMARY KEY | Identificador único) Tj
+0 -13 Td
+(name | UK | VARCHAR\(255\) NOT NULL UNIQUE | Nome) Tj
+0 -13 Td
+(description |  | TEXT NOT NULL DEFAULT '' | Descrição) Tj
+0 -13 Td
+(created_at |  | DATETIME NOT NULL | Data de criação) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: user_groups — Usuários ligados a grupos) Tj
+0 -13 Td
+(user_id | PK FK -> users.id | VARCHAR\(36\) NOT NULL REFERENCES users\(id\) ON DELETE CASCADE | Usuário associado) Tj
+0 -13 Td
+(group_id | PK FK -> groups.id | VARCHAR\(36\) NOT NULL REFERENCES groups\(id\) ON DELETE CASCADE | Grupo associado) Tj
+0 -13 Td
+(source |  | VARCHAR\(30\) NOT NULL DEFAULT 'manual' | Dado operacional) Tj
+0 -13 Td
+(created_at |  | DATETIME NOT NULL | Data de criação) Tj
+0 -13 Td
+(Restrições: PRIMARY KEY \(user_id, group_id\)) Tj
+ET
+endstream
+endobj
+26 0 obj
+<< /Type /Page /Parent 41 0 R /MediaBox [0 0 842 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 25 0 R >>
+endobj
+27 0 obj
+<< /Length 1242 >>
+stream
+BT /F2 18 Tf 42 805 Td (SIGAC — DICIONÁRIO DE DADOS) Tj /F1 8 Tf 0 -25 Td
+(Campos completos | PK, FK, UK e tipo/regra de cada campo) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: project_groups — Projetos ligados a grupos) Tj
+0 -13 Td
+(project_id | PK FK -> projects.id | VARCHAR\(36\) NOT NULL REFERENCES projects\(id\) ON DELETE CASCADE | Projeto associado) Tj
+0 -13 Td
+(group_id | PK FK -> groups.id | VARCHAR\(36\) NOT NULL REFERENCES groups\(id\) ON DELETE CASCADE | Grupo associado) Tj
+0 -13 Td
+(role |  | VARCHAR\(40\) NOT NULL | Papel) Tj
+0 -13 Td
+(created_at |  | DATETIME NOT NULL | Data de criação) Tj
+0 -13 Td
+(Restrições: PRIMARY KEY \(project_id, group_id\)) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: project_access_groups — Grupos externos com acesso) Tj
+0 -13 Td
+(id | PK | VARCHAR\(36\) PRIMARY KEY | Identificador único) Tj
+0 -13 Td
+(project_id | FK -> projects.id | VARCHAR\(36\) NOT NULL REFERENCES projects\(id\) ON DELETE CASCADE | Projeto associado) Tj
+0 -13 Td
+(provider |  | VARCHAR\(30\) NOT NULL DEFAULT 'azure_ad' | Dado operacional) Tj
+0 -13 Td
+(group_name |  | VARCHAR\(255\) NOT NULL | Dado operacional) Tj
+0 -13 Td
+(access_level |  | VARCHAR\(10\) NOT NULL CHECK \(access_level IN \('read','write'\)\) | Nível de acesso) Tj
+ET
+endstream
+endobj
+28 0 obj
+<< /Type /Page /Parent 41 0 R /MediaBox [0 0 842 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 27 0 R >>
+endobj
+29 0 obj
+<< /Length 1677 >>
+stream
+BT /F2 18 Tf 42 805 Td (SIGAC — DICIONÁRIO DE DADOS) Tj /F1 8 Tf 0 -25 Td
+(Campos completos | PK, FK, UK e tipo/regra de cada campo) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: project_access_roles — Papéis externos com acesso) Tj
+0 -13 Td
+(id | PK | VARCHAR\(36\) PRIMARY KEY | Identificador único) Tj
+0 -13 Td
+(project_id | FK -> projects.id | VARCHAR\(36\) NOT NULL REFERENCES projects\(id\) ON DELETE CASCADE | Projeto associado) Tj
+0 -13 Td
+(provider |  | VARCHAR\(30\) NOT NULL DEFAULT 'identidade' | Dado operacional) Tj
+0 -13 Td
+(role_name |  | VARCHAR\(255\) NOT NULL | Dado operacional) Tj
+0 -13 Td
+(access_level |  | VARCHAR\(10\) NOT NULL CHECK \(access_level IN \('read','write'\)\) | Nível de acesso) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: files — Arquivos e pastas) Tj
+0 -13 Td
+(id | PK | VARCHAR\(36\) PRIMARY KEY | Identificador único) Tj
+0 -13 Td
+(project_id | FK -> projects.id | VARCHAR\(36\) NOT NULL REFERENCES projects\(id\) ON DELETE CASCADE | Projeto associado) Tj
+0 -13 Td
+(parent_id | FK -> files.id | VARCHAR\(36\) REFERENCES files\(id\) ON DELETE CASCADE | Registro pai) Tj
+0 -13 Td
+(kind |  | VARCHAR\(20\) NOT NULL | Dado operacional) Tj
+0 -13 Td
+(name |  | VARCHAR\(500\) NOT NULL | Nome) Tj
+0 -13 Td
+(size_bytes |  | INTEGER NOT NULL DEFAULT 0 | Dado operacional) Tj
+0 -13 Td
+(mime_type |  | VARCHAR\(160\) | Dado operacional) Tj
+0 -13 Td
+(created_by | FK -> users.id | VARCHAR\(36\) NOT NULL REFERENCES users\(id\) ON DELETE RESTRICT | Dado operacional) Tj
+0 -13 Td
+(last_viewed_at |  | DATETIME | Dado operacional) Tj
+0 -13 Td
+(created_at |  | DATETIME NOT NULL | Data de criação) Tj
+0 -13 Td
+(updated_at |  | DATETIME NOT NULL | Última alteração) Tj
+ET
+endstream
+endobj
+30 0 obj
+<< /Type /Page /Parent 41 0 R /MediaBox [0 0 842 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 29 0 R >>
+endobj
+31 0 obj
+<< /Length 1390 >>
+stream
+BT /F2 18 Tf 42 805 Td (SIGAC — DICIONÁRIO DE DADOS) Tj /F1 8 Tf 0 -25 Td
+(Campos completos | PK, FK, UK e tipo/regra de cada campo) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: file_shares — Compartilhamentos diretos) Tj
+0 -13 Td
+(file_id | PK FK -> files.id | VARCHAR\(36\) NOT NULL REFERENCES files\(id\) ON DELETE CASCADE | Dado operacional) Tj
+0 -13 Td
+(user_id | PK FK -> users.id | VARCHAR\(36\) NOT NULL REFERENCES users\(id\) ON DELETE CASCADE | Usuário associado) Tj
+0 -13 Td
+(access_level |  | VARCHAR\(20\) NOT NULL | Nível de acesso) Tj
+0 -13 Td
+(created_at |  | DATETIME NOT NULL | Data de criação) Tj
+0 -13 Td
+(Restrições: PRIMARY KEY \(file_id, user_id\)) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: file_permissions — Permissões de arquivos) Tj
+0 -13 Td
+(file_id | FK -> files.id | VARCHAR\(36\) NOT NULL REFERENCES files\(id\) ON DELETE CASCADE | Dado operacional) Tj
+0 -13 Td
+(user_id | FK -> users.id | VARCHAR\(36\) REFERENCES users\(id\) ON DELETE CASCADE | Usuário associado) Tj
+0 -13 Td
+(group_id | FK -> groups.id | VARCHAR\(36\) REFERENCES groups\(id\) ON DELETE CASCADE | Grupo associado) Tj
+0 -13 Td
+(access_level |  | VARCHAR\(20\) NOT NULL | Nível de acesso) Tj
+0 -13 Td
+(inherited_from |  | VARCHAR\(36\) | Dado operacional) Tj
+0 -13 Td
+(created_at |  | DATETIME NOT NULL | Data de criação) Tj
+0 -13 Td
+(Restrições: CHECK \(user_id IS NOT NULL OR group_id IS NOT NULL\)) Tj
+ET
+endstream
+endobj
+32 0 obj
+<< /Type /Page /Parent 41 0 R /MediaBox [0 0 842 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 31 0 R >>
+endobj
+33 0 obj
+<< /Length 1265 >>
+stream
+BT /F2 18 Tf 42 805 Td (SIGAC — DICIONÁRIO DE DADOS) Tj /F1 8 Tf 0 -25 Td
+(Campos completos | PK, FK, UK e tipo/regra de cada campo) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: access_requests — Solicitações de acesso) Tj
+0 -13 Td
+(id | PK | VARCHAR\(36\) PRIMARY KEY | Identificador único) Tj
+0 -13 Td
+(project_id | FK -> projects.id | VARCHAR\(36\) NOT NULL REFERENCES projects\(id\) ON DELETE CASCADE | Projeto associado) Tj
+0 -13 Td
+(requester_id | FK -> users.id | VARCHAR\(36\) NOT NULL REFERENCES users\(id\) ON DELETE CASCADE | Dado operacional) Tj
+0 -13 Td
+(status |  | VARCHAR\(30\) NOT NULL | Situação) Tj
+0 -13 Td
+(created_at |  | DATETIME NOT NULL | Data de criação) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: notifications — Notificações) Tj
+0 -13 Td
+(id | PK | VARCHAR\(36\) PRIMARY KEY | Identificador único) Tj
+0 -13 Td
+(user_id | FK -> users.id | VARCHAR\(36\) NOT NULL REFERENCES users\(id\) ON DELETE CASCADE | Usuário associado) Tj
+0 -13 Td
+(type |  | VARCHAR\(80\) NOT NULL | Dado operacional) Tj
+0 -13 Td
+(title |  | VARCHAR\(200\) NOT NULL | Dado operacional) Tj
+0 -13 Td
+(message |  | TEXT NOT NULL DEFAULT '' | Dado operacional) Tj
+0 -13 Td
+(read_at |  | DATETIME | Data de leitura) Tj
+0 -13 Td
+(created_at |  | DATETIME NOT NULL | Data de criação) Tj
+ET
+endstream
+endobj
+34 0 obj
+<< /Type /Page /Parent 41 0 R /MediaBox [0 0 842 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 33 0 R >>
+endobj
+35 0 obj
+<< /Length 1044 >>
+stream
+BT /F2 18 Tf 42 805 Td (SIGAC — DICIONÁRIO DE DADOS) Tj /F1 8 Tf 0 -25 Td
+(Campos completos | PK, FK, UK e tipo/regra de cada campo) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: activity_logs — Histórico de auditoria) Tj
+0 -13 Td
+(id | PK | VARCHAR\(36\) PRIMARY KEY | Identificador único) Tj
+0 -13 Td
+(user_id | FK -> users.id | VARCHAR\(36\) REFERENCES users\(id\) ON DELETE SET NULL | Usuário associado) Tj
+0 -13 Td
+(action |  | VARCHAR\(100\) NOT NULL | Ação) Tj
+0 -13 Td
+(entity |  | VARCHAR\(100\) NOT NULL | Entidade) Tj
+0 -13 Td
+(entity_id |  | VARCHAR\(36\) | ID da entidade) Tj
+0 -13 Td
+(details |  | TEXT NOT NULL DEFAULT '' | Dado operacional) Tj
+0 -13 Td
+(created_at |  | DATETIME NOT NULL | Data de criação) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: sessions — Sessões autenticadas) Tj
+0 -13 Td
+(id | PK | VARCHAR\(36\) PRIMARY KEY | Identificador único) Tj
+0 -13 Td
+(user_id | FK -> users.id | VARCHAR\(36\) NOT NULL REFERENCES users\(id\) ON DELETE CASCADE | Usuário associado) Tj
+0 -13 Td
+(expires_at |  | DATETIME NOT NULL | Expiração) Tj
+ET
+endstream
+endobj
+36 0 obj
+<< /Type /Page /Parent 41 0 R /MediaBox [0 0 842 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 35 0 R >>
+endobj
+37 0 obj
+<< /Length 350 >>
+stream
+BT /F2 18 Tf 42 805 Td (SIGAC — DICIONÁRIO DE DADOS) Tj /F1 8 Tf 0 -25 Td
+(Campos completos | PK, FK, UK e tipo/regra de cada campo) Tj
+0 -13 Td
+() Tj
+0 -13 Td
+(TABELA: permission_matrix — Matriz auxiliar de permissões) Tj
+0 -13 Td
+(id | PK | INTEGER PRIMARY KEY | Identificador único) Tj
+0 -13 Td
+(matrix |  | JSON NOT NULL | Dado operacional) Tj
+ET
+endstream
+endobj
+38 0 obj
+<< /Type /Page /Parent 41 0 R /MediaBox [0 0 842 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 37 0 R >>
+endobj
+39 0 obj
+<< /Length 2008 >>
+stream
+BT /F2 18 Tf 42 805 Td (SIGAC — RELACIONAMENTOS COMPLETOS) Tj /F1 8 Tf 0 -25 Td
+(Relacionamentos completos encontrados no schema SQLite canônico) Tj
+0 -13 Td
+(Origem \(FK\) -> Destino \(PK/UK\) | Regra de exclusão) Tj
+0 -13 Td
+(users.profile_id -> profiles.id | SET NULL) Tj
+0 -13 Td
+(permissions.module_id -> modules.id | CASCADE) Tj
+0 -13 Td
+(profile_permissions.profile_id -> profiles.id | CASCADE) Tj
+0 -13 Td
+(profile_permissions.permission_id -> permissions.id | CASCADE) Tj
+0 -13 Td
+(profile_modules.profile_id -> profiles.id | CASCADE) Tj
+0 -13 Td
+(profile_modules.module_id -> modules.id | CASCADE) Tj
+0 -13 Td
+(report_fields.report_code -> report_types.code | CASCADE) Tj
+0 -13 Td
+(menus.module_id -> modules.id | SET NULL) Tj
+0 -13 Td
+(project_members.project_id -> projects.id | CASCADE) Tj
+0 -13 Td
+(project_members.user_id -> users.id | CASCADE) Tj
+0 -13 Td
+(user_groups.user_id -> users.id | CASCADE) Tj
+0 -13 Td
+(user_groups.group_id -> groups.id | CASCADE) Tj
+0 -13 Td
+(project_groups.project_id -> projects.id | CASCADE) Tj
+0 -13 Td
+(project_groups.group_id -> groups.id | CASCADE) Tj
+0 -13 Td
+(project_access_groups.project_id -> projects.id | CASCADE) Tj
+0 -13 Td
+(project_access_roles.project_id -> projects.id | CASCADE) Tj
+0 -13 Td
+(files.project_id -> projects.id | CASCADE) Tj
+0 -13 Td
+(files.parent_id -> files.id | CASCADE) Tj
+0 -13 Td
+(files.created_by -> users.id | RESTRICT) Tj
+0 -13 Td
+(file_shares.file_id -> files.id | CASCADE) Tj
+0 -13 Td
+(file_shares.user_id -> users.id | CASCADE) Tj
+0 -13 Td
+(file_permissions.file_id -> files.id | CASCADE) Tj
+0 -13 Td
+(file_permissions.user_id -> users.id | CASCADE) Tj
+0 -13 Td
+(file_permissions.group_id -> groups.id | CASCADE) Tj
+0 -13 Td
+(access_requests.project_id -> projects.id | CASCADE) Tj
+0 -13 Td
+(access_requests.requester_id -> users.id | CASCADE) Tj
+0 -13 Td
+(notifications.user_id -> users.id | CASCADE) Tj
+0 -13 Td
+(activity_logs.user_id -> users.id | SET NULL) Tj
+0 -13 Td
+(sessions.user_id -> users.id | CASCADE) Tj
+ET
+endstream
+endobj
+40 0 obj
+<< /Type /Page /Parent 41 0 R /MediaBox [0 0 842 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 39 0 R >>
+endobj
+41 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R 18 0 R 20 0 R 22 0 R 24 0 R 26 0 R 28 0 R 30 0 R 32 0 R 34 0 R 36 0 R 38 0 R 40 0 R] /Count 19 >>
+endobj
+42 0 obj
+<< /Type /Catalog /Pages 41 0 R >>
 endobj
 xref
-0 11
+0 43
 0000000000 65535 f 
 0000000009 00000 n 
 0000000079 00000 n 
 0000000154 00000 n 
-0000002811 00000 n 
-0000002947 00000 n 
-0000005231 00000 n 
-0000005367 00000 n 
-0000006701 00000 n 
-0000006837 00000 n 
-0000006906 00000 n 
+0000002035 00000 n 
+0000002172 00000 n 
+0000003215 00000 n 
+0000003352 00000 n 
+0000004971 00000 n 
+0000005108 00000 n 
+0000006451 00000 n 
+0000006589 00000 n 
+0000007931 00000 n 
+0000008070 00000 n 
+0000009256 00000 n 
+0000009395 00000 n 
+0000010596 00000 n 
+0000010735 00000 n 
+0000011930 00000 n 
+0000012069 00000 n 
+0000013289 00000 n 
+0000013428 00000 n 
+0000015032 00000 n 
+0000015171 00000 n 
+0000017217 00000 n 
+0000017356 00000 n 
+0000018446 00000 n 
+0000018585 00000 n 
+0000019893 00000 n 
+0000020032 00000 n 
+0000021778 00000 n 
+0000021917 00000 n 
+0000023380 00000 n 
+0000023519 00000 n 
+0000024857 00000 n 
+0000024996 00000 n 
+0000026112 00000 n 
+0000026251 00000 n 
+0000026660 00000 n 
+0000026799 00000 n 
+0000028864 00000 n 
+0000029003 00000 n 
+0000029186 00000 n 
 trailer
-<< /Size 11 /Root 10 0 R >>
+<< /Size 43 /Root 42 0 R >>
 startxref
-6956
+29237
 %%EOF
