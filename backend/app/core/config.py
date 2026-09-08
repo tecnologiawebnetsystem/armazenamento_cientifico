@@ -67,7 +67,6 @@ class Settings(BaseModel):
         "EXPOSE_API_DOCS",
         "false" if os.getenv("ENVIRONMENT", "development").lower() == "production" else "true",
     ).lower() == "true"
-    request_log_max_id_length: int = int(os.getenv("REQUEST_LOG_MAX_ID_LENGTH", "100"))
     security_headers_enabled: bool = os.getenv("SECURITY_HEADERS_ENABLED", "true").lower() == "true"
     cookie_domain: str | None = os.getenv("COOKIE_DOMAIN") or None
     audit_retention_days: int = int(os.getenv("AUDIT_RETENTION_DAYS", "365"))

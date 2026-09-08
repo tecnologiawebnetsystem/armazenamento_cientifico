@@ -926,7 +926,7 @@ async def activity_logs(
     logs = []
     for row in rows:
         item = dump(row)
-        logs.append({"id": item.get("id"), "userId": item.get("user_id"), "acao": item.get("action"), "entidade": item.get("entity"), "entidadeId": item.get("entity_id"), "detalhes": item.get("details") or "", "criadoEm": item.get("created_at"), "resultado": "sucesso", "projetoId": item.get("project_id") or (item.get("entity_id") if item.get("entity") == "projeto" else None), "correlationId": item.get("correlation_id"), "user": {"nome": item.get("user_name"), "email": item.get("user_email")} if item.get("user_name") else None, "projetoNome": item.get("project_name")})
+        logs.append({"id": item.get("id"), "userId": item.get("user_id"), "acao": item.get("action"), "entidade": item.get("entity"), "entidadeId": item.get("entity_id"), "detalhes": item.get("details") or "", "criadoEm": item.get("created_at"), "resultado": "sucesso", "projetoId": item.get("project_id") or (item.get("entity_id") if item.get("entity") == "projeto" else None), "user": {"nome": item.get("user_name"), "email": item.get("user_email")} if item.get("user_name") else None, "projetoNome": item.get("project_name")})
     return {"logs": logs, "pagination": {"page": page, "limit": limit, "total": int(count or 0), "totalPages": max((int(count or 0) + limit - 1) // limit, 1)}}
 
 
@@ -934,7 +934,7 @@ async def activity_logs(
 async def export_logs(
     request: Request,
     format: Literal["csv", "txt"] = "csv",
-    fields: str = "id,usuario,acao,entidade,entidadeId,detalhes,criadoEm,correlationId",
+    fields: str = "id,usuario,acao,entidade,entidadeId,detalhes,criadoEm",
     q: str | None = None,
     usuario: str | None = None,
     projeto: str | None = None,
@@ -963,7 +963,7 @@ async def export_logs(
     out = io.StringIO()
     if format == "csv":
         w = csv.writer(out)
-        columns = {"id": "ID", "usuario": "Usuário", "acao": "Ação", "entidade": "Entidade", "entidadeId": "ID da entidade", "detalhes": "Detalhes", "criadoEm": "Data", "correlationId": "Correlation ID"}
+        columns = {"id": "ID", "usuario": "Usuário", "acao": "Ação", "entidade": "Entidade", "entidadeId": "ID da entidade", "detalhes": "Detalhes", "criadoEm": "Data"}
         selected = [key.strip() for key in fields.split(",") if key.strip() in columns] or list(columns)
         w.writerow([columns[key] for key in selected])
         for x in data:

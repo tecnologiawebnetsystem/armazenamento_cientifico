@@ -181,7 +181,6 @@ export interface ActivityLog {
   criadoEm: string
   resultado?: "sucesso" | "erro"
   projetoId?: string
-  correlationId?: string
 }
 
 export interface AccessMapRow {

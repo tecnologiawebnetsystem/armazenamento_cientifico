@@ -2,7 +2,6 @@ import {
   LayoutDashboardIcon,
   FolderKanbanIcon,
   FlaskConicalIcon,
-  HistoryIcon,
   BarChart3Icon,
   type LucideIcon,
 } from "lucide-react"
@@ -49,7 +48,6 @@ export const navGroups: NavGroup[] = [
   {
     label: "Administração",
     items: [
-      { title: "Logs de auditoria", url: "/administracao/logs", icon: HistoryIcon, roles: ["admin", "patrocinador", "auditor"] },
     ],
   },
 ]

@@ -17,6 +17,5 @@ def audit_event(*, user: Any, action: str, entity: str, entity_id: str, result: 
         "result": result,
         "details": details or {},
         "project_id": project_id,
-        "correlation_id": str(uuid4()),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
