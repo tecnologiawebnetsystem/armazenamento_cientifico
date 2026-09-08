@@ -813,10 +813,8 @@ Consulte o checklist completo em [`docs/integracao-login-corporativo-cav4-entrai
 ## 18. Referências do repositório
 
 - [README único do projeto](README.md)
-- [Estrutura do banco](docs/database-structure.txt)
-- [Diagrama Mermaid](docs/database-erd.mmd)
-- [Diagrama SVG](docs/database-erd.svg)
-- [Diagrama visual PNG](frontend/public/wiki/database-architecture.png)
+- [Modelo visual de dados em PDF](docs/SIGAC-modelo-dados.pdf)
+- [Schema SQLite](backend/database/sqlite-schema.sql)
 - [Endpoints documentados](docs/api-endpoints.md)
 - [Arquitetura](docs/ARCHITECTURE.md)
 - [Integração corporativa CAV4 e Entra ID](docs/integracao-login-corporativo-cav4-entraid.md)

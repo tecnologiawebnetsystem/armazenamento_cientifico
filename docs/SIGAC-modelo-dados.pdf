@@ -1,0 +1,188 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+3 0 obj
+<< /Length 2605 >>
+stream
+0.96 0.98 0.97 rg 0 0 842 595 re f
+0.07 0.22 0.17 rg
+BT /F2 21 Tf 30 560 Td (SIGAC - Estrutura visual das tabelas) Tj ET
+BT /F1 8 Tf 32 542 Td (PK = chave primaria | FK = chave estrangeira | UK = campo unico | linhas = relacionamentos) Tj ET
+0.03 0.50 0.36 rg 30 380 145 105 re S
+0.03 0.50 0.36 rg 30 463 145 22 re f
+BT /F2 10 Tf 37 470 Td (profiles) Tj ET
+BT /F1 7 Tf 37 447 Td (PK id) Tj ET
+BT /F1 7 Tf 37 435 Td (UK name) Tj ET
+BT /F1 7 Tf 37 423 Td (description) Tj ET
+0.03 0.50 0.36 rg 30 205 145 120 re S
+0.03 0.50 0.36 rg 30 303 145 22 re f
+BT /F2 10 Tf 37 310 Td (users) Tj ET
+BT /F1 7 Tf 37 287 Td (PK id) Tj ET
+BT /F1 7 Tf 37 275 Td (UK email) Tj ET
+BT /F1 7 Tf 37 263 Td (FK profile_id) Tj ET
+BT /F1 7 Tf 37 251 Td (role) Tj ET
+0.76 0.53 0.00 rg 245 380 155 120 re S
+0.76 0.53 0.00 rg 245 478 155 22 re f
+BT /F2 10 Tf 252 485 Td (projects) Tj ET
+BT /F1 7 Tf 252 462 Td (PK id) Tj ET
+BT /F1 7 Tf 252 450 Td (UK code) Tj ET
+BT /F1 7 Tf 252 438 Td (name) Tj ET
+BT /F1 7 Tf 252 426 Td (status) Tj ET
+0.76 0.53 0.00 rg 245 205 155 125 re S
+0.76 0.53 0.00 rg 245 308 155 22 re f
+BT /F2 10 Tf 252 315 Td (files) Tj ET
+BT /F1 7 Tf 252 292 Td (PK id) Tj ET
+BT /F1 7 Tf 252 280 Td (FK project_id) Tj ET
+BT /F1 7 Tf 252 268 Td (FK parent_id) Tj ET
+BT /F1 7 Tf 252 256 Td (name) Tj ET
+0.16 0.50 0.60 rg 480 380 155 110 re S
+0.16 0.50 0.60 rg 480 468 155 22 re f
+BT /F2 10 Tf 487 475 Td (project_members) Tj ET
+BT /F1 7 Tf 487 452 Td (PK/FK project_id) Tj ET
+BT /F1 7 Tf 487 440 Td (PK/FK user_id) Tj ET
+BT /F1 7 Tf 487 428 Td (role) Tj ET
+0.55 0.29 0.61 rg 480 205 155 120 re S
+0.55 0.29 0.61 rg 480 303 155 22 re f
+BT /F2 10 Tf 487 310 Td (activity_logs) Tj ET
+BT /F1 7 Tf 487 287 Td (PK id) Tj ET
+BT /F1 7 Tf 487 275 Td (FK user_id) Tj ET
+BT /F1 7 Tf 487 263 Td (action) Tj ET
+BT /F1 7 Tf 487 251 Td (entity) Tj ET
+0.03 0.50 0.36 rg 705 380 110 110 re S
+0.03 0.50 0.36 rg 705 468 110 22 re f
+BT /F2 10 Tf 712 475 Td (permissions) Tj ET
+BT /F1 7 Tf 712 452 Td (PK id) Tj ET
+BT /F1 7 Tf 712 440 Td (FK module_id) Tj ET
+BT /F1 7 Tf 712 428 Td (code) Tj ET
+0.55 0.29 0.61 rg 705 205 110 110 re S
+0.55 0.29 0.61 rg 705 293 110 22 re f
+BT /F2 10 Tf 712 300 Td (sessions) Tj ET
+BT /F1 7 Tf 712 277 Td (PK id) Tj ET
+BT /F1 7 Tf 712 265 Td (FK user_id) Tj ET
+BT /F1 7 Tf 712 253 Td (expires_at) Tj ET
+0.35 0.50 0.45 RG 1.5 w
+102 380 m 102 325 l S
+175 265 m 245 265 l S
+175 265 m 480 435 l S
+175 265 m 480 265 l S
+400 265 m 480 265 l S
+400 440 m 480 440 l S
+635 435 m 705 435 l S
+175 265 m 705 260 l S
+BT /F1 8 Tf 30 35 Td (Modelo essencial de identidade, projetos, arquivos, permissoes, sessoes e auditoria) Tj ET
+endstream
+endobj
+4 0 obj
+<< /Type /Page /Parent 9 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 3 0 R >>
+endobj
+5 0 obj
+<< /Length 2232 >>
+stream
+0.96 0.98 0.97 rg 0 0 842 595 re f
+0.07 0.22 0.17 rg
+BT /F2 21 Tf 35 555 Td (SIGAC - Modelo de dados) Tj ET
+BT /F1 12 Tf 35 530 Td (Tabelas, campos e relacionamentos essenciais) Tj ET
+BT /F1 9 Tf 35 505 Td (PK identifica uma linha. FK aponta para outra tabela. UK impede valores repetidos.) Tj ET
+0.03 0.50 0.36 RG
+35 470 m 807 470 l S
+BT /F2 10 Tf 42 475 Td (profiles) Tj ET
+BT /F1 9 Tf 165 475 Td (Perfis e regras gerais de acesso.) Tj ET
+BT /F1 8 Tf 535 475 Td (id PK; name UK; description) Tj ET
+0.03 0.50 0.36 RG
+35 428 m 807 428 l S
+BT /F2 10 Tf 42 433 Td (users) Tj ET
+BT /F1 9 Tf 165 433 Td (Identidades usadas no login e nos vinculos.) Tj ET
+BT /F1 8 Tf 535 433 Td (id PK; email UK; profile_id FK; role) Tj ET
+0.03 0.50 0.36 RG
+35 386 m 807 386 l S
+BT /F2 10 Tf 42 391 Td (projects) Tj ET
+BT /F1 9 Tf 165 391 Td (Projetos cientificos ou administrativos.) Tj ET
+BT /F1 8 Tf 535 391 Td (id PK; code UK; name; status) Tj ET
+0.03 0.50 0.36 RG
+35 344 m 807 344 l S
+BT /F2 10 Tf 42 349 Td (project_members) Tj ET
+BT /F1 9 Tf 165 349 Td (Liga pessoas aos projetos e define papeis.) Tj ET
+BT /F1 8 Tf 535 349 Td (project_id PK/FK; user_id PK/FK; role) Tj ET
+0.03 0.50 0.36 RG
+35 302 m 807 302 l S
+BT /F2 10 Tf 42 307 Td (files) Tj ET
+BT /F1 9 Tf 165 307 Td (Arquivos e pastas dentro dos projetos.) Tj ET
+BT /F1 8 Tf 535 307 Td (id PK; project_id FK; parent_id FK; name) Tj ET
+0.03 0.50 0.36 RG
+35 260 m 807 260 l S
+BT /F2 10 Tf 42 265 Td (permissions) Tj ET
+BT /F1 9 Tf 165 265 Td (Capacidades que podem ser autorizadas.) Tj ET
+BT /F1 8 Tf 535 265 Td (id PK; module_id FK; code) Tj ET
+0.03 0.50 0.36 RG
+35 218 m 807 218 l S
+BT /F2 10 Tf 42 223 Td (activity_logs) Tj ET
+BT /F1 9 Tf 165 223 Td (Acoes importantes para auditoria.) Tj ET
+BT /F1 8 Tf 535 223 Td (id PK; user_id FK; action; entity) Tj ET
+0.03 0.50 0.36 RG
+35 176 m 807 176 l S
+BT /F2 10 Tf 42 181 Td (sessions) Tj ET
+BT /F1 9 Tf 165 181 Td (Sessoes autenticadas e expiracao.) Tj ET
+BT /F1 8 Tf 535 181 Td (id PK; user_id FK; expires_at) Tj ET
+BT /F2 13 Tf 35 105 Td (Como ler) Tj ET
+BT /F1 9 Tf 35 85 Td (Uma relacao 1:N significa que um registro pode estar ligado a varios.) Tj ET
+BT /F1 9 Tf 35 67 Td (Relacoes N:N usam tabelas de ligacao, como project_members.) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 9 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 1282 >>
+stream
+0.96 0.98 0.97 rg 0 0 842 595 re f
+0.07 0.22 0.17 rg
+BT /F2 21 Tf 35 555 Td (Relacionamentos e manutencao) Tj ET
+BT /F2 11 Tf 40 510 Td (profiles -> users) Tj ET
+BT /F1 10 Tf 300 510 Td (Um perfil pode ser usado por varios usuarios.) Tj ET
+BT /F2 11 Tf 40 462 Td (projects -> project_members -> users) Tj ET
+BT /F1 10 Tf 300 462 Td (Projetos tem participantes; pessoas podem estar em varios projetos.) Tj ET
+BT /F2 11 Tf 40 414 Td (projects -> files) Tj ET
+BT /F1 10 Tf 300 414 Td (Cada arquivo pertence a um projeto; parent_id representa pastas.) Tj ET
+BT /F2 11 Tf 40 366 Td (users -> activity_logs) Tj ET
+BT /F1 10 Tf 300 366 Td (Acoes auditadas podem ser associadas ao usuario.) Tj ET
+BT /F2 11 Tf 40 318 Td (modules -> permissions) Tj ET
+BT /F1 10 Tf 300 318 Td (Permissoes sao agrupadas por modulo funcional.) Tj ET
+BT /F2 11 Tf 40 270 Td (users -> sessions) Tj ET
+BT /F1 10 Tf 300 270 Td (Um usuario pode ter sessoes ativas ou expiradas.) Tj ET
+BT /F2 14 Tf 35 190 Td (Fonte) Tj ET
+BT /F1 10 Tf 35 165 Td (Baseado em backend/database/sqlite-schema.sql.) Tj ET
+BT /F1 10 Tf 35 140 Td (O diretorio backend/docs foi removido; este PDF e o documento visual unico.) Tj ET
+BT /F1 10 Tf 35 115 Td (Ao alterar tabelas, campos ou relacionamentos, atualize este PDF manualmente.) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 9 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R] /Count 3 >>
+endobj
+10 0 obj
+<< /Type /Catalog /Pages 9 0 R >>
+endobj
+xref
+0 11
+0000000000 65535 f 
+0000000009 00000 n 
+0000000079 00000 n 
+0000000154 00000 n 
+0000002811 00000 n 
+0000002947 00000 n 
+0000005231 00000 n 
+0000005367 00000 n 
+0000006701 00000 n 
+0000006837 00000 n 
+0000006906 00000 n 
+trailer
+<< /Size 11 /Root 10 0 R >>
+startxref
+6956
+%%EOF
