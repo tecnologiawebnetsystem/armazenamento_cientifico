@@ -142,3 +142,14 @@ O smoke test frontend consulta `http://127.0.0.1:3000` e valida os fluxos públi
 A documentação completa dos endpoints está em [`docs/api-endpoints.md`](docs/api-endpoints.md). O levantamento para integração do login corporativo com CAV4 e Microsoft Entra ID está em [`docs/integracao-login-corporativo-cav4-entraid.md`](docs/integracao-login-corporativo-cav4-entraid.md).
 
 Para executar o ambiente completo localmente, consulte [`docs/setup-local-completo.md`](docs/setup-local-completo.md). O schema PostgreSQL está em [`backend/database/projects-schema.sql`](backend/database/projects-schema.sql) e o modelo visual de dados, com tabelas, campos e relacionamentos, está em [`docs/SIGAC-modelo-dados.pdf`](docs/SIGAC-modelo-dados.pdf).
+
+### Health checks do backend
+
+- `GET /health/live`: verifica se o processo está ativo, sem consultar o banco.
+- `GET /health/ready`: verifica a prontidão da aplicação e a conexão com o banco.
+- `GET /health/database`: alias explícito para a verificação do banco.
+- `GET /health`: mantém compatibilidade e executa a verificação de prontidão.
+
+Em produção, o backend exige PostgreSQL, cookie seguro, documentação OpenAPI desabilitada e origens CORS explícitas. Entradas de projetos e arquivos possuem limites de tamanho, formato e nome para reduzir riscos de path traversal e payloads inválidos. As rotas novas ficam em `backend/app/modules/`, com repositórios e serviços separados; `legacy_api.py` é mantido apenas para compatibilidade durante a migração gradual.
+
+A validação automatizada combina `uv run pytest -q` no backend, `npm run typecheck` e `npm run build` no frontend. O contrato de rotas, autorização, schemas e compatibilidade de banco deve ser validado antes de cada publicação.

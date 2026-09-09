@@ -496,7 +496,7 @@ A fonte viva do contrato é o [Swagger](http://localhost:8080/docs) e o arquivo 
 
 | Grupo | Endpoints | Finalidade |
 |---|---|---|
-| Saúde | `GET /health` | Verifica disponibilidade. |
+| Saúde | `GET /health`, `GET /health/live`, `GET /health/ready`, `GET /health/database` | Liveness, readiness e conexão com o banco. |
 | Login | `POST /api/auth/login` | Inicia sessão por e-mail. |
 | Sessão | `GET /api/auth/session` | Retorna o usuário atual. |
 | Logout | `POST /api/auth/logout` | Encerra sessão. |
@@ -536,6 +536,14 @@ A fonte viva do contrato é o [Swagger](http://localhost:8080/docs) e o arquivo 
 | Arquivos | `/api/files` | [`frontend/hooks/use-files.ts`](frontend/hooks/use-files.ts) |
 | Auditoria | `/api/activity-logs` | [`frontend/hooks/use-activity-logs.ts`](frontend/hooks/use-activity-logs.ts), tabela de logs |
 | Relatórios | `/api/reports/*` | [`frontend/app/(app)/relatorios/`](frontend/app/(app)/relatorios/) |
+
+### Arquitetura e qualidade do backend
+
+As rotas novas são organizadas por módulos em `backend/app/modules/` (projetos, arquivos e auditoria), enquanto `legacy_api.py` permanece como camada de compatibilidade durante a migração gradual. O acesso ao banco é centralizado em `app/db/session.py`, com suporte a SQLite local e PostgreSQL em produção.
+
+As entradas são validadas por schemas Pydantic com limites para códigos, nomes, MIME type e tamanho de arquivos. A configuração de produção rejeita SQLite, cookies inseguros, documentação OpenAPI exposta e CORS wildcard. Os health checks são separados em `/health/live`, `/health/ready` e `/health/database`, mantendo `/health` como alias compatível.
+
+A suíte `backend/tests/` cobre contrato OpenAPI, autorização, schemas, rotas e integração PostgreSQL. Execute `uv run pytest -q` no diretório `backend` antes de publicar alterações.
 
 ### Como rastrear uma chamada
 

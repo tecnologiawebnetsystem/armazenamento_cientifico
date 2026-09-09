@@ -37,6 +37,11 @@ def test_protected_operations_keep_expected_methods():
     assert "get" in schema["paths"]["/api/reports"]
 
 
+def test_health_endpoints_are_registered():
+    paths = app.openapi()["paths"]
+    assert {"/health/live", "/health/ready", "/health/database"} <= paths.keys()
+
+
 def test_unknown_route_is_not_silently_accepted():
     with TestClient(app) as client:
         response = client.get("/api/route-that-does-not-exist")
