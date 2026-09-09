@@ -1,98 +1,146 @@
+from __future__ import annotations
+
+import re
 from pathlib import Path
+
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle, KeepTogether
+from reportlab.platypus import BaseDocTemplate, Flowable, Frame, PageBreak, PageTemplate, Paragraph, Spacer
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "docs" / "SIGAC-modelo-dados.pdf"
-LOGO = ROOT / "frontend" / "public" / "images" / "petrobras-full-logo.png"
+SCHEMA = ROOT / "backend/database/sqlite-schema.sql"
+OUTPUT = ROOT / "docs/SIGAC-modelo-dados.pdf"
+LOGO = ROOT / "frontend/public/images/petrobras-full-logo.png"
+PAGE = landscape(A4)
+GREEN = colors.HexColor("#007F3E")
+DARK = colors.HexColor("#0B253E")
+PALE = colors.HexColor("#E8F1EC")
+MUTED = colors.HexColor("#557064")
 
-GREEN = colors.HexColor("#007A4D")
-DARK = colors.HexColor("#123B2A")
-LIGHT = colors.HexColor("#EEF5F1")
-MUTED = colors.HexColor("#52635B")
+
+def parse_schema(text: str) -> list[dict]:
+    tables = []
+    for match in re.finditer(r"CREATE TABLE(?: IF NOT EXISTS)?\s+([\w]+)\s*\((.*?)\);", text, re.I | re.S):
+        name, body = match.groups()
+        columns, pks, fks = [], [], []
+        for raw in re.split(r",(?=\s*[A-Za-z_][\w]*\s)", body):
+            line = raw.strip().rstrip(",")
+            if not line:
+                continue
+            fk = re.search(r"FOREIGN KEY\s*\(([^)]+)\)\s*REFERENCES\s+([\w]+)\s*\(([^)]+)\)", line, re.I)
+            if line.upper().startswith(("CONSTRAINT", "PRIMARY KEY", "FOREIGN KEY", "UNIQUE", "CHECK")):
+                if fk:
+                    fks.append((fk.group(1).strip(), fk.group(2), fk.group(3).strip()))
+                continue
+            bits = line.split()
+            if len(bits) < 2:
+                continue
+            col, typ = bits[0], bits[1]
+            columns.append((col, typ, "NOT NULL" in line.upper()))
+            if "PRIMARY KEY" in line.upper():
+                pks.append(col)
+            if fk:
+                fks.append((col, fk.group(1), fk.group(2).strip()))
+        tables.append({"name": name, "columns": columns, "pks": pks, "fks": fks})
+    return tables
+
+
+class ERPage(Flowable):
+    def __init__(self, tables):
+        super().__init__()
+        self.tables = tables
+        self.width = 257 * mm
+        self.height = 150 * mm
+
+    def wrap(self, avail_width, avail_height):
+        return self.width, self.height
+
+    def draw(self):
+        canvas = self.canv
+        box_w, gap = 61 * mm, 6 * mm
+        top = self.height - 4 * mm
+        positions = {}
+        for index, table in enumerate(self.tables):
+            x = index * (box_w + gap)
+            visible = min(len(table["columns"]), 14)
+            box_h = (visible + 2) * 5.3 * mm
+            y = top - box_h
+            positions[table["name"]] = (x, y, box_w, box_h)
+            canvas.setStrokeColor(DARK)
+            canvas.setLineWidth(0.6)
+            canvas.setFillColor(colors.white)
+            canvas.rect(x, y, box_w, box_h, fill=1, stroke=1)
+            canvas.setFillColor(PALE)
+            canvas.rect(x, y + box_h - 11 * mm, box_w, 11 * mm, fill=1, stroke=0)
+            canvas.setFillColor(DARK)
+            canvas.setFont("Helvetica-Bold", 8.5)
+            canvas.drawCentredString(x + box_w / 2, y + box_h - 7.2 * mm, table["name"].upper())
+            row_y = y + box_h - 17 * mm
+            for col, typ, required in table["columns"][:visible]:
+                label = f"PK {col} : {typ}" if col in table["pks"] else f"{col} : {typ}"
+                if required and col not in table["pks"]:
+                    label += " *"
+                canvas.setFillColor(DARK if col in table["pks"] else colors.HexColor("#30443A"))
+                canvas.setFont("Helvetica-Bold" if col in table["pks"] else "Helvetica", 6.8)
+                canvas.drawString(x + 3 * mm, row_y, label[:39])
+                row_y -= 5.3 * mm
+            if len(table["columns"]) > visible:
+                canvas.setFont("Helvetica-Oblique", 6.5)
+                canvas.setFillColor(MUTED)
+                canvas.drawString(x + 3 * mm, y + 3 * mm, f"+ {len(table['columns']) - visible} campos")
+        for table in self.tables:
+            x, y, w, h = positions[table["name"]]
+            for _, target, _ in table["fks"]:
+                if target in positions:
+                    tx, ty, tw, th = positions[target]
+                    canvas.setStrokeColor(GREEN)
+                    canvas.setLineWidth(0.8)
+                    canvas.line(x + w, y + h / 2, tx, ty + th / 2)
 
 
 def header_footer(canvas, doc):
     canvas.saveState()
-    width, height = doc.pagesize
+    width, height = PAGE
     canvas.setStrokeColor(GREEN)
     canvas.setLineWidth(1.2)
-    canvas.line(doc.leftMargin, height - 22 * mm, width - doc.rightMargin, height - 22 * mm)
+    canvas.line(16 * mm, height - 17 * mm, width - 16 * mm, height - 17 * mm)
     if LOGO.exists():
-        canvas.drawImage(str(LOGO), doc.leftMargin, height - 19 * mm, width=28 * mm, height=8 * mm, preserveAspectRatio=True, mask="auto")
+        canvas.drawImage(str(LOGO), 16 * mm, height - 14 * mm, width=31 * mm, height=7 * mm, preserveAspectRatio=True, mask="auto")
     canvas.setFillColor(DARK)
     canvas.setFont("Helvetica-Bold", 10)
-    canvas.drawString(doc.leftMargin + 35 * mm, height - 16 * mm, "SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico")
+    canvas.drawString(51 * mm, height - 11.5 * mm, "SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico")
     canvas.setFillColor(MUTED)
-    canvas.setFont("Helvetica", 8)
-    canvas.drawRightString(width - doc.rightMargin, 13 * mm, f"SIGAC | Modelo de dados | {doc.page}")
+    canvas.setFont("Helvetica", 7)
+    canvas.drawString(16 * mm, 9 * mm, "Modelo de dados · fonte: backend/database/sqlite-schema.sql")
+    canvas.drawRightString(width - 16 * mm, 9 * mm, f"Página {doc.page}")
     canvas.restoreState()
 
 
-def table_box(title, rows, width=62 * mm):
-    data = [[title]] + [[Paragraph(f"<b>{r}</b>" if i == 0 else r, styles["BodyText"])] for i, r in enumerate(rows)]
-    t = Table(data, colWidths=[width], repeatRows=1)
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#DCE7E1")),
-        ("TEXTCOLOR", (0, 0), (-1, 0), DARK),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, 0), 9),
-        ("GRID", (0, 0), (-1, -1), 0.6, colors.HexColor("#50685D")),
-        ("LEFTPADDING", (0, 0), (-1, -1), 7),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 7),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-    ]))
-    return t
+def main():
+    tables = parse_schema(SCHEMA.read_text(encoding="utf-8"))
+    if len(tables) != 27:
+        raise RuntimeError(f"Schema incompleto: esperado 27 tabelas, encontrado {len(tables)}")
+    styles = getSampleStyleSheet()
+    title = ParagraphStyle("title", parent=styles["Title"], fontName="Helvetica-Bold", fontSize=22, textColor=DARK, spaceAfter=8)
+    body = ParagraphStyle("body", parent=styles["BodyText"], fontSize=10, leading=15, textColor=MUTED)
+    frame = Frame(16 * mm, 18 * mm, PAGE[0] - 32 * mm, PAGE[1] - 40 * mm, id="normal")
+    doc = BaseDocTemplate(str(OUTPUT), pagesize=PAGE, leftMargin=16 * mm, rightMargin=16 * mm, topMargin=24 * mm, bottomMargin=18 * mm, title="SIGAC — Modelo de dados")
+    doc.addPageTemplates([PageTemplate(id="main", frames=frame, onPage=header_footer)])
+    story = [Spacer(1, 18 * mm), Paragraph("SIGAC — Modelo de dados", title), Paragraph("Documento completo gerado diretamente do schema SQLite. Todas as tabelas, campos, chaves primárias e relacionamentos vêm da mesma fonte.", body), Spacer(1, 12 * mm), Paragraph(f"Inventário: {len(tables)} tabelas", title), Paragraph("Legenda: PK = chave primária; * = campo obrigatório; linhas verdes = relacionamentos FK visíveis na mesma página.", body), PageBreak()]
+    for i in range(0, len(tables), 3):
+        group = tables[i:i + 3]
+        story += [Paragraph(f"Diagrama ER visual · tabelas {i + 1}–{i + len(group)} de {len(tables)}", title), Spacer(1, 5 * mm), ERPage(group)]
+        if i + 3 < len(tables):
+            story.append(PageBreak())
+    story += [PageBreak(), Paragraph("Inventário completo de tabelas", title)]
+    for table in tables:
+        fields = ", ".join(col for col, _, _ in table["columns"])
+        story += [Paragraph(f"<b>{table['name']}</b> · {len(table['columns'])} campos · PK: {', '.join(table['pks']) or '—'}<br/>{fields}", body), Spacer(1, 3 * mm)]
+    doc.build(story)
+    print(f"Generated {OUTPUT} with {len(tables)} tables")
 
 
-styles = getSampleStyleSheet()
-styles.add(ParagraphStyle(name="TitleGreen", parent=styles["Title"], fontName="Helvetica-Bold", fontSize=25, leading=30, textColor=DARK, spaceAfter=8))
-styles.add(ParagraphStyle(name="Subtitle", parent=styles["Normal"], fontSize=11, leading=16, textColor=MUTED))
-styles.add(ParagraphStyle(name="Section", parent=styles["Heading2"], fontName="Helvetica-Bold", fontSize=16, textColor=DARK, spaceBefore=4, spaceAfter=12))
-styles["BodyText"].fontName = "Helvetica"
-styles["BodyText"].fontSize = 8
-styles["BodyText"].leading = 10
-styles["BodyText"].textColor = DARK
-
-
-doc = SimpleDocTemplate(str(OUT), pagesize=A4, rightMargin=16 * mm, leftMargin=16 * mm, topMargin=30 * mm, bottomMargin=20 * mm, title="SIGAC — Modelo de dados")
-story = [
-    Spacer(1, 18 * mm),
-    Paragraph("SIGAC — Modelo de dados", styles["TitleGreen"]),
-    Paragraph("Sistema de Gestão de Acesso ao Armazenamento Científico", styles["Subtitle"]),
-    Spacer(1, 16 * mm),
-    Paragraph("Documentação técnica do modelo entidade-relacionamento, dicionário de dados e regras de integridade.", styles["BodyText"]),
-    PageBreak(),
-    Paragraph("Diagrama ER clássico", styles["Section"]),
-    Paragraph("Caixas de tabelas, campos e relacionamentos — cada conjunto começa em uma página própria para evitar cortes.", styles["Subtitle"]),
-    Spacer(1, 12 * mm),
-]
-
-groups = [
-    ("Identidade e autorização", [("PROFILES", ["PK id : VARCHAR(40)", "name : VARCHAR(100)", "description : TEXT"]), ("USERS", ["PK id : VARCHAR(40)", "email : VARCHAR(180)", "profile_id : VARCHAR(40) FK"]), ("SESSIONS", ["PK id : VARCHAR(40)", "user_id : VARCHAR(40) FK", "expires_at : TIMESTAMP"])]),
-    ("Navegação e permissões", [("MODULES", ["PK id : VARCHAR(40)", "name : VARCHAR(100)"]), ("PERMISSIONS", ["PK id : VARCHAR(40)", "code : VARCHAR(80)"]), ("MENUS", ["PK id : VARCHAR(80)", "route : VARCHAR(180)", "parent_id : VARCHAR(80)"])]),
-    ("Projetos e documentos", [("PROJECTS", ["PK id : VARCHAR(40)", "code : VARCHAR(50)", "name : VARCHAR(160)"]), ("PROJECT_MEMBERS", ["PK/FK project_id", "PK/FK user_id", "role : VARCHAR(40)"]), ("FILES", ["PK id : VARCHAR(40)", "project_id : VARCHAR(40) FK", "name : VARCHAR(255)"])]),
-    ("Fluxos, auditoria e relatórios", [("ACCESS_REQUESTS", ["PK id : VARCHAR(40)", "project_id : VARCHAR(40) FK", "status : VARCHAR(30)"]), ("ACTIVITY_LOGS", ["PK id : VARCHAR(40)", "user_id : VARCHAR(40) FK", "action : VARCHAR(80)"]), ("REPORT_TYPES", ["PK id : VARCHAR(60)", "code : VARCHAR(60)", "name : VARCHAR(120)"])]),
-]
-for index, (title, boxes) in enumerate(groups):
-    if index:
-        story.append(PageBreak())
-    story.extend([Paragraph(title, styles["Section"]), Spacer(1, 4 * mm)])
-    story.append(Table([[table_box(name, rows) for name, rows in boxes]], colWidths=[58 * mm] * len(boxes), hAlign="LEFT", style=[("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 5)]))
-    story.append(Spacer(1, 10 * mm))
-    story.append(Paragraph("Relacionamentos representados pelas chaves estrangeiras indicadas em cada caixa. PK = chave primária; FK = chave estrangeira; PK/FK = associação.", styles["Subtitle"]))
-
-story.extend([
-    PageBreak(),
-    Paragraph("Dicionário de dados e regras", styles["Section"]),
-    Paragraph("O modelo utiliza identificadores estáveis, relacionamentos explícitos e regras de integridade para preservar histórico e consistência.", styles["Subtitle"]),
-    Spacer(1, 8 * mm),
-    Paragraph("• ON DELETE CASCADE remove dependentes quando a entidade principal é eliminada.<br/>• RESTRICT protege referências que não podem ser removidas.<br/>• SET NULL preserva o registro dependente quando a referência deixa de existir.<br/>• Campos de auditoria registram usuário, ação, entidade e data da operação.<br/>• Arquivos devem respeitar nome normalizado, MIME permitido e limite de tamanho.", styles["BodyText"]),
-])
-
-doc.build(story, onFirstPage=header_footer, onLaterPages=header_footer)
-print(OUT)
+if __name__ == "__main__":
+    main()
