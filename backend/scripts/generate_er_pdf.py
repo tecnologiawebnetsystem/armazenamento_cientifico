@@ -118,6 +118,37 @@ def header_footer(canvas, doc):
     canvas.restoreState()
 
 
+TABLE_DESCRIPTIONS = {
+    "profiles": "Define os perfis de acesso e o nível de responsabilidade de cada usuário.",
+    "users": "Armazena as contas, dados básicos, perfil e situação de acesso dos usuários.",
+    "modules": "Lista os módulos funcionais disponíveis na plataforma.",
+    "permissions": "Registra as permissões que podem ser concedidas sobre as funcionalidades.",
+    "profile_permissions": "Relaciona perfis às permissões que cada perfil possui.",
+    "profile_modules": "Define quais módulos ficam disponíveis para cada perfil.",
+    "project_statuses": "Catálogo de situações usadas para acompanhar o ciclo de vida dos projetos.",
+    "project_types": "Classifica os projetos por tipo e orienta sua organização no portfólio.",
+    "system_settings": "Centraliza parâmetros configuráveis do sistema.",
+    "report_types": "Define os tipos de relatórios disponíveis para consulta ou geração.",
+    "report_fields": "Descreve os campos e a ordem de apresentação de cada relatório.",
+    "menus": "Organiza menus, submenus, rotas e ordem de exibição da aplicação.",
+    "projects": "Representa os projetos científicos e administrativos gerenciados pelo SIGAC.",
+    "project_members": "Vincula usuários aos projetos e registra sua participação ou responsabilidade.",
+    "groups": "Cadastra grupos de usuários para administrar acessos coletivos.",
+    "user_groups": "Relaciona usuários aos grupos dos quais participam.",
+    "project_groups": "Relaciona grupos aos projetos que podem administrar ou consultar.",
+    "project_access_groups": "Define grupos com acesso específico a determinados projetos.",
+    "project_access_roles": "Registra o papel de acesso em cada vínculo com um projeto.",
+    "files": "Controla arquivos dos projetos, incluindo nome, tamanho, tipo e proprietário.",
+    "file_shares": "Registra compartilhamentos de arquivos com usuários ou grupos.",
+    "file_permissions": "Define ações permitidas sobre cada arquivo, como leitura ou download.",
+    "access_requests": "Registra solicitações de acesso para análise e decisão.",
+    "notifications": "Armazena avisos sobre eventos, solicitações e alterações relevantes.",
+    "activity_logs": "Mantém o histórico de ações para auditoria e rastreabilidade.",
+    "sessions": "Controla sessões autenticadas, expiração e vínculo com o usuário conectado.",
+    "permission_matrix": "Consolida permissões por perfil, módulo, recurso e operação.",
+}
+
+
 def main():
     tables = parse_schema(SCHEMA.read_text(encoding="utf-8"))
     if len(tables) != 27:
@@ -134,6 +165,10 @@ def main():
         story += [Paragraph(f"Diagrama ER visual · tabelas {i + 1}–{i + len(group)} de {len(tables)}", title), Spacer(1, 5 * mm), ERPage(group)]
         if i + 3 < len(tables):
             story.append(PageBreak())
+    story += [PageBreak(), Paragraph("Para que serve cada tabela", title), Paragraph("Resumo funcional rápido das tabelas do SIGAC, escrito para facilitar a leitura por equipes técnicas e de negócio.", body), Spacer(1, 5 * mm)]
+    for table in tables:
+        description = TABLE_DESCRIPTIONS.get(table["name"], "Tabela de apoio ao funcionamento do sistema.")
+        story += [Paragraph(f"<b>{table['name']}</b>", body), Paragraph(description, body), Spacer(1, 3 * mm)]
     story += [PageBreak(), Paragraph("Inventário completo de tabelas", title)]
     for table in tables:
         fields = ", ".join(col for col, _, _ in table["columns"])
