@@ -7,6 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api.routes.health import router as health_router
 from app.core.config import settings
 from app.core.exceptions import AppException
 from app.core.logging import configure_logging
@@ -70,27 +71,13 @@ def create_app() -> FastAPI:
     async def validation_exception_handler(_: Request, exc: RequestValidationError):
         return JSONResponse(status_code=422, content={"error": "ValidationError", "message": "Dados de entrada inválidos", "details": {"fields": exc.errors()}})
 
-    @application.get("/health/live", tags=["Health"])
-    async def health_live():
-        return {"status": "ok", "service": "fastapi", "version": settings.app_version}
+    @application.exception_handler(Exception)
+    async def unhandled_exception_handler(request: Request, exc: Exception):
+        logger.exception("unhandled_request_error method=%s path=%s", request.method, request.url.path)
+        message = "Erro interno do servidor" if settings.environment.lower() == "production" else str(exc)
+        return JSONResponse(status_code=500, content={"error": "InternalError", "message": message, "details": {}})
 
-    @application.get("/health/ready", tags=["Health"])
-    async def health_ready():
-        from app.legacy_api import database_probe
-        try:
-            probe = await database_probe()
-            return {"status": "ok", "service": "fastapi", "database": "connected", "database_engine": settings.database_engine, "database_probe": probe}
-        except Exception:
-            logger.exception("health_database_probe_failed")
-            return JSONResponse(status_code=503, content={"status": "degradado", "service": "fastapi", "database": "unavailable", "database_engine": settings.database_engine})
-
-    @application.get("/health/database", tags=["Health"])
-    async def health_database():
-        return await health_ready()
-
-    @application.get("/health", tags=["Health"])
-    async def health():
-        return await health_ready()
+    application.include_router(health_router)
 
     application.include_router(projects_router)
     application.include_router(files_router)
