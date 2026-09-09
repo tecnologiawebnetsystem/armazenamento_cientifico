@@ -3,6 +3,7 @@ import {
   FolderKanbanIcon,
   FlaskConicalIcon,
   BarChart3Icon,
+  ClipboardListIcon,
   type LucideIcon,
 } from "lucide-react"
 import type { Role } from "@/lib/types"
@@ -42,6 +43,12 @@ export const navGroups: NavGroup[] = [
         url: "/relatorios",
         icon: BarChart3Icon,
         roles: ["admin", "patrocinador", "gerente"],
+      },
+      {
+        title: "Consulta de logs",
+        url: "/logs",
+        icon: ClipboardListIcon,
+        roles: ["admin", "auditor"],
       },
     ],
   },
