@@ -1,12 +1,10 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import { ChevronDownIcon, LogOutIcon, MapPinIcon, UserRoundIcon } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { logout } from "@/lib/api-client"
-import { filterNavForRole, navGroups } from "@/lib/nav-config"
-import { normalizeRole, roleDescription, roleLabel } from "@/hooks/use-permissions"
+import { roleDescription, roleLabel } from "@/hooks/use-permissions"
 import { roleThemeStyle, themeForRole } from "@/lib/theme-config"
 import type { User } from "@/lib/types"
 
@@ -15,10 +13,8 @@ function initials(name: string) {
 }
 
 export function ProfileAvatarMenu({ user, onLogout }: { user: User; onLogout: () => void }) {
-  const router = useRouter()
   const theme = themeForRole(user.role)
   const profileStyle = roleThemeStyle(user.role)
-  const permittedNavigation = filterNavForRole(navGroups, normalizeRole(user.role))
 
   async function handleLogout() {
     await logout()
@@ -61,19 +57,6 @@ export function ProfileAvatarMenu({ user, onLogout }: { user: User; onLogout: ()
           </div>
         </div>
 
-        <DropdownMenuSeparator className="m-0" />
-        <div className="px-6 pb-2 pt-4"><p className="text-xs font-bold tracking-[0.16em] text-muted-foreground">NAVEGAÇÃO</p></div>
-        <div className="flex max-h-72 flex-col gap-1 overflow-y-auto px-2 pb-2">
-          {permittedNavigation.flatMap((group) => group.items).map((item) => {
-            const Icon = item.icon
-            return (
-              <DropdownMenuItem key={item.url} onClick={() => router.push(item.url)} className="h-12 cursor-pointer gap-3 rounded-xl px-4 text-sm">
-                <Icon aria-hidden="true" />
-                <span className="truncate">{item.title}</span>
-              </DropdownMenuItem>
-            )
-          })}
-        </div>
         <DropdownMenuSeparator className="m-0" />
         <div className="p-2"><DropdownMenuItem onClick={handleLogout} variant="destructive" className="h-12 cursor-pointer gap-3 rounded-xl px-4 text-sm font-semibold"><LogOutIcon />Sair</DropdownMenuItem></div>
       </DropdownMenuContent>
