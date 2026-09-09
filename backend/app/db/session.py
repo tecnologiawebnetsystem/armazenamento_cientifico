@@ -127,8 +127,6 @@ async def _ensure_sqlite_compatibility() -> None:
             "created_at": "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
         }
         for column, definition in compatibility_columns.items():
-            if column not in compatibility_columns:
-                continue
             if column not in columns:
                 await connection.execute(text(f"ALTER TABLE users ADD COLUMN {column} {definition}"))
         member_columns = {
@@ -143,8 +141,6 @@ async def _ensure_sqlite_compatibility() -> None:
         }
         menu_compatibility = {"module_id": "TEXT", "parent_id": "TEXT", "name": "TEXT", "route": "TEXT NOT NULL DEFAULT ''", "icon": "TEXT NOT NULL DEFAULT 'circle'", "display_order": "INTEGER NOT NULL DEFAULT 0", "active": "INTEGER NOT NULL DEFAULT 1"}
         for column, definition in menu_compatibility.items():
-            if column not in menu_compatibility:
-                continue
             if column not in menu_columns:
                 await connection.execute(text(f"ALTER TABLE menus ADD COLUMN {column} {definition}"))
 

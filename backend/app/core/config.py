@@ -90,6 +90,17 @@ class Settings(BaseModel):
             raise ValueError("PostgreSQL exige uma DATABASE_URL PostgreSQL")
         if self.db_min_size < 1 or self.db_max_size < self.db_min_size:
             raise ValueError("DB_MIN_SIZE e DB_MAX_SIZE possuem valores inválidos")
+        if self.environment.lower() == "production":
+            if self.database_engine == "sqlite":
+                raise ValueError("SQLite não é permitido em produção")
+            if not self.cookie_secure:
+                raise ValueError("COOKIE_SECURE deve ser true em produção")
+            if self.expose_api_docs:
+                raise ValueError("EXPOSE_API_DOCS deve ser false em produção")
+        if not self.cors_origins:
+            raise ValueError("CORS_ORIGINS deve conter pelo menos uma origem")
+        if any(origin == "*" for origin in self.cors_origins) and self.environment.lower() == "production":
+            raise ValueError("CORS_ORIGINS não pode usar wildcard em produção")
         required = {
             "ENTRA_TENANT_ID": self.entra_tenant_id,
             "ENTRA_CLIENT_ID": self.entra_client_id,

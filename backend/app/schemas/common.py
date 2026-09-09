@@ -14,7 +14,7 @@ class LoginRequest(BaseModel):
 
 class ProjectCreate(BaseModel):
     nome: str = Field(min_length=2, max_length=200)
-    codigo: str = Field(min_length=1, max_length=50)
+    codigo: str = Field(min_length=1, max_length=50, pattern=r"^[A-Za-z0-9._-]+$")
     criadoEm: str | None = None
     areaResponsavel: str = Field(min_length=1, max_length=150)
     gestoresIds: list[str] = Field(default_factory=list)
@@ -48,9 +48,9 @@ class FileCreate(BaseModel):
     projectId: str
     parentId: str | None = None
     tipo: Literal["pasta", "arquivo"]
-    nome: str = Field(min_length=1, max_length=500)
-    tamanho: int = Field(default=0, ge=0)
-    mimeType: str | None = None
+    nome: str = Field(min_length=1, max_length=255, pattern=r"^[^\\x00/\\\\]+$")
+    tamanho: int = Field(default=0, ge=0, le=10 * 1024 * 1024 * 1024)
+    mimeType: str | None = Field(default=None, max_length=160)
 
 
 class FilePatch(BaseModel):

@@ -183,6 +183,15 @@
 }
 
 @layer utilities {
+  .sigac-surface {
+    box-shadow: 0 18px 45px color-mix(in oklch, var(--foreground) 7%, transparent), 0 2px 8px color-mix(in oklch, var(--foreground) 4%, transparent);
+  }
+
+  .sigac-grid {
+    background-image: linear-gradient(color-mix(in oklch, var(--petrobras-green) 7%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklch, var(--petrobras-green) 7%, transparent) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
   .wiki-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: color-mix(in oklch, var(--petrobras-blue) 42%, var(--muted)) transparent;

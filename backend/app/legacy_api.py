@@ -114,8 +114,8 @@ class Login(BaseModel):
 
 class ProjectInput(BaseModel):
     nome: str = Field(min_length=2, max_length=200)
-    codigo: str = Field(min_length=1, max_length=50)
-    areaResponsavel: str
+    codigo: str = Field(min_length=1, max_length=50, pattern=r"^[A-Za-z0-9._-]+$")
+    areaResponsavel: str = Field(min_length=1, max_length=120)
     gestoresIds: list[str] = Field(default_factory=list)
     grupoAdEscrita: str = ""
     grupoAdLeitura: str = ""
@@ -147,9 +147,9 @@ class FileInput(BaseModel):
     projectId: str
     parentId: str | None = None
     tipo: Literal["pasta", "arquivo"]
-    nome: str = Field(min_length=1, max_length=500)
-    tamanho: int = Field(default=0, ge=0)
-    mimeType: str | None = None
+    nome: str = Field(min_length=1, max_length=255, pattern=r"^[^\\x00/\\\\]+$")
+    tamanho: int = Field(default=0, ge=0, le=10 * 1024 * 1024 * 1024)
+    mimeType: str | None = Field(default=None, max_length=160)
 
 
 class FilePatch(BaseModel):
@@ -467,7 +467,7 @@ async def entra_callback(request: Request, code: str | None = None, state: str |
 
 @app.post("/api/auth/login")
 async def login(x: Login, response: Response):
-    logger.info("login_attempt email=%s", str(x.email))
+    logger.info("login_attempt")
     p = await db()
     logger.debug("login_database_selected engine=%s pool_type=%s", settings.database_engine, type(p).__name__)
     try:
@@ -481,11 +481,13 @@ async def login(x: Login, response: Response):
         logger.exception("login_user_query_failed engine=%s", settings.database_engine)
         raise HTTPException(503, "Falha ao consultar o banco de dados") from None
     if not u:
-        logger.warning("login_rejected reason=user_not_found email=%s", str(x.email))
+        logger.warning("login_rejected reason=user_not_found")
         raise HTTPException(401, "E-mail não cadastrado")
     logger.info("login_user_found user_id=%s role=%s", u["id"], u["role"])
     sid = str(uuid4())
     try:
+        # Uma conta mantém somente a sessão atual para reduzir tokens ativos abandonados.
+        await p.execute("delete from sessions where user_id=?" if settings.database_engine == "sqlite" else "delete from sessions where user_id=$1", u["id"])
         await p.execute(
             f"insert into sessions(id,user_id,expires_at) values($1,$2,{expires})" if settings.database_engine != "sqlite" else "insert into sessions(id,user_id,expires_at) values(?,?,datetime('now', '+8 hours'))",
             sid,
