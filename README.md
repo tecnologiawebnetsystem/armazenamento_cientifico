@@ -1,155 +1,210 @@
-# SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico
+# SIGAC Front-end
 
-Aplicação web da Petrobras para gestão de projetos, mapas, arquivos, permissões, relatórios e auditoria. O frontend usa Next.js 16, TypeScript, Tailwind CSS e shadcn/ui.
+Aplicação web do **SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico**. O front-end fornece a interface para autenticação, navegação, projetos, membros, permissões, arquivos, mapas, relatórios, auditoria e demais recursos do sistema.
+
+## Visão geral do sistema
+
+O SIGAC é uma aplicação corporativa organizada em duas partes independentes:
+
+- **Front-end:** aplicação web responsável pela experiência do usuário, navegação, formulários, tabelas, filtros e consumo da API.
+- **Back-end:** API responsável pela autenticação, regras de negócio, autorização, persistência e integrações.
+
+Este repositório contém o front-end na raiz e o back-end em `back-end/`. O front-end pode ser executado ou empacotado como imagem Docker independente, sem depender de arquivos do back-end durante o build.
+
+## Tecnologias
+
+- Next.js 16 com App Router
+- React e TypeScript
+- Tailwind CSS
+- shadcn/ui
+- SWR para consultas e cache no cliente
+- ESLint e TypeScript para validação estática
+- Docker para empacotamento e execução
 
 ## Pré-requisitos
 
-Para executar somente o frontend:
-
 - Node.js 20 ou superior
-- npm 10 ou superior
+- pnpm (versão definida no `package.json`) ou npm
+- Docker Desktop e Docker Compose, caso opte pela execução em container
+- Back-end SIGAC disponível em `http://localhost:8080` para o modo integrado
 
-Para executar a aplicação completa com a API e o banco local, também será necessário:
+## Configuração de ambiente
 
-- Python 3.11 ou superior
-- Docker Desktop com Docker Compose
-
-## Rodar o frontend
-
-Os comandos do frontend devem ser executados dentro da pasta `front-end/`. O backend permanece separado em `back-end/`.
-
-### 1. Instalar as dependências
-
-Na primeira execução, instale as versões registradas no `package-lock.json`:
+Copie o arquivo de exemplo:
 
 ```bash
-cd frontend
-pnpm install
+cp .env.example .env.local
 ```
 
-Se o `package-lock.json` tiver sido alterado ou não estiver disponível, use:
-
-```bash
-npm install
-```
-
-### 2. Configurar a URL da API (opcional)
-
-Por padrão, o frontend usa as API Routes locais do Next.js. Para apontar para o backend Python, crie o arquivo `front-end/.env.local`:
+A principal configuração é:
 
 ```dotenv
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 ```
 
-Depois de criar ou alterar esse arquivo, reinicie o servidor do frontend. Não coloque chaves secretas em variáveis com prefixo `NEXT_PUBLIC_`, pois elas ficam disponíveis no navegador.
+Essa variável é pública e é incorporada ao código executado no navegador. Nunca coloque tokens, senhas ou segredos em variáveis com prefixo `NEXT_PUBLIC_`.
 
-### 3. Iniciar o servidor de desenvolvimento
+Se a variável não for definida, o front-end poderá utilizar as rotas locais configuradas para desenvolvimento, conforme o fluxo implementado no projeto.
 
-```bash
-npm run dev
-```
+## Execução local
 
-Abra [http://localhost:3000](http://localhost:3000). O modo de desenvolvimento oferece Hot Module Replacement: alterações nos arquivos são refletidas automaticamente no navegador.
-
-Para iniciar em outra porta:
+Instale as dependências e inicie o servidor de desenvolvimento:
 
 ```bash
-npm run dev -- --port 3001
-```
-
-### 4. Executar uma build de produção local
-
-```bash
-npm run build
-npm run start
-```
-
-A aplicação ficará disponível em [http://localhost:3000](http://localhost:3000). A variável `NEXT_PUBLIC_API_BASE_URL`, quando usada, deve ser definida antes do `npm run build`.
-
-### Windows PowerShell
-
-Os mesmos comandos funcionam no PowerShell. Para definir a variável apenas na sessão atual:
-
-```powershell
-$env:NEXT_PUBLIC_API_BASE_URL = "http://localhost:8080"
-npm run dev
-```
-
-## Rodar banco, backend e frontend integrados
-
-O backend suporta SQLite localmente e PostgreSQL em ambientes compartilhados. A escolha é feita exclusivamente no `.env` por `DATABASE_ENGINE` e `DATABASE_URL`; o código da aplicação permanece o mesmo. Para PostgreSQL, use a URL fornecida pela integração com SSL habilitado.
-
-Para conectar o frontend ao FastAPI, crie `front-end/.env.local`:
-
-```dotenv
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
-```
-
-Com essa variável, o frontend usa o FastAPI como fonte principal e o banco selecionado no backend (`SQLite` ou `PostgreSQL`) como persistência. As API Routes locais do Next.js permanecem apenas como fallback opcional durante o desenvolvimento. O login local usa os usuários persistidos no backend; o login corporativo ainda está em preparação e seu levantamento está documentado em [`docs/integracao-login-corporativo-cav4-entraid.md`](docs/integracao-login-corporativo-cav4-entraid.md). Logout e sessão são encaminhados ao backend quando o modo integrado estiver ativo.
-
-## Scripts do frontend
-
-```bash
-npm run dev        # servidor de desenvolvimento
-npm run typecheck  # verificação de tipos TypeScript
-npm run lint       # análise estática com ESLint
-npm run build      # build de produção
-npm run start      # servidor de produção local
-npm run format     # formatação dos arquivos TypeScript/TSX
-```
-
-## Ordem recomendada para executar tudo
-
-Em um terminal, escolha SQLite ou PostgreSQLno `.env`, inicie a API seguindo a seção de backend deste README e a [`back-end/wiki-dev.md`](back-end/wiki-dev.md). Em outro terminal, execute:
-
-```bash
-cd frontend
 pnpm install
 pnpm dev
 ```
 
-Se estiver usando o backend Python, confirme primeiro que [`http://localhost:8080/health`](http://localhost:8080/health) responde e que o `.env.local` contém `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080`. Sem essa variável, o frontend continua usando as rotas locais do Next.js.
+Acesse:
 
-## Testes
+- Aplicação: http://localhost:3000
+- API utilizada pelo front-end: http://localhost:8080
 
-Antes de abrir um PR, execute na raiz:
+Para executar em outra porta:
 
 ```bash
-cd frontend
-pnpm install
-npm run typecheck
-npm run lint
-npm run build
-npm run test:e2e
+pnpm dev -- --port 3001
 ```
 
-O smoke test frontend consulta `http://127.0.0.1:3000` e valida os fluxos públicos de login e Wiki Dev. Inicie o frontend em outro terminal antes de executar o teste. Os testes do backend e os comandos de qualidade estão documentados na seção de validação deste README e na [`back-end/wiki-dev.md`](back-end/wiki-dev.md).
+No Windows PowerShell:
 
-## Estrutura
+```powershell
+$env:NEXT_PUBLIC_API_BASE_URL = "http://localhost:8080"
+pnpm dev
+```
 
-- `front-end/app/` — páginas, layouts e API Routes do frontend.
-- `front-end/components/` — componentes por domínio e componentes shadcn/ui.
-- `front-end/hooks/` — hooks client-side com SWR.
-- `front-end/lib/` — tipos, cliente HTTP, sessão e utilitários.
-- `front-end/public/` — imagens e arquivos estáticos.
-- `back-end/app/` — aplicação FastAPI, módulos, autenticação e regras de negócio.
-- `back-end/alembic/` — migrations versionadas do banco.
-- `back-end/data/` — SQLite local, não destinado à produção.
-- `back-end/database/` — schemas SQL de referência do backend.
-- `docs/` — arquitetura, contratos, setup e diagramas.
-- `back-end/wiki-dev.md` — documentação técnica consolidada.
+## Build e execução de produção
 
-A documentação completa dos endpoints está em [`docs/api-endpoints.md`](docs/api-endpoints.md). O levantamento para integração do login corporativo com CAV4 e Microsoft Entra ID está em [`docs/integracao-login-corporativo-cav4-entraid.md`](docs/integracao-login-corporativo-cav4-entraid.md).
+```bash
+pnpm install --frozen-lockfile
+pnpm build
+pnpm start
+```
 
-Para executar o ambiente completo localmente, consulte [`docs/setup-local-completo.md`](docs/setup-local-completo.md). O schema PostgreSQL está em [`back-end/database/projects-schema.sql`](back-end/database/projects-schema.sql) e o modelo visual de dados, com tabelas, campos e relacionamentos, está em [`docs/SIGAC-modelo-dados.pdf`](docs/SIGAC-modelo-dados.pdf).
+A aplicação de produção ficará disponível em http://localhost:3000.
 
-### Health checks do backend
+## Scripts disponíveis
 
-- `GET /health/live`: verifica se o processo está ativo, sem consultar o banco.
-- `GET /health/ready`: verifica a prontidão da aplicação e a conexão com o banco.
-- `GET /health/database`: alias explícito para a verificação do banco.
-- `GET /health`: mantém compatibilidade e executa a verificação de prontidão.
+```bash
+pnpm dev        # inicia o servidor de desenvolvimento
+pnpm typecheck  # valida os tipos TypeScript
+pnpm lint       # executa o ESLint
+pnpm build      # gera a build de produção
+pnpm start      # inicia a build de produção
+pnpm format     # formata os arquivos do projeto
+pnpm test:e2e   # executa os testes end-to-end, quando configurados
+```
 
-Em produção, o backend exige PostgreSQL, cookie seguro, documentação OpenAPI desabilitada e origens CORS explícitas. Entradas de projetos e arquivos possuem limites de tamanho, formato e nome para reduzir riscos de path traversal e payloads inválidos. As rotas novas ficam em `back-end/app/modules/`, com repositórios e serviços separados; `legacy_api.py` é mantido apenas para compatibilidade durante a migração gradual.
+## Execução com Docker
 
-A validação automatizada combina `uv run pytest -q` no backend, `npm run typecheck` e `npm run build` no frontend. O contrato de rotas, autorização, schemas e compatibilidade de banco deve ser validado antes de cada publicação.
+O front-end possui `Dockerfile`, `docker-compose.yml` e `.dockerignore` na raiz do repositório. O back-end continua isolado em `back-end/`:
+
+```bash
+cp .env.example .env
+# ajuste as variáveis necessárias
+
+docker compose build
+docker compose up -d
+```
+
+A aplicação ficará disponível em http://localhost:3000. Para acompanhar os logs:
+
+```bash
+docker compose logs -f front-end
+```
+
+Para parar os serviços:
+
+```bash
+docker compose down
+```
+
+O container utiliza o modo standalone do Next.js e executa com usuário não-root. O back-end deve estar acessível pela URL configurada em `NEXT_PUBLIC_API_BASE_URL`.
+
+## Publicação no JFrog Artifactory
+
+A publicação da imagem é independente da imagem do back-end. Configure no `.env`:
+
+```dotenv
+JFROG_REGISTRY=jfrog.petrobras.dev.br
+JFROG_DOCKER_REPOSITORY=informar-repositorio-docker
+IMAGE_TAG=local
+JFROG_USER=seu-usuario
+JFROG_TOKEN=seu-token
+```
+
+O host PyPI `jfrog.petrobras.dev.br/artifactory/api/pypi/.../simple` não é um registry Docker e não deve ser usado no nome da imagem.
+
+```bash
+printf '%s' "$JFROG_TOKEN" | docker login "$JFROG_REGISTRY" \
+  --username "$JFROG_USER" --password-stdin
+
+docker compose build
+docker compose push
+docker compose pull
+docker compose up -d
+```
+
+A imagem segue o padrão:
+
+```text
+<JFROG_REGISTRY>/<JFROG_DOCKER_REPOSITORY>/armazenamento-cientifico-front-end:<IMAGE_TAG>
+```
+
+Nunca versione arquivos `.env` com credenciais reais.
+
+## Integração com o back-end
+
+O navegador precisa conseguir resolver a URL da API. Em desenvolvimento local, use:
+
+```dotenv
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+```
+
+Em ambientes corporativos, utilize a URL publicada do back-end e confirme que o CORS da API permite a origem do front-end.
+
+## Estrutura de diretórios
+
+- `app/`: rotas, layouts e páginas do Next.js.
+- `components/`: componentes de interface e componentes organizados por domínio.
+- `hooks/`: hooks client-side e consultas com SWR.
+- `lib/`: cliente HTTP, tipos, autenticação e utilitários.
+- `public/`: imagens, ícones e arquivos estáticos.
+- `Dockerfile`: imagem independente do front-end.
+- `docker-compose.yml`: execução local e publicação da imagem do front-end.
+
+## Qualidade e troubleshooting
+
+Antes de abrir um Pull Request:
+
+```bash
+pnpm typecheck
+pnpm lint
+pnpm build
+```
+
+Problemas comuns:
+
+- **API indisponível:** confirme se o back-end está em execução na porta 8080.
+- **CORS:** verifique `CORS_ORIGINS` no back-end.
+- **Variável não aplicada:** reinicie o servidor após alterar `.env.local`.
+- **Imagem não encontrada:** confirme o repositório Docker JFrog e execute `docker login`.
+- **Dependências inconsistentes:** use `pnpm install --frozen-lockfile`.
+
+## Separação para repositório próprio
+
+Para criar o repositório corporativo do front-end, copie o conteúdo da raiz deste repositório, excluindo `back-end/`, `docs/` e os arquivos exclusivos da API. O front-end agora é a raiz do projeto e mantém juntos `package.json`, lockfile, `Dockerfile`, `docker-compose.yml`, `.dockerignore`, `.gitignore`, `.env.example`, `app`, `components`, `hooks`, `lib` e `public`.
+
+O front-end não depende de arquivos dentro de `back-end/` para instalar dependências, gerar a build ou executar o container.
+
+## Segurança
+
+- Não commite tokens, senhas ou arquivos `.env`.
+- Não exponha segredos em variáveis `NEXT_PUBLIC_*`.
+- Use HTTPS nas URLs de ambientes compartilhados.
+- Publique imagens com tags imutáveis associadas ao commit ou versão da aplicação.
+- Valide permissões no back-end; o front-end não é uma camada de segurança.
+
+## Licença e uso corporativo
+
+Este projeto é destinado ao uso corporativo da Petrobras e deve seguir as políticas internas de segurança, revisão de código, publicação de imagens e gestão de credenciais.

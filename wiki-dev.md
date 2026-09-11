@@ -2,7 +2,7 @@
 
 > Documentação técnica consolidada do **Sistema de Gestão de Acesso ao Armazenamento Científico (SIGAC)**.
 >
-> A aplicação é dividida em duas partes independentes: [`frontend/`](frontend/), em Next.js, e [`backend/`](backend/), em FastAPI.
+> A aplicação é dividida em duas partes independentes: [``](), em Next.js, e [`back-end/`](back-end/), em FastAPI.
 
 ## Índice
 
@@ -41,9 +41,9 @@ O frontend nunca deve ser a única barreira de segurança. Toda permissão preci
 
 ### Fluxo de uma operação
 
-1. O usuário acessa uma página em [`frontend/app/`](frontend/app/).
-2. Um hook em [`frontend/hooks/`](frontend/hooks/) ou o cliente [`frontend/lib/api-client.ts`](frontend/lib/api-client.ts) envia uma requisição HTTP.
-3. Um controller em [`backend/app/modules/`](backend/app/modules/) valida a requisição.
+1. O usuário acessa uma página em [`app/`](app/).
+2. Um hook em [`hooks/`](hooks/) ou o cliente [`lib/api-client.ts`](lib/api-client.ts) envia uma requisição HTTP.
+3. Um controller em [`back-end/app/modules/`](back-end/app/modules/) valida a requisição.
 4. O backend consulta os models e aplica as regras de acesso.
 5. A API retorna JSON.
 6. O frontend atualiza loading, sucesso, erro ou estado vazio.
@@ -86,11 +86,10 @@ uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
 Em outro terminal:
 
 ```bash
-cd frontend
 npm install
 ```
 
-Crie `frontend/.env.local`:
+Crie `.env.local`:
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
@@ -123,7 +122,7 @@ O backend suporta dois bancos selecionáveis pelo `.env`: SQLite para desenvolvi
 
 ### SQLite local
 
-O SQLite usa o arquivo `backend/data/sigac.db` e é indicado para desenvolvimento individual.
+O SQLite usa o arquivo `back-end/data/sigac.db` e é indicado para desenvolvimento individual.
 
 ### Configuração pelo `.env`
 
@@ -151,10 +150,10 @@ ENVIRONMENT=production
 
 O valor de `DATABASE_ENGINE` decide o driver usado pela API. Nunca versionar credenciais reais; use as variáveis de ambiente do projeto ou o arquivo `.env` local não versionado. O arquivo [`ACESSO_BANCO_POSTGRESQL.txt`](ACESSO_BANCO_POSTGRESQL.txt) contém o guia de configuração sem expor senhas ou tokens.
 
-O caminho `./data/sigac.db` é relativo ao diretório em que a API é iniciada. Execute o Uvicorn dentro de `backend/` para gerar:
+O caminho `./data/sigac.db` é relativo ao diretório em que a API é iniciada. Execute o Uvicorn dentro de `back-end/` para gerar:
 
 ```text
-backend/data/sigac.db
+back-end/data/sigac.db
 ```
 
 ### Criar e atualizar tabelas
@@ -166,7 +165,7 @@ alembic current
 alembic history
 ```
 
-A migration [`0002_remove_app_prefix.py`](backend/alembic/versions/0002_remove_app_prefix.py) renomeia bancos antigos que ainda possuam o prefixo `app_`, preservando os registros.
+A migration [`0002_remove_app_prefix.py`](back-end/alembic/versions/0002_remove_app_prefix.py) renomeia bancos antigos que ainda possuam o prefixo `app_`, preservando os registros.
 
 ### Seed e login local
 
@@ -175,7 +174,7 @@ Na primeira execução, o seed cria perfis e usuários iniciais apenas quando el
 ### Visualizar dados
 
 - Use o [Swagger](http://localhost:8080/docs) para consultar a API;
-- Use o **DB Browser for SQLite** para abrir `backend/data/sigac.db`;
+- Use o **DB Browser for SQLite** para abrir `back-end/data/sigac.db`;
 - Não coloque o `.db` dentro de `public/`;
 - Não crie uma rota HTTP que entregue o arquivo SQLite diretamente.
 
@@ -184,7 +183,7 @@ Na primeira execução, o seed cria perfis e usuários iniciais apenas quando el
 > Esta operação apaga os dados locais.
 
 ```bash
-rm backend/data/sigac.db
+rm back-end/data/sigac.db
 cd backend
 alembic upgrade head
 ```
@@ -193,31 +192,30 @@ alembic upgrade head
 
 ## 4. Estrutura do frontend
 
-O frontend está em [`frontend/`](frontend/) e é uma instalação Next.js independente.
+O frontend está em [``]() e é uma instalação Next.js independente.
 
 | Pasta/arquivo | Finalidade |
 |---|---|
-| [`frontend/app/`](frontend/app/) | Rotas, layouts, páginas e grupos de rotas do App Router. |
-| [`frontend/app/(app)/`](frontend/app/(app)/) | Área autenticada da aplicação. |
-| [`frontend/app/login/`](frontend/app/login/) | Página e fluxo visual de login. |
+| [`app/`](app/) | Rotas, layouts, páginas e grupos de rotas do App Router. |
+| [`app/(app)/`](app/(app)/) | Área autenticada da aplicação. |
+| [`app/login/`](app/login/) | Página e fluxo visual de login. |
 | [`wiki-dev.md`](wiki-dev.md) | Documentação técnica consolidada; não há página Wiki Dev no frontend. |
-| [`frontend/components/`](frontend/components/) | Componentes reutilizáveis de UI e domínio. |
-| [`frontend/components/ui/`](frontend/components/ui/) | Componentes base do shadcn/ui. |
-| [`frontend/hooks/`](frontend/hooks/) | Hooks para sessão, usuários, projetos, arquivos e permissões. |
-| [`frontend/lib/`](frontend/lib/) | Cliente HTTP, tipos, estado, navegação e utilitários. |
-| [`frontend/lib/api-client.ts`](frontend/lib/api-client.ts) | Centraliza chamadas para a API. |
-| [`frontend/public/`](frontend/public/) | Imagens, fontes e arquivos estáticos. |
-| [`frontend/tests/`](frontend/tests/) | Testes E2E e verificações do frontend. |
-| [`frontend/package.json`](frontend/package.json) | Scripts e dependências JavaScript. |
-| [`frontend/tsconfig.json`](frontend/tsconfig.json) | Configuração do TypeScript e aliases. |
-| [`frontend/next.config.ts`](frontend/next.config.ts) | Configuração do Next.js. |
-| [`frontend/components.json`](frontend/components.json) | Configuração do shadcn/ui. |
-| [`frontend/.env.local`](frontend/.env.local) | Variáveis locais não versionadas. |
+| [`components/`](components/) | Componentes reutilizáveis de UI e domínio. |
+| [`components/ui/`](components/ui/) | Componentes base do shadcn/ui. |
+| [`hooks/`](hooks/) | Hooks para sessão, usuários, projetos, arquivos e permissões. |
+| [`lib/`](lib/) | Cliente HTTP, tipos, estado, navegação e utilitários. |
+| [`lib/api-client.ts`](lib/api-client.ts) | Centraliza chamadas para a API. |
+| [`public/`](public/) | Imagens, fontes e arquivos estáticos. |
+| [`tests/`](tests/) | Testes E2E e verificações do frontend. |
+| [`package.json`](package.json) | Scripts e dependências JavaScript. |
+| [`tsconfig.json`](tsconfig.json) | Configuração do TypeScript e aliases. |
+| [`next.config.ts`](next.config.ts) | Configuração do Next.js. |
+| [`components.json`](components.json) | Configuração do shadcn/ui. |
+| [`.env.local`](.env.local) | Variáveis locais não versionadas. |
 
 ### Comandos
 
 ```bash
-cd frontend
 pnpm install
 pnpm dev
 pnpm typecheck
@@ -230,34 +228,34 @@ pnpm test:e2e
 
 ## 5. Estrutura do backend
 
-O backend está em [`backend/`](backend/) e usa FastAPI, SQLAlchemy, Pydantic e Alembic.
+O backend está em [`back-end/`](back-end/) e usa FastAPI, SQLAlchemy, Pydantic e Alembic.
 
 | Pasta/arquivo | Finalidade |
 |---|---|
-| [`backend/app/`](backend/app/) | Pacote principal da aplicação Python. |
-| [`backend/app/main.py`](backend/app/main.py) | Entry point ASGI usado pelo Uvicorn. |
-| [`backend/app/app.py`](backend/app/app.py) | Monta a aplicação, middlewares, CORS e routers. |
-| [`backend/app/core/`](backend/app/core/) | Configuração, ambiente, segurança e utilitários centrais. |
-| [`backend/app/core/config.py`](backend/app/core/config.py) | Lê variáveis de ambiente e configura o sistema. |
-| [`backend/app/api/`](backend/app/api/) | Dependências compartilhadas, sessão e autenticação das rotas. |
-| [`backend/app/db/`](backend/app/db/) | Engine, sessão, Base SQLAlchemy e seed. |
-| [`backend/app/modules/`](backend/app/modules/) | Domínios funcionais separados. |
-| [`backend/app/modules/users/`](backend/app/modules/users/) | Usuários, perfis, login e permissões. |
-| [`backend/app/modules/projects/`](backend/app/modules/projects/) | Projetos e membros. |
-| [`backend/app/modules/files/`](backend/app/modules/files/) | Arquivos e compartilhamentos. |
-| [`backend/app/modules/audit/`](backend/app/modules/audit/) | Logs de atividade e auditoria. |
+| [`back-end/app/`](back-end/app/) | Pacote principal da aplicação Python. |
+| [`back-end/app/main.py`](back-end/app/main.py) | Entry point ASGI usado pelo Uvicorn. |
+| [`back-end/app/app.py`](back-end/app/app.py) | Monta a aplicação, middlewares, CORS e routers. |
+| [`back-end/app/core/`](back-end/app/core/) | Configuração, ambiente, segurança e utilitários centrais. |
+| [`back-end/app/core/config.py`](back-end/app/core/config.py) | Lê variáveis de ambiente e configura o sistema. |
+| [`back-end/app/api/`](back-end/app/api/) | Dependências compartilhadas, sessão e autenticação das rotas. |
+| [`back-end/app/db/`](back-end/app/db/) | Engine, sessão, Base SQLAlchemy e seed. |
+| [`back-end/app/modules/`](back-end/app/modules/) | Domínios funcionais separados. |
+| [`back-end/app/modules/users/`](back-end/app/modules/users/) | Usuários, perfis, login e permissões. |
+| [`back-end/app/modules/projects/`](back-end/app/modules/projects/) | Projetos e membros. |
+| [`back-end/app/modules/files/`](back-end/app/modules/files/) | Arquivos e compartilhamentos. |
+| [`back-end/app/modules/audit/`](back-end/app/modules/audit/) | Logs de atividade e auditoria. |
 | `module.py` | Registra o módulo e seus routers. |
 | `models.py` | Define tabelas SQLAlchemy e relacionamentos. |
 | `schemas.py` | Define entrada e saída com Pydantic. |
 | `controller.py` | Define endpoints HTTP e respostas. |
 | `service.py`/`repository.py` | Regras de negócio e acesso a dados, quando presentes. |
-| [`backend/alembic/`](backend/alembic/) | Histórico de migrations do banco. |
-| [`backend/alembic/env.py`](backend/alembic/env.py) | Conecta Alembic à configuração e metadata. |
-| [`backend/alembic/versions/`](backend/alembic/versions/) | Migrations incrementais. |
-| [`backend/data/`](backend/data/) | Arquivo SQLite local; não é armazenamento de produção. |
-| [`backend/tests/`](backend/tests/) | Testes de contrato, schemas e integração. |
-| [`backend/requirements.txt`](backend/requirements.txt) | Dependências Python. |
-| [`backend/.env.example`](backend/.env.example) | Modelo de configuração local. |
+| [`back-end/alembic/`](back-end/alembic/) | Histórico de migrations do banco. |
+| [`back-end/alembic/env.py`](back-end/alembic/env.py) | Conecta Alembic à configuração e metadata. |
+| [`back-end/alembic/versions/`](back-end/alembic/versions/) | Migrations incrementais. |
+| [`back-end/data/`](back-end/data/) | Arquivo SQLite local; não é armazenamento de produção. |
+| [`back-end/tests/`](back-end/tests/) | Testes de contrato, schemas e integração. |
+| [`back-end/requirements.txt`](back-end/requirements.txt) | Dependências Python. |
+| [`back-end/.env.example`](back-end/.env.example) | Modelo de configuração local. |
 | [`README.md`](README.md) | Documentação operacional única do frontend e backend. |
 
 ### Comandos de qualidade
@@ -346,7 +344,7 @@ Projetos científicos e metadados.
 | `status` | Situação do projeto. |
 | `created_at`, `updated_at` | Auditoria temporal. |
 
-Usada em [`frontend/app/(app)/projetos/`](frontend/app/(app)/projetos/) e [`frontend/hooks/use-projects.ts`](frontend/hooks/use-projects.ts). Endpoints: `GET/POST /api/projects` e `GET/PATCH/DELETE /api/projects/{id}`.
+Usada em [`app/(app)/projetos/`](app/(app)/projetos/) e [`hooks/use-projects.ts`](hooks/use-projects.ts). Endpoints: `GET/POST /api/projects` e `GET/PATCH/DELETE /api/projects/{id}`.
 
 ### project_members
 
@@ -414,10 +412,10 @@ Disponível para consulta administrativa pelo endpoint `GET /api/activity-logs`.
 
 ### Como confirmar no código
 
-- Models: [`backend/app/modules/*/models.py`](backend/app/modules/);
-- Schema SQLite: [`backend/database/sqlite-schema.sql`](backend/database/sqlite-schema.sql);
-- Migrations: [`backend/alembic/versions/`](backend/alembic/versions/);
-- Schemas de API: `backend/app/modules/*/schemas.py`.
+- Models: [`back-end/app/modules/*/models.py`](back-end/app/modules/);
+- Schema SQLite: [`back-end/database/sqlite-schema.sql`](back-end/database/sqlite-schema.sql);
+- Migrations: [`back-end/alembic/versions/`](back-end/alembic/versions/);
+- Schemas de API: `back-end/app/modules/*/schemas.py`.
 
 ---
 
@@ -484,7 +482,7 @@ A tela de relatórios carrega os status ativos de `GET /api/catalogos`, sem list
 
 ### Estado da API
 
-Os endpoints em `backend/app/modules/` são a arquitetura modular preferencial. A `legacy_api.py` ainda fornece compatibilidade para autenticação, relatórios, configurações, permissões, solicitações de acesso, exportações e alguns CRUDs. Rotas duplicadas de projetos, arquivos, usuários e membros devem ser migradas gradualmente para os controllers modulares antes da remoção da camada legada.
+Os endpoints em `back-end/app/modules/` são a arquitetura modular preferencial. A `legacy_api.py` ainda fornece compatibilidade para autenticação, relatórios, configurações, permissões, solicitações de acesso, exportações e alguns CRUDs. Rotas duplicadas de projetos, arquivos, usuários e membros devem ser migradas gradualmente para os controllers modulares antes da remoção da camada legada.
 
 ### Rotas removidas
 
@@ -527,28 +525,28 @@ A fonte viva do contrato é o [Swagger](http://localhost:8080/docs) e o arquivo 
 
 | Domínio | API | Arquivos frontend |
 |---|---|---|
-| Cliente HTTP | Todos os endpoints | [`frontend/lib/api-client.ts`](frontend/lib/api-client.ts) |
-| Sessão | `/api/auth/session` | [`frontend/hooks/use-session.ts`](frontend/hooks/use-session.ts), [`frontend/app/login/page.tsx`](frontend/app/login/page.tsx) |
-| Diretório | `/api/users` | [`frontend/hooks/use-users.ts`](frontend/hooks/use-users.ts), seleção de membros de projetos |
-| Permissões | `/api/permissions` | [`frontend/hooks/use-permissions.ts`](frontend/hooks/use-permissions.ts) |
-| Projetos | `/api/projects` | [`frontend/hooks/use-projects.ts`](frontend/hooks/use-projects.ts), [`frontend/hooks/use-project.ts`](frontend/hooks/use-project.ts), páginas de projetos |
-| Membros | `/api/projects/{id}/members` | [`frontend/hooks/use-project-members.ts`](frontend/hooks/use-project-members.ts) |
-| Arquivos | `/api/files` | [`frontend/hooks/use-files.ts`](frontend/hooks/use-files.ts) |
-| Auditoria | `/api/activity-logs` | [`frontend/hooks/use-activity-logs.ts`](frontend/hooks/use-activity-logs.ts), tabela de logs |
-| Relatórios | `/api/reports/*` | [`frontend/app/(app)/relatorios/`](frontend/app/(app)/relatorios/) |
+| Cliente HTTP | Todos os endpoints | [`lib/api-client.ts`](lib/api-client.ts) |
+| Sessão | `/api/auth/session` | [`hooks/use-session.ts`](hooks/use-session.ts), [`app/login/page.tsx`](app/login/page.tsx) |
+| Diretório | `/api/users` | [`hooks/use-users.ts`](hooks/use-users.ts), seleção de membros de projetos |
+| Permissões | `/api/permissions` | [`hooks/use-permissions.ts`](hooks/use-permissions.ts) |
+| Projetos | `/api/projects` | [`hooks/use-projects.ts`](hooks/use-projects.ts), [`hooks/use-project.ts`](hooks/use-project.ts), páginas de projetos |
+| Membros | `/api/projects/{id}/members` | [`hooks/use-project-members.ts`](hooks/use-project-members.ts) |
+| Arquivos | `/api/files` | [`hooks/use-files.ts`](hooks/use-files.ts) |
+| Auditoria | `/api/activity-logs` | [`hooks/use-activity-logs.ts`](hooks/use-activity-logs.ts), tabela de logs |
+| Relatórios | `/api/reports/*` | [`app/(app)/relatorios/`](app/(app)/relatorios/) |
 
 ### Arquitetura e qualidade do backend
 
-As rotas novas são organizadas por módulos em `backend/app/modules/` (projetos, arquivos e auditoria), enquanto `legacy_api.py` permanece como camada de compatibilidade durante a migração gradual. O acesso ao banco é centralizado em `app/db/session.py`, com suporte a SQLite local e PostgreSQL em produção.
+As rotas novas são organizadas por módulos em `back-end/app/modules/` (projetos, arquivos e auditoria), enquanto `legacy_api.py` permanece como camada de compatibilidade durante a migração gradual. O acesso ao banco é centralizado em `app/db/session.py`, com suporte a SQLite local e PostgreSQL em produção.
 
 As entradas são validadas por schemas Pydantic com limites para códigos, nomes, MIME type e tamanho de arquivos. A configuração de produção rejeita SQLite, cookies inseguros, documentação OpenAPI exposta e CORS wildcard. Os health checks são separados em `/health/live`, `/health/ready` e `/health/database`, mantendo `/health` como alias compatível.
 
-A suíte `backend/tests/` cobre contrato OpenAPI, autorização, schemas, rotas e integração PostgreSQL. Execute `uv run pytest -q` no diretório `backend` antes de publicar alterações.
+A suíte `back-end/tests/` cobre contrato OpenAPI, autorização, schemas, rotas e integração PostgreSQL. Execute `uv run pytest -q` no diretório `backend` antes de publicar alterações.
 
 ### Como rastrear uma chamada
 
 1. Comece pelo hook;
-2. Localize a função usada em `frontend/lib/api-client.ts`;
+2. Localize a função usada em `lib/api-client.ts`;
 3. Procure o path no controller Python;
 4. Identifique o schema e model consultados;
 5. Confira as regras de sessão e autorização;
@@ -560,9 +558,9 @@ A suíte `backend/tests/` cobre contrato OpenAPI, autorização, schemas, rotas 
 
 ### Proteção de rotas e páginas de erro
 
-As rotas privadas do frontend são protegidas por `frontend/middleware.ts`, que verifica o cookie HttpOnly `wayon_session_user_id` e redireciona usuários não autenticados para `/login`. A proteção é reforçada por `frontend/app/(app)/layout.tsx`, que valida a sessão no servidor.
+As rotas privadas do frontend são protegidas por `middleware.ts`, que verifica o cookie HttpOnly `wayon_session_user_id` e redireciona usuários não autenticados para `/login`. A proteção é reforçada por `app/(app)/layout.tsx`, que valida a sessão no servidor.
 
-As páginas parametrizadas são `frontend/app/not-found.tsx` para 404, `frontend/app/forbidden/page.tsx` para acesso negado e `frontend/app/error.tsx`/`global-error.tsx` para erros inesperados. Nenhuma dessas camadas substitui a autorização no backend.
+As páginas parametrizadas são `app/not-found.tsx` para 404, `app/forbidden/page.tsx` para acesso negado e `app/error.tsx`/`global-error.tsx` para erros inesperados. Nenhuma dessas camadas substitui a autorização no backend.
 
 O backend é a autoridade para identidade, sessão e autorização.
 
@@ -570,7 +568,7 @@ O backend é a autoridade para identidade, sessão e autorização.
 
 O login corporativo usa OAuth 2.0 / OpenID Connect. O frontend inicia o fluxo no backend em `/api/auth/entra/login`; o callback `/api/auth/entra/callback` valida o `state`, troca o `code`, consulta a identidade e cria uma sessão HttpOnly. O backend é a única camada que conhece o segredo.
 
-Todas as configurações ficam em `backend/.env`, carregadas por `python-dotenv`: `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET`, `ENTRA_REDIRECT_URI`, `ENTRA_SCOPES`, `ENTRA_GROUPS` e `ENTRA_GROUP_SYNC_ENABLED`. Os valores reais não devem estar no frontend, em `NEXT_PUBLIC_*`, em logs ou no Git; use `backend/.env.example` apenas como modelo.
+Todas as configurações ficam em `back-end/.env`, carregadas por `python-dotenv`: `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET`, `ENTRA_REDIRECT_URI`, `ENTRA_SCOPES`, `ENTRA_GROUPS` e `ENTRA_GROUP_SYNC_ENABLED`. Os valores reais não devem estar no frontend, em `NEXT_PUBLIC_*`, em logs ou no Git; use `back-end/.env.example` apenas como modelo.
 
 `ENTRA_GROUPS` aceita IDs ou nomes separados por vírgula. O backend registra grupos e o último login na auditoria, e rejeita configuração parcial na inicialização.
 
@@ -611,12 +609,11 @@ Defina método, path, autenticação, payload, respostas e erros. Implemente o c
 
 ### Nova página
 
-Crie a rota em `frontend/app/`, extraia componentes reutilizáveis, use tokens existentes e implemente loading, estado vazio, erro, acessibilidade e responsividade.
+Crie a rota em `app/`, extraia componentes reutilizáveis, use tokens existentes e implemente loading, estado vazio, erro, acessibilidade e responsividade.
 
 ### Checklist
 
 ```bash
-cd frontend
 pnpm typecheck
 pnpm lint
 pnpm build
@@ -636,7 +633,6 @@ Execute os comandos abaixo na ordem. Um resultado **bom** termina com código `0
 ### Frontend: tipos, lint e build
 
 ```bash
-cd frontend
 pnpm install
 pnpm typecheck
 pnpm lint
@@ -660,7 +656,6 @@ Bom: `compileall` não imprime erros, `pip check` informa que não há dependên
 ### E2E e validação manual
 
 ```bash
-cd frontend
 pnpm test:e2e
 ```
 
@@ -728,14 +723,14 @@ git push -u origin feature/STS0233556-exportacao-relatorio
 
 ### Preview não abre
 
-Confirme que o Next foi iniciado dentro de `frontend/`, que `pnpm install` terminou e que a porta está livre. Reinicie o servidor após alterar `package.json` ou variáveis de ambiente.
+Confirme que o Next foi iniciado dentro de ``, que `pnpm install` terminou e que a porta está livre. Reinicie o servidor após alterar `package.json` ou variáveis de ambiente.
 
 ### Frontend sem dados
 
 Verifique:
 
 1. Backend rodando em `localhost:8080`;
-2. `NEXT_PUBLIC_API_BASE_URL` em `frontend/.env.local`;
+2. `NEXT_PUBLIC_API_BASE_URL` em `.env.local`;
 3. `CORS_ORIGINS` incluindo `http://localhost:3000`;
 4. [Health check](http://localhost:8080/health) respondendo;
 5. Console e Network do navegador.
@@ -748,7 +743,7 @@ alembic current
 alembic history
 ```
 
-Confira permissões de escrita em `backend/data/` e faça backup antes de qualquer rename.
+Confira permissões de escrita em `back-end/data/` e faça backup antes de qualquer rename.
 
 ### Erro 401 ou 403
 
@@ -769,7 +764,7 @@ Frontend e backend devem ser publicados como serviços separados.
 
 ### Frontend
 
-Configure `NEXT_PUBLIC_API_BASE_URL` com a URL HTTPS pública da API. Execute o build dentro de `frontend/`. Não inclua `.env.local` ou segredos no bundle.
+Configure `NEXT_PUBLIC_API_BASE_URL` com a URL HTTPS pública da API. Execute o build dentro de ``. Não inclua `.env.local` ou segredos no bundle.
 
 ### Backend
 
@@ -811,11 +806,11 @@ Consulte o checklist completo em [`docs/integracao-login-corporativo-cav4-entrai
 
 - [README único do projeto](README.md)
 - [Modelo visual de dados em PDF](docs/SIGAC-modelo-dados.pdf)
-- [Schema SQLite](backend/database/sqlite-schema.sql)
+- [Schema SQLite](back-end/database/sqlite-schema.sql)
 - [Endpoints documentados](docs/api-endpoints.md)
 - [Arquitetura](docs/ARCHITECTURE.md)
 - [Integração corporativa CAV4 e Entra ID](docs/integracao-login-corporativo-cav4-entraid.md)
-- [Schema SQLite](backend/database/sqlite-schema.sql)
+- [Schema SQLite](back-end/database/sqlite-schema.sql)
 - [Wiki Dev](wiki-dev.md)
 
 ---

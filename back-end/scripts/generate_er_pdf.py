@@ -10,9 +10,9 @@ from reportlab.lib.units import mm
 from reportlab.platypus import BaseDocTemplate, Flowable, Frame, PageBreak, PageTemplate, Paragraph, Spacer
 
 ROOT = Path(__file__).resolve().parents[2]
-SCHEMA = ROOT / "backend/database/sqlite-schema.sql"
+SCHEMA = ROOT / "back-end/database/sqlite-schema.sql"
 OUTPUT = ROOT / "docs/SIGAC-modelo-dados.pdf"
-LOGO = ROOT / "frontend/public/images/petrobras-full-logo.png"
+LOGO = ROOT / "public/images/petrobras-full-logo.png"
 PAGE = landscape(A4)
 GREEN = colors.HexColor("#007F3E")
 DARK = colors.HexColor("#0B253E")
