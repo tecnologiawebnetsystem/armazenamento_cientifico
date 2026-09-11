@@ -2,7 +2,7 @@
 
 > Documentação técnica consolidada do **Sistema de Gestão de Acesso ao Armazenamento Científico (SIGAC)**.
 >
-> A aplicação é dividida em duas partes independentes: [``](), em Next.js, e [`back-end/`](back-end/), em FastAPI.
+> A aplicação é dividida em duas partes independentes: [`front-end/`](front-end/), em Next.js, e [`back-end/`](back-end/), em FastAPI.
 
 ## Índice
 
@@ -41,8 +41,8 @@ O frontend nunca deve ser a única barreira de segurança. Toda permissão preci
 
 ### Fluxo de uma operação
 
-1. O usuário acessa uma página em [`app/`](app/).
-2. Um hook em [`hooks/`](hooks/) ou o cliente [`lib/api-client.ts`](lib/api-client.ts) envia uma requisição HTTP.
+1. O usuário acessa uma página em [`front-end/app/`](front-end/app/).
+2. Um hook em [`front-end/hooks/`](front-end/hooks/) ou o cliente [`front-end/lib/api-client.ts`](front-end/lib/api-client.ts) envia uma requisição HTTP.
 3. Um controller em [`back-end/app/modules/`](back-end/app/modules/) valida a requisição.
 4. O backend consulta os models e aplica as regras de acesso.
 5. A API retorna JSON.
@@ -65,7 +65,7 @@ Frontend e backend são aplicações independentes e devem ser iniciados em term
 ### Iniciar o backend
 
 ```bash
-cd backend
+cd back-end
 python -m venv venv
 
 # Linux/macOS
@@ -86,7 +86,8 @@ uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
 Em outro terminal:
 
 ```bash
-npm install
+cd front-end
+pnpm install
 ```
 
 Crie `.env.local`:
@@ -98,8 +99,8 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 Depois execute:
 
 ```bash
-npm run build
-npm run dev
+pnpm build
+pnpm dev
 ```
 
 ### URLs importantes
@@ -159,7 +160,7 @@ back-end/data/sigac.db
 ### Criar e atualizar tabelas
 
 ```bash
-cd backend
+cd back-end
 alembic upgrade head
 alembic current
 alembic history
@@ -184,7 +185,7 @@ Na primeira execução, o seed cria perfis e usuários iniciais apenas quando el
 
 ```bash
 rm back-end/data/sigac.db
-cd backend
+cd back-end
 alembic upgrade head
 ```
 
@@ -192,22 +193,22 @@ alembic upgrade head
 
 ## 4. Estrutura do frontend
 
-O frontend está em [``]() e é uma instalação Next.js independente.
+O frontend está em [`front-end/`](front-end/) e é uma instalação Next.js independente.
 
 | Pasta/arquivo | Finalidade |
 |---|---|
-| [`app/`](app/) | Rotas, layouts, páginas e grupos de rotas do App Router. |
+| [`front-end/app/`](front-end/app/) | Rotas, layouts, páginas e grupos de rotas do App Router. |
 | [`app/(app)/`](app/(app)/) | Área autenticada da aplicação. |
 | [`app/login/`](app/login/) | Página e fluxo visual de login. |
 | [`wiki-dev.md`](wiki-dev.md) | Documentação técnica consolidada; não há página Wiki Dev no frontend. |
-| [`components/`](components/) | Componentes reutilizáveis de UI e domínio. |
+| [`front-end/components/`](front-end/components/) | Componentes reutilizáveis de UI e domínio. |
 | [`components/ui/`](components/ui/) | Componentes base do shadcn/ui. |
-| [`hooks/`](hooks/) | Hooks para sessão, usuários, projetos, arquivos e permissões. |
-| [`lib/`](lib/) | Cliente HTTP, tipos, estado, navegação e utilitários. |
-| [`lib/api-client.ts`](lib/api-client.ts) | Centraliza chamadas para a API. |
-| [`public/`](public/) | Imagens, fontes e arquivos estáticos. |
-| [`tests/`](tests/) | Testes E2E e verificações do frontend. |
-| [`package.json`](package.json) | Scripts e dependências JavaScript. |
+| [`front-end/hooks/`](front-end/hooks/) | Hooks para sessão, usuários, projetos, arquivos e permissões. |
+| [`front-end/lib/`](front-end/lib/) | Cliente HTTP, tipos, estado, navegação e utilitários. |
+| [`front-end/lib/api-client.ts`](front-end/lib/api-client.ts) | Centraliza chamadas para a API. |
+| [`front-end/public/`](front-end/public/) | Imagens, fontes e arquivos estáticos. |
+| [`front-end/tests/`](front-end/tests/) | Testes E2E e verificações do frontend. |
+| [`front-end/package.json`](front-end/package.json) | Scripts e dependências JavaScript. |
 | [`tsconfig.json`](tsconfig.json) | Configuração do TypeScript e aliases. |
 | [`next.config.ts`](next.config.ts) | Configuração do Next.js. |
 | [`components.json`](components.json) | Configuração do shadcn/ui. |
@@ -261,7 +262,7 @@ O backend está em [`back-end/`](back-end/) e usa FastAPI, SQLAlchemy, Pydantic 
 ### Comandos de qualidade
 
 ```bash
-cd backend
+cd back-end
 python -m compileall -q app alembic
 python -m pip check
 python -m pytest -q
@@ -525,7 +526,7 @@ A fonte viva do contrato é o [Swagger](http://localhost:8080/docs) e o arquivo 
 
 | Domínio | API | Arquivos frontend |
 |---|---|---|
-| Cliente HTTP | Todos os endpoints | [`lib/api-client.ts`](lib/api-client.ts) |
+| Cliente HTTP | Todos os endpoints | [`front-end/lib/api-client.ts`](front-end/lib/api-client.ts) |
 | Sessão | `/api/auth/session` | [`hooks/use-session.ts`](hooks/use-session.ts), [`app/login/page.tsx`](app/login/page.tsx) |
 | Diretório | `/api/users` | [`hooks/use-users.ts`](hooks/use-users.ts), seleção de membros de projetos |
 | Permissões | `/api/permissions` | [`hooks/use-permissions.ts`](hooks/use-permissions.ts) |
@@ -644,7 +645,7 @@ Bom: typecheck, lint e build terminam sem erros; o build é gerado. Warnings dev
 ### Backend: compilação, dependências e testes
 
 ```bash
-cd backend
+cd back-end
 python -m compileall -q app alembic
 python -m pip check
 python -m pytest -q
@@ -738,7 +739,7 @@ Verifique:
 ### SQLite ou migration falha
 
 ```bash
-cd backend
+cd back-end
 alembic current
 alembic history
 ```

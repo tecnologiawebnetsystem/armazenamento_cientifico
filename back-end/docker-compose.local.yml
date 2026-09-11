@@ -16,7 +16,7 @@ services:
       retries: 10
     volumes:
       - armazenamento_postgres_data:/var/lib/postgresql/data
-      - ../database/projects-schema.sql:/docker-entrypoint-initdb.d/001-projects-schema.sql:ro
+      - ./database/projects-schema.sql:/docker-entrypoint-initdb.d/001-projects-schema.sql:ro
 
 volumes:
   armazenamento_postgres_data:

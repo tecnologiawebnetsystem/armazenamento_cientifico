@@ -113,7 +113,7 @@ def header_footer(canvas, doc):
     canvas.drawString(51 * mm, height - 11.5 * mm, "SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico")
     canvas.setFillColor(MUTED)
     canvas.setFont("Helvetica", 7)
-    canvas.drawString(16 * mm, 9 * mm, "Modelo de dados · fonte: backend/database/sqlite-schema.sql")
+    canvas.drawString(16 * mm, 9 * mm, "Modelo de dados · fonte: back-end/database/sqlite-schema.sql")
     canvas.drawRightString(width - 16 * mm, 9 * mm, f"Página {doc.page}")
     canvas.restoreState()
 
@@ -172,7 +172,7 @@ def main():
     story += [PageBreak(), Paragraph("Inventário completo de tabelas", title)]
     for table in tables:
         fields = ", ".join(col for col, _, _ in table["columns"])
-        story += [Paragraph(f"<b>{table['name']}</b> · {len(table['columns'])} campos · PK: {', '.join(table['pks']) or '—'}<br/>{fields}", body), Spacer(1, 3 * mm)]
+        story += [Paragraph(f"<b>{table['name']}</b> · {len(table['columns'])} campos �� PK: {', '.join(table['pks']) or '—'}<br/>{fields}", body), Spacer(1, 3 * mm)]
     doc.build(story)
     print(f"Generated {OUTPUT} with {len(tables)} tables")
 

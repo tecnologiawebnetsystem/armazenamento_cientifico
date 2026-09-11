@@ -35,7 +35,6 @@ export function AppTopbar() {
       <LogoMark className="size-9 shrink-0 rounded-lg" />
       <div className="flex min-w-0 flex-col gap-1"><AppBreadcrumbs /></div>
       <div className="ml-auto flex items-center gap-2 md:gap-3">
-        
         <ThemeToggle />
         {isLoading ? (
           <div className="size-9 animate-pulse rounded-xl bg-muted" aria-label="Carregando perfil" />
