@@ -9,7 +9,6 @@ import type {
   PlatformSettings,
   Project,
   ProjectMember,
-  ProjectMemberRole,
   Role,
   SessionUser,
   ShareLevel,
@@ -176,26 +175,6 @@ export function getProjectAccessMap(projectId: string) {
 export async function getProjectMembers(projectId: string) {
   const response = await request<{ members?: Array<ProjectMember & { user: User }> } | Array<ProjectMember & { user: User }>>(`/api/projects/${projectId}/members`)
   return { members: Array.isArray(response) ? response : (response.members ?? []) }
-}
-
-export function addProjectMember(projectId: string, userId: string, papel: ProjectMemberRole) {
-  return request<{ member: ProjectMember }>(`/api/projects/${projectId}/members`, {
-    method: "POST",
-    body: JSON.stringify({ userId, papel }),
-  })
-}
-
-export function updateProjectMember(projectId: string, userId: string, papel: Role) {
-  return request<{ member: ProjectMember }>(`/api/projects/${projectId}/members`, {
-    method: "PATCH",
-    body: JSON.stringify({ userId, papel }),
-  })
-}
-
-export function removeProjectMember(projectId: string, userId: string) {
-  return request<void>(`/api/projects/${projectId}/members?user_id=${encodeURIComponent(userId)}`, {
-    method: "DELETE",
-  })
 }
 
 /* ---------------------------------- Files --------------------------------- */

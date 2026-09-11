@@ -162,9 +162,6 @@ class ShareInput(BaseModel):
     nivel: Literal["leitura", "edicao"]
 
 
-class MemberInput(BaseModel):
-    userId: str
-    papel: Literal["gerente", "participante", "visualizador"]
 
 
 class RolePatch(BaseModel):
@@ -675,39 +672,6 @@ async def members(pid: str, request: Request):
             for x in rows
         ]
     }
-
-
-@app.post("/api/projects/{pid}/members")
-async def add_member(pid: str, x: MemberInput, request: Request):
-    u = await require(request, ("admin", "gerente"))
-    p = await db()
-    if not await visible(u, pid):
-        raise HTTPException(404, "Projeto não encontrado")
-    if not await p.fetchval("select 1 from users where id=$1", x.userId):
-        raise HTTPException(404, "Usuário não encontrado")
-    await p.execute(
-        "insert into project_members(project_id,user_id,papel) values($1,$2,$3) on conflict(project_id,user_id) do update set papel=excluded.papel",
-        pid,
-        x.userId,
-        x.papel,
-    )
-    await audit(u, "adicionar-membro", "projeto", pid, f"usuário={x.userId}; papel={x.papel}")
-    return {"message": "Membro adicionado"}
-
-
-@app.patch("/api/projects/{pid}/members")
-async def patch_member(pid: str, x: MemberInput, request: Request):
-    return await add_member(pid, x, request)
-
-
-@app.delete("/api/projects/{pid}/members")
-async def remove_member(pid: str, userId: str, request: Request):
-    u = await require(request, ("admin", "gerente"))
-    p = await db()
-    await p.execute(
-        "delete from project_members where project_id=$1 and user_id=$2", pid, userId
-    )
-    await audit(u, "remover-membro", "projeto", pid, f"usuário={userId}")
 
 
 @app.get("/api/files")

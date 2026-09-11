@@ -33,11 +33,6 @@ class ProjectPatch(BaseModel):
     roleIdentidadeLeitura: str | None = None
 
 
-class ProjectMemberInput(BaseModel):
-    userId: str = Field(min_length=1)
-    papel: str = Field(min_length=1, max_length=40)
-
-
 class ProjectMemberOut(BaseModel):
     projectId: str
     userId: str

@@ -15,7 +15,6 @@ from app.modules.projects.schemas import (
     AccessMapGroupOut,
     AccessMapOut,
     ProjectCreate,
-    ProjectMemberInput,
     ProjectMemberOut,
     ProjectOut,
     ProjectPatch,
@@ -141,53 +140,6 @@ async def list_projects_layered(
 ):
     """Endpoint de transição para validar a nova camada sem quebrar o contrato atual."""
     return await service.list_projects(x_user_id, x_user_role)
-
-
-@router.post("/{project_id}/members", response_model=ProjectMemberOut, status_code=201)
-async def add_project_member(
-    project_id: str,
-    data: ProjectMemberInput,
-    session: Annotated[AsyncSession, Depends(get_session)],
-    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
-):
-    user = await session.get(User, data.userId)
-    if not user:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
-    member = ProjectMember(project_id=project_id, user_id=data.userId, role=data.papel, created_at=datetime.now(UTC))
-    session.add(member)
-    await session.commit()
-    return ProjectMemberOut(projectId=project_id, userId=user.id, papel=member.role, adicionadoEm=member.created_at, user={"id": user.id, "nome": user.name, "email": user.email, "cargo": user.cargo, "area": user.area})
-
-
-@router.patch("/{project_id}/members", response_model=ProjectMemberOut)
-async def update_project_member(
-    project_id: str,
-    data: ProjectMemberInput,
-    session: Annotated[AsyncSession, Depends(get_session)],
-    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
-):
-    member = await session.get(ProjectMember, {"project_id": project_id, "user_id": data.userId})
-    if not member:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail="Membro não encontrado")
-    member.role = data.papel
-    await session.commit()
-    user = await session.get(User, data.userId)
-    return ProjectMemberOut(projectId=project_id, userId=user.id, papel=member.role, adicionadoEm=member.created_at, user={"id": user.id, "nome": user.name, "email": user.email, "cargo": user.cargo, "area": user.area})
-
-
-@router.delete("/{project_id}/members", status_code=204)
-async def remove_project_member(
-    project_id: str,
-    user_id: str,
-    session: Annotated[AsyncSession, Depends(get_session)],
-    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
-):
-    member = await session.get(ProjectMember, {"project_id": project_id, "user_id": user_id})
-    if member:
-        await session.delete(member)
-        await session.commit()
 
 
 @router.get("/{project_id}/members", response_model=list[ProjectMemberOut])
