@@ -1,0 +1,15 @@
+{
+  "name": "armazenamento-cientifico-deployment",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm install --prefix front-end --include=dev --no-audit --no-fund && npm --prefix front-end run build",
+    "dev": "npm --prefix front-end run dev",
+    "lint": "npm --prefix front-end run lint",
+    "typecheck": "npm --prefix front-end run typecheck",
+    "start": "npm --prefix front-end run start"
+  },
+  "dependencies": {
+    "next": "16.2.11"
+  }
+}
