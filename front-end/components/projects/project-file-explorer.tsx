@@ -4,7 +4,6 @@ import { useMemo, useState } from "react"
 import { toast } from "sonner"
 import {
   FolderIcon,
-  MoreVerticalIcon,
   FileIcon,
   FileTextIcon,
   FileSpreadsheetIcon,
@@ -36,11 +35,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
   ContextMenu,
@@ -70,21 +64,6 @@ import {
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useFiles } from "@/hooks/use-files"
 import type { FileNode } from "@/lib/types"
-
-function formatBytes(bytes?: number) {
-  if (!bytes) return "—"
-  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GB`
-  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MB`
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${bytes} B`
-}
-
-function formatDate(iso?: string | null) {
-  if (!iso) return "—"
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return "—"
-  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
-}
 
 function FileTypeIcon({ file, className }: { file: FileNode; className?: string }) {
   if (file.tipo === "pasta") return <FolderIcon className={className ?? "size-4 shrink-0 text-primary"} />
@@ -145,8 +124,9 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
 
   const visibleFiles = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return files
-    return files.filter((f) => f.nome.toLowerCase().includes(q))
+    const folders = files.filter((f) => f.tipo === "pasta")
+    if (!q) return folders
+    return folders.filter((f) => f.nome.toLowerCase().includes(q))
   }, [files, search])
 
   /* Criação, upload, renomeação, movimentação e exclusão foram removidos: este módulo é somente leitura. */
@@ -290,7 +270,7 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
     <Card className="overflow-hidden border-border/80 shadow-sm">
       <CardHeader className="border-b bg-muted/30 px-5 py-5 sm:px-7">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-3"><div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-petrobras-green text-primary-foreground"><FoldersIcon className="size-5" aria-hidden="true" /></div><div className="flex flex-col gap-1"><CardTitle className="text-xl tracking-tight">Arquivos do projeto</CardTitle><CardDescription>Consulte documentos e pastas autorizados. A criação e o envio estão desativados.</CardDescription></div></div>
+          <div className="flex items-start gap-3"><div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-petrobras-green text-primary-foreground"><FoldersIcon className="size-5" aria-hidden="true" /></div><div className="flex flex-col gap-1"><CardTitle className="text-xl tracking-tight">Arquivos do projeto</CardTitle><CardDescription>Consulte somente as pastas autorizadas deste projeto.</CardDescription></div></div>
           <Badge variant="secondary" className="w-fit">{visibleFiles.length} {visibleFiles.length === 1 ? "item" : "itens"}</Badge>
         </div>
         <CardAction>
@@ -351,7 +331,7 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
               <EmptyMedia variant="icon">
                 {search.trim() ? <SearchXIcon /> : <FoldersIcon />}
               </EmptyMedia>
-              <EmptyTitle>{search.trim() ? "Nenhum resultado" : "Nenhum arquivo aqui"}</EmptyTitle>
+              <EmptyTitle>{search.trim() ? "Nenhum resultado" : "Nenhuma pasta aqui"}</EmptyTitle>
               <EmptyDescription>
                 {search.trim()
                   ? "Nenhum item corresponde à busca nesta pasta."
@@ -363,7 +343,7 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
           </Empty>
         ) : (
           <div className="overflow-hidden rounded-xl border border-border/80 bg-background">
-            <div className="hidden grid-cols-[minmax(0,1fr)_80px_96px_36px] items-center gap-3 border-b bg-muted/30 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid"><span>Nome</span><span className="text-right">Tamanho</span><span className="text-right">Atualizado</span><span /></div>
+            <div className="hidden grid-cols-[minmax(0,1fr)_80px] items-center gap-3 border-b bg-muted/30 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid"><span>Pasta</span><span className="text-right">Tamanho</span></div>
             <div className="flex flex-col divide-y divide-border">
             {visibleFiles.map((f) => {
               const actions = getFileActions(f)
@@ -384,28 +364,7 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
                     ) : (
                       <span className="min-w-0 flex-1 truncate text-sm text-foreground">{f.nome}</span>
                     )}
-                    <span className="hidden w-20 shrink-0 text-right text-xs text-muted-foreground sm:block">
-                      {f.tipo === "arquivo" ? formatBytes(f.tamanho) : "—"}
-                    </span>
-                    <span className="hidden w-24 shrink-0 text-right text-xs text-muted-foreground sm:block">
-                      {formatDate(f.atualizadoEm)}
-                    </span>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="size-8 shrink-0" />}>
-                        <MoreVerticalIcon className="size-4" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {actions.map((action) => (
-                          <span key={action.key} className="contents">
-                            {action.separator && <DropdownMenuSeparator />}
-                            <DropdownMenuItem variant={action.variant} onClick={action.onClick}>
-                              <action.icon />
-                              {action.label}
-                            </DropdownMenuItem>
-                          </span>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <span className="hidden w-20 shrink-0 text-right text-xs text-muted-foreground sm:block">—</span>
                   </ContextMenuTrigger>
                   <ContextMenuContent>
                     {actions.map((action) => (
