@@ -10,6 +10,7 @@ services:
     environment:
       DATABASE_ENGINE: ${DATABASE_ENGINE:-postgresql}
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://armazenamento:armazenamento@postgres:5432/armazenamento_cientifico}
+      PYTHONPATH: /app
     ports:
       - "8080:8080"
     depends_on:
