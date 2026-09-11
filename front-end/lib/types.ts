@@ -127,7 +127,16 @@ export interface PermissionMatrixEntry {
 
 export type SessionUser = User
 
+export interface ResponsibleArea {
+  id: string
+  nome: string
+  prefixo: string
+  next_number?: number
+  proximoCodigo?: string
+}
+
 export interface PlatformCatalogs {
+  areas: ResponsibleArea[]
   perfis: Array<{ id: string; nome: string; descricao?: string }>
   modulos: Array<{ id: string; nome: string; rota: string; icone: string; ordem: number; ativo: boolean }>
   permissoes: Array<{ id: string; modulo_id: string; nome: string; descricao: string; ativo: boolean }>
