@@ -1,7 +1,8 @@
 """Cria o catálogo de áreas responsáveis e suas sequências de códigos."""
 
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 revision = "0012_responsible_areas"
 down_revision = "0011_bootstrap_orm_schema"
@@ -10,6 +11,8 @@ depends_on = None
 
 
 def upgrade() -> None:
+    if "responsible_areas" in set(sa.inspect(op.get_bind()).get_table_names()):
+        return
     op.create_table(
         "responsible_areas",
         sa.Column("id", sa.String(length=40), primary_key=True),

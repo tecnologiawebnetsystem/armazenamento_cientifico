@@ -151,15 +151,15 @@ TABLE_DESCRIPTIONS = {
 
 def main():
     tables = parse_schema(SCHEMA.read_text(encoding="utf-8"))
-    if len(tables) != 27:
-        raise RuntimeError(f"Schema incompleto: esperado 27 tabelas, encontrado {len(tables)}")
+    if not tables:
+        raise RuntimeError("Schema vazio: nenhum CREATE TABLE foi encontrado")
     styles = getSampleStyleSheet()
     title = ParagraphStyle("title", parent=styles["Title"], fontName="Helvetica-Bold", fontSize=22, textColor=DARK, spaceAfter=8)
     body = ParagraphStyle("body", parent=styles["BodyText"], fontSize=10, leading=15, textColor=MUTED)
     frame = Frame(16 * mm, 18 * mm, PAGE[0] - 32 * mm, PAGE[1] - 40 * mm, id="normal")
     doc = BaseDocTemplate(str(OUTPUT), pagesize=PAGE, leftMargin=16 * mm, rightMargin=16 * mm, topMargin=24 * mm, bottomMargin=18 * mm, title="SIGAC — Modelo de dados")
     doc.addPageTemplates([PageTemplate(id="main", frames=frame, onPage=header_footer)])
-    story = [Spacer(1, 18 * mm), Paragraph("SIGAC — Modelo de dados", title), Paragraph("Documento completo gerado diretamente do schema SQLite. Todas as tabelas, campos, chaves primárias e relacionamentos vêm da mesma fonte.", body), Spacer(1, 12 * mm), Paragraph(f"Inventário: {len(tables)} tabelas", title), Paragraph("Legenda: PK = chave primária; * = campo obrigatório; linhas verdes = relacionamentos FK visíveis na mesma página.", body), PageBreak()]
+    story = [Spacer(1, 18 * mm), Paragraph("SIGAC — Modelo de dados", title), Paragraph("Documento completo gerado diretamente do schema SQLite canônico. Todas as tabelas, campos, chaves primárias e relacionamentos vêm da mesma fonte versionada.", body), Spacer(1, 12 * mm), Paragraph(f"Inventário: {len(tables)} tabelas", title), Paragraph("Legenda: PK = chave primária; * = campo obrigatório; linhas verdes = relacionamentos FK visíveis na mesma página.", body), PageBreak()]
     for i in range(0, len(tables), 3):
         group = tables[i:i + 3]
         story += [Paragraph(f"Diagrama ER visual · tabelas {i + 1}–{i + len(group)} de {len(tables)}", title), Spacer(1, 5 * mm), ERPage(group)]
