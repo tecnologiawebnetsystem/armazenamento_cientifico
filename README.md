@@ -16,7 +16,7 @@ Para executar a aplicação completa com a API e o banco local, também será ne
 
 ## Rodar o frontend
 
-Os comandos do frontend devem ser executados dentro da pasta `frontend/`. O backend permanece separado em `backend/`.
+Os comandos do frontend devem ser executados dentro da pasta `front-end/`. O backend permanece separado em `back-end/`.
 
 ### 1. Instalar as dependências
 
@@ -35,7 +35,7 @@ npm install
 
 ### 2. Configurar a URL da API (opcional)
 
-Por padrão, o frontend usa as API Routes locais do Next.js. Para apontar para o backend Python, crie o arquivo `frontend/.env.local`:
+Por padrão, o frontend usa as API Routes locais do Next.js. Para apontar para o backend Python, crie o arquivo `front-end/.env.local`:
 
 ```dotenv
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
@@ -79,7 +79,7 @@ npm run dev
 
 O backend suporta SQLite localmente e PostgreSQL em ambientes compartilhados. A escolha é feita exclusivamente no `.env` por `DATABASE_ENGINE` e `DATABASE_URL`; o código da aplicação permanece o mesmo. Para PostgreSQL, use a URL fornecida pela integração com SSL habilitado.
 
-Para conectar o frontend ao FastAPI, crie `frontend/.env.local`:
+Para conectar o frontend ao FastAPI, crie `front-end/.env.local`:
 
 ```dotenv
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
@@ -100,7 +100,7 @@ npm run format     # formatação dos arquivos TypeScript/TSX
 
 ## Ordem recomendada para executar tudo
 
-Em um terminal, escolha SQLite ou PostgreSQLno `.env`, inicie a API seguindo a seção de backend deste README e a [`wiki-dev.md`](wiki-dev.md). Em outro terminal, execute:
+Em um terminal, escolha SQLite ou PostgreSQLno `.env`, inicie a API seguindo a seção de backend deste README e a [`back-end/wiki-dev.md`](back-end/wiki-dev.md). Em outro terminal, execute:
 
 ```bash
 cd frontend
@@ -123,25 +123,25 @@ npm run build
 npm run test:e2e
 ```
 
-O smoke test frontend consulta `http://127.0.0.1:3000` e valida os fluxos públicos de login e Wiki Dev. Inicie o frontend em outro terminal antes de executar o teste. Os testes do backend e os comandos de qualidade estão documentados na seção de validação deste README e na [`wiki-dev.md`](wiki-dev.md).
+O smoke test frontend consulta `http://127.0.0.1:3000` e valida os fluxos públicos de login e Wiki Dev. Inicie o frontend em outro terminal antes de executar o teste. Os testes do backend e os comandos de qualidade estão documentados na seção de validação deste README e na [`back-end/wiki-dev.md`](back-end/wiki-dev.md).
 
 ## Estrutura
 
-- `frontend/app/` — páginas, layouts e API Routes do frontend.
-- `frontend/components/` — componentes por domínio e componentes shadcn/ui.
-- `frontend/hooks/` — hooks client-side com SWR.
-- `frontend/lib/` — tipos, cliente HTTP, sessão e utilitários.
-- `frontend/public/` — imagens e arquivos estáticos.
-- `backend/app/` — aplicação FastAPI, módulos, autenticação e regras de negócio.
-- `backend/alembic/` — migrations versionadas do banco.
-- `backend/data/` — SQLite local, não destinado à produção.
-- `backend/database/` — schemas SQL de referência do backend.
+- `front-end/app/` — páginas, layouts e API Routes do frontend.
+- `front-end/components/` — componentes por domínio e componentes shadcn/ui.
+- `front-end/hooks/` — hooks client-side com SWR.
+- `front-end/lib/` — tipos, cliente HTTP, sessão e utilitários.
+- `front-end/public/` — imagens e arquivos estáticos.
+- `back-end/app/` — aplicação FastAPI, módulos, autenticação e regras de negócio.
+- `back-end/alembic/` — migrations versionadas do banco.
+- `back-end/data/` — SQLite local, não destinado à produção.
+- `back-end/database/` — schemas SQL de referência do backend.
 - `docs/` — arquitetura, contratos, setup e diagramas.
-- `wiki-dev.md` — documentação técnica consolidada.
+- `back-end/wiki-dev.md` — documentação técnica consolidada.
 
 A documentação completa dos endpoints está em [`docs/api-endpoints.md`](docs/api-endpoints.md). O levantamento para integração do login corporativo com CAV4 e Microsoft Entra ID está em [`docs/integracao-login-corporativo-cav4-entraid.md`](docs/integracao-login-corporativo-cav4-entraid.md).
 
-Para executar o ambiente completo localmente, consulte [`docs/setup-local-completo.md`](docs/setup-local-completo.md). O schema PostgreSQL está em [`backend/database/projects-schema.sql`](backend/database/projects-schema.sql) e o modelo visual de dados, com tabelas, campos e relacionamentos, está em [`docs/SIGAC-modelo-dados.pdf`](docs/SIGAC-modelo-dados.pdf).
+Para executar o ambiente completo localmente, consulte [`docs/setup-local-completo.md`](docs/setup-local-completo.md). O schema PostgreSQL está em [`back-end/database/projects-schema.sql`](back-end/database/projects-schema.sql) e o modelo visual de dados, com tabelas, campos e relacionamentos, está em [`docs/SIGAC-modelo-dados.pdf`](docs/SIGAC-modelo-dados.pdf).
 
 ### Health checks do backend
 
@@ -150,6 +150,6 @@ Para executar o ambiente completo localmente, consulte [`docs/setup-local-comple
 - `GET /health/database`: alias explícito para a verificação do banco.
 - `GET /health`: mantém compatibilidade e executa a verificação de prontidão.
 
-Em produção, o backend exige PostgreSQL, cookie seguro, documentação OpenAPI desabilitada e origens CORS explícitas. Entradas de projetos e arquivos possuem limites de tamanho, formato e nome para reduzir riscos de path traversal e payloads inválidos. As rotas novas ficam em `backend/app/modules/`, com repositórios e serviços separados; `legacy_api.py` é mantido apenas para compatibilidade durante a migração gradual.
+Em produção, o backend exige PostgreSQL, cookie seguro, documentação OpenAPI desabilitada e origens CORS explícitas. Entradas de projetos e arquivos possuem limites de tamanho, formato e nome para reduzir riscos de path traversal e payloads inválidos. As rotas novas ficam em `back-end/app/modules/`, com repositórios e serviços separados; `legacy_api.py` é mantido apenas para compatibilidade durante a migração gradual.
 
 A validação automatizada combina `uv run pytest -q` no backend, `npm run typecheck` e `npm run build` no frontend. O contrato de rotas, autorização, schemas e compatibilidade de banco deve ser validado antes de cada publicação.

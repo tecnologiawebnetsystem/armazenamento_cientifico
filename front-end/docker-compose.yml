@@ -1,0 +1,13 @@
+services:
+  front-end:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: armazenamento-cientifico-front-end
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
+    ports:
+      - "3000:3000"
+

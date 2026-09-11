@@ -1,0 +1,1263 @@
+from __future__ import annotations
+
+import csv
+import io
+import json
+import logging
+import math
+import os
+import re
+from contextlib import asynccontextmanager
+from datetime import UTC, datetime
+from typing import Literal
+from uuid import uuid4
+
+import aiosqlite
+import asyncpg
+from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi.responses import RedirectResponse, StreamingResponse
+from pydantic import BaseModel, EmailStr, Field
+
+from app.core.config import settings
+from app.core.entra import authorization_url, configured, exchange_code, groups, profile
+
+logger = logging.getLogger(__name__)
+
+Role = Literal[
+    "admin", "gerente", "patrocinador", "auditor", "participante", "visualizador", "gestor"
+]
+ProjectStatus = Literal["ativo", "concluido", "suspenso", "inativo", "em_andamento"]
+
+
+def now():
+    return datetime.now(UTC)
+
+
+def dump(row):
+    if row is None:
+        return None
+    d = dict(row)
+    for k, v in list(d.items()):
+        if isinstance(v, datetime):
+            d[k] = v.isoformat()
+        elif settings.database_engine == "sqlite" and k in ("managers_ids", "participants_ids") and isinstance(v, str):
+            try:
+                d[k] = json.loads(v)
+            except json.JSONDecodeError:
+                d[k] = []
+    return d
+
+
+def isoformat_value(value):
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return str(value)
+
+
+def project(row):
+    d = dump(row)
+    return {
+        "id": d["id"],
+        "nome": d["name"],
+        "codigo": d["code"],
+        "areaResponsavel": d["responsible_area"],
+        "gestoresIds": d["managers_ids"],
+        "grupoAdEscrita": d["write_group"],
+        "grupoAdLeitura": d["read_group"],
+        "roleIdentidadeEscrita": d["write_identity_role"],
+        "roleIdentidadeLeitura": d["read_identity_role"],
+        "numeroTarefaSnow": d["snow_task_number"],
+        "pastaMae": d["parent_folder"],
+        "descricao": d["description"],
+        "status": d["status"],
+        "criadoEm": d["created_at"],
+        "atualizadoEm": d["updated_at"],
+        "participantesIds": d["participants_ids"],
+        "armazenamentoUsadoMb": 0,
+    }
+
+
+def row_value(row, key, default=None):
+    if isinstance(row, dict):
+        return row.get(key, default)
+    if hasattr(row, "keys"):
+        return row.get(key, default)
+    return getattr(row, key, default)
+
+
+def normalized_role(role: str | None) -> str:
+    return {"administrador": "admin", "administrator": "admin"}.get(str(role or "").lower(), str(role or "participante").lower())
+
+
+def user(row):
+    d = dump(row)
+    return {
+        "id": d["id"],
+        "nome": d["name"],
+        "email": d["email"],
+  "cargo": d.get("cargo") or "",
+  "area": d.get("area") or "",
+  "avatarUrl": d.get("avatar_url"),
+  "ultimoLogin": d.get("last_login_at"),
+  "role": normalized_role(d["role"]),
+
+        "perfilId": d.get("perfil_id"),
+        "criadoEm": d["created_at"],
+    }
+
+
+class Login(BaseModel):
+    email: EmailStr
+
+
+class ProjectInput(BaseModel):
+    nome: str = Field(min_length=2, max_length=200)
+    codigo: str = Field(min_length=1, max_length=50, pattern=r"^[A-Za-z0-9._-]+$")
+    areaResponsavel: str = Field(min_length=1, max_length=120)
+    gestoresIds: list[str] = Field(default_factory=list)
+    grupoAdEscrita: str = ""
+    grupoAdLeitura: str = ""
+    roleIdentidadeEscrita: str = ""
+    roleIdentidadeLeitura: str = ""
+    numeroTarefaSnow: str = ""
+    pastaMae: str = ""
+    descricao: str = ""
+    status: ProjectStatus = "ativo"
+    participantesIds: list[str] = Field(default_factory=list)
+
+
+class ProjectPatch(BaseModel):
+    nome: str | None = None
+    areaResponsavel: str | None = None
+    gestoresIds: list[str] | None = None
+    grupoAdEscrita: str | None = None
+    grupoAdLeitura: str | None = None
+    roleIdentidadeEscrita: str | None = None
+    roleIdentidadeLeitura: str | None = None
+    numeroTarefaSnow: str | None = None
+    pastaMae: str | None = None
+    descricao: str | None = None
+    status: ProjectStatus | None = None
+    participantesIds: list[str] | None = None
+
+
+class FileInput(BaseModel):
+    projectId: str
+    parentId: str | None = None
+    tipo: Literal["pasta", "arquivo"]
+    nome: str = Field(min_length=1, max_length=255, pattern=r"^[^\\x00/\\\\]+$")
+    tamanho: int = Field(default=0, ge=0, le=10 * 1024 * 1024 * 1024)
+    mimeType: str | None = Field(default=None, max_length=160)
+
+
+class FilePatch(BaseModel):
+    nome: str | None = None
+    parentId: str | None = None
+
+
+class ShareInput(BaseModel):
+    userId: str
+    nivel: Literal["leitura", "edicao"]
+
+
+
+
+class RolePatch(BaseModel):
+    role: Role
+
+
+class PermissionMatrix(BaseModel):
+    matrix: list[dict]
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    await startup()
+    try:
+        yield
+    finally:
+        await shutdown()
+
+
+app = FastAPI(
+    title="Armazenamento Científico API",
+    version="2.0.0",
+    description="API REST para gestão de projetos, arquivos, acessos e auditoria.",
+    lifespan=lifespan,
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+)
+class SQLitePool:
+    """Adaptador mínimo do contrato asyncpg usado pela API legada."""
+
+    def __init__(self, database_url: str):
+        path = database_url.split("///", 1)[-1]
+        self.path = os.path.abspath(path)
+        self.database_url = database_url
+
+    async def close(self):
+        return None
+
+    @staticmethod
+    def _query(sql: str, args: tuple) -> tuple[str, tuple]:
+        # Converte o subconjunto de SQL compartilhado usado pela API para SQLite.
+        values = [json.dumps(value) if settings.database_engine == "sqlite" and isinstance(value, (list, dict)) else value for value in args]
+        any_pattern = re.compile(r"\$(\d+)=any\(([a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*|[a-zA-Z_][a-zA-Z0-9_]*)\)")
+
+        def replace_any(match):
+            index = int(match.group(1)) - 1
+            column = match.group(2)
+            if index < 0 or index >= len(values):
+                raise ValueError(f"Placeholder inválido: ${index + 1}")
+            values.insert(index + 1, values[index])
+            return f"EXISTS (SELECT 1 FROM json_each({column}) WHERE value=?)"
+
+        sql = any_pattern.sub(replace_any, sql)
+        sql = re.sub(r"\$\d+", "?", sql)
+        sql = sql.replace("now()", "CURRENT_TIMESTAMP")
+        sql = re.sub(r"\bilike\b", "LIKE", sql, flags=re.IGNORECASE)
+        sql = re.sub(r"\bis not distinct from\b", "IS", sql, flags=re.IGNORECASE)
+        return sql, tuple(values)
+
+    async def fetchrow(self, sql: str, *args):
+        query, values = self._query(sql, args)
+        async with aiosqlite.connect(self.path) as connection:
+            connection.row_factory = aiosqlite.Row
+            cursor = await connection.execute(query, values)
+            return await cursor.fetchone()
+
+    async def fetch(self, sql: str, *args):
+        query, values = self._query(sql, args)
+        async with aiosqlite.connect(self.path) as connection:
+            connection.row_factory = aiosqlite.Row
+            cursor = await connection.execute(query, values)
+            return await cursor.fetchall()
+
+    async def fetchval(self, sql: str, *args):
+        row = await self.fetchrow(sql, *args)
+        return row[0] if row else None
+
+    async def execute(self, sql: str, *args):
+        query, values = self._query(sql, args)
+        async with aiosqlite.connect(self.path) as connection:
+            await connection.execute(query, values)
+            await connection.commit()
+        return "OK"
+
+
+pool: asyncpg.Pool | SQLitePool | None = None
+
+
+async def startup():
+    global pool
+    url = settings.database_url
+    logger.info(
+        "database_startup engine=%s url_scheme=%s database_url_configured=%s",
+        settings.database_engine,
+        url.split("://", 1)[0] if url else "none",
+        bool(url),
+    )
+    if not url:
+        logger.error("database_not_configured reason=empty_DATABASE_URL")
+        return
+    try:
+        if settings.database_engine == "sqlite":
+            pool = SQLitePool(url)
+            await pool.fetchval("select 1")
+            logger.info("database_connected engine=sqlite path=%s", pool.path)
+        else:
+            postgres_url = url.replace("channel_binding=require&", "").replace("&channel_binding=require", "").replace("?channel_binding=require", "?").replace("sslmode=require&", "").replace("&sslmode=require", "").replace("?sslmode=require", "?")
+            pool = await asyncpg.create_pool(
+                postgres_url,
+                min_size=settings.db_min_size,
+                max_size=settings.db_max_size,
+                command_timeout=settings.db_command_timeout,
+                ssl="require",
+            )
+            logger.info("database_connected engine=postgresql")
+    except (OSError, asyncpg.PostgresError, aiosqlite.Error):
+        pool = None
+        logger.exception("database_connection_failed engine=%s", settings.database_engine)
+
+
+async def shutdown():
+    if pool:
+        await pool.close()
+
+
+async def db():
+    if not pool:
+        logger.error(
+            "database_unavailable engine=%s configured=%s",
+            settings.database_engine,
+            bool(settings.database_url),
+        )
+        raise HTTPException(503, "Banco de dados não configurado")
+    return pool
+
+
+async def database_probe() -> dict:
+    """Executa uma consulta real para confirmar que o banco responde."""
+    p = await db()
+    try:
+        result = await p.fetchval("select 1")
+        details = {"connected": result == 1, "probe_result": result}
+        if isinstance(p, SQLitePool):
+            details.update({"path": p.path, "file_exists": os.path.exists(p.path)})
+        logger.info("database_probe_success details=%s", details)
+        return details
+    except Exception:
+        logger.exception("database_probe_failed engine=%s", settings.database_engine)
+        raise HTTPException(503, "Banco de dados indisponível")
+
+
+async def current(request: Request):
+    sid = request.cookies.get("wayon_session_id")
+    if not sid:
+        raise HTTPException(401, "Sessão ausente")
+    p = await db()
+    row = await p.fetchrow(
+        "select u.* from sessions s join users u on u.id=s.user_id where s.id=? and datetime(s.expires_at) > datetime('now')"
+        if settings.database_engine == "sqlite"
+        else "select u.* from sessions s join users u on u.id=s.user_id where s.id=$1 and s.expires_at>now()",
+        sid,
+    )
+    if not row:
+        raise HTTPException(401, "Sessão inválida ou expirada")
+    return row
+
+
+async def require(request, roles=(), permission: str | None = None):
+    u = await current(request)
+    if permission:
+        p = await db()
+        profile_id = row_value(u, "perfil_id") or {"admin": "ADM", "gerente": "GER", "auditor": "AUD", "patrocinador": "PAT", "participante": "PAR", "visualizador": "VIS", "gestor": "GES"}.get(normalized_role(row_value(u, "role")))
+        allowed = await p.fetchval("select 1 from perfil_permissoes where perfil_id=$1 and permissao_id=$2 and permitido=true", profile_id, permission)
+        if not allowed:
+            raise HTTPException(403, "Usuário sem permissão para esta operação")
+    elif roles and normalized_role(u["role"]) not in {normalized_role(role) for role in roles}:
+        raise HTTPException(403, "Usuário sem permissão para esta operação")
+    return u
+
+
+@app.get("/api/perfis")
+async def profiles(request: Request):
+    await current(request)
+    p = await db()
+    return {"perfis": [dump(row) for row in await p.fetch("select * from perfis order by nome")]}
+
+
+@app.get("/api/configuracoes-sistema")
+async def system_settings(request: Request):
+    await require(request, ("admin",))
+    p = await db()
+    return {"configuracoes": [dump(row) for row in await p.fetch("select * from configuracoes_sistema where ativo=true order by grupo, chave")]}
+
+
+@app.get("/api/report-fields")
+async def report_fields(request: Request, report_code: str = Query(..., min_length=1, max_length=60)):
+    await current(request)
+    p = await db()
+    if settings.database_engine == "sqlite":
+        rows = await p.fetch("select id, report_code, field_key, label, source_key, display_order, active from report_fields where report_code=? and active=1 order by display_order, label", report_code)
+    else:
+        rows = await p.fetch("select id, report_code, field_key, label, source_key, display_order, active from report_fields where report_code=$1 and active=true order by display_order, label", report_code)
+    return {"reportCode": report_code, "fields": [dump(row) for row in rows]}
+
+
+@app.get("/api/catalogos")
+async def catalogs(request: Request):
+    await current(request)
+    p = await db()
+    return {
+        "perfis": [dump(row) for row in await p.fetch("select * from perfis order by nome")],
+        "modulos": [dump(row) for row in await p.fetch("select * from modulos where ativo=true order by ordem, nome")],
+        "permissoes": [dump(row) for row in await p.fetch("select * from permissoes where ativo=true order by id")],
+        "statusProjetos": [dump(row) for row in await p.fetch("select * from status_projetos where ativo=true order by ordem, nome")],
+        "tiposProjetos": [dump(row) for row in await p.fetch("select * from tipos_projetos where ativo=true order by nome")],
+  "tiposRelatorios": [dump(row) for row in await p.fetch("select * from tipos_relatorios where ativo=true order by nome")],
+  "camposRelatorios": [dump(row) for row in await p.fetch("select * from report_fields where active=true order by report_code, display_order, label")],
+  }
+
+
+async def audit(u, action, entity, eid, details=""):
+    p = await db()
+    if settings.database_engine == "sqlite":
+        await p.execute(
+            "insert into activity_logs(id,user_id,action,entity,entity_id,details,created_at) values(?,?,?,?,?,?,datetime('now'))",
+            str(uuid4()), u["id"], action, entity, eid or "", details[:4000],
+        )
+    else:
+        await p.execute(
+            "insert into activity_logs(id,user_id,action,entity,entity_id,details,created_at) values($1,$2,$3,$4,$5,$6,now())",
+            str(uuid4()), u["id"], action, entity, eid, details[:4000],
+        )
+
+
+async def visible(u, pid):
+    p = await db()
+    role = normalized_role(u["role"])
+    if settings.database_engine == "sqlite":
+        row = await p.fetchrow("select * from projects where id=?", pid)
+        if not row:
+            return None
+        if role in ("admin", "patrocinador", "auditor"):
+            return row
+        data = dump(row)
+        if u["id"] in (data.get("managers_ids") or []) or u["id"] in (data.get("participants_ids") or []):
+            return row
+        return None
+    return await p.fetchrow(
+        "select * from projects where id=$1 and ($2 in ('admin','patrocinador','auditor') or $3=any(managers_ids) or $3=any(participants_ids))",
+        pid,
+        role,
+        u["id"],
+    )
+
+
+@app.get("/api/auth/entra/login")
+async def entra_login(response: Response, next: str = "/dashboard"):
+    if not configured():
+        raise HTTPException(503, "Microsoft Entra ID não está configurado no backend")
+    state = str(uuid4())
+    safe_next = next if next.startswith("/") and not next.startswith("//") else "/dashboard"
+    redirect = RedirectResponse(authorization_url(state), status_code=302)
+    redirect.set_cookie("entra_oauth_state", f"{state}|{safe_next}", httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=600)
+    return redirect
+
+
+@app.get("/api/auth/entra/callback")
+async def entra_callback(request: Request, code: str | None = None, state: str | None = None):
+    expected_cookie = request.cookies.get("entra_oauth_state", "")
+    expected_state, _, next_path = expected_cookie.partition("|")
+    if not code or not state or not expected_state or state != expected_state:
+        raise HTTPException(400, "Callback do Microsoft Entra ID inválido")
+    safe_next = next_path if next_path.startswith("/") and not next_path.startswith("//") else "/dashboard"
+    try:
+        tokens = await exchange_code(code)
+        identity = await profile(tokens["access_token"])
+        email = (identity.get("mail") or identity.get("userPrincipalName") or "").lower()
+        graph_groups = await groups(tokens["access_token"])
+        sign_in_activity = identity.get("signInActivity") or {}
+        ultimo_login = sign_in_activity.get("lastSignInDateTime")
+    except Exception:
+        logger.exception("entra_callback_failed")
+        raise HTTPException(502, "Não foi possível consultar o Microsoft Entra ID") from None
+    p = await db()
+    u = await p.fetchrow("select * from users where lower(email)=lower(?)" if settings.database_engine == "sqlite" else "select * from users where lower(email)=lower($1)", email)
+    if not u:
+        logger.warning("entra_login_rejected reason=user_not_found email=%s entra_id=%s", email, identity.get("id"))
+        raise HTTPException(401, "Usuário autenticado não está cadastrado na plataforma")
+    logger.info("entra_groups user_id=%s email=%s groups=%s", u["id"], email, [{"id": g.get("id"), "name": g.get("displayName")} for g in graph_groups])
+    logger.info("entra_last_login user_id=%s last_sign_in=%s", u["id"], ultimo_login)
+    sid = str(uuid4())
+    await p.execute("insert into sessions(id,user_id,expires_at) values($1,$2,now()+interval '8 hours')" if settings.database_engine != "sqlite" else "insert into sessions(id,user_id,expires_at) values(?,?,datetime('now', '+8 hours'))", sid, u["id"])
+    await audit(u, "login_entra", "sessao", sid, json.dumps({"entra_id": identity.get("id"), "groups": [g.get("displayName") for g in graph_groups]}))
+    redirect = RedirectResponse(safe_next, status_code=302)
+    redirect.set_cookie("wayon_session_id", sid, httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=28800)
+    redirect.delete_cookie("entra_oauth_state")
+    return redirect
+
+
+@app.post("/api/auth/login")
+async def login(x: Login, response: Response):
+    logger.info("login_attempt")
+    p = await db()
+    logger.debug("login_database_selected engine=%s pool_type=%s", settings.database_engine, type(p).__name__)
+    try:
+        if settings.database_engine == "sqlite":
+            u = await p.fetchrow("select * from users where lower(email)=lower(?)", str(x.email))
+            expires = "datetime('now', '+8 hours')"
+        else:
+            u = await p.fetchrow("select * from users where lower(email)=lower($1)", str(x.email))
+            expires = "now()+interval '8 hours'"
+    except Exception:
+        logger.exception("login_user_query_failed engine=%s", settings.database_engine)
+        raise HTTPException(503, "Falha ao consultar o banco de dados") from None
+    if not u:
+        logger.warning("login_rejected reason=user_not_found")
+        raise HTTPException(401, "E-mail não cadastrado")
+    logger.info("login_user_found user_id=%s role=%s", u["id"], u["role"])
+    sid = str(uuid4())
+    try:
+        # Uma conta mantém somente a sessão atual para reduzir tokens ativos abandonados.
+        await p.execute("delete from sessions where user_id=?" if settings.database_engine == "sqlite" else "delete from sessions where user_id=$1", u["id"])
+        await p.execute(
+            f"insert into sessions(id,user_id,expires_at) values($1,$2,{expires})" if settings.database_engine != "sqlite" else "insert into sessions(id,user_id,expires_at) values(?,?,datetime('now', '+8 hours'))",
+            sid,
+            u["id"],
+        )
+        logger.info("login_session_created user_id=%s", u["id"])
+    except Exception:
+        logger.exception("login_session_creation_failed user_id=%s", u["id"])
+        raise HTTPException(503, "Falha ao criar sessão no banco de dados") from None
+    response.set_cookie(
+        "wayon_session_id",
+        sid,
+        httponly=True,
+        samesite="lax",
+        secure=os.getenv("COOKIE_SECURE", "false").lower() == "true",
+        max_age=28800,
+    )
+    await audit(u, "login", "sessao", sid)
+    logger.info("login_success user_id=%s", u["id"])
+    return {"user": user(u)}
+
+
+@app.post("/api/auth/logout", status_code=204)
+async def logout(request: Request, response: Response):
+    u = await current(request)
+    sid = request.cookies.get("wayon_session_id")
+    p = await db()
+    await p.execute(
+        "delete from sessions where id=?" if settings.database_engine == "sqlite" else "delete from sessions where id=$1",
+        sid,
+    )
+    await audit(u, "logout", "sessao", sid)
+    response.delete_cookie("wayon_session_id")
+
+
+@app.get("/api/auth/session")
+async def session(request: Request):
+    return {"user": user(await current(request))}
+
+
+@app.get("/api/projects")
+async def list_projects(
+    request: Request,
+    status_filter: str | None = Query(None, alias="status"),
+    area: str | None = None,
+    nome: str | None = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(12, ge=1, le=100),
+    all: bool = False,
+):
+    u = await require(request)
+    p = await db()
+    q = "select * from projects"
+    args = []
+    cond = []
+    if not (all and u["role"] in ("admin", "patrocinador", "auditor")):
+        if settings.database_engine == "sqlite":
+            cond.append("(? in ('admin','patrocinador','auditor') or EXISTS (select 1 from json_each(managers_ids) where value=?) or EXISTS (select 1 from json_each(participants_ids) where value=?))")
+            args = [u["role"], u["id"], u["id"]]
+        else:
+            cond.append("($1 in ('admin','patrocinador','auditor') or $2=any(managers_ids) or $2=any(participants_ids))")
+            args = [u["role"], u["id"]]
+    if status_filter and status_filter != "todos":
+        cond.append(f"status=${len(args) + 1}")
+        args.append(status_filter)
+    if area:
+        cond.append(f"responsible_area=${len(args) + 1}")
+        args.append(area)
+    if nome:
+        cond.append(f"(name ilike ${len(args) + 1} or code ilike ${len(args) + 1})")
+        args.append(f"%{nome}%")
+    where = (" where " + " and ".join(cond)) if cond else ""
+    total = await p.fetchval(f"select count(*) from projects{where}", *args)
+    if all:
+        rows = await p.fetch(f"{q}{where} order by created_at desc", *args)
+        return {"projects": [project(r) for r in rows], "pagination": {"page": 1, "limit": total, "total": total, "totalPages": 1}}
+    rows = await p.fetch(f"{q}{where} order by created_at desc limit ${len(args) + 1} offset ${len(args) + 2}", *args, limit, (page - 1) * limit)
+    return {"projects": [project(r) for r in rows], "pagination": {"page": page, "limit": limit, "total": total, "totalPages": math.ceil(total / limit) if total else 0}}
+
+
+@app.post("/api/projects")
+async def create_project(x: ProjectInput, request: Request):
+    u = await require(request, ("admin",))
+    p = await db()
+    if await p.fetchval("select 1 from projects where code=$1", x.codigo):
+        raise HTTPException(409, "Código de projeto já existente")
+    i = str(uuid4())
+    await p.execute(
+        "insert into projects(id,name,code,responsible_area,managers_ids,write_group,read_group,write_identity_role,read_identity_role,snow_task_number,parent_folder,description,status,participants_ids) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)",
+        i,
+        x.nome,
+        x.codigo,
+        x.areaResponsavel,
+        x.gestoresIds,
+        x.grupoAdEscrita,
+        x.grupoAdLeitura,
+        x.roleIdentidadeEscrita,
+        x.roleIdentidadeLeitura,
+        x.numeroTarefaSnow,
+        x.pastaMae,
+        x.descricao,
+        x.status,
+        x.participantesIds,
+    )
+    r = await p.fetchrow("select * from projects where id=$1", i)
+    await audit(u, "criar-projeto", "projeto", i, x.nome)
+    return {"project": project(r)}
+
+
+@app.get("/api/projects/{pid}")
+async def get_project(pid: str, request: Request):
+    u = await require(request)
+    r = await visible(u, pid)
+    if not r:
+        raise HTTPException(404, "Projeto não encontrado")
+    return {"project": project(r)}
+
+
+@app.patch("/api/projects/{pid}")
+async def patch_project(pid: str, x: ProjectPatch, request: Request):
+    u = await require(request, ("admin",))
+    r = await visible(u, pid)
+    if not r:
+        raise HTTPException(404, "Projeto não encontrado")
+    fields = {
+        "nome": "name",
+        "areaResponsavel": "responsible_area",
+        "gestoresIds": "managers_ids",
+        "grupoAdEscrita": "write_group",
+        "grupoAdLeitura": "read_group",
+        "roleIdentidadeEscrita": "write_identity_role",
+        "roleIdentidadeLeitura": "read_identity_role",
+        "numeroTarefaSnow": "snow_task_number",
+        "pastaMae": "parent_folder",
+        "descricao": "description",
+        "status": "status",
+        "participantesIds": "participants_ids",
+    }
+    vals = x.model_dump(exclude_unset=True)
+    p = await db()
+    for k, v in vals.items():
+        column = fields.get(k)
+        if column is None:
+            raise HTTPException(422, f"Campo não permitido: {k}")
+        await p.execute(
+            f"update projects set {column}=$1,updated_at=now() where id=$2", v, pid
+        )
+    r = await p.fetchrow("select * from projects where id=$1", pid)
+    await audit(u, "editar-projeto", "projeto", pid, ",".join(vals))
+    return {"project": project(r)}
+
+
+@app.delete("/api/projects/{pid}", status_code=204)
+async def delete_project(pid: str, request: Request):
+    u = await require(request, ("admin",))
+    p = await db()
+    r = await p.fetchrow("delete from projects where id=$1 returning *", pid)
+    if not r:
+        raise HTTPException(404, "Projeto não encontrado")
+    await audit(u, "excluir-projeto", "projeto", pid)
+
+
+@app.get("/api/projects/{pid}/members")
+async def members(pid: str, request: Request):
+    u = await require(request)
+    r = await visible(u, pid)
+    if not r:
+        raise HTTPException(404, "Projeto não encontrado")
+    p = await db()
+    member_query = (
+        "select u.*,m.papel,m.created_at as added_at from project_members m join users u on u.id=m.user_id where m.project_id=?"
+        if settings.database_engine == "sqlite"
+        else "select u.*,m.papel,m.created_at as added_at from project_members m join users u on u.id=m.user_id where m.project_id=$1"
+    )
+    rows = await p.fetch(member_query, pid)
+    return {
+        "members": [
+            {
+                "projectId": pid,
+                "userId": x["id"],
+                "papel": x["papel"],
+                "adicionadoEm": isoformat_value(x["added_at"]),
+                "user": user(x),
+            }
+            for x in rows
+        ]
+    }
+
+
+@app.get("/api/files")
+async def list_files(
+    projectId: str, request: Request, parentId: str | None = None, allFolders: bool = False
+):
+    u = await require(request)
+    if not await visible(u, projectId):
+        raise HTTPException(404, "Projeto não encontrado")
+    p = await db()
+    rows = await p.fetch(
+        "select * from files where project_id=$1 and ($2 or parent_id is not distinct from $3) order by kind,name",
+        projectId,
+        allFolders,
+        parentId,
+    )
+    return {"files": [dump_file(r) for r in rows], "breadcrumb": []}
+
+
+def dump_file(r):
+    d = dump(r)
+    return {
+        "id": d["id"],
+        "projectId": d["project_id"],
+        "parentId": d["parent_id"],
+        "tipo": d["kind"],
+        "nome": d["name"],
+        "tamanho": d["size_bytes"],
+        "mimeType": d["mime_type"],
+        "criadoPor": d["created_by"],
+        "criadoEm": d["created_at"],
+        "atualizadoEm": d["updated_at"],
+        "compartilhamentos": [],
+    }
+
+
+@app.post("/api/files")
+async def create_file(x: FileInput, request: Request):
+    u = await require(request, ("admin", "gerente", "gestor", "participante"))
+    p = await db()
+    if not await visible(u, x.projectId):
+        raise HTTPException(404, "Projeto não encontrado")
+    i = str(uuid4())
+    await p.execute(
+        "insert into files(id,project_id,parent_id,kind,name,size_bytes,mime_type,created_by) values($1,$2,$3,$4,$5,$6,$7,$8)",
+        i,
+        x.projectId,
+        x.parentId,
+        x.tipo,
+        x.nome,
+        x.tamanho,
+        x.mimeType,
+        u["id"],
+    )
+    r = await p.fetchrow("select * from files where id=$1", i)
+    await audit(u, "criar-arquivo", "arquivo", i, x.nome)
+    return {"file": dump_file(r)}
+
+
+@app.get("/api/files/{fid}")
+async def get_file(fid: str, request: Request):
+    u = await require(request)
+    p = await db()
+    r = await p.fetchrow("select * from files where id=$1", fid)
+    if not r or not await visible(u, r["project_id"]):
+        raise HTTPException(404, "Arquivo não encontrado")
+    return {"file": dump_file(r)}
+
+
+@app.patch("/api/files/{fid}")
+async def patch_file(fid: str, x: FilePatch, request: Request):
+    u = await require(request, ("admin", "gerente", "gestor", "participante"))
+    p = await db()
+    r = await p.fetchrow("select * from files where id=$1", fid)
+    if not r or not await visible(u, r["project_id"]):
+        raise HTTPException(404, "Arquivo não encontrado")
+    vals = x.model_dump(exclude_unset=True)
+    file_fields = {"nome": "name", "parentId": "parent_id"}
+    for k, v in vals.items():
+        column = file_fields.get(k)
+        if column is None:
+            raise HTTPException(422, f"Campo não permitido: {k}")
+        await p.execute(
+            f"update files set {column}=$1,updated_at=now() where id=$2",
+            v,
+            fid,
+        )
+    await audit(u, "editar-arquivo", "arquivo", fid, ",".join(vals))
+    return {"file": dump_file(await p.fetchrow("select * from files where id=$1", fid))}
+
+
+@app.delete("/api/files/{fid}", status_code=204)
+async def delete_file(fid: str, request: Request):
+    u = await require(request, ("admin", "gerente", "gestor", "participante"))
+    p = await db()
+    r = await p.fetchrow("delete from files where id=$1 returning *", fid)
+    if not r:
+        raise HTTPException(404, "Arquivo não encontrado")
+    await audit(u, "excluir-arquivo", "arquivo", fid, r["name"])
+
+
+@app.post("/api/files/{fid}/share")
+async def share(fid: str, x: ShareInput, request: Request):
+    u = await require(request, ("admin", "gerente"))
+    p = await db()
+    if not await p.fetchval("select 1 from files where id=$1", fid):
+        raise HTTPException(404, "Arquivo não encontrado")
+    await p.execute(
+        "insert into file_shares(file_id,user_id,level) values($1,$2,$3) on conflict(file_id,user_id) do update set level=excluded.level",
+        fid,
+        x.userId,
+        x.nivel,
+    )
+    await audit(u, "compartilhar-arquivo", "arquivo", fid, f"usuário={x.userId}; nível={x.nivel}")
+    return {"message": "Compartilhamento atualizado"}
+
+
+@app.delete("/api/files/{fid}/share")
+async def unshare(fid: str, userId: str, request: Request):
+    await require(request, ("admin", "gerente"))
+    p = await db()
+    await p.execute("delete from file_shares where file_id=$1 and user_id=$2", fid, userId)
+
+
+@app.get("/api/users", tags=["Directory"])
+async def users_directory(request: Request):
+    await require(request)
+    p = await db()
+    rows = await p.fetch("select * from users order by name")
+    return {"users": [user(r) for r in rows], "total": len(rows)}
+
+
+@app.get("/api/dashboard/summary", tags=["Dashboard"])
+async def dashboard_summary(request: Request):
+    """Retorna indicadores do dashboard calculados exclusivamente no banco."""
+    u = await require(request)
+    p = await db()
+    role = normalized_role(u["role"])
+    if settings.database_engine == "sqlite":
+        visibility = "" if role in ("admin", "patrocinador", "auditor") else " where EXISTS (select 1 from json_each(managers_ids) where value=?) or EXISTS (select 1 from json_each(participants_ids) where value=?)"
+        args = [] if not visibility else [u["id"], u["id"]]
+    else:
+        visibility = "" if role in ("admin", "patrocinador", "auditor") else " where $1=any(managers_ids) or $1=any(participants_ids)"
+        args = [] if not visibility else [u["id"]]
+    logger.info("dashboard_query user_id=%s role=%s engine=%s visibility=%s", u["id"], role, settings.database_engine, "all" if not visibility else "restricted")
+    projects = await p.fetch(f"select * from projects{visibility} order by updated_at desc", *args)
+    project_ids = [row["id"] for row in projects]
+    members = 0
+    files = 0
+    storage = 0
+    if project_ids:
+        if settings.database_engine == "sqlite":
+            placeholders = ",".join("?" for _ in project_ids)
+            members = await p.fetchval(f"select count(distinct user_id) from project_members where project_id in ({placeholders})", *project_ids) or 0
+            files = await p.fetchval(f"select count(*) from files where project_id in ({placeholders})", *project_ids) or 0
+            storage = await p.fetchval(f"select coalesce(sum(size_bytes), 0) from files where project_id in ({placeholders})", *project_ids) or 0
+        else:
+            members = await p.fetchval("select count(distinct user_id) from project_members where project_id=any($1::text[])", project_ids) or 0
+            files = await p.fetchval("select count(*) from files where project_id=any($1::text[])", project_ids) or 0
+            storage = await p.fetchval("select coalesce(sum(size_bytes), 0) from files where project_id=any($1::text[])", project_ids) or 0
+    pending = await p.fetchval("select count(*) from access_requests where status='pendente'") if role in ("admin", "patrocinador", "auditor") else 0
+    logs = await p.fetch("select * from activity_logs order by created_at desc limit 8")
+    return {"projects": [project(row) for row in projects], "totalMembros": int(members), "totalMapas": int(files), "armazenamentoMb": round(int(storage) / 1048576, 2), "pendencias": int(pending or 0), "activity": [dump(row) for row in logs], "source": "database", "consultedAt": now().isoformat()}
+
+
+@app.get("/api/activity-logs")
+async def activity_logs(
+    request: Request,
+    userId: str | None = None,
+    usuario: str | None = None,
+    acao: str | None = None,
+    entidade: str | None = None,
+    projeto: str | None = None,
+    search: str | None = None,
+    q_search: str | None = Query(None, alias="q"),
+    from_: str | None = Query(None, alias="from"),
+    de: str | None = None,
+    to: str | None = None,
+    ate: str | None = None,
+    resultado: str | None = None,
+    page: int = 1,
+    limit: int = 10,
+):
+    await require(request, ("admin", "auditor"))
+    p = await db()
+    page = max(page, 1)
+    limit = min(max(limit, 1), 100)
+    search = search or q_search
+    user_filter = userId or usuario
+    start = de or from_
+    end = ate or to
+    filters = []
+    args = []
+    def bind(value):
+        args.append(value)
+        return "?" if settings.database_engine == "sqlite" else f"${len(args)}"
+    for column, value in (("a.user_id", user_filter), ("a.action", acao), ("a.entity", entidade)):
+        if value:
+            filters.append(f"{column}={bind(value)}")
+    if projeto:
+        filters.append(f"(a.entity_id={bind(projeto)} OR p.id={bind(projeto)})")
+    if search:
+        search_value = f"%{search}%"
+        filters.append(f"(a.details LIKE {bind(search_value)} OR u.name LIKE {bind(search_value)} OR p.name LIKE {bind(search_value)} OR a.action LIKE {bind(search_value)})")
+    if resultado:
+        filters.append("1=0" if resultado == "erro" else "1=1")
+    if start:
+        filters.append(f"date(a.created_at) >= date({bind(start)})")
+    if end:
+        filters.append(f"date(a.created_at) <= date({bind(end)})")
+    where = (" WHERE " + " AND ".join(filters)) if filters else ""
+    join = "LEFT JOIN users u ON u.id=a.user_id LEFT JOIN projects p ON p.id=a.entity_id"
+    count = await p.fetchval(f"SELECT COUNT(*) FROM activity_logs a {join}{where}", *args)
+    offset = (page - 1) * limit
+    args.extend([limit, offset])
+    lim = "LIMIT ? OFFSET ?" if settings.database_engine == "sqlite" else f"LIMIT ${len(args)-1} OFFSET ${len(args)}"
+    rows = await p.fetch(f"SELECT a.*, u.name AS user_name, u.email AS user_email, p.name AS project_name FROM activity_logs a {join}{where} ORDER BY a.created_at DESC {lim}", *args)
+    logs = []
+    for row in rows:
+        item = dump(row)
+        logs.append({"id": item.get("id"), "userId": item.get("user_id"), "acao": item.get("action"), "entidade": item.get("entity"), "entidadeId": item.get("entity_id"), "detalhes": item.get("details") or "", "criadoEm": item.get("created_at"), "resultado": "sucesso", "projetoId": item.get("project_id") or (item.get("entity_id") if item.get("entity") == "projeto" else None), "user": {"nome": item.get("user_name"), "email": item.get("user_email")} if item.get("user_name") else None, "projetoNome": item.get("project_name")})
+    return {"logs": logs, "pagination": {"page": page, "limit": limit, "total": int(count or 0), "totalPages": max((int(count or 0) + limit - 1) // limit, 1)}}
+
+
+@app.get("/api/activity-logs/export")
+async def export_logs(
+    request: Request,
+    format: Literal["csv", "txt"] = "csv",
+    fields: str = "id,usuario,acao,entidade,entidadeId,detalhes,criadoEm",
+    q: str | None = None,
+    usuario: str | None = None,
+    projeto: str | None = None,
+    acao: str | None = None,
+    resultado: str | None = None,
+    de: str | None = None,
+    ate: str | None = None,
+):
+    actor = await require(request, ("admin", "auditor"))
+    data = (await activity_logs(
+        request,
+        usuario=usuario,
+        acao=acao,
+        projeto=projeto,
+        search=q,
+        q_search=None,
+        from_=None,
+        de=de,
+        to=None,
+        ate=ate,
+        resultado=resultado,
+        page=1,
+        limit=100,
+    ))["logs"]
+    await audit(actor, "exportar-logs", "auditoria", None, f"formato={format}")
+    out = io.StringIO()
+    if format == "csv":
+        w = csv.writer(out)
+        columns = {"id": "ID", "usuario": "Usuário", "acao": "Ação", "entidade": "Entidade", "entidadeId": "ID da entidade", "detalhes": "Detalhes", "criadoEm": "Data"}
+        selected = [key.strip() for key in fields.split(",") if key.strip() in columns] or list(columns)
+        w.writerow([columns[key] for key in selected])
+        for x in data:
+            w.writerow([x.get(key, "") for key in selected])
+        media = "text/csv"
+        name = "auditoria.csv"
+    else:
+        out.write(
+            "\n".join(
+                f"{x.get('criadoEm')} | {x.get('userId')} | {x.get('acao')} | {x.get('entidade')}:{x.get('entidadeId')} | {x.get('detalhes')}"
+                for x in data
+            )
+        )
+        media = "text/plain"
+        name = "auditoria.txt"
+    return StreamingResponse(
+        iter([out.getvalue()]),
+        media_type=media,
+        headers={"Content-Disposition": f"attachment; filename={name}"},
+    )
+
+
+@app.get("/api/reports")
+async def reports(
+    request: Request,
+    status_filter: str | None = Query(None, alias="status"),
+    area: str | None = None,
+    projectId: str | None = None,
+    search: str | None = None,
+):
+    u = await require(request)
+    p = await db()
+    args = []
+    conditions = []
+    if u["role"] not in ("admin", "patrocinador", "auditor"):
+        if settings.database_engine == "sqlite":
+            args.extend([u["id"], u["id"]])
+            conditions.append("(EXISTS (select 1 from json_each(managers_ids) where value=?) or EXISTS (select 1 from json_each(participants_ids) where value=?))")
+        else:
+            args.extend([u["id"], u["id"]])
+            conditions.append(
+                f"(${len(args) - 1}=any(managers_ids) or ${len(args)}=any(participants_ids))"
+            )
+    if status_filter and status_filter != "todos":
+        args.append(status_filter)
+        conditions.append(f"status=${len(args)}")
+    if area:
+        args.append(area)
+        conditions.append(f"responsible_area=${len(args)}")
+    if projectId:
+        args.append(projectId)
+        conditions.append(f"id=${len(args)}")
+    if search:
+        args.append(f"%{search}%")
+        conditions.append(
+            f"(name ilike ${len(args)} or code ilike ${len(args)} or responsible_area ilike ${len(args)})"
+        )
+    where = (" where " + " and ".join(conditions)) if conditions else ""
+    raw = await p.fetch(f"select * from projects{where} order by created_at desc", *args)
+    projects = []
+    for item in raw:
+        value = project(item)
+        value["totalMapas"] = (
+            await p.fetchval("select count(*) from files where project_id=$1", item["id"]) or 0
+        )
+        value["totalMembros"] = (
+            await p.fetchval(
+                "select count(*) from project_members where project_id=$1", item["id"]
+            )
+            or 0
+        )
+        projects.append(value)
+    areas = {}
+    statuses = {}
+    for item in projects:
+        areas[item["areaResponsavel"]] = areas.get(item["areaResponsavel"], 0) + 1
+        statuses[item["status"]] = statuses.get(item["status"], 0) + 1
+    return {
+        "filtros": {"status": status_filter or "todos", "area": area, "projectId": projectId},
+        "indicadores": {
+            "totalProjetos": len(projects),
+            "ativos": statuses.get("ativo", 0),
+            "suspensos": statuses.get("suspenso", 0),
+            "concluidos": statuses.get("concluido", 0),
+            "armazenamentoUsadoMb": sum((x.get("armazenamentoUsadoMb") or 0) for x in projects),
+            "totalMembros": sum(x["totalMembros"] for x in projects),
+            "totalMapas": sum(x["totalMapas"] for x in projects),
+        },
+        "porArea": [{"area": k, "total": v} for k, v in areas.items()],
+        "porStatus": [{"status": k, "total": v} for k, v in statuses.items()],
+        "projetos": projects,
+    }
+
+def _pdf_document(title: str, headers: list[str], rows: list[list[object]]) -> bytes:
+    import unicodedata
+
+    def clean(value: object) -> str:
+        return unicodedata.normalize("NFKD", str(value or "")).encode("ascii", "ignore").decode().replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")[:180]
+
+    lines = [title, " | ".join(headers)] + [" | ".join(clean(value) for value in row) for row in rows]
+    commands = ["BT", "/F1 9 Tf", "45 790 Td"]
+    for index, line in enumerate(lines[:48]):
+        if index:
+            commands.append("0 -15 Td")
+        commands.append(f"({clean(line)}) Tj")
+    stream = "\n".join(commands + ["ET"]).encode("latin-1", "replace")
+    objects = [b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>", b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>", b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", b"<< /Length " + str(len(stream)).encode() + b" >>\nstream\n" + stream + b"\nendstream"]
+    pdf = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+    for number, obj in enumerate(objects, 1):
+        offsets.append(len(pdf))
+        pdf.extend(f"{number} 0 obj\n".encode() + obj + b"\nendobj\n")
+    startxref = len(pdf)
+    pdf.extend(f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode())
+    for offset in offsets[1:]:
+        pdf.extend(f"{offset:010d} 00000 n \n".encode())
+    pdf.extend(f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{startxref}\n%%EOF".encode())
+    return bytes(pdf)
+
+
+@app.get("/api/reports/export")
+async def export_project_report(request: Request, format: Literal["csv", "txt", "pdf"] = "csv", fields: str = "", status_filter: str | None = Query(None, alias="status"), area: str | None = None, gestor_id: str | None = Query(None, alias="gestorId")):
+    report = await reports(request, status_filter=status_filter, area=area)
+    projects = report["projetos"]
+    if gestor_id:
+        projects = [item for item in projects if gestor_id in (item.get("gestoresIds") or [])]
+    p = await db()
+    field_rows = await p.fetch("select field_key, label, source_key from report_fields where report_code=$1 and active=true order by display_order, label", "projetos")
+    configured = {row["field_key"]: row for row in field_rows}
+    selected_keys = [key.strip() for key in fields.split(",") if key.strip() in configured] or list(configured)
+    headers = [configured[key]["label"] for key in selected_keys]
+    aliases = {"projectName": "nome", "projectCode": "codigo", "area": "areaResponsavel", "totalMapas": "totalMapas", "totalMembros": "totalMembros"}
+    rows = [[item.get(configured[key]["source_key"], item.get(aliases.get(configured[key]["source_key"], configured[key]["source_key"]), "")) for key in selected_keys] for item in projects]
+    await audit(await current(request), "exportar-relatorio-projetos", "relatorio", None, f"formato={format}")
+    if format == "pdf":
+        return Response(_pdf_document("Relatorio de projetos", headers, rows), media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=relatorio-projetos.pdf"})
+    out = io.StringIO()
+    if format == "csv":
+        writer = csv.writer(out)
+        writer.writerow(headers)
+        writer.writerows(rows)
+        media, filename = "text/csv", "relatorio-projetos.csv"
+    else:
+        out.write("\\n".join(" | ".join(str(value or "") for value in row) for row in [headers, *rows]))
+        media, filename = "text/plain", "relatorio-projetos.txt"
+    return StreamingResponse(iter([out.getvalue()]), media_type=media, headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+
+@app.get("/api/access-map")
+async def access_map(request: Request):
+    u = await require(request)
+    p = await db()
+    if settings.database_engine == "sqlite" and u["role"] not in ("admin", "patrocinador", "auditor"):
+        visibility = " where EXISTS (select 1 from json_each(p.managers_ids) where value=?) or EXISTS (select 1 from json_each(p.participants_ids) where value=?)"
+        args = [u["id"], u["id"]]
+    else:
+        visibility = (
+            ""
+            if u["role"] in ("admin", "patrocinador", "auditor")
+            else " where $1=any(p.managers_ids) or $1=any(p.participants_ids)"
+        )
+        args = [] if not visibility else [u["id"]]
+    rows = await p.fetch(
+        f"""select u.id as user_id,u.name as user_name,u.email as user_email,u.role as user_role,u.area,p.id as project_id,p.name as project_name,p.status as project_status,f.id as resource_id,f.name as resource_name,f.kind as resource_type,'leitura' as access_level,f.updated_at as last_viewed_at from files f join projects p on p.id=f.project_id left join users u on u.id=f.created_by{visibility} order by f.updated_at desc""",
+        *args,
+    )
+    return {
+        "source": "database",
+        "consultedAt": now().isoformat(),
+        "summary": {
+            "users": len({x["user_id"] for x in rows if x["user_id"]}),
+            "projects": len({x["project_id"] for x in rows}),
+            "folders": sum(x["resource_type"] == "pasta" for x in rows),
+            "files": sum(x["resource_type"] == "arquivo" for x in rows),
+            "relationships": len(rows),
+        },
+        "rows": [
+            {
+                "userId": x["user_id"],
+                "userName": x["user_name"],
+                "userEmail": x["user_email"],
+                "userRole": x["user_role"],
+                "area": x["area"],
+                "projectId": x["project_id"],
+                "projectName": x["project_name"],
+                "projectStatus": x["project_status"],
+                "resourceId": x["resource_id"],
+                "resourceName": x["resource_name"],
+                "resourceType": x["resource_type"],
+                "accessLevel": x["access_level"],
+                "lastViewedAt": isoformat_value(x["last_viewed_at"]),
+            }
+            for x in rows
+        ],
+    }
+
+
+@app.get("/api/access-map/export")
+async def export_access_map(
+    request: Request,
+    format: Literal["csv", "txt", "pdf"] = "csv",
+    fields: str = "usuario,email,perfil,area,projeto,recurso,tipo,acesso,ultimaVisualizacao",
+    q: str = "",
+    type: str = "todos",
+    level: str = "todos",
+    view: str = "projeto",
+):
+    data = await access_map(request)
+    await audit(await current(request), "exportar-mapa-acessos", "relatorio", None, f"formato={format}")
+    selected = [item for item in fields.split(",") if item]
+    labels = {
+        "usuario": ("Usuário", "userName"), "email": ("E-mail", "userEmail"),
+        "perfil": ("Perfil", "userRole"), "area": ("Área", "area"),
+        "projeto": ("Projeto", "projectName"), "recurso": ("Recurso", "resourceName"),
+        "tipo": ("Tipo de recurso", "resourceType"), "acesso": ("Nível de acesso", "accessLevel"),
+        "ultimaVisualizacao": ("Última visualização", "lastViewedAt"),
+    }
+    rows = data["rows"]
+    if q:
+        needle = q.lower()
+        rows = [row for row in rows if needle in " ".join(str(row_value(row, key, "")) for _, key in labels.values()).lower()]
+    if type != "todos":
+        rows = [row for row in rows if row_value(row, "resourceType") == type]
+    if level != "todos":
+        rows = [row for row in rows if row_value(row, "accessLevel") == level]
+    if format == "pdf":
+        selected_labels = [labels[key][0] for key in selected if key in labels]
+        selected_rows = [[row_value(row, labels[key][1], "") for key in selected if key in labels] for row in rows]
+        return Response(_pdf_document("Mapa de acessos", selected_labels, selected_rows), media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=mapa-de-acessos.pdf"})
+    out = io.StringIO()
+    if format == "csv":
+        writer = csv.writer(out)
+        writer.writerow([labels[key][0] for key in selected if key in labels])
+        for row in rows:
+            writer.writerow([row_value(row, labels[key][1], "") for key in selected if key in labels])
+        media, filename = "text/csv", "mapa-de-acessos.csv"
+    else:
+        out.write("\n".join(" | ".join(str(row_value(row, labels[key][1], "")) for key in selected if key in labels) for row in rows))
+        media, filename = "text/plain", "mapa-de-acessos.txt"
+    return StreamingResponse(iter([out.getvalue()]), media_type=media, headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+
+@app.get("/api/permissions")
+async def permissions(request: Request):
+    await require(request, ("admin", "auditor"))
+    p = await db()
+    return {
+        "matrix": [
+            dump(r) for r in await p.fetch("select * from permissions order by role,resource")
+        ]
+    }
+
+
+@app.put("/api/permissions")
+async def put_permissions(x: PermissionMatrix, request: Request):
+    await require(request, ("admin",))
+    p = await db()
+    async with p.acquire() as c, c.transaction():
+        await c.execute("delete from permissions")
+        for item in x.matrix:
+            await c.execute(
+                "insert into permissions(role,resource,actions) values($1,$2,$3)",
+                item["role"],
+                item["resource"],
+                item.get("actions", []),
+            )
+    return {"matrix": x.matrix}
+
+
+@app.get("/api/settings")
+async def settings_endpoint(request: Request):
+    await require(request, ("admin", "auditor"))
+    p = await db()
+    return {"settings": {r["key"]: r["value"] for r in await p.fetch("select * from settings")}}
+
+
+@app.patch("/api/settings")
+async def patch_settings(request: Request):
+    await require(request, ("admin",))
+    values = await request.json()
+    p = await db()
+    for k, v in values.items():
+        await p.execute(
+            "insert into settings(key,value) values($1,$2) on conflict(key) do update set value=excluded.value,updated_at=now()",
+            k,
+            json.dumps(v),
+        )
+    return {"settings": values}
+
+
+@app.get("/api/access-requests")
+async def access_requests(request: Request):
+    current_user = await require(request)
+    p = await db()
+    if normalized_role(current_user["role"]) == "admin":
+        rows = await p.fetch("select * from access_requests order by created_at desc")
+    else:
+        rows = await p.fetch("select * from access_requests where requester_id=$1 order by created_at desc", current_user["id"])
+    return {"requests": [dump(row) for row in rows]}
+
+
+@app.post("/api/access-requests", status_code=201)
+async def create_access_request(request: Request):
+    current_user = await require(request)
+    payload = await request.json()
+    project_id = payload.get("projetoId") or payload.get("projectId")
+    if not project_id:
+        raise HTTPException(422, "Projeto obrigatório")
+    request_id = str(uuid4())
+    p = await db()
+    await p.execute(
+        "insert into access_requests(id,project_id,requester_id,status,created_at) values($1,$2,$3,$4,$5)",
+        request_id, project_id, current_user["id"], "pendente", now(),
+    )
+    row = await p.fetchrow("select * from access_requests where id=$1", request_id)
+    return {"request": dump(row)}
+
+
+@app.patch("/api/access-requests/{request_id}")
+async def update_access_request(request_id: str, request: Request):
+    current_user = await require(request, ("admin",))
+    payload = await request.json()
+    status = payload.get("status")
+    if status not in {"aprovado", "negado"}:
+        raise HTTPException(422, "Status inválido")
+    p = await db()
+    row = await p.fetchrow("update access_requests set status=$1 where id=$2 returning *", status, request_id)
+    if not row:
+        raise HTTPException(404, "Solicitação não encontrada")
+    await audit(current_user, "atualizar-solicitacao", "solicitacao_acesso", request_id, status)
+    return {"request": dump(row)}
