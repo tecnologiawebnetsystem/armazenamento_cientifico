@@ -1,9 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Building2Icon, CalendarDaysIcon, CircleCheckIcon, ClipboardListIcon, Loader2Icon, Trash2Icon } from "lucide-react"
+import { Building2Icon, CircleCheckIcon, ClipboardListIcon, Loader2Icon } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Field, FieldLabel, FieldDescription } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
@@ -17,18 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { updateProject, deleteProject, ApiError } from "@/lib/api-client"
+import { updateProject, ApiError } from "@/lib/api-client"
 import type { Project, ProjectStatus } from "@/lib/types"
 
 const statusOptions: { value: ProjectStatus; label: string }[] = [
@@ -40,33 +28,27 @@ const statusOptions: { value: ProjectStatus; label: string }[] = [
 export function ProjectInfoTab({
   project,
   canEdit,
-  canDelete,
   onUpdated,
 }: {
   project: Project
   canEdit: boolean
-  canDelete: boolean
   onUpdated: () => void
 }) {
-  const router = useRouter()
-  const [nome, setNome] = useState(project.nome)
+  const nome = project.nome
   const [areaResponsavel, setAreaResponsavel] = useState(project.areaResponsavel)
   const [descricao, setDescricao] = useState(project.descricao)
   const [status, setStatus] = useState<ProjectStatus>(project.status)
   const [isSaving, setIsSaving] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
 
   // O formulário precisa ser sincronizado quando o projeto selecionado muda.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setNome(project.nome)
     setAreaResponsavel(project.areaResponsavel)
     setDescricao(project.descricao)
     setStatus(project.status)
   }, [project])
 
   const dirty =
-    nome !== project.nome ||
     areaResponsavel !== project.areaResponsavel ||
     descricao !== project.descricao ||
     status !== project.status
@@ -85,19 +67,6 @@ export function ProjectInfoTab({
     }
   }
 
-  async function handleDelete() {
-    setIsDeleting(true)
-    try {
-      await deleteProject(project.id)
-      toast.success("Projeto excluído.")
-      router.push("/projetos")
-    } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Não foi possível excluir o projeto."
-      toast.error(message)
-      setIsDeleting(false)
-    }
-  }
-
   const statusLabel = statusOptions.find((option) => option.value === status)?.label ?? status
 
   return (
@@ -110,10 +79,6 @@ export function ProjectInfoTab({
         <div className="flex items-center gap-3 border-l-4 border-petrobras-blue bg-petrobras-blue/5 px-4 py-3">
           <Building2Icon className="size-5 text-petrobras-blue" aria-hidden="true" />
           <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Área responsável</p><p className="font-semibold text-foreground">{areaResponsavel || "Não informada"}</p></div>
-        </div>
-        <div className="flex items-center gap-3 border-l-4 border-muted-foreground/40 bg-muted/30 px-4 py-3">
-          <CalendarDaysIcon className="size-5 text-muted-foreground" aria-hidden="true" />
-          <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Última atualização</p><p className="font-semibold text-foreground">{new Date(project.atualizadoEm).toLocaleDateString("pt-BR")}</p></div>
         </div>
       </div>
 
@@ -137,7 +102,7 @@ export function ProjectInfoTab({
         <div className="grid gap-5 md:grid-cols-[minmax(0,1.4fr)_minmax(220px,0.6fr)]">
           <Field>
             <FieldLabel htmlFor="nome">Nome do projeto</FieldLabel>
-            <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} disabled={!canEdit} className="h-11" />
+            <Input id="nome" value={nome} disabled className="h-11 bg-muted/50" />
           </Field>
           <Field>
             <FieldLabel htmlFor="id">Identificador</FieldLabel>
@@ -165,42 +130,12 @@ export function ProjectInfoTab({
           <FieldDescription className="flex flex-wrap gap-x-2 gap-y-1">
             <span>Criado em {new Date(project.criadoEm).toLocaleDateString("pt-BR")}</span>
             <span aria-hidden="true">·</span>
-            <span>Atualizado em {new Date(project.atualizadoEm).toLocaleDateString("pt-BR")}</span>
+
           </FieldDescription>
         </Field>
       </CardContent>
       {canEdit && (
-        <CardFooter className="justify-between border-t pt-4">
-          {canDelete ? (
-            <AlertDialog>
-              <AlertDialogTrigger render={<Button variant="outline" />}>
-                <Trash2Icon data-icon="inline-start" />
-                Excluir projeto
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Excluir este projeto?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta ação remove permanentemente o projeto, seus membros e arquivos associados. Não pode ser
-                    desfeita.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    onClick={handleDelete}
-                    disabled={isDeleting}
-                  >
-                    {isDeleting && <Loader2Icon data-icon="inline-start" className="animate-spin" />}
-                    Excluir
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          ) : (
-            <span />
-          )}
+        <CardFooter className="justify-end border-t bg-muted/20 pt-4">
           <Button onClick={handleSave} disabled={!dirty || isSaving}>
             {isSaving && <Loader2Icon data-icon="inline-start" className="animate-spin" />}
             Salvar alterações

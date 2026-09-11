@@ -4,6 +4,8 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import select
+
+from app.modules.catalogs.area_model import ResponsibleArea
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, require_roles
@@ -53,9 +55,16 @@ async def create_project(
     session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[dict, Depends(require_roles("admin"))],
 ):
-    await ProjectService(ProjectRepository(session)).ensure_code_available(data.codigo)
+    area = (await session.execute(select(ResponsibleArea).where(ResponsibleArea.name == data.areaResponsavel, ResponsibleArea.active.is_(True)).with_for_update())).scalar_one_or_none()
+    if not area:
+        raise HTTPException(status_code=422, detail="Área responsável inválida ou inativa")
+    generated_code = area.consume_code()
+    if data.codigo and data.codigo != generated_code:
+        raise HTTPException(status_code=422, detail="O código é gerado automaticamente pela área responsável")
+    await ProjectService(ProjectRepository(session)).ensure_code_available(generated_code)
     now = datetime.now(UTC)
-    project = Project(id=str(uuid4()), name=data.nome, code=data.codigo, responsible_area=data.areaResponsavel,
+    area.updated_at = now
+    project = Project(id=str(uuid4()), name=data.nome, code=generated_code, responsible_area=data.areaResponsavel,
         managers_ids=data.gestoresIds, description=data.descricao, status=data.status,
         participants_ids=data.participantesIds, write_group=data.grupoAdEscrita, read_group=data.grupoAdLeitura, write_identity_role=data.roleIdentidadeEscrita, read_identity_role=data.roleIdentidadeLeitura, snow_task_number=data.numeroTarefaSnow, parent_folder=data.pastaMae, created_at=now, updated_at=now)
     session.add(project)
@@ -92,6 +101,15 @@ async def delete_project(
     if project:
         await session.delete(project)
         await session.commit()
+
+
+@router.get("/areas", response_model=dict)
+async def list_responsible_areas(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _: CurrentUser,
+):
+    areas = (await session.scalars(select(ResponsibleArea).where(ResponsibleArea.active.is_(True)).order_by(ResponsibleArea.name))).all()
+    return {"areas": [{"id": area.id, "nome": area.name, "prefixo": area.prefix, "proximoCodigo": area.preview_code()} for area in areas]}
 
 
 @router.get("/{project_id}", response_model=dict)

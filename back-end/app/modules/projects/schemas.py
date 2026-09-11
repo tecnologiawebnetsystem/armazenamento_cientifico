@@ -8,7 +8,7 @@ ProjectStatus = Literal["ativo", "concluido", "suspenso"]
 
 class ProjectCreate(BaseModel):
     nome: str = Field(min_length=2, max_length=200)
-    codigo: str = Field(min_length=1, max_length=50)
+    codigo: str | None = Field(default=None, max_length=50)
     areaResponsavel: str = Field(min_length=1, max_length=160)
     gestoresIds: list[str] = Field(default_factory=list)
     descricao: str = ""

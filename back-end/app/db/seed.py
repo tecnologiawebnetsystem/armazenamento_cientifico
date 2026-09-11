@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from sqlalchemy import text
 
+from app.modules.catalogs.area_model import ResponsibleArea
 from app.modules.catalogs.models import (
     MenuItem,
     Module,
@@ -43,6 +44,17 @@ SEED_PERMISSIONS = [
 SEED_STATUS = [("ATIVO", "ativo", "Ativo", "green", 10, True), ("INATIVO", "inativo", "Inativo", "slate", 20, False), ("CONCLUIDO", "concluido", "Concluído", "blue", 30, False), ("SUSPENSO", "suspenso", "Suspenso", "amber", 40, True)]
 SEED_TYPES = [("CIENTIFICO", "cientifico", "Científico", "Projetos científicos"), ("TECNOLOGIA", "tecnologia", "Tecnologia", "Projetos de tecnologia")]
 SEED_REPORTS = [("PROJETOS", "projetos", "Relatório de projetos", "csv,xlsx,pdf"), ("ACESSOS", "acessos", "Mapa de acessos", "csv,xlsx,pdf")]
+SEED_AREAS = [
+    ("tecnologia-informacao", "Tecnologia da Informação", "TI"),
+    ("governanca-compliance", "Governança e Compliance", "GC"),
+    ("gestao-documental", "Gestão Documental", "GD"),
+    ("pesquisa-desenvolvimento", "Pesquisa e Desenvolvimento", "PD"),
+    ("engenharia", "Engenharia", "ENG"),
+    ("pesquisa", "Pesquisa", "PES"),
+    ("operacoes", "Operações", "OP"),
+    ("documentacao", "Documentação", "DOC"),
+    ("tecnologia", "Tecnologia", "TEC"),
+]
 SEED_REPORT_FIELDS = [
     ("projetos-nome", "projetos", "nome", "Nome do projeto", "projectName", 10),
     ("projetos-codigo", "projetos", "codigo", "Código", "projectCode", 20),
@@ -93,6 +105,11 @@ async def initialize_database(engine) -> None:
                 session.add(Perfil(id=perfil_id, nome=nome, descricao=descricao, criado_em=now))
         await session.flush()
         perfil_ids = {row.nome: row.id for row in (await session.scalars(select(Perfil))).all()}
+        existing_areas = {row.id for row in (await session.scalars(select(ResponsibleArea))).all()}
+        for area_id, name, prefix in SEED_AREAS:
+            if area_id not in existing_areas:
+                session.add(ResponsibleArea(id=area_id, name=name, prefix=prefix, next_number=1, active=True, created_at=now, updated_at=now))
+        await session.flush()
         for item in SEED_MODULES:
             if not await session.get(Module, item[0]):
                 session.add(Module(id=item[0], nome=item[1], rota=item[2], icone=item[3], ordem=item[4], ativo=True))

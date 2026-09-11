@@ -31,9 +31,14 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border/70 bg-sidebar shadow-xl shadow-sidebar/15 transition-[width] duration-200 md:flex">
       <SidebarHeader className="gap-0 p-0">
-        {/* Faixa da marca Petrobras */}
-        <div className="h-1 w-full bg-gradient-to-r from-sidebar-primary via-sidebar-primary/70 to-sidebar-primary" />
+        <div className="h-1.5 w-full bg-gradient-to-r from-sidebar-primary via-petrobras-yellow to-petrobras-green" />
         <SidebarMenu className="p-3">
+          <SidebarMenuItem>
+            <div className="flex items-center gap-2 px-3 pb-2 text-[10px] font-semibold tracking-[0.18em] text-sidebar-foreground/50 uppercase group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+              <span className="size-1.5 rounded-full bg-sidebar-primary shadow-[0_0_8px_var(--sidebar-primary)]" aria-hidden="true" />
+              <span className="group-data-[collapsible=icon]:hidden">Ambiente corporativo</span>
+            </div>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
@@ -46,7 +51,6 @@ export function AppSidebar() {
               <div className="flex min-w-0 flex-col gap-0.5 leading-none">
                 <span className="truncate text-sm font-semibold">SIGAC</span>
                 <span className="hidden truncate text-[10px] text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden">Sistema de Gestão de Acesso ao Armazenamento Científico</span>
-                
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -55,10 +59,9 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="gap-1 px-1 py-2">
-        
         {groups.map((group) => (
           <SidebarGroup key={group.label} className="border-b border-sidebar-border/40 px-2 py-3 last:border-b-0">
-            <SidebarGroupLabel className="h-7 px-2 text-[10px] font-semibold tracking-[0.16em] text-sidebar-foreground/55 uppercase">
+            <SidebarGroupLabel className="h-8 px-2 text-[10px] font-semibold tracking-[0.16em] text-sidebar-primary/80 uppercase group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
               {group.label}
             </SidebarGroupLabel>
             <SidebarGroupContent>

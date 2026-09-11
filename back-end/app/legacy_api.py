@@ -378,7 +378,8 @@ async def catalogs(request: Request):
         "permissoes": [dump(row) for row in await p.fetch("select * from permissoes where ativo=true order by id")],
         "statusProjetos": [dump(row) for row in await p.fetch("select * from status_projetos where ativo=true order by ordem, nome")],
         "tiposProjetos": [dump(row) for row in await p.fetch("select * from tipos_projetos where ativo=true order by nome")],
-  "tiposRelatorios": [dump(row) for row in await p.fetch("select * from tipos_relatorios where ativo=true order by nome")],
+          "tiposRelatorios": [dump(row) for row in await p.fetch("select * from tipos_relatorios where ativo=true order by nome")],
+        "areas": [dump(row) for row in await p.fetch("select id, name as nome, prefix as prefixo, next_number as next_number from responsible_areas where active=true order by name")],
   "camposRelatorios": [dump(row) for row in await p.fetch("select * from report_fields where active=true order by report_code, display_order, label")],
   }
 

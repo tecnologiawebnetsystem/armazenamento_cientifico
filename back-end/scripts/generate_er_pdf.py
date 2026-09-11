@@ -10,9 +10,9 @@ from reportlab.lib.units import mm
 from reportlab.platypus import BaseDocTemplate, Flowable, Frame, PageBreak, PageTemplate, Paragraph, Spacer
 
 ROOT = Path(__file__).resolve().parents[2]
-SCHEMA = ROOT / "backend/database/sqlite-schema.sql"
+SCHEMA = ROOT / "back-end/database/sqlite-schema.sql"
 OUTPUT = ROOT / "docs/SIGAC-modelo-dados.pdf"
-LOGO = ROOT / "frontend/public/images/petrobras-full-logo.png"
+LOGO = ROOT / "public/images/petrobras-full-logo.png"
 PAGE = landscape(A4)
 GREEN = colors.HexColor("#007F3E")
 DARK = colors.HexColor("#0B253E")
@@ -113,7 +113,7 @@ def header_footer(canvas, doc):
     canvas.drawString(51 * mm, height - 11.5 * mm, "SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico")
     canvas.setFillColor(MUTED)
     canvas.setFont("Helvetica", 7)
-    canvas.drawString(16 * mm, 9 * mm, "Modelo de dados · fonte: backend/database/sqlite-schema.sql")
+    canvas.drawString(16 * mm, 9 * mm, "Modelo de dados · fonte: back-end/database/sqlite-schema.sql")
     canvas.drawRightString(width - 16 * mm, 9 * mm, f"Página {doc.page}")
     canvas.restoreState()
 
@@ -151,15 +151,15 @@ TABLE_DESCRIPTIONS = {
 
 def main():
     tables = parse_schema(SCHEMA.read_text(encoding="utf-8"))
-    if len(tables) != 27:
-        raise RuntimeError(f"Schema incompleto: esperado 27 tabelas, encontrado {len(tables)}")
+    if not tables:
+        raise RuntimeError("Schema vazio: nenhum CREATE TABLE foi encontrado")
     styles = getSampleStyleSheet()
     title = ParagraphStyle("title", parent=styles["Title"], fontName="Helvetica-Bold", fontSize=22, textColor=DARK, spaceAfter=8)
     body = ParagraphStyle("body", parent=styles["BodyText"], fontSize=10, leading=15, textColor=MUTED)
     frame = Frame(16 * mm, 18 * mm, PAGE[0] - 32 * mm, PAGE[1] - 40 * mm, id="normal")
     doc = BaseDocTemplate(str(OUTPUT), pagesize=PAGE, leftMargin=16 * mm, rightMargin=16 * mm, topMargin=24 * mm, bottomMargin=18 * mm, title="SIGAC — Modelo de dados")
     doc.addPageTemplates([PageTemplate(id="main", frames=frame, onPage=header_footer)])
-    story = [Spacer(1, 18 * mm), Paragraph("SIGAC — Modelo de dados", title), Paragraph("Documento completo gerado diretamente do schema SQLite. Todas as tabelas, campos, chaves primárias e relacionamentos vêm da mesma fonte.", body), Spacer(1, 12 * mm), Paragraph(f"Inventário: {len(tables)} tabelas", title), Paragraph("Legenda: PK = chave primária; * = campo obrigatório; linhas verdes = relacionamentos FK visíveis na mesma página.", body), PageBreak()]
+    story = [Spacer(1, 18 * mm), Paragraph("SIGAC — Modelo de dados", title), Paragraph("Documento completo gerado diretamente do schema SQLite canônico. Todas as tabelas, campos, chaves primárias e relacionamentos vêm da mesma fonte versionada.", body), Spacer(1, 12 * mm), Paragraph(f"Inventário: {len(tables)} tabelas", title), Paragraph("Legenda: PK = chave primária; * = campo obrigatório; linhas verdes = relacionamentos FK visíveis na mesma página.", body), PageBreak()]
     for i in range(0, len(tables), 3):
         group = tables[i:i + 3]
         story += [Paragraph(f"Diagrama ER visual · tabelas {i + 1}–{i + len(group)} de {len(tables)}", title), Spacer(1, 5 * mm), ERPage(group)]
@@ -172,7 +172,7 @@ def main():
     story += [PageBreak(), Paragraph("Inventário completo de tabelas", title)]
     for table in tables:
         fields = ", ".join(col for col, _, _ in table["columns"])
-        story += [Paragraph(f"<b>{table['name']}</b> · {len(table['columns'])} campos · PK: {', '.join(table['pks']) or '—'}<br/>{fields}", body), Spacer(1, 3 * mm)]
+        story += [Paragraph(f"<b>{table['name']}</b> · {len(table['columns'])} campos �� PK: {', '.join(table['pks']) or '—'}<br/>{fields}", body), Spacer(1, 3 * mm)]
     doc.build(story)
     print(f"Generated {OUTPUT} with {len(tables)} tables")
 

@@ -13,14 +13,12 @@ export function ProjectDetailTabs({
   projectId,
   initialProject,
   canEdit,
-  canDelete,
   canManageMembers,
   canWriteFiles,
 }: {
   projectId: string
   initialProject: Project
   canEdit: boolean
-  canDelete: boolean
   canManageMembers: boolean
   canWriteFiles: boolean
 }) {
@@ -43,7 +41,7 @@ export function ProjectDetailTabs({
         <ProjectMembersTab projectId={projectId} canManage={canManageMembers} />
       </TabsContent>
       <TabsContent value="informacoes" className="mt-4">
-        <ProjectInfoTab project={current} canEdit={canEdit} canDelete={canDelete} onUpdated={() => refresh()} />
+        <ProjectInfoTab project={current} canEdit={canEdit} onUpdated={() => refresh()} />
       </TabsContent>
     </Tabs>
   )

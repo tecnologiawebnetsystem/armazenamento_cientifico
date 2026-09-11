@@ -119,6 +119,10 @@ export function getCatalogs() {
   return request<PlatformCatalogs>("/api/catalogos")
 }
 
+export function getResponsibleAreas() {
+  return request<{ areas: import("@/lib/types").ResponsibleArea[] }>("/api/projects/areas")
+}
+
 /* -------------------------------- Projects -------------------------------- */
 
 export function getProjects(params: { nome?: string; status?: string; page?: number; limit?: number } = {}) {
@@ -138,7 +142,7 @@ export function getProject(id: string) {
 
 export function createProject(data: {
   nome: string
-  codigo: string
+  codigo?: string
   criadoEm: string
   areaResponsavel: string
   gestoresIds: string[]
