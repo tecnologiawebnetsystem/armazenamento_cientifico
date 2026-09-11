@@ -20,13 +20,22 @@ npm run lint
 npm run build
 ```
 
-## Docker
+## Docker e JFrog
 
-Para executar apenas o front-end em produção:
+O front-end possui imagem e Compose independentes do back-end. Copie `.env.example` para `.env` e informe o repositório Docker fornecido pela equipe JFrog:
 
 ```bash
-docker compose up --build
+cp .env.example .env
+# edite JFROG_DOCKER_REPOSITORY e IMAGE_TAG
+
+set -a; . ./.env; set +a
+printf '%s' "$JFROG_TOKEN" | docker login "$JFROG_REGISTRY" --username "$JFROG_USER" --password-stdin
+docker compose build
+docker compose push
+docker compose up -d
 ```
+
+O Compose gera a imagem com o nome `${JFROG_REGISTRY}/${JFROG_DOCKER_REPOSITORY}/armazenamento-cientifico-front-end:${IMAGE_TAG}`. Para baixar uma versão publicada, use `docker compose pull` antes de `docker compose up -d`. A URL `jfrog.petrobras.dev.br/artifactory/api/pypi/.../simple` é exclusiva do PyPI e não deve ser usada no login ou nome de imagens Docker.
 
 A imagem usa o modo standalone do Next.js e publica a porta `3000`. O back-end é executado separadamente em `../back-end`; defina `NEXT_PUBLIC_API_BASE_URL` com a URL acessível pelo navegador.
 

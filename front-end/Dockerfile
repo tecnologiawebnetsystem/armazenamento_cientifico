@@ -8,6 +8,10 @@ RUN pnpm install --frozen-lockfile
 FROM node:20-alpine AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG BUILD_VERSION=local
+LABEL org.opencontainers.image.title="Armazenamento Científico Front-end" \
+      org.opencontainers.image.version="${BUILD_VERSION}" \
+      org.opencontainers.image.source="tecnologiawebnetsystem/armazenamento_cientifico"
 
 RUN corepack enable
 COPY --from=deps /app/node_modules ./node_modules

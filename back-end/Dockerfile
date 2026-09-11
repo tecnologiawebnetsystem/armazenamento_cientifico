@@ -7,6 +7,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+ARG BUILD_VERSION=local
+LABEL org.opencontainers.image.title="Armazenamento Científico Back-end" \
+      org.opencontainers.image.version="${BUILD_VERSION}" \
+      org.opencontainers.image.source="tecnologiawebnetsystem/armazenamento_cientifico"
+
 RUN groupadd --system app && useradd --system --gid app --home-dir /app app
 COPY requirements.txt ./
 RUN pip install --upgrade pip && pip install -r requirements.txt

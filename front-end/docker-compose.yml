@@ -1,8 +1,11 @@
 services:
   front-end:
+    image: ${JFROG_REGISTRY:-jfrog.petrobras.dev.br}/${JFROG_DOCKER_REPOSITORY:?Defina JFROG_DOCKER_REPOSITORY no .env}/armazenamento-cientifico-front-end:${IMAGE_TAG:-local}
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        BUILD_VERSION: ${IMAGE_TAG:-local}
     container_name: armazenamento-cientifico-front-end
     restart: unless-stopped
     environment:
