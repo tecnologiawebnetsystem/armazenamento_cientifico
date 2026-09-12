@@ -97,7 +97,7 @@ CAV4_API_KEY=
 | `CAV4_CLIENT_SECRET` / `CAV4_API_KEY` | Credencial CAV4, se o contrato exigir. | **Nunca expor.** |
 | `*_REDIRECT_URI` | Callback do provedor. | Deve ser exata. |
 
-O frontend não deve receber `CLIENT_SECRET`, API keys, access tokens ou chaves privadas. Nunca registrar esses valores em logs.
+O frontend não deve receber `CLIENT_SECRET`, API keys, access tokens ou chaves privadas. Nunca registrar esses valores em logs. Os modelos de configuração estão em `.env.example` e `back-end/.env.example`; ambos usam valores vazios ou descritivos, sem segredos reais.
 
 ## 5. Permissões mínimas no Entra
 

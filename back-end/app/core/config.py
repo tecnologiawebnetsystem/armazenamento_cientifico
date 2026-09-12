@@ -70,6 +70,7 @@ class Settings(BaseModel):
     security_headers_enabled: bool = os.getenv("SECURITY_HEADERS_ENABLED", "true").lower() == "true"
     cookie_domain: str | None = os.getenv("COOKIE_DOMAIN") or None
     audit_retention_days: int = int(os.getenv("AUDIT_RETENTION_DAYS", "365"))
+    entra_enabled: bool = os.getenv("ENTRA_ENABLED", "false").lower() == "true"
     entra_tenant_id: str = os.getenv("ENTRA_TENANT_ID", "")
     entra_client_id: str = os.getenv("ENTRA_CLIENT_ID", "")
     entra_client_secret: str = os.getenv("ENTRA_CLIENT_SECRET", "")
