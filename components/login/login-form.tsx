@@ -40,12 +40,12 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
         className="pointer-events-none absolute -inset-5 -z-10 rounded-[2rem] bg-gradient-to-br from-petrobras-blue/12 via-transparent to-petrobras-green/12 blur-2xl"
       />
 
-      <div className="overflow-hidden rounded-2xl border border-petrobras-green/20 bg-card/95 shadow-2xl shadow-petrobras-blue/10 ring-1 ring-petrobras-green/10 backdrop-blur-sm">
+      <div className="overflow-hidden rounded-2xl border border-[#dbe4ea] bg-white shadow-[0_18px_50px_rgba(6,63,88,0.10)] ring-1 ring-[#063f58]/[0.04]">
         {/* Faixa verde/amarelo Petrobras */}
         <div className="h-1.5 bg-gradient-to-r from-petrobras-blue via-petrobras-green to-petrobras-yellow" />
 
-        <header className="flex items-center gap-3 border-b border-petrobras-green/15 bg-card px-6 py-5">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-petrobras-blue text-primary-foreground shadow-md shadow-petrobras-blue/20">
+        <header className="flex items-center gap-3 border-b border-[#e5ebef] bg-white px-6 py-5">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#063f58] text-white shadow-md shadow-[#063f58]/20">
             <ShieldCheckIcon className="size-5" />
           </span>
           <div className="flex flex-col leading-tight">
@@ -96,13 +96,13 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
                       disabled={loading !== null}
                       aria-invalid={Boolean(emailError)}
                       aria-describedby={emailError ? "login-email-error" : undefined}
-                      className="border-petrobras-green/20 bg-background/80 pl-9 shadow-sm transition-colors focus-visible:border-petrobras-blue focus-visible:ring-petrobras-green/30"
+                      className="border-[#d8e1e7] bg-[#fbfcfd] pl-9 shadow-sm transition-colors placeholder:text-[#7a8791] focus-visible:border-[#007f5f] focus-visible:ring-[#007f5f]/20"
                       required
                     />
                     {emailError && <LoginFieldError id="login-email-error">{emailError}</LoginFieldError>}
                   </div>
                 </div>
-                <Button type="submit" size="lg" disabled={loading !== null} className="w-full bg-petrobras-blue text-primary-foreground shadow-md shadow-petrobras-blue/20 transition-all hover:-translate-y-0.5 hover:bg-petrobras-teal hover:shadow-lg">
+                <Button type="submit" size="lg" disabled={loading !== null} className="w-full bg-[#063f58] text-white shadow-md shadow-[#063f58]/20 transition-all hover:-translate-y-0.5 hover:bg-[#075b70] hover:shadow-lg">
                   {loading === "email" ? <Spinner aria-label="Validando e-mail" /> : "Entrar com e-mail"}
                 </Button>
               </form>
@@ -115,7 +115,7 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
 
               <div className="flex flex-col gap-3 text-center">
                 <p className="text-sm leading-6 text-muted-foreground">Use o acesso corporativo para validar sua identidade e carregar seus papéis e permissões.</p>
-                <Button type="button" size="lg" variant="outline" onClick={corporateLogin} disabled={loading !== null} className="w-full border-petrobras-blue/25 bg-white text-foreground shadow-md shadow-petrobras-blue/10 transition-all hover:-translate-y-0.5 hover:border-petrobras-blue/45 hover:bg-petrobras-blue/5 hover:shadow-lg">
+                <Button type="button" size="lg" variant="outline" onClick={corporateLogin} disabled={loading !== null} className="w-full border-[#d8e1e7] bg-white text-[#063f58] shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#007f5f]/40 hover:bg-[#007f5f]/[0.04] hover:shadow-md">
                   <Building2Icon data-icon="inline-start" />
                   {loading === "corporate" ? "Conectando..." : "Login corporativo"}
                 </Button>
