@@ -91,15 +91,15 @@
     --petrobras-yellow: oklch(0.82 0.17 82);
     --petrobras-blue: oklch(0.48 0.13 245);
     --petrobras-teal: oklch(0.56 0.11 190);
-    /* Verde institucional Petrobras: profundo, sóbrio e alinhado à marca */
-    --sidebar: oklch(0.39 0.13 151);
-    --sidebar-foreground: oklch(0.98 0.008 150);
-    --sidebar-primary: oklch(0.82 0.17 82);
-    --sidebar-primary-foreground: oklch(0.25 0.08 151);
-    --sidebar-accent: oklch(0.47 0.14 151);
-    --sidebar-accent-foreground: oklch(0.99 0.004 150);
-    --sidebar-border: oklch(0.52 0.12 151);
-    --sidebar-ring: oklch(0.82 0.17 82);
+    /* Verde Petrobras alinhado ao logotipo: #007F3E, sem matiz oliva */
+    --sidebar: #007f3e;
+    --sidebar-foreground: #ffffff;
+    --sidebar-primary: #fdbb30;
+    --sidebar-primary-foreground: #17324d;
+    --sidebar-accent: #006b35;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #159653;
+    --sidebar-ring: #fdbb30;
 }
 
 .dark {
@@ -130,15 +130,15 @@
     --chart-3: oklch(0.6 0.12 160);
     --chart-4: oklch(0.52 0.08 155);
     --chart-5: oklch(0.75 0.05 150);
-    /* Petrobras: verde profundo oficial para navegação e marca */
-    --sidebar: oklch(0.16 0.045 155);
-    --sidebar-foreground: oklch(0.94 0.012 150);
-    --sidebar-primary: oklch(0.82 0.17 82);
-    --sidebar-primary-foreground: oklch(0.12 0.03 155);
-    --sidebar-accent: oklch(0.24 0.075 154);
-    --sidebar-accent-foreground: oklch(0.98 0.008 150);
-    --sidebar-border: oklch(0.38 0.08 154 / 70%);
-    --sidebar-ring: oklch(0.82 0.17 82);
+    /* Petrobras no modo escuro: mesma família do logotipo, com contraste elevado */
+    --sidebar: #005c32;
+    --sidebar-foreground: #ffffff;
+    --sidebar-primary: #fdbb30;
+    --sidebar-primary-foreground: #17324d;
+    --sidebar-accent: #007f3e;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #2a9f63;
+    --sidebar-ring: #fdbb30;
 }
 
 /* O login permanece claro mesmo quando a preferência persistida do navegador é escura. */
