@@ -68,7 +68,11 @@ def normalize(value: Any, source_column: str) -> Any:
         return None
     if isinstance(value, bytes):
         return value.decode("utf-8")
-    if source_column in {"ativo", "permitido", "pode_visualizar", "permite_edicao", "active", "allowed", "can_view"}:
+    if source_column in {
+        "ativo", "permitido", "pode_visualizar", "permite_edicao",
+        "active", "is_active", "enabled", "allowed", "can_view", "allows_edit",
+        "is_public", "required",
+    }:
         return bool(value)
     if isinstance(value, (list, dict)):
         return json.dumps(value)
@@ -81,6 +85,19 @@ def normalize(value: Any, source_column: str) -> Any:
             pass
     if isinstance(value, (datetime, date)):
         return value
+    if isinstance(value, str) and (
+        source_column.endswith("_at")
+        or source_column.endswith("_date")
+        or source_column in {"created_at", "updated_at", "expires_at", "last_login_at", "last_viewed_at"}
+    ):
+        try:
+            parsed_datetime = datetime.fromisoformat(value)
+            return parsed_datetime.replace(tzinfo=None)
+        except ValueError:
+            try:
+                return date.fromisoformat(value)
+            except ValueError:
+                pass
     return value
 
 
@@ -89,8 +106,11 @@ def sqlite_rows(sqlite: sqlite3.Connection) -> dict[str, list[sqlite3.Row]]:
         "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
     ) if row[0] not in SKIP]
     result: dict[str, list[sqlite3.Row]] = {}
+    canonical_tables = set(tables)
     for source in tables:
         target = TABLE_MAP.get(source, source)
+        if source != target and target in canonical_tables:
+            continue
         columns = [row[1] for row in sqlite.execute(f'PRAGMA table_info("{source}")')]
         quoted = ", ".join('"' + column.replace('"', '""') + '"' for column in columns)
         rows = sqlite.execute(f'SELECT {quoted} FROM "{source.replace(chr(34), chr(34) * 2)}"').fetchall()
@@ -114,8 +134,17 @@ def target_values(row: sqlite3.Row, target_columns: set[str]) -> tuple[list[str]
     values: dict[str, Any] = {}
     for source_column in row.keys():
         target_column = COLUMN_MAP.get(source_column, source_column)
-        if target_column in target_columns and target_column not in values:
-            values[target_column] = normalize(row[source_column], source_column)
+        candidates = [target_column, source_column]
+        candidates.extend(
+            legacy_column
+            for legacy_column, canonical_column in COLUMN_MAP.items()
+            if canonical_column == target_column
+        )
+        destination_column = next(
+            (candidate for candidate in candidates if candidate in target_columns), None
+        )
+        if destination_column and destination_column not in values:
+            values[destination_column] = normalize(row[source_column], destination_column)
     columns = list(values)
     return columns, [values[column] for column in columns]
 
