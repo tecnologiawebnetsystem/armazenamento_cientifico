@@ -43,7 +43,7 @@ export function ProjectCard({ project, canManage = false, showMeta = true, onTog
   const suspenso = project.status === "suspenso"
 
   return (
-    <Card className="group relative overflow-hidden transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
+    <Card className="group relative overflow-hidden border-petrobras-blue/15 bg-gradient-to-br from-card via-card to-petrobras-green/5 shadow-md shadow-petrobras-blue/5 transition-all duration-200 hover:-translate-y-1 hover:border-petrobras-green/40 hover:shadow-xl hover:shadow-petrobras-green/10">
       {/* Faixa superior com a cor da marca */}
       <span
         aria-hidden
@@ -59,7 +59,7 @@ export function ProjectCard({ project, canManage = false, showMeta = true, onTog
 
       <CardHeader className="pt-5">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex size-9 items-center justify-center rounded-md bg-primary/10 ring-1 ring-primary/15">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-petrobras-green/20 to-petrobras-yellow/20 text-petrobras-green shadow-sm ring-1 ring-petrobras-green/20">
             <FolderIcon className="size-4 text-primary" />
           </div>
           <div className="relative z-10 flex items-center gap-1.5">
