@@ -2,14 +2,12 @@
   "name": "armazenamento-cientifico-deployment",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@10.17.1",
   "scripts": {
-    "build": "npm install --prefix front-end --include=dev --no-audit --no-fund && npm --prefix front-end run build",
-    "dev": "npm --prefix front-end run dev",
-    "lint": "npm --prefix front-end run lint",
-    "typecheck": "npm --prefix front-end run typecheck",
-    "start": "npm --prefix front-end run start"
-  },
-  "dependencies": {
-    "next": "16.2.11"
+    "build": "pnpm --filter armazenamento-cientifico build",
+    "dev": "pnpm --filter armazenamento-cientifico dev",
+    "lint": "pnpm --filter armazenamento-cientifico lint",
+    "typecheck": "pnpm --filter armazenamento-cientifico typecheck",
+    "start": "pnpm --filter armazenamento-cientifico start"
   }
 }
