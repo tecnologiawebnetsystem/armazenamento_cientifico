@@ -7,15 +7,17 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api.legacy import legacy_openapi, mount_legacy
+from app.api.legacy import shutdown as legacy_shutdown
+from app.api.legacy import startup as legacy_startup
 from app.api.routes.cav4_auth import router as cav4_auth_router
 from app.api.routes.health import router as health_router
 from app.core.config import settings
 from app.core.exceptions import AppException
 from app.core.logging import configure_logging
+from app.db.session import connect, disconnect
 
 configure_logging(settings.log_level)
-from app.db.session import connect, disconnect
-from app.legacy_api import app as legacy_app
 from app.modules.files.module import router as files_router
 from app.modules.projects.module import router as projects_router
 
@@ -26,9 +28,6 @@ logger = logging.getLogger(__name__)
 async def lifespan(_: FastAPI):
     logger.info("application_startup database_engine=%s", settings.database_engine)
     await connect()
-    from app.legacy_api import shutdown as legacy_shutdown
-    from app.legacy_api import startup as legacy_startup
-
     await legacy_startup()
     try:
         yield
@@ -93,7 +92,7 @@ def create_app() -> FastAPI:
     application.include_router(files_router)
     from app.modules.audit.controller import router as audit_router
     application.include_router(audit_router)
-    application.mount("/", legacy_app)
+    mount_legacy(application)
 
     default_openapi = application.openapi
 
@@ -101,7 +100,7 @@ def create_app() -> FastAPI:
         if application.openapi_schema:
             return application.openapi_schema
         schema = default_openapi()
-        legacy_schema = legacy_app.openapi()
+        legacy_schema = legacy_openapi()
         for path, path_item in legacy_schema.get("paths", {}).items():
             schema["paths"].setdefault(path, path_item)
         components = schema.setdefault("components", {})

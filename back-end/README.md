@@ -127,8 +127,8 @@ Se o `venv` continuar travando em `ensurepip`, instale/repare o Python pelo inst
 Execute as migrations e inicie a API:
 
 ```bash
-alembic upgrade head
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
+uv run alembic upgrade head
+uv run uvicorn app.app:app --reload --host 0.0.0.0 --port 8080
 ```
 
 Endpoints úteis:
@@ -242,8 +242,41 @@ alembic upgrade head
 curl http://localhost:8080/health
 ```
 
+## Arquitetura
+
+O back-end utiliza uma arquitetura modular por domínio, evoluindo para **Clean Architecture** e **Hexagonal Architecture (Ports and Adapters)**. A aplicação mantém compatibilidade temporária com a API legada por meio de um adaptador isolado em `app/api/legacy.py`; novos recursos não devem adicionar lógica ao `legacy_api.py`.
+
+### Camadas e padrões
+
+- **API/Controllers:** HTTP, validação de entrada, dependências e serialização.
+- **Application Services:** casos de uso e orquestração das transações.
+- **Repositories:** persistência encapsulada atrás de interfaces estáveis.
+- **Domain modules:** regras específicas de projetos, arquivos, auditoria e identidade.
+- **Adapters:** SQLite/PostgreSQL, Entra ID, CAV4 e integrações externas.
+- **Core:** configuração, segurança, autorização, logging e exceções.
+- **Alembic:** única fonte versionada para evolução estrutural do banco.
+
+O fluxo recomendado é:
+
+```text
+Route/Controller -> Application Service -> Repository -> SQLAlchemy -> Database
+                                   -> Port -> External Adapter
+```
+
+### Regras de evolução
+
+1. Rotas não acessam o banco diretamente.
+2. Regras de negócio não ficam em controllers.
+3. Integrações externas são acessadas por ports/adapters.
+4. Toda alteração de banco exige migration Alembic.
+5. A API legada somente recebe correções de compatibilidade até sua migração por domínio.
+6. PostgreSQL é o banco-alvo de produção; SQLite fica restrito a desenvolvimento e testes rápidos.
+
+> Estado atual: `ruff` e os testes passam. O `alembic check` ainda identifica tabelas legadas presentes no SQLite local que não fazem parte dos models atuais; isso deve ser resolvido por uma migration explícita de compatibilidade antes de remover qualquer tabela em ambiente compartilhado.
+
 ## Estrutura de diretórios
 
+- `app/api/legacy.py`: boundary adapter temporário da API legada.
 - `app/`: aplicação FastAPI, módulos, controllers, schemas, serviços e autenticação.
 - `alembic/`: migrations versionadas.
 - `database/`: schemas SQL e referências de dados.
