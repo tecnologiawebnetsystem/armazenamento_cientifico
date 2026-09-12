@@ -37,8 +37,7 @@ COLUMN_MAP = {
     "cargo": "job_title", "perfil_id": "profile_id", "modulo_id": "module_id",
     "permissao_id": "permission_id", "permitido": "allowed", "pode_visualizar": "can_view",
     "codigo": "code", "cor": "color", "ordem": "display_order", "ativo": "active",
-    "rota": "route", "icone": "icon", "permite_edicao": "allows_edit",
-    "permite_edicao": "allows_edit", "chave": "key", "valor": "value",
+    "rota": "route", "icone": "icon",     "permite_edicao": "allows_edit", "chave": "key", "valor": "value",
     "tipo": "value_type", "grupo": "group_name", "formatos": "formats",
     "papel": "role", "level": "access_level",
 }
@@ -54,9 +53,8 @@ def normalize(value, column):
         return None
     if column in {"ativo", "permitido", "pode_visualizar", "permite_edicao"}:
         return bool(value)
-    if column.endswith("_at") or column in {"criado_em", "created_at", "updated_at", "expires_at"}:
-        if isinstance(value, str):
-            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if (column.endswith("_at") or column in {"criado_em", "created_at", "updated_at", "expires_at"}) and isinstance(value, str):
+        return datetime.fromisoformat(value)
     if isinstance(value, str) and value.startswith(("[", "{")):
         try:
             parsed = json.loads(value)

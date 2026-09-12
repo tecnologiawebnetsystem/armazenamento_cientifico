@@ -44,6 +44,14 @@ API REST do **SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científic
 
 TAGS_METADATA = [
     {"name": "Health", "description": "Verificação de disponibilidade da API e do banco."},
+    {"name": "Authentication", "description": "Login local, logout, sessão e integração corporativa CAV4."},
+    {"name": "Projects", "description": "Cadastro, consulta, atualização e membros de projetos."},
+    {"name": "Files", "description": "Arquivos, pastas e compartilhamentos vinculados a projetos."},
+    {"name": "Dashboard", "description": "Indicadores executivos e visão consolidada do portfólio."},
+    {"name": "Reports", "description": "Relatórios, exportações e filtros analíticos."},
+    {"name": "Directory", "description": "Usuários e catálogos disponíveis ao usuário autenticado."},
+    {"name": "Security", "description": "Permissões, configurações e solicitações de acesso."},
+    {"name": "Audit", "description": "Logs de auditoria e exportações administrativas."},
 ]
 
 

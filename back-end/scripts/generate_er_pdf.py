@@ -7,7 +7,15 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import BaseDocTemplate, Flowable, Frame, PageBreak, PageTemplate, Paragraph, Spacer
+from reportlab.platypus import (
+    BaseDocTemplate,
+    Flowable,
+    Frame,
+    PageBreak,
+    PageTemplate,
+    Paragraph,
+    Spacer,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = ROOT / "back-end/database/sqlite-schema.sql"
@@ -22,14 +30,14 @@ MUTED = colors.HexColor("#557064")
 
 def parse_schema(text: str) -> list[dict]:
     tables = []
-    for match in re.finditer(r"CREATE TABLE(?: IF NOT EXISTS)?\s+([\w]+)\s*\((.*?)\);", text, re.I | re.S):
+    for match in re.finditer(r"CREATE TABLE(?: IF NOT EXISTS)?\s+([\w]+)\s*\((.*?)\);", text, re.IGNORECASE | re.DOTALL):
         name, body = match.groups()
         columns, pks, fks = [], [], []
         for raw in re.split(r",(?=\s*[A-Za-z_][\w]*\s)", body):
             line = raw.strip().rstrip(",")
             if not line:
                 continue
-            fk = re.search(r"FOREIGN KEY\s*\(([^)]+)\)\s*REFERENCES\s+([\w]+)\s*\(([^)]+)\)", line, re.I)
+            fk = re.search(r"FOREIGN KEY\s*\(([^)]+)\)\s*REFERENCES\s+([\w]+)\s*\(([^)]+)\)", line, re.IGNORECASE)
             if line.upper().startswith(("CONSTRAINT", "PRIMARY KEY", "FOREIGN KEY", "UNIQUE", "CHECK")):
                 if fk:
                     fks.append((fk.group(1).strip(), fk.group(2), fk.group(3).strip()))
@@ -94,7 +102,7 @@ class ERPage(Flowable):
             x, y, w, h = positions[table["name"]]
             for _, target, _ in table["fks"]:
                 if target in positions:
-                    tx, ty, tw, th = positions[target]
+                    tx, ty, _, th = positions[target]
                     canvas.setStrokeColor(GREEN)
                     canvas.setLineWidth(0.8)
                     canvas.line(x + w, y + h / 2, tx, ty + th / 2)

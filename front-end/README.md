@@ -1,5 +1,29 @@
 # SIGAC Front-end
 
+Aplicação Next.js do SIGAC. O frontend consome a API FastAPI configurada em `NEXT_PUBLIC_API_BASE_URL`.
+
+## Instalação e validação
+
+```bash
+npm ci
+npm run lint
+npm run typecheck
+npm run build
+npm run dev
+```
+
+## Estrutura e integração
+
+- `app/` — rotas e layouts do App Router.
+- `components/` — componentes de interface e domínio.
+- `hooks/` — sessão, autenticação e dados com SWR.
+- `lib/api-client.ts` — cliente HTTP centralizado.
+- `proxy.ts` — proteção de rotas.
+- `public/images/` — imagens e logos usados no aplicativo.
+
+O login corporativo inicia `/api/auth/cav4/start`; a integração permanece desativada até o contrato oficial ser configurado.
+
+
 Aplicação web do **SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico**. O front-end fornece a interface para autenticação, navegação, projetos, membros, permissões, arquivos, mapas, relatórios, auditoria e demais recursos do sistema.
 
 ## Visão geral do sistema
