@@ -105,26 +105,24 @@ Não versionar `.env`, credenciais, tokens ou bancos com dados reais.
 
 ## Execução local sem Docker
 
-Crie e ative um ambiente virtual:
+Crie o ambiente do backend com `uv` (recomendado; evita o travamento do `ensurepip` observado no Windows/Python 3.14):
 
 ```bash
 cd back-end
-python -m venv .venv
-source .venv/bin/activate
+uv sync --dev
+uv run uvicorn app.app:app --reload --port 8080
 ```
 
-No Windows PowerShell:
+No Windows, use Python 3.11–3.13 para este projeto. Se precisar usar `venv`, abra o PowerShell como usuário normal e execute:
 
 ```powershell
-python -m venv .venv
+py -3.12 -m venv .venv
 .venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
-Instale as dependências:
-
-```bash
-pip install -r requirements.txt
-```
+Se o `venv` continuar travando em `ensurepip`, instale/repare o Python pelo instalador oficial com **pip** e **Tcl/Tk** habilitados ou use `uv sync --dev`, que não depende do `ensurepip`.
 
 Execute as migrations e inicie a API:
 

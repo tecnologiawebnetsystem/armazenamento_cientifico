@@ -2,7 +2,7 @@
 
 Sistema de Gestão de Acesso ao Armazenamento Científico (SIGAC), organizado em duas aplicações independentes:
 
-- [``](): aplicação web Next.js, React e TypeScript.
+- aplicação web na raiz: Next.js, React e TypeScript.
 - [`back-end/`](back-end/): API FastAPI com SQLAlchemy, Alembic e SQLite/PostgreSQL.
 - [`wiki-dev.md`](wiki-dev.md): documentação técnica consolidada do sistema.
 
@@ -23,11 +23,15 @@ Acesse `http://localhost:3000`. O Next.js está na raiz do repositório; não ex
 ```bash
 cd back-end
 cp .env.example .env
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-alembic upgrade head
-uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
+uv sync --dev
+uv run alembic upgrade head
+uv run uvicorn app.app:app --host 0.0.0.0 --port 8080 --reload
+
+# Alternativa Windows sem uv: use Python 3.11–3.13
+py -3.12 -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
 A API fica disponível em `http://localhost:8080`. Consulte `http://localhost:8080/docs` quando a documentação estiver habilitada.
