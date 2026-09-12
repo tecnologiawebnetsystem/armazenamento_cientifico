@@ -311,203 +311,125 @@ ruff check .
 
 ## 6. Banco de dados
 
-### Escolha do banco
+O inventário abaixo foi conferido diretamente no banco Neon em 12/09/2026. O Neon possui **41 tabelas físicas**: 9 no schema `neon_auth` e 32 no schema `public`. Portanto, a versão anterior desta wiki estava desatualizada: informava 27 tabelas e omitia tabelas legadas e tabelas canônicas que coexistem no banco.
 
-- **SQLite:** banco local em arquivo, indicado para desenvolvimento individual e testes rápidos.
-- **PostgreSQL:** banco compartilhado, indicado para homologação, produção, múltiplas instâncias, backups e concorrência.
-
-A troca é feita no `.env` por `DATABASE_ENGINE` e `DATABASE_URL`, sem alterar o código da aplicação. O frontend continua consumindo os mesmos endpoints nos dois modos.
+- `neon_auth` é gerenciado pelo Neon Auth e não deve ser alterado por migrations da aplicação.
+- `public` contém as tabelas canônicas do SIGAC e tabelas legadas mantidas por compatibilidade.
+- A lista de colunas, tipos, nulabilidade e defaults deve ser conferida no arquivo [`docs/database-structure.md`](docs/database-structure.md), gerado a partir do schema real.
+- A estrutura SQLite versionada e as migrations Alembic continuam sendo referências de desenvolvimento, mas esta seção registra o estado físico atual do Neon.
 
 ### Ciclo de mudança
 
 1. Alterar o model SQLAlchemy;
-2. Criar uma nova migration;
-3. Revisar o SQL gerado;
-4. Fazer backup do banco existente;
-5. Aplicar a migration em uma cópia;
-6. Executar testes;
-7. Atualizar esta documentação.
+2. Criar uma migration Alembic incremental;
+3. Revisar o SQL e comparar com o Neon;
+4. Fazer backup antes de alterar dados;
+5. Aplicar a migration em ambiente controlado;
+6. Validar tabelas, campos, PKs, FKs e contagens;
+7. Atualizar `docs/database-structure.md` e esta wiki.
 
-Não altere uma migration que já foi aplicada. Crie outra migration incremental.
+Não altere uma migration já aplicada e não remova tabelas legadas sem confirmar o impacto na API.
 
 ---
 
-## 7. Tabelas e campos
+## 7. Tabelas, campos, PKs e FKs
 
-### Catálogos parametrizados
+A tabela abaixo é o inventário físico do Neon. Os campos estão agrupados por tabela e representam exatamente os nomes usados no banco; `*` identifica a chave primária. As FKs são listadas separadamente para evitar inferências baseadas apenas em nomes parecidos.
 
-A parametrização administrativa utiliza as tabelas canônicas `profiles`, `permissions`, `profile_permissions`, `modules`, `profile_modules`, `project_statuses`, `project_types`, `system_settings`, `report_types` e `menus`. O seed inicial cria os catálogos de forma idempotente. O endpoint autenticado `GET /api/catalogos` fornece os catálogos ativos para o frontend; novos cadastros devem enviar IDs/códigos, usando nomes somente para exibição. Os menus devem apontar para módulos existentes e usar rotas reais do frontend.
+### Schema `neon_auth`
 
-> Os nomes físicos atuais não usam o prefixo `app_`.
+| Tabela | Campos físicos | PK | FKs |
+|---|---|---|---|
+| `user` | `id*`, `name`, `email`, `emailVerified`, `image`, `createdAt`, `updatedAt`, `role`, `banned`, `banReason`, `banExpires` | `id` | — |
+| `account` | `id*`, `accountId`, `providerId`, `userId`, `accessToken`, `refreshToken`, `idToken`, `accessTokenExpiresAt`, `refreshTokenExpiresAt`, `scope`, `password`, `createdAt`, `updatedAt` | `id` | `userId -> user.id` |
+| `session` | `id*`, `expiresAt`, `token`, `createdAt`, `updatedAt`, `ipAddress`, `userAgent`, `userId`, `impersonatedBy`, `activeOrganizationId` | `id` | `userId -> user.id` |
+| `verification` | `id*`, `identifier`, `value`, `expiresAt`, `createdAt`, `updatedAt` | `id` | — |
+| `organization` | `id*`, `name`, `slug`, `logo`, `createdAt`, `metadata` | `id` | — |
+| `member` | `id*`, `organizationId`, `userId`, `role`, `createdAt` | `id` | `organizationId -> organization.id`; `userId -> user.id` |
+| `invitation` | `id*`, `organizationId`, `email`, `role`, `status`, `expiresAt`, `createdAt`, `inviterId` | `id` | `organizationId -> organization.id`; `inviterId -> user.id` |
+| `jwks` | `id*`, `publicKey`, `privateKey`, `createdAt`, `expiresAt` | `id` | — |
+| `project_config` | `id*`, `name`, `endpoint_id`, `created_at`, `updated_at`, `trusted_origins`, `social_providers`, `email_provider`, `email_and_password`, `allow_localhost`, `plugin_configs`, `webhook_config` | `id` | — |
 
-### perfis
+### Schema `public`: tabelas canônicas
 
-Catálogo persistente de perfis e permissões, identificado por IDs fixos.
+| Tabela | Campos físicos | PK | FKs declaradas |
+|---|---|---|---|
+| `profiles` | `id*`, `name`, `description`, `created_at` | `id` | — |
+| `modules` | `id*`, `name`, `route`, `icon`, `display_order`, `active` | `id` | — |
+| `permissions` | `id*`, `module_id`, `name`, `description`, `active` | `id` | `module_id -> modules.id` |
+| `profile_modules` | `profile_id*`, `module_id*`, `can_view` | `(profile_id,module_id)` | `profile_id -> profiles.id`; `module_id -> modules.id` |
+| `profile_permissions` | `profile_id*`, `permission_id*`, `allowed` | `(profile_id,permission_id)` | `profile_id -> profiles.id`; `permission_id -> permissions.id` |
+| `project_statuses` | `id*`, `code`, `nome`, `color`, `display_order`, `active`, `allows_edit` | `id` | — |
+| `project_types` | `id*`, `code`, `nome`, `description`, `active` | `id` | — |
+| `projects` | `id`, `name`, `code`, `responsible_area`, `managers_ids`, `write_group`, `read_group`, `write_identity_role`, `read_identity_role`, `snow_task_number`, `parent_folder`, `description`, `status`, `participants_ids`, `created_at`, `updated_at` | sem PK declarada no inventário atual | — |
+| `project_members` | `project_id`, `user_id`, `papel`, `created_at` | sem PK declarada | — |
+| `files` | `id`, `project_id`, `parent_id`, `kind`, `name`, `size_bytes`, `mime_type`, `created_by`, `created_at`, `updated_at` | sem PK declarada | — |
+| `file_shares` | `file_id`, `user_id`, `level` | sem PK declarada | — |
+| `file_permissions` | `file_id`, `user_id`, `group_id`, `level`, `inherited_from`, `created_at` | sem PK declarada | — |
+| `access_requests` | `id`, `project_id`, `requester_id`, `status`, `created_at` | sem PK declarada | — |
+| `activity_logs` | `id`, `user_id`, `action`, `entity`, `entity_id`, `details`, `created_at` | sem PK declarada | — |
+| `menus` | `id`, `modulo_id`, `parent_id`, `nome`, `rota`, `icone`, `ordem`, `ativo` | sem PK declarada | — |
+| `report_types` | `id*`, `code`, `name`, `description`, `formats`, `active` | `id` | — |
+| `report_fields` | `id*`, `report_code`, `field_key`, `label`, `source_key`, `display_order`, `active` | `id` | sem FK declarada; `report_code` é referência lógica |
+| `responsible_areas` | `id*`, `name`, `prefix`, `next_number`, `active`, `created_at`, `updated_at` | `id` | — |
+| `system_settings` | `key*`, `value`, `value_type`, `description`, `group_name`, `active` | `key` | — |
 
-| Campo | Descrição |
+### Schema `public`: tabelas legadas/compatibilidade
+
+| Tabela | Campos físicos |
 |---|---|
-| `id` | Chave primária e identificador do perfil (`ADM`, `GER`, `AUD`, `PAT`, `PAR`, `VIS`, `GES`). |
-| `nome` | Nome do perfil. |
-| `descricao` | Descrição funcional. |
-| `criado_em` | Data de criação. |
+| `perfis` | `id`, `nome`, `descricao`, `criado_em` |
+| `modulos` | `id`, `nome`, `rota`, `icone`, `ordem`, `ativo` |
+| `permissoes` | `id`, `modulo_id`, `nome`, `descricao`, `ativo` |
+| `perfil_modulos` | `perfil_id`, `modulo_id`, `pode_visualizar` |
+| `perfil_permissoes` | `perfil_id`, `permissao_id`, `permitido` |
+| `status_projetos` | `id`, `codigo`, `nome`, `cor`, `ordem`, `ativo`, `permite_edicao` |
+| `tipos_projetos` | `id`, `codigo`, `nome`, `descricao`, `ativo` |
+| `tipos_relatorios` | `id`, `codigo`, `nome`, `descricao`, `formatos`, `ativo` |
+| `users` | `id`, `name`, `email`, `cargo`, `area`, `role`, `perfil_id`, `created_at`, `avatar_url`, `last_login_at`, `job_title`, `profile_id` |
+| `sessions` | `id`, `user_id`, `expires_at` |
+| `settings` | `key`, `value` |
+| `configuracoes_sistema` | `chave`, `valor`, `tipo`, `descricao`, `grupo`, `ativo` |
+| `permission_matrix` | `id`, `matrix` |
 
-Usada pelo processo de autorização. O vínculo dos usuários ocorre por `users.profile_id -> profiles.id`.
+As tabelas legadas não devem ser removidas automaticamente: ainda podem ser consultadas pela camada de compatibilidade. A existência de colunas com nomes equivalentes não cria uma FK; somente as restrições declaradas pelo PostgreSQL são relacionamentos oficiais.
 
-### users
+### Restrições UNIQUE relevantes
 
-Usuários que podem iniciar sessão.
-
-| Campo | Descrição |
-|---|---|
-| `id` | Chave primária. |
-| `email` | E-mail único usado no login. |
-| `name` | Nome de exibição. |
-| `perfil_id` | FK para `perfis.id`, usando IDs fixos (`ADM`, `GER`, `AUD`, `PAT`, `PAR`, `VIS`, `GES`). |
-| `is_active` | Indica se o usuário pode entrar. |
-| `created_at`, `updated_at` | Auditoria temporal. |
-
-Usada pelo login, sessão e seleção de participantes em projetos. Endpoints: `POST /api/auth/login`, `GET /api/auth/session` e `GET /api/users` para consulta autenticada.
-
-### projects
-
-Projetos científicos e metadados.
-
-| Campo | Descrição |
-|---|---|
-| `id` | Chave primária. |
-| `name` | Nome do projeto. |
-| `description` | Descrição. |
-| `responsible_area` | Área responsável pelo projeto. |
-| `write_group`, `read_group` | Grupos corporativos com acesso de escrita/leitura. |
-| `write_identity_role`, `read_identity_role` | Roles de identidade para autorização. |
-| `status` | Situação do projeto. |
-| `created_at`, `updated_at` | Auditoria temporal. |
-
-Usada em [`app/(app)/projetos/`](app/(app)/projetos/) e [`hooks/use-projects.ts`](hooks/use-projects.ts). Endpoints: `GET/POST /api/projects` e `GET/PATCH/DELETE /api/projects/{id}`.
-
-### project_members
-
-Associação entre usuários e projetos.
-
-| Campo | Descrição |
-|---|---|
-| `id` | Chave primária. |
-| `project_id` | FK para `projects.id`. |
-| `user_id` | FK para `users.id`. |
-| `role` | Papel do usuário no projeto. |
-| `created_at` | Data da associação. |
-
-Endpoints: `GET/POST /api/projects/{id}/members` e `DELETE /api/projects/{id}/members/{user_id}`.
-
-### files
-
-Metadados dos arquivos científicos.
-
-| Campo | Descrição |
-|---|---|
-| `id` | Chave primária. |
-| `project_id` | FK para `projects.id`. |
-| `name` | Nome do arquivo. |
-| `path` | Localização do arquivo. |
-| `mime_type` | Tipo MIME. |
-| `size` | Tamanho. |
-| `uploaded_by` | FK para `users.id`. |
-| `created_at`, `updated_at` | Auditoria temporal. |
-
-Endpoints: `GET/POST /api/files` e `GET/PATCH/DELETE /api/files/{id}`.
-
-### file_permissions
-
-Permissões diretas ou por grupo concedidas para arquivos. A relação aceita `user_id` ou `group_id`, registra `nivel` e pode indicar `inherited_from`.
-
-
-| Campo | Descrição |
-|---|---|
-| `id` | Chave primária. |
-| `file_id` | FK para `files.id`. |
-| `user_id` | FK para `users.id`. |
-| `permission` | Tipo de acesso concedido. |
-| `expires_at` | Expiração opcional. |
-| `created_at` | Data da concessão. |
-
-Endpoints: `GET/POST /api/files/{id}/shares` e `DELETE /api/files/{id}/shares/{user_id}`.
-
-### activity_logs
-
-Trilha de auditoria das operações.
-
-| Campo | Descrição |
-|---|---|
-| `id` | Chave primária. |
-| `user_id` | FK para `users.id`. |
-| `action` | Ação executada. |
-| `resource_type` | Tipo do recurso. |
-| `resource_id` | Identificador do recurso. |
-| `metadata` | Dados complementares. |
-| `ip_address` | Origem da requisição. |
-| `created_at` | Momento do evento. |
-
-Disponível para consulta administrativa pelo endpoint `GET /api/activity-logs`.
-
-### Como confirmar no código
-
-- Models: [`back-end/app/modules/*/models.py`](back-end/app/modules/);
-- Schema SQLite: [`back-end/database/sqlite-schema.sql`](back-end/database/sqlite-schema.sql);
-- Migrations: [`back-end/alembic/versions/`](back-end/alembic/versions/);
-- Schemas de API: `back-end/app/modules/*/schemas.py`.
+`neon_auth.user.email`, `neon_auth.session.token`, `neon_auth.organization.slug`, `neon_auth.project_config.endpoint_id`, `public.profiles.name`, `public.modules.name`, `public.project_statuses.code`, `public.project_types.code`, `public.report_types.code` e `public.responsible_areas.prefix` possuem unicidade declarada.
 
 ---
 
 ## 8. Modelagem e diagrama
 
-O schema PostgreSQL canônico possui 27 tabelas. O inventário usa os nomes físicos reais; não há tabela `perfis` — o conceito funcional de perfis é implementado por `profiles`. O documento visual [`docs/SIGAC-modelo-dados.pdf`](docs/SIGAC-modelo-dados.pdf) é gerado diretamente do schema SQLite versionado, que deve permanecer alinhado ao schema PostgreSQL e às migrations Alembic.
-
-### Diagrama ER
-
-O Mermaid abaixo é a fonte editável do diagrama. Tabelas sem FK aparecem isoladas, porque não possuem relacionamento declarado no schema.
+O estado físico atual possui **41 tabelas e 11 FKs**. O diagrama abaixo mostra somente relacionamentos declarados no banco; tabelas `public` como `projects`, `users`, `files` e `project_members` possuem nomes de colunas que sugerem vínculos, mas não têm FK declarada no Neon e, por isso, aparecem sem ligação oficial.
 
 ```mermaid
 erDiagram
-  profiles ||--o{ users : possui
-  users ||--o{ sessions : inicia
-  modules ||--o{ permissions : define
-  profiles ||--o{ profile_permissions : recebe
-  permissions ||--o{ profile_permissions : concede
-  profiles ||--o{ profile_modules : acessa
-  modules ||--o{ profile_modules : habilita
-  modules ||--o{ menus : organiza
-  projects ||--o{ project_members : possui
-  users ||--o{ project_members : participa
-  projects ||--o{ project_groups : autoriza
-  groups ||--o{ project_groups : vincula
-  users ||--o{ user_groups : pertence
-  groups ||--o{ user_groups : contem
-  projects ||--o{ project_access_groups : controla
-  projects ||--o{ project_access_roles : controla
-  projects ||--o{ files : armazena
-  files ||--o{ files : contem
-  files ||--o{ file_shares : compartilha
-  users ||--o{ file_shares : recebe
-  files ||--o{ file_permissions : protege
-  users ||--o{ file_permissions : recebe
-  groups ||--o{ file_permissions : recebe
-  projects ||--o{ access_requests : solicita
-  users ||--o{ access_requests : requisita
-  users ||--o{ activity_logs : gera
-  report_types ||--o{ report_fields : configura
+  USER ||--o{ ACCOUNT : possui
+  USER ||--o{ SESSION : inicia
+  USER ||--o{ MEMBER : participa
+  USER ||--o{ INVITATION : envia
+  ORGANIZATION ||--o{ MEMBER : possui
+  ORGANIZATION ||--o{ INVITATION : recebe
+  MODULES ||--o{ PERMISSIONS : define
+  PROFILES ||--o{ PROFILE_MODULES : acessa
+  MODULES ||--o{ PROFILE_MODULES : habilita
+  PROFILES ||--o{ PROFILE_PERMISSIONS : recebe
+  PERMISSIONS ||--o{ PROFILE_PERMISSIONS : concede
 ```
 
-### Tabelas sem relacionamentos declarados
+### Tabelas sem FK declarada
 
-`schema_migrations`, `project_statuses`, `project_types`, `system_settings` e `permission_matrix` não possuem FK no schema atual. Elas fazem parte do banco, mas não devem ser conectadas no diagrama por inferência.
+No schema `public`, as tabelas de domínio e compatibilidade (`projects`, `project_members`, `files`, `file_shares`, `file_permissions`, `access_requests`, `activity_logs`, `menus`, `perfis`, `modulos`, `permissoes`, `users`, `sessions`, `settings`, `configuracoes_sistema`, `permission_matrix`, `project_statuses`, `project_types`, `report_types`, `report_fields`, `responsible_areas`, `system_settings`, `status_projetos`, `tipos_projetos` e `tipos_relatorios`) não possuem FK declarada no inventário atual.
 
-### Decisões de modelagem
+### Fonte e validação
 
-- `project_members` e `file_permissions` resolvem relações muitos-para-muitos;
-- Essas tabelas também armazenam atributos da relação, como `role` e `permission`;
-- `activity_logs` deve ser tratado como append-only;
-- E-mails únicos impedem identidades duplicadas;
-- FKs evitam registros órfãos, mas não substituem autorização no backend.
+- Inventário live: `information_schema.columns`, `information_schema.table_constraints` e `information_schema.key_column_usage` do Neon;
+- Documento detalhado: [`docs/database-structure.md`](docs/database-structure.md);
+- Schema SQLite: [`back-end/database/sqlite-schema.sql`](back-end/database/sqlite-schema.sql);
+- Models: [`back-end/app/modules/*/models.py`](back-end/app/modules/);
+- Migrations: [`back-end/alembic/versions/`](back-end/alembic/versions/).
 
 ---
 
