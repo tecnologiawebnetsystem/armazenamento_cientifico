@@ -42,9 +42,9 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
 
       <div className="overflow-hidden rounded-2xl border border-petrobras-green/20 bg-card/95 shadow-2xl shadow-petrobras-blue/10 ring-1 ring-petrobras-green/10 backdrop-blur-sm">
         {/* Faixa verde/amarelo Petrobras */}
-        <div className="h-1.5 bg-gradient-to-r from-primary via-accent to-primary" />
+        <div className="h-1.5 bg-gradient-to-r from-petrobras-green via-petrobras-green to-petrobras-yellow" />
 
-        <header className="flex items-center gap-3 border-b border-petrobras-green/15 bg-gradient-to-r from-petrobras-green/8 via-card to-petrobras-yellow/8 px-6 py-5">
+        <header className="flex items-center gap-3 border-b border-petrobras-green/15 bg-card px-6 py-5">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-petrobras-green to-petrobras-blue text-primary-foreground shadow-lg shadow-petrobras-green/25">
             <ShieldCheckIcon className="size-5" />
           </span>

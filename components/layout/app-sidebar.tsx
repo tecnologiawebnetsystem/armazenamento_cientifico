@@ -73,14 +73,14 @@ export function AppSidebar() {
                       {isActive ? (
                         <span
                           aria-hidden
-                          className="absolute top-1/2 left-0 h-6 w-0.5 -translate-y-1/2 rounded-r-full bg-sidebar-primary shadow-[0_0_10px_var(--sidebar-primary)] group-data-[collapsible=icon]:hidden"
+                          className="absolute top-1/2 left-0 h-6 w-0.5 -translate-y-1/2 rounded-r-full bg-sidebar-primary shadow-[0_0_8px_color-mix(in_oklch,var(--sidebar-primary)_55%,transparent)] group-data-[collapsible=icon]:hidden"
                         />
                       ) : null}
                       <SidebarMenuButton
                         render={<Link href={item.url} />}
                         isActive={isActive}
                         tooltip={item.title}
-                        className="h-10 gap-3 rounded-lg px-3 text-[13px] font-medium text-sidebar-foreground/78 transition-all duration-200 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground data-active:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-foreground data-active:shadow-[inset_0_1px_0_0_var(--sidebar-border),0_6px_16px_color-mix(in_oklch,var(--sidebar)_35%,transparent)] [&_svg]:text-sidebar-foreground/60 data-active:[&_svg]:text-sidebar-primary"
+                        className="h-10 gap-3 rounded-lg px-3 text-[13px] font-medium text-sidebar-foreground/78 transition-all duration-200 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground data-active:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-foreground data-active:shadow-[inset_0_1px_0_0_var(--sidebar-border),0_4px_12px_color-mix(in_oklch,var(--sidebar)_24%,transparent)] [&_svg]:text-sidebar-foreground/60 data-active:[&_svg]:text-sidebar-primary"
                       >
                         <item.icon />
                         <span className="truncate">{item.title}</span>
