@@ -9,7 +9,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG BUILD_VERSION=local
-LABEL org.opencontainers.image.title="Armazenamento Científico Front-end" \
+LABEL org.opencontainers.image.title="Armazenamento Científico Web" \
       org.opencontainers.image.version="${BUILD_VERSION}" \
       org.opencontainers.image.source="tecnologiawebnetsystem/armazenamento_cientifico"
 

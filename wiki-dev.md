@@ -2,7 +2,7 @@
 
 > Documentação técnica consolidada do **Sistema de Gestão de Acesso ao Armazenamento Científico (SIGAC)**.
 >
-> A aplicação é dividida em duas partes independentes: [`front-end/`](front-end/), em Next.js, e [`back-end/`](back-end/), em FastAPI.
+> A aplicação é dividida em duas partes independentes: a aplicação web na raiz, em Next.js, e [`back-end/`](back-end/), em FastAPI.
 
 ## Índice
 
@@ -41,8 +41,8 @@ O frontend nunca deve ser a única barreira de segurança. Toda permissão preci
 
 ### Fluxo de uma operação
 
-1. O usuário acessa uma página em [`front-end/app/`](front-end/app/).
-2. Um hook em [`front-end/hooks/`](front-end/hooks/) ou o cliente [`front-end/lib/api-client.ts`](front-end/lib/api-client.ts) envia uma requisição HTTP.
+1. O usuário acessa uma página em [`app/`](app/).
+2. Um hook em [`hooks/`](hooks/) ou o cliente [`lib/api-client.ts`](lib/api-client.ts) envia uma requisição HTTP.
 3. Um controller em [`back-end/app/modules/`](back-end/app/modules/) valida a requisição.
 4. O backend consulta os models e aplica as regras de acesso.
 5. A API retorna JSON.
@@ -57,7 +57,6 @@ Frontend e backend usam instalações independentes. No frontend, use `npm ci` c
 ### Validação completa
 
 ```bash
-cd front-end
 npm ci
 npm run lint
 npm run typecheck
@@ -105,7 +104,6 @@ uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
 Em outro terminal:
 
 ```bash
-cd front-end
 pnpm install
 ```
 
@@ -212,22 +210,22 @@ alembic upgrade head
 
 ## 4. Estrutura do frontend
 
-O frontend está em [`front-end/`](front-end/) e é uma instalação Next.js independente.
+A aplicação web está na raiz do repositório e é uma instalação Next.js independente. O diretório `back-end/` permanece separado como serviço FastAPI.
 
 | Pasta/arquivo | Finalidade |
 |---|---|
-| [`front-end/app/`](front-end/app/) | Rotas, layouts, páginas e grupos de rotas do App Router. |
+| [`app/`](app/) | Rotas, layouts, páginas e grupos de rotas do App Router. |
 | [`app/(app)/`](app/(app)/) | Área autenticada da aplicação. |
 | [`app/login/`](app/login/) | Página e fluxo visual de login. |
 | [`wiki-dev.md`](wiki-dev.md) | Documentação técnica consolidada; não há página Wiki Dev no frontend. |
-| [`front-end/components/`](front-end/components/) | Componentes reutilizáveis de UI e domínio. |
+| [`components/`](components/) | Componentes reutilizáveis de UI e domínio. |
 | [`components/ui/`](components/ui/) | Componentes base do shadcn/ui. |
-| [`front-end/hooks/`](front-end/hooks/) | Hooks para sessão, usuários, projetos, arquivos e permissões. |
-| [`front-end/lib/`](front-end/lib/) | Cliente HTTP, tipos, estado, navegação e utilitários. |
-| [`front-end/lib/api-client.ts`](front-end/lib/api-client.ts) | Centraliza chamadas para a API. |
-| [`front-end/public/`](front-end/public/) | Imagens, fontes e arquivos estáticos. |
-| [`front-end/tests/`](front-end/tests/) | Testes E2E e verificações do frontend. |
-| [`front-end/package.json`](front-end/package.json) | Scripts e dependências JavaScript. |
+| [`hooks/`](hooks/) | Hooks para sessão, usuários, projetos, arquivos e permissões. |
+| [`lib/`](lib/) | Cliente HTTP, tipos, estado, navegação e utilitários. |
+| [`lib/api-client.ts`](lib/api-client.ts) | Centraliza chamadas para a API. |
+| [`public/`](public/) | Imagens, fontes e arquivos estáticos. |
+| [`tests/`](tests/) | Testes E2E e verificações do frontend. |
+| [`package.json`](package.json) | Scripts e dependências JavaScript. |
 | [`tsconfig.json`](tsconfig.json) | Configuração do TypeScript e aliases. |
 | [`next.config.ts`](next.config.ts) | Configuração do Next.js. |
 | [`components.json`](components.json) | Configuração do shadcn/ui. |
@@ -545,7 +543,7 @@ A fonte viva do contrato é o [Swagger](http://localhost:8080/docs) e o arquivo 
 
 | Domínio | API | Arquivos frontend |
 |---|---|---|
-| Cliente HTTP | Todos os endpoints | [`front-end/lib/api-client.ts`](front-end/lib/api-client.ts) |
+| Cliente HTTP | Todos os endpoints | [`lib/api-client.ts`](lib/api-client.ts) |
 | Sessão | `/api/auth/session` | [`hooks/use-session.ts`](hooks/use-session.ts), [`app/login/page.tsx`](app/login/page.tsx) |
 | Diretório | `/api/users` | [`hooks/use-users.ts`](hooks/use-users.ts), seleção de membros de projetos |
 | Permissões | `/api/permissions` | [`hooks/use-permissions.ts`](hooks/use-permissions.ts) |
@@ -784,7 +782,7 @@ Frontend e backend devem ser publicados como serviços separados.
 
 ### Frontend
 
-Configure `NEXT_PUBLIC_API_BASE_URL` com a URL HTTPS pública da API. Execute o build dentro de ``. Não inclua `.env.local` ou segredos no bundle.
+Configure `NEXT_PUBLIC_API_BASE_URL` com a URL HTTPS pública da API. Execute o build a partir da raiz do repositório. Não inclua `.env.local` ou segredos no bundle.
 
 ### Backend
 

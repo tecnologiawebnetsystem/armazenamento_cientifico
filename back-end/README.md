@@ -28,7 +28,7 @@ API do **SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico**. 
 
 ## Visão geral do sistema
 
-O SIGAC é uma solução corporativa dividida em front-end e back-end independentes:
+O SIGAC é uma solução corporativa dividida em aplicação web e back-end independentes:
 
 - **Front-end:** interface web acessada pelos usuários.
 - **Back-end:** API HTTP responsável por validar requisições, aplicar regras de negócio, controlar acesso e salvar os dados.
@@ -186,19 +186,19 @@ alembic downgrade -1
 
 Não altere tabelas manualmente em ambientes compartilhados sem criar a migration correspondente. Para SQLite, algumas alterações de schema podem exigir a estratégia de recriação de tabela suportada pelo Alembic.
 
-## API e integração com o front-end
+## API e integração com o aplicação web
 
-O front-end deve apontar para:
+O aplicação web deve apontar para:
 
 ```dotenv
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 ```
 
-A API deve permitir a origem do front-end em `CORS_ORIGINS`. Em ambiente publicado, substitua as origens locais por URLs explícitas e confiáveis; não use `*` quando houver autenticação ou cookies de sessão.
+A API deve permitir a origem do aplicação web em `CORS_ORIGINS`. Em ambiente publicado, substitua as origens locais por URLs explícitas e confiáveis; não use `*` quando houver autenticação ou cookies de sessão.
 
 ## Publicação no JFrog Artifactory
 
-A imagem do back-end é publicada separadamente da imagem do front-end. Configure no `.env`:
+A imagem do back-end é publicada separadamente da imagem do aplicação web. Configure no `.env`:
 
 ```dotenv
 JFROG_REGISTRY=jfrog.petrobras.dev.br
