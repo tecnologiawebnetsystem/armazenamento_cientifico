@@ -84,19 +84,20 @@ Frontend e backend são aplicações independentes e devem ser iniciados em term
 
 ```bash
 cd back-end
-python -m venv venv
-
-# Linux/macOS
-source .venv/bin/activate
-
-# Windows PowerShell
-venv\Scripts\activate
-
-pip install -r requirements.txt --index-url https://jfrog.petrobras.dev.br/artifactory/api/pypi/pypi-group-all/simple --trusted-host jfrog.petrobras.dev.br
-
+uv sync --dev
 cp .env.example .env
-alembic upgrade head
-uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
+uv run alembic upgrade head
+uv run uvicorn app.app:app --host 0.0.0.0 --port 8080 --reload
+```
+
+No Windows, se não usar `uv`, prefira Python 3.11–3.13. Python 3.14 pode travar no `ensurepip` durante `venv`:
+
+```powershell
+cd back-end
+py -3.12 -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
 ### Iniciar o frontend
