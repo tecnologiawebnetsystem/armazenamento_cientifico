@@ -50,4 +50,6 @@ O back-end usa SQLite por padrão para desenvolvimento local, com o arquivo `bac
 
 Os modelos `.env.example` da raiz e de `back-end/` estão organizados por aplicação. O Entra ID está preparado, mas desligado por padrão (`ENTRA_ENABLED=false`). O CAV4 está parametrizado como ponto de extensão e permanece desligado até receber contrato, endpoints e credenciais oficiais; nenhum segredo deve ser colocado no frontend ou versionado.
 
-Para detalhes de arquitetura, rotas, endpoints, containers, banco, testes e troubleshooting, consulte [`wiki-dev.md`](wiki-dev.md), [`README.md`](README.md) e [`back-end/README.md`](back-end/README.md).
+O modelo visual atualizado das tabelas está em [`docs/SIGAC-modelo-dados.pdf`](docs/SIGAC-modelo-dados.pdf). Ele é regenerado a partir de `back-end/database/sqlite-schema.sql`; alterações de tabelas devem atualizar também as migrations Alembic e o schema PostgreSQL.
+
+Para detalhes de arquitetura, rotas, endpoints, containers, banco, testes e troubleshooting, consulte [`wiki-dev.md`](wiki-dev.md), [`back-end/README.md`](back-end/README.md) e [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
