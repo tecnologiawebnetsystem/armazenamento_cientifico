@@ -77,6 +77,12 @@ class Settings(BaseModel):
     entra_scopes: str = os.getenv("ENTRA_SCOPES", "openid profile email User.Read GroupMember.Read.All")
     entra_groups: list[str] = Field(default_factory=lambda: _csv("ENTRA_GROUPS"))
     entra_group_sync_enabled: bool = os.getenv("ENTRA_GROUP_SYNC_ENABLED", "true").lower() == "true"
+    cav4_enabled: bool = os.getenv("CAV4_ENABLED", "false").lower() == "true"
+    cav4_base_url: str = os.getenv("CAV4_BASE_URL", "")
+    cav4_client_id: str = os.getenv("CAV4_CLIENT_ID", "")
+    cav4_client_secret: str = os.getenv("CAV4_CLIENT_SECRET", "")
+    cav4_redirect_uri: str = os.getenv("CAV4_REDIRECT_URI", "http://localhost:8080/api/auth/cav4/callback")
+    cav4_scopes: str = os.getenv("CAV4_SCOPES", "openid profile email")
 
     @model_validator(mode="after")
     def validate_entra(self) -> "Settings":

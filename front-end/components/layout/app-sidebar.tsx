@@ -29,7 +29,7 @@ export function AppSidebar() {
   const groups = user ? filterNavForRole(navGroups, user.role).map((group) => ({ ...group, items: group.items.filter((item) => item.title.toLowerCase().includes(search.toLowerCase())) })).filter((group) => group.items.length) : []
 
   return (
-    <Sidebar collapsible="icon" className="border-sidebar-border/70 bg-sidebar shadow-xl shadow-sidebar/15 transition-[width] duration-200 md:flex">
+    <Sidebar collapsible="icon" className="border-sidebar-border/70 bg-sidebar shadow-2xl shadow-sidebar/25 transition-[width] duration-200 md:flex">
       <SidebarHeader className="gap-0 p-0">
         <div className="h-1.5 w-full bg-gradient-to-r from-sidebar-primary via-petrobras-yellow to-petrobras-green" />
         <SidebarMenu className="p-3">
@@ -45,7 +45,7 @@ export function AppSidebar() {
               tooltip="SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico"
               render={<Link href="/dashboard" />}
             >
-              <div className="flex size-8 items-center justify-center rounded-md bg-sidebar-accent ring-1 ring-sidebar-border">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-sidebar-primary/15 ring-1 ring-sidebar-primary/40 shadow-[0_0_20px_color-mix(in_oklch,var(--sidebar-primary)_18%,transparent)]">
                 <LogoMark className="size-5" />
               </div>
               <div className="flex min-w-0 flex-col gap-0.5 leading-none">

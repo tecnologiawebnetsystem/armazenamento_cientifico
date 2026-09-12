@@ -1,5 +1,29 @@
 # SIGAC Back-end
 
+API FastAPI do SIGAC, com documentação OpenAPI em `/docs` e `/redoc` quando `EXPOSE_API_DOCS=true`. O inventário completo dos endpoints é gerado pelo próprio app em `/openapi.json`.
+
+## Instalação e validação
+
+```bash
+uv sync --dev
+uv run ruff check app alembic scripts tests
+uv run pytest -q
+uv run alembic check
+uv run uvicorn app.app:app --reload --port 8080
+```
+
+## Endpoints principais
+
+- `/health` — disponibilidade da API.
+- `/api/auth/*` — login, logout, sessão e CAV4.
+- `/api/projects/*` — projetos e membros.
+- `/api/files/*` — arquivos e compartilhamentos.
+- `/api/dashboard/*` — indicadores.
+- `/api/reports/*` — relatórios e exportações.
+- `/api/permissions`, `/api/settings`, `/api/access-requests` — segurança.
+- `/api/activity-logs/*` — auditoria.
+
+
 API do **SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico**. O back-end concentra autenticação, autorização, regras de negócio, gerenciamento de projetos, membros, permissões, arquivos, relatórios, auditoria e persistência dos dados.
 
 ## Visão geral do sistema

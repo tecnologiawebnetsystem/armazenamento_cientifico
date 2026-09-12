@@ -28,7 +28,7 @@ export function useLogin(nextPath = "/dashboard") {
     setLoading("corporate")
     const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080").replace(/\/$/, "")
     const callback = encodeURIComponent(nextPath)
-    window.location.assign(`${apiBase}/api/auth/entra/login?next=${callback}`)
+    window.location.assign(`${apiBase}/api/auth/cav4/start?next=${callback}`)
   }, [nextPath])
 
   return { loading, error, clearError, emailLogin, corporateLogin }

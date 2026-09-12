@@ -4,12 +4,11 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import select
-
-from app.modules.catalogs.area_model import ResponsibleArea
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, require_roles
 from app.db.session import get_session
+from app.modules.catalogs.area_model import ResponsibleArea
 from app.modules.projects.member_model import ProjectMember
 from app.modules.projects.models import Project
 from app.modules.projects.repository import ProjectRepository

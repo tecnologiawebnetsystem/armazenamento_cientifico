@@ -67,7 +67,7 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
               </div>
               <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                 <span className="size-1.5 rounded-full bg-primary motion-safe:animate-pulse" aria-hidden="true" />
-                Redirecionando para o ambiente Petrobras
+                Conectando ao ambiente corporativo CAV4
               </div>
             </div>
           ) : (
@@ -114,7 +114,7 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
               </div>
 
               <div className="flex flex-col gap-3 text-center">
-                <p className="text-sm leading-6 text-muted-foreground">Prefira o acesso corporativo para consultar grupos e informações do Microsoft Graph.</p>
+                <p className="text-sm leading-6 text-muted-foreground">Use o acesso corporativo para validar sua identidade e carregar seus papéis e permissões.</p>
                 <Button type="button" size="lg" variant="outline" onClick={corporateLogin} disabled={loading !== null} className="w-full border-petrobras-green bg-gradient-to-r from-petrobras-green via-petrobras-green to-petrobras-yellow text-primary-foreground shadow-lg shadow-petrobras-yellow/25 transition-all hover:brightness-105 hover:shadow-xl hover:shadow-petrobras-yellow/35">
                   <Building2Icon data-icon="inline-start" />
                   {loading === "corporate" ? "Conectando..." : "Login corporativo"}

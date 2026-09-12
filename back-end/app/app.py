@@ -7,6 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api.routes.cav4_auth import router as cav4_auth_router
 from app.api.routes.health import router as health_router
 from app.core.config import settings
 from app.core.exceptions import AppException
@@ -43,6 +44,14 @@ API REST do **SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científic
 
 TAGS_METADATA = [
     {"name": "Health", "description": "Verificação de disponibilidade da API e do banco."},
+    {"name": "Authentication", "description": "Login local, logout, sessão e integração corporativa CAV4."},
+    {"name": "Projects", "description": "Cadastro, consulta, atualização e membros de projetos."},
+    {"name": "Files", "description": "Arquivos, pastas e compartilhamentos vinculados a projetos."},
+    {"name": "Dashboard", "description": "Indicadores executivos e visão consolidada do portfólio."},
+    {"name": "Reports", "description": "Relatórios, exportações e filtros analíticos."},
+    {"name": "Directory", "description": "Usuários e catálogos disponíveis ao usuário autenticado."},
+    {"name": "Security", "description": "Permissões, configurações e solicitações de acesso."},
+    {"name": "Audit", "description": "Logs de auditoria e exportações administrativas."},
 ]
 
 
@@ -78,6 +87,7 @@ def create_app() -> FastAPI:
         return JSONResponse(status_code=500, content={"error": "InternalError", "message": message, "details": {}})
 
     application.include_router(health_router)
+    application.include_router(cav4_auth_router)
 
     application.include_router(projects_router)
     application.include_router(files_router)

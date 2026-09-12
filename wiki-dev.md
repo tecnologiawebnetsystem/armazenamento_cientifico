@@ -52,6 +52,25 @@ O frontend nunca deve ser a única barreira de segurança. Toda permissão preci
 
 ## 2. Como executar
 
+Frontend e backend usam instalações independentes. No frontend, use `npm ci` com o lockfile sincronizado. No backend, use `uv sync --dev`.
+
+### Validação completa
+
+```bash
+cd front-end
+npm ci
+npm run lint
+npm run typecheck
+npm run build
+
+cd ../back-end
+uv sync --dev
+uv run ruff check app alembic scripts tests
+uv run pytest -q
+uv run alembic check
+```
+
+
 Frontend e backend são aplicações independentes e devem ser iniciados em terminais separados.
 
 ### Pré-requisitos

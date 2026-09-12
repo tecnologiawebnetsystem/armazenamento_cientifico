@@ -56,10 +56,10 @@
 }
 
 :root {
-    /* Base neutra clara com leve tom esverdeado Petrobras */
-    --background: oklch(0.985 0.004 150);
-    --foreground: oklch(0.2 0.025 155);
-    --card: oklch(1 0 0);
+    /* Base executiva clara com contraste azul institucional */
+    --background: oklch(0.975 0.012 220);
+    --foreground: oklch(0.18 0.035 230);
+    --card: oklch(0.995 0.004 220);
     --card-foreground: oklch(0.2 0.025 155);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.2 0.025 155);
