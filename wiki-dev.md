@@ -247,7 +247,7 @@ pnpm test:e2e
 
 ## 5. Estrutura do backend
 
-O backend está em [`back-end/`](back-end/) e usa FastAPI, SQLAlchemy, Pydantic e Alembic.
+O backend está em [`back-end/`](back-end/) e usa FastAPI, SQLAlchemy 2.0, Pydantic e Alembic. A arquitetura adotada é modular por domínio, com evolução para Clean Architecture e Hexagonal Architecture (Ports and Adapters). Controllers cuidam do HTTP, application services orquestram casos de uso, repositories encapsulam persistência e adapters isolam PostgreSQL/SQLite e integrações externas. A compatibilidade legada está isolada em [`back-end/app/api/legacy.py`](back-end/app/api/legacy.py) e não deve receber novos domínios.
 
 | Pasta/arquivo | Finalidade |
 |---|---|
@@ -440,7 +440,7 @@ Disponível para consulta administrativa pelo endpoint `GET /api/activity-logs`.
 
 ## 8. Modelagem e diagrama
 
-O schema PostgreSQL canônico possui 27 tabelas. O inventário usa os nomes físicos reais; não há tabela `perfis` — o conceito funcional de perfis é implementado por `profiles`.
+O schema PostgreSQL canônico possui 27 tabelas. O inventário usa os nomes físicos reais; não há tabela `perfis` — o conceito funcional de perfis é implementado por `profiles`. O documento visual [`docs/SIGAC-modelo-dados.pdf`](docs/SIGAC-modelo-dados.pdf) é gerado diretamente do schema SQLite versionado, que deve permanecer alinhado ao schema PostgreSQL e às migrations Alembic.
 
 ### Diagrama ER
 
@@ -556,7 +556,7 @@ A fonte viva do contrato é o [Swagger](http://localhost:8080/docs) e o arquivo 
 
 ### Arquitetura e qualidade do backend
 
-As rotas novas são organizadas por módulos em `back-end/app/modules/` (projetos, arquivos e auditoria), enquanto `legacy_api.py` permanece como camada de compatibilidade durante a migração gradual. O acesso ao banco é centralizado em `app/db/session.py`, com suporte a SQLite local e PostgreSQL em produção.
+As rotas novas são organizadas por módulos em `back-end/app/modules/` (projetos, arquivos e auditoria), enquanto `legacy_api.py` permanece como camada de compatibilidade durante a migração gradual. O boundary oficial dessa compatibilidade é `back-end/app/api/legacy.py`; novos endpoints devem seguir controller → service → repository → banco ou port → adapter. O acesso ao banco é centralizado em `app/db/session.py`, com suporte a SQLite local e PostgreSQL em produção.
 
 As entradas são validadas por schemas Pydantic com limites para códigos, nomes, MIME type e tamanho de arquivos. A configuração de produção rejeita SQLite, cookies inseguros, documentação OpenAPI exposta e CORS wildcard. Os health checks são separados em `/health/live`, `/health/ready` e `/health/database`, mantendo `/health` como alias compatível.
 
