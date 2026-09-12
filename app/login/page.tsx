@@ -4,8 +4,8 @@ import { LogoMark } from "@/components/brand/logo-mark"
 
 export default function LoginPage() {
   return (
-    <div className="light grid min-h-svh bg-background text-foreground lg:grid-cols-[1.1fr_1fr]">
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-10 lg:flex">
+    <div className="light grid min-h-svh bg-gradient-to-br from-petrobras-blue/10 via-background to-petrobras-green/10 text-foreground lg:grid-cols-[1.1fr_1fr]">
+      <div className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-10 shadow-2xl shadow-petrobras-blue/20 lg:flex">
         <Image
           src="/images/login-hero.png"
           alt=""
@@ -29,7 +29,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="relative z-10 max-w-md space-y-6">
+        <div className="relative z-10 max-w-md space-y-6 rounded-2xl border border-sidebar-border/60 bg-sidebar/30 p-6 shadow-2xl backdrop-blur-sm">
           <span className="inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
             <span className="size-1.5 rounded-full bg-accent" />
             Plataforma corporativa

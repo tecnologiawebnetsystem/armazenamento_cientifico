@@ -40,12 +40,12 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
         className="pointer-events-none absolute -inset-5 -z-10 rounded-[2rem] bg-gradient-to-br from-primary/20 via-transparent to-accent/25 blur-2xl"
       />
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xl shadow-primary/10">
+      <div className="overflow-hidden rounded-2xl border border-petrobras-green/20 bg-card/95 shadow-2xl shadow-petrobras-blue/10 ring-1 ring-petrobras-green/10 backdrop-blur-sm">
         {/* Faixa verde/amarelo Petrobras */}
         <div className="h-1.5 bg-gradient-to-r from-primary via-accent to-primary" />
 
-        <header className="flex items-center gap-3 border-b border-border bg-gradient-to-b from-secondary/70 to-card px-6 py-5">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm shadow-primary/40">
+        <header className="flex items-center gap-3 border-b border-petrobras-green/15 bg-gradient-to-r from-petrobras-green/8 via-card to-petrobras-yellow/8 px-6 py-5">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-petrobras-green to-petrobras-blue text-primary-foreground shadow-lg shadow-petrobras-green/25">
             <ShieldCheckIcon className="size-5" />
           </span>
           <div className="flex flex-col leading-tight">
@@ -73,7 +73,7 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
           ) : (
             <>
               {error && (
-                <Alert variant="destructive">
+                <Alert variant="destructive" className="border-destructive/30 shadow-sm">
                   <AlertTitle>Falha na autenticação</AlertTitle>
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
@@ -96,13 +96,13 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
                       disabled={loading !== null}
                       aria-invalid={Boolean(emailError)}
                       aria-describedby={emailError ? "login-email-error" : undefined}
-                      className="pl-9"
+                      className="border-petrobras-green/20 bg-background/80 pl-9 shadow-sm transition-colors focus-visible:border-petrobras-green focus-visible:ring-petrobras-yellow/40"
                       required
                     />
                     {emailError && <LoginFieldError id="login-email-error">{emailError}</LoginFieldError>}
                   </div>
                 </div>
-                <Button type="submit" size="lg" disabled={loading !== null} className="w-full">
+                <Button type="submit" size="lg" disabled={loading !== null} className="w-full bg-gradient-to-r from-petrobras-blue to-petrobras-green text-primary-foreground shadow-lg shadow-petrobras-blue/15 transition-all hover:-translate-y-0.5 hover:shadow-xl">
                   {loading === "email" ? <Spinner aria-label="Validando e-mail" /> : "Entrar com e-mail"}
                 </Button>
               </form>
