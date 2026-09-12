@@ -1,6 +1,6 @@
 # Estrutura do Banco de Dados - SIGAC
 
-> Documentação completa do schema do banco Neon. A seção `neon_auth` contém as tabelas gerenciadas pelo Neon Auth para autenticação e sessões; `public` contém as tabelas da aplicação SIGAC.
+> Documentação completa do schema do banco PostgreSql. A seção `postgree_auth` contém as tabelas gerenciadas pelo PostgreSql Auth para autenticação e sessões; `public` contém as tabelas da aplicação SIGAC.
 
 ---
 
@@ -8,7 +8,7 @@
 
 | Métrica | Valor |
 |---------|-------|
-| **Schemas documentados** | 2 (`neon_auth`, `public`) |
+| **Schemas documentados** | 2 (`postgree_auth`, `public`) |
 | **Total de tabelas** | 41 |
 | **Relacionamentos (FK)** | 11 |
 
@@ -18,12 +18,12 @@
 
 ```mermaid
 erDiagram
-    neon_auth_user ||--o{ neon_auth_account : "1:N account.userId"
-    neon_auth_user ||--o{ neon_auth_session : "1:N session.userId"
-    neon_auth_user ||--o{ neon_auth_member : "1:N member.userId"
-    neon_auth_user ||--o{ neon_auth_invitation : "1:N invitation.inviterId"
-    neon_auth_organization ||--o{ neon_auth_member : "1:N member.organizationId"
-    neon_auth_organization ||--o{ neon_auth_invitation : "1:N invitation.organizationId"
+    postgre_auth_user ||--o{ postgre_auth_account : "1:N account.userId"
+    postgre_auth_user ||--o{ postgre_auth_session : "1:N session.userId"
+    postgre_auth_user ||--o{ postgre_auth_member : "1:N member.userId"
+    postgre_auth_user ||--o{ postgre_auth_invitation : "1:N invitation.inviterId"
+    postgre_auth_organization ||--o{ postgre_auth_member : "1:N member.organizationId"
+    postgre_auth_organization ||--o{ postgre_auth_invitation : "1:N invitation.organizationId"
     public_profiles ||--o{ public_profile_modules : "1:N profile_modules.profile_id"
     public_profiles ||--o{ public_profile_permissions : "1:N profile_permissions.profile_id"
     public_modules ||--o{ public_profile_modules : "1:N profile_modules.module_id"
@@ -35,9 +35,9 @@ erDiagram
 
 ## 📑 Tabelas por Schema
 
-### Schema: `neon_auth` (Autenticação & Sessões)
+### Schema: `postgre_auth` (Autenticação & Sessões)
 
-Gerenciado pelo **Neon Auth** para garantir segurança e controle de acesso.
+Gerenciado pelo **PostgreSql Auth** para garantir segurança e controle de acesso.
 
 ---
 
@@ -176,13 +176,13 @@ Armazena chaves públicas/privadas para assinatura de JWT.
 ---
 
 #### **`project_config`** – Configuração do Projeto
-Armazena configurações gerais do Neon Auth.
+Armazena configurações gerais do PostgreSql Auth.
 
 | Campo | Tipo | Obrigatório | Padrão | Descrição |
 |-------|------|:---:|--------|-----------|
 | `id` | `uuid` | ✅ | `gen_random_uuid()` | Identificador único (PK) |
 | `name` | `text` | ✅ | — | Nome do projeto |
-| `endpoint_id` | `text` | ✅ | — | ID do endpoint Neon |
+| `endpoint_id` | `text` | ✅ | — | ID do endpoint |
 | `created_at` | `timestamp tz` | ✅ | `CURRENT_TIMESTAMP` | Data de criação |
 | `updated_at` | `timestamp tz` | ✅ | `CURRENT_TIMESTAMP` | Data de atualização |
 | `trusted_origins` | `jsonb` | ✅ | — | URLs confiáveis para CORS |
@@ -443,7 +443,7 @@ Colunas configuráveis para cada tipo de relatório.
 ---
 
 #### **`users`** – Usuários da Aplicação (Legacy)
-Tabela redundante com dados de usuários (duplicada da `neon_auth.user`).
+Tabela redundante com dados de usuários (duplicada da `postgre_auth.user`).
 
 | Campo | Tipo | Obrigatório | Padrão | Descrição |
 |-------|------|:---:|--------|-----------|
@@ -478,7 +478,7 @@ Tabela redundante com dados de usuários (duplicada da `neon_auth.user`).
 
 1. **Sensibilidade de Dados:**
    - Campos `password`, `accessToken`, `refreshToken`, `privateKey` são sensíveis — **nunca registre nem exporte sem encriptação**.
-   - Use `neon_auth` apenas para queries autenticadas.
+   - Use `postgre_auth` apenas para queries autenticadas.
 
 2. **Integridade Referencial:**
    - Chaves estrangeiras garantem que usuários, organizações e permissões permaneçam sincronizados.
@@ -497,7 +497,7 @@ Tabela redundante com dados de usuários (duplicada da `neon_auth.user`).
 ## 📝 Notas Importantes
 
 - **Duplicação de Schemas:** Tabelas como `modules`/`modulos`, `profiles`/`perfis`, `permissions`/`permissoes` existem em ambos os idiomas. Considere consolidar para evitar inconsistências.
-- **Estado de Sincronização:** Tabela `users` (legacy) pode ficar desatualizada em relação a `neon_auth.user`. Planejar migração.
+- **Estado de Sincronização:** Tabela `users` (legacy) pode ficar desatualizada em relação a `postgre_auth.user`. Planejar migração.
 - **Campos Anulados:** Muitas colunas de `public` aceitam `NULL`. Isso oferece flexibilidade mas também risco de dados parciais. Validar em aplicação.
 
 ---
