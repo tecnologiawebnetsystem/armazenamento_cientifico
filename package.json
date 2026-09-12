@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "packageManager": "pnpm@10.17.1",
+  "dependencies": {
+    "next": "16.2.6"
+  },
   "scripts": {
     "build": "pnpm --filter armazenamento-cientifico build",
     "dev": "pnpm --filter armazenamento-cientifico dev",
