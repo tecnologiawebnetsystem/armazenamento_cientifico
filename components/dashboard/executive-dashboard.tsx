@@ -33,7 +33,7 @@ export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazen
 
   return (
     <div className="sw-motion flex flex-col gap-7">
-      <header className="sigac-grid relative flex flex-col gap-5 overflow-hidden rounded-2xl border border-petrobras-green/30 bg-gradient-to-br from-petrobras-blue/10 via-card to-petrobras-green/10 p-5 shadow-lg shadow-petrobras-blue/5 ring-1 ring-white/60 sigac-surface sm:flex-row sm:items-end sm:justify-between sm:p-7">
+      <header className="sigac-grid relative flex flex-col gap-5 overflow-hidden rounded-2xl border border-petrobras-green/30 bg-card p-5 shadow-lg shadow-petrobras-blue/8 ring-1 ring-petrobras-green/20 sigac-surface sm:flex-row sm:items-end sm:justify-between sm:p-7">
         <div className="flex flex-col gap-2">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">SIGAC · visão executiva</p>
           <h1 className="font-heading text-3xl font-semibold tracking-tight text-balance">Portfólio científico em foco</h1>
@@ -51,8 +51,8 @@ export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazen
           <Card
             key={item.label}
             className={`sigac-surface border-0 shadow-md transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${[
-              "!bg-petrobras-green/10 ring-petrobras-green/30",
-              "!bg-petrobras-blue/10 ring-petrobras-blue/30",
+              "!bg-card ring-petrobras-green/30",
+              "!bg-card ring-petrobras-blue/30",
               "!bg-petrobras-teal/10 ring-petrobras-teal/30",
               "!bg-petrobras-yellow/15 ring-petrobras-yellow/40",
             ][index]}`}

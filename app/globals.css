@@ -57,15 +57,15 @@
 
 :root {
     /* Base executiva clara com contraste azul institucional */
-    --background: oklch(0.975 0.012 220);
+    --background: oklch(0.965 0.012 220);
     --foreground: oklch(0.18 0.035 230);
     --card: oklch(0.995 0.004 220);
     --card-foreground: oklch(0.2 0.025 155);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.2 0.025 155);
-    /* Verde Petrobras vibrante #009C3B */
-    --primary: oklch(0.575 0.155 151);
-    --primary-foreground: oklch(0.99 0 0);
+    /* Verde Petrobras institucional */
+    --primary: #007f3e;
+    --primary-foreground: #ffffff;
     --secondary: oklch(0.95 0.012 152);
     --secondary-foreground: oklch(0.26 0.03 155);
     --muted: oklch(0.955 0.008 152);
@@ -176,6 +176,7 @@
     }
   body {
     @apply bg-background text-foreground;
+    background-image: linear-gradient(135deg, color-mix(in oklch, var(--petrobras-blue) 3%, transparent), transparent 42%), linear-gradient(315deg, color-mix(in oklch, var(--petrobras-green) 3%, transparent), transparent 38%);
     }
   html {
     @apply font-sans bg-background;
