@@ -49,17 +49,44 @@ O SIGAC é uma solução corporativa dividida em aplicação web e back-end inde
 
 Este diretório contém exclusivamente o serviço de API. Ele possui Dockerfile, Compose, configurações, migrations e documentação próprios para que possa ser levado a um repositório corporativo separado.
 
-## Tecnologias
+## Tecnologias e versões
 
-- Python 3.11 ou superior
-- FastAPI
-- Uvicorn
-- SQLAlchemy com suporte assíncrono
-- Alembic para migrations
-- SQLite com `aiosqlite` no desenvolvimento atual
-- PostgreSQL previsto para ambientes compartilhados e produção
-- Pytest para testes automatizados
-- Docker e Docker Compose
+- **Python 3.11 ou superior** (`requires-python = ">=3.11"`; alvo do Ruff: `py311`).
+- **FastAPI** `>=0.115,<1.0`.
+- **Uvicorn** `>=0.30,<1.0`.
+- **Pydantic** `>=2.8,<3.0` para validação e schemas.
+- **SQLAlchemy** `>=2.0,<3.0` com suporte assíncrono.
+- **Alembic** `>=1.16,<2.0` para migrations.
+- **SQLite** com `aiosqlite` no desenvolvimento atual.
+- **PostgreSQL** previsto para ambientes compartilhados e produção.
+- **Pytest** `>=8.3,<9.0` e `pytest-asyncio` para testes automatizados.
+- Docker e Docker Compose.
+
+As versões e faixas oficiais ficam registradas em `pyproject.toml` e devem ser atualizadas por ele, evitando divergência entre a documentação e o ambiente instalado.
+
+## Arquitetura e padrões de projeto
+
+O back-end utiliza uma arquitetura **modular por domínio**, em evolução para **Clean Architecture** e **Hexagonal Architecture (Ports and Adapters)**. O FastAPI funciona como camada de entrada HTTP, enquanto os casos de uso, regras de negócio e integrações permanecem separados para facilitar testes, manutenção e troca de infraestrutura.
+
+Principais padrões utilizados:
+
+- **Layered Architecture:** separação entre rotas/controllers, serviços de aplicação, domínio, persistência e infraestrutura.
+- **Clean Architecture:** regras de negócio independentes de FastAPI, banco de dados e serviços externos.
+- **Hexagonal Architecture:** integrações acessadas por portas/interfaces e implementadas por adapters.
+- **Service Layer:** casos de uso e orquestração das transações ficam nos serviços, não nas rotas.
+- **Repository Pattern:** acesso a SQLite/PostgreSQL encapsulado em repositories.
+- **Dependency Injection:** dependências, sessão de banco e segurança fornecidas pelo sistema de dependências do FastAPI.
+- **Schema/DTO Pattern:** Pydantic valida entradas e saídas da API sem expor diretamente os modelos de persistência.
+- **Adapter de compatibilidade:** `app/api/legacy.py` isola a API legada durante a migração por domínio.
+
+Fluxo padrão:
+
+```text
+Request -> Route/Controller -> Application Service -> Repository -> SQLAlchemy -> Database
+                                      -> Port -> External Adapter
+```
+
+As rotas não devem acessar o banco diretamente, e toda alteração estrutural deve passar por uma migration do Alembic. O back-end é a fonte definitiva de autenticação, autorização e regras de negócio.
 
 ## Pré-requisitos
 

@@ -1,96 +1,201 @@
 from __future__ import annotations
 
+"""Sincroniza o banco SQLite canônico com o PostgreSQL/Neon.
+
+Uso seguro:
+  uv run python scripts/migrate_sqlite_to_postgresql.py        # somente diagnóstico
+  uv run python scripts/migrate_sqlite_to_postgresql.py --apply # substitui dados no Neon
+
+O SQLite é a fonte de verdade. O modo --apply executa a sincronização em uma
+transação, sem tocar em tabelas gerenciadas por Neon Auth.
+"""
+
+import argparse
 import asyncio
 import json
 import os
 import sqlite3
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
+from typing import Any
 
 import asyncpg
 
 SOURCE = Path(__file__).resolve().parents[1] / "data" / "sigac.db"
-TABLES = {
+SKIP = {"alembic_version", "settings"}
+MANAGED_BY_NEON = {"user", "session", "account", "verification"}
+
+# Tabelas legadas em português são convertidas para as tabelas canônicas em inglês.
+TABLE_MAP = {
     "perfis": "profiles",
-    "users": "users",
     "modulos": "modules",
     "permissoes": "permissions",
     "perfil_permissoes": "profile_permissions",
     "perfil_modulos": "profile_modules",
     "status_projetos": "project_statuses",
     "tipos_projetos": "project_types",
-    "configuracoes_sistema": "system_settings",
     "tipos_relatorios": "report_types",
-    "menus": "menus",
-    "projects": "projects",
-    "project_members": "project_members",
-    "files": "files",
-    "file_shares": "file_shares",
-    "file_permissions": "file_permissions",
-    "access_requests": "access_requests",
-    "activity_logs": "activity_logs",
-    "sessions": "sessions",
-    "permission_matrix": "permission_matrix",
+    "configuracoes_sistema": "system_settings",
 }
 COLUMN_MAP = {
     "nome": "name", "descricao": "description", "criado_em": "created_at",
     "cargo": "job_title", "perfil_id": "profile_id", "modulo_id": "module_id",
     "permissao_id": "permission_id", "permitido": "allowed", "pode_visualizar": "can_view",
     "codigo": "code", "cor": "color", "ordem": "display_order", "ativo": "active",
-    "rota": "route", "icone": "icon",     "permite_edicao": "allows_edit", "chave": "key", "valor": "value",
-    "tipo": "value_type", "grupo": "group_name", "formatos": "formats",
+    "rota": "route", "icone": "icon", "permite_edicao": "allows_edit", "chave": "key",
+    "valor": "value", "tipo": "value_type", "grupo": "group_name", "formatos": "formats",
     "papel": "role", "level": "access_level",
 }
-SKIP = {"alembic_version", "settings"}
+
+# Dependências primeiro: a limpeza ocorre na ordem inversa para respeitar FKs.
+PREFERRED_ORDER = [
+    "profiles", "users", "modules", "permissions", "profile_permissions", "profile_modules",
+    "project_statuses", "project_types", "system_settings", "report_types", "report_fields",
+    "menus", "projects", "project_members", "files", "file_shares", "groups", "group_members",
+    "file_permissions", "access_requests", "notifications", "activity_logs", "sessions",
+    "permission_matrix", "responsible_areas",
+]
 
 
-def normalize(value, column):
-    if isinstance(value, bytes):
-        return value.decode("utf-8")
-    if isinstance(value, (list, dict)):
-        return json.dumps(value)
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--apply", action="store_true", help="aplica a substituição no Neon")
+    return parser.parse_args()
+
+
+def normalize(value: Any, source_column: str) -> Any:
     if value is None:
         return None
-    if column in {"ativo", "permitido", "pode_visualizar", "permite_edicao"}:
+    if isinstance(value, bytes):
+        return value.decode("utf-8")
+    if source_column in {
+        "ativo", "permitido", "pode_visualizar", "permite_edicao",
+        "active", "is_active", "enabled", "allowed", "can_view", "allows_edit",
+        "is_public", "required",
+    }:
         return bool(value)
-    if (column.endswith("_at") or column in {"criado_em", "created_at", "updated_at", "expires_at"}) and isinstance(value, str):
-        return datetime.fromisoformat(value)
+    if isinstance(value, (list, dict)):
+        return json.dumps(value)
     if isinstance(value, str) and value.startswith(("[", "{")):
         try:
             parsed = json.loads(value)
-            return json.dumps(parsed) if isinstance(parsed, (list, dict)) else parsed
+            if isinstance(parsed, (list, dict)):
+                return json.dumps(parsed)
         except json.JSONDecodeError:
-            return value
+            pass
+    if isinstance(value, (datetime, date)):
+        return value
+    if isinstance(value, str) and (
+        source_column.endswith("_at")
+        or source_column.endswith("_date")
+        or source_column in {"created_at", "updated_at", "expires_at", "last_login_at", "last_viewed_at"}
+    ):
+        try:
+            parsed_datetime = datetime.fromisoformat(value)
+            return parsed_datetime.replace(tzinfo=None)
+        except ValueError:
+            try:
+                return date.fromisoformat(value)
+            except ValueError:
+                pass
     return value
 
 
+def sqlite_rows(sqlite: sqlite3.Connection) -> dict[str, list[sqlite3.Row]]:
+    tables = [row[0] for row in sqlite.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+    ) if row[0] not in SKIP]
+    result: dict[str, list[sqlite3.Row]] = {}
+    canonical_tables = set(tables)
+    for source in tables:
+        target = TABLE_MAP.get(source, source)
+        if source != target and target in canonical_tables:
+            continue
+        columns = [row[1] for row in sqlite.execute(f'PRAGMA table_info("{source}")')]
+        quoted = ", ".join('"' + column.replace('"', '""') + '"' for column in columns)
+        rows = sqlite.execute(f'SELECT {quoted} FROM "{source.replace(chr(34), chr(34) * 2)}"').fetchall()
+        result.setdefault(target, []).extend(rows)
+    return result
+
+
+async def neon_columns(pg: asyncpg.Connection) -> dict[str, set[str]]:
+    rows = await pg.fetch("""
+        SELECT table_name, column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+    """)
+    result: dict[str, set[str]] = {}
+    for row in rows:
+        result.setdefault(row["table_name"], set()).add(row["column_name"])
+    return result
+
+
+def target_values(row: sqlite3.Row, target_columns: set[str]) -> tuple[list[str], list[Any]]:
+    values: dict[str, Any] = {}
+    for source_column in row.keys():
+        target_column = COLUMN_MAP.get(source_column, source_column)
+        candidates = [target_column, source_column]
+        candidates.extend(
+            legacy_column
+            for legacy_column, canonical_column in COLUMN_MAP.items()
+            if canonical_column == target_column
+        )
+        destination_column = next(
+            (candidate for candidate in candidates if candidate in target_columns), None
+        )
+        if destination_column and destination_column not in values:
+            values[destination_column] = normalize(row[source_column], destination_column)
+    columns = list(values)
+    return columns, [values[column] for column in columns]
+
+
 async def main() -> None:
-    if not os.getenv("DATABASE_URL"):
+    args = parse_args()
+    if not SOURCE.exists():
+        raise FileNotFoundError(f"SQLite não encontrado: {SOURCE}")
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
         raise RuntimeError("DATABASE_URL não está disponível")
+
     sqlite = sqlite3.connect(SOURCE)
     sqlite.row_factory = sqlite3.Row
-    pg = await asyncpg.connect(os.environ["DATABASE_URL"])
-    migrated = 0
+    data = sqlite_rows(sqlite)
+    pg = await asyncpg.connect(database_url)
     try:
-        for source, target in TABLES.items():
-            if source not in TABLES or target not in TABLES.values():
-                raise ValueError(f"Tabela de migração não permitida: {source} -> {target}")
-            columns = [row[1] for row in sqlite.execute(f'PRAGMA table_info("{source}")')]
-            target_columns = [COLUMN_MAP.get(column, column) for column in columns]
-            quoted_source_columns = ", ".join(f'"{column.replace(chr(34), chr(34) * 2)}"' for column in columns)
-            quoted_source_table = source.replace(chr(34), chr(34) * 2)
-            rows = sqlite.execute(f'SELECT {quoted_source_columns} FROM "{quoted_source_table}"').fetchall()
-            if not rows:
-                continue
-            quoted_columns = ", ".join(f'"{column}"' for column in target_columns)
-            placeholders = ", ".join(f'${index}' for index in range(1, len(columns) + 1))
-            query = f'INSERT INTO "{target}" ({quoted_columns}) VALUES ({placeholders}) ON CONFLICT DO NOTHING'
-            for row in rows:
-                await pg.execute(query, *(normalize(row[column], column) for column in columns))
-                migrated += 1
-            print(f"{source} -> {target}: {len(rows)} registros")
-        await pg.execute("INSERT INTO schema_migrations(version) VALUES ('0003_sqlite_data_migration') ON CONFLICT DO NOTHING")
-        print(f"Total migrado: {migrated} registros")
+        columns_by_table = await neon_columns(pg)
+        missing = sorted(set(data) - set(columns_by_table) - MANAGED_BY_NEON)
+        if missing:
+            raise RuntimeError(
+                "Tabelas ausentes no Neon; aplique as migrations do backend antes de sincronizar: "
+                + ", ".join(missing)
+            )
+
+        print("Diagnóstico SQLite -> Neon")
+        for table in sorted(data):
+            print(f"  {table}: {len(data[table])} registros")
+        if not args.apply:
+            print("Modo diagnóstico: nada foi alterado. Use --apply para substituir os dados.")
+            return
+
+        async with pg.transaction():
+            existing = set(columns_by_table)
+            for table in reversed(PREFERRED_ORDER):
+                if table in existing and table in data:
+                    await pg.execute(f'DELETE FROM "{table}"')
+            for table, rows in data.items():
+                if table not in existing or not rows:
+                    continue
+                target_columns = columns_by_table[table]
+                for row in rows:
+                    columns, values = target_values(row, target_columns)
+                    if not columns:
+                        continue
+                    quoted = ", ".join(f'"{column}"' for column in columns)
+                    placeholders = ", ".join(f'${i}' for i in range(1, len(values) + 1))
+                    await pg.execute(
+                        f'INSERT INTO "{table}" ({quoted}) VALUES ({placeholders})', *values
+                    )
+        print("Sincronização concluída com sucesso em uma única transação.")
     finally:
         await pg.close()
         sqlite.close()
