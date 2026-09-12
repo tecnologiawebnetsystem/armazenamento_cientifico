@@ -2,7 +2,7 @@
 
 Sistema de Gestão de Acesso ao Armazenamento Científico (SIGAC), organizado em duas aplicações independentes:
 
-- [`front-end/`](front-end/): aplicação web Next.js, React e TypeScript.
+- [``](): aplicação web Next.js, React e TypeScript.
 - [`back-end/`](back-end/): API FastAPI com SQLAlchemy, Alembic e SQLite/PostgreSQL.
 - [`wiki-dev.md`](wiki-dev.md): documentação técnica consolidada do sistema.
 
@@ -11,7 +11,6 @@ Sistema de Gestão de Acesso ao Armazenamento Científico (SIGAC), organizado em
 ### Front-end
 
 ```bash
-cd front-end
 cp .env.example .env.local
 pnpm install
 pnpm dev
@@ -43,4 +42,4 @@ O endpoint PyPI `jfrog.petrobras.dev.br/artifactory/api/pypi/pypi-group-all/simp
 
 O back-end usa SQLite por padrão para desenvolvimento local, com o arquivo `back-end/data/sigac.db`. PostgreSQL permanece disponível para ambientes compartilhados e produção, mediante configuração no `.env`.
 
-Para detalhes de arquitetura, rotas, endpoints, containers, banco, testes e troubleshooting, consulte [`wiki-dev.md`](wiki-dev.md), [`front-end/README.md`](front-end/README.md) e [`back-end/README.md`](back-end/README.md).
+Para detalhes de arquitetura, rotas, endpoints, containers, banco, testes e troubleshooting, consulte [`wiki-dev.md`](wiki-dev.md), [`README.md`](README.md) e [`back-end/README.md`](back-end/README.md).
