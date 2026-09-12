@@ -26,9 +26,23 @@ uv run uvicorn app.app:app --reload --port 8080
 
 API do **SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico**. O back-end concentra autenticação, autorização, regras de negócio, gerenciamento de projetos, membros, permissões, arquivos, relatórios, auditoria e persistência dos dados.
 
+## O que é o SIGAC
+
+O SIGAC é uma plataforma corporativa para controlar o acesso ao armazenamento de elementos científicos. O sistema centraliza projetos, arquivos, usuários, permissões e solicitações de acesso, garantindo que cada operação siga as regras de segurança e possa ser auditada.
+
+### Regras principais do sistema
+
+- A autorização é aplicada no servidor e considera o usuário, o projeto e o nível de acesso solicitado.
+- Um usuário só pode consultar ou alterar projetos, membros e arquivos para os quais possui permissão.
+- Solicitações de acesso devem passar pelo fluxo de análise antes da liberação.
+- Alterações relevantes, acessos e eventos de segurança devem ser registrados em auditoria.
+- O back-end é a fonte definitiva das regras de negócio; validações do front-end não substituem as validações da API.
+- Segredos, tokens, credenciais e dados corporativos reais nunca devem ser versionados.
+
 ## Visão geral do sistema
 
 O SIGAC é uma solução corporativa dividida em aplicação web e back-end independentes:
+
 
 - **Front-end:** interface web acessada pelos usuários.
 - **Back-end:** API HTTP responsável por validar requisições, aplicar regras de negócio, controlar acesso e salvar os dados.

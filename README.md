@@ -6,7 +6,32 @@ Sistema de Gestão de Acesso ao Armazenamento Científico (SIGAC), organizado em
 - [`back-end/`](back-end/): API FastAPI com SQLAlchemy, Alembic e SQLite/PostgreSQL.
 - [`wiki-dev.md`](wiki-dev.md): documentação técnica consolidada do sistema.
 
+## O que é o SIGAC
+
+O SIGAC é uma plataforma corporativa para controlar o acesso ao armazenamento de elementos científicos. Ele organiza projetos, arquivos, usuários e solicitações de acesso em um único fluxo, com rastreabilidade das operações e integração com os mecanismos corporativos de autenticação.
+
+### Regras principais do sistema
+
+- Todo acesso a projetos, arquivos e funções deve ser validado no servidor conforme o usuário e suas permissões.
+- Projetos possuem membros e níveis de acesso; o usuário só pode visualizar ou alterar o que lhe foi autorizado.
+- Solicitações de acesso devem ser analisadas antes de liberar recursos protegidos.
+- Operações relevantes devem permanecer registradas para auditoria.
+- Dados, credenciais e configurações sensíveis não devem ser expostos no navegador nem versionados no repositório.
+
+## Front-end
+
+A aplicação web é a interface usada pelos usuários do SIGAC. Ela apresenta login, dashboard, projetos, membros, arquivos, relatórios, logs e telas de administração. O front-end consulta a API do back-end, exibe estados de carregamento e erro e não deve implementar regras de autorização apenas no cliente.
+
+### Tecnologias e responsabilidades
+
+- Next.js 16 com App Router, React 19, TypeScript e Tailwind CSS.
+- Componentes reutilizáveis para navegação, formulários, tabelas, filtros, permissões e estados vazios.
+- Integração com a API por meio de `NEXT_PUBLIC_API_BASE_URL`.
+- Responsividade, acessibilidade, feedback visual e suporte aos temas claro e escuro.
+- Validação de entrada para melhorar a experiência, sempre acompanhada da validação definitiva no back-end.
+
 ## Execução rápida
+
 
 ### Aplicação web
 
