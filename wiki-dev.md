@@ -2,7 +2,7 @@
 
 > Documentação técnica consolidada do **Sistema de Gestão de Acesso ao Armazenamento Científico (SIGAC)**.
 >
-> A aplicação é dividida em duas partes independentes: [``](), em Next.js, e [`back-end/`](back-end/), em FastAPI.
+> A aplicação é dividida em duas partes independentes: a aplicação web na raiz, em Next.js, e [`back-end/`](back-end/), em FastAPI.
 
 ## Índice
 
@@ -210,7 +210,7 @@ alembic upgrade head
 
 ## 4. Estrutura do frontend
 
-O frontend está em [``]() e é uma instalação Next.js independente.
+A aplicação web está na raiz do repositório e é uma instalação Next.js independente. O diretório `back-end/` permanece separado como serviço FastAPI.
 
 | Pasta/arquivo | Finalidade |
 |---|---|
@@ -782,7 +782,7 @@ Frontend e backend devem ser publicados como serviços separados.
 
 ### Frontend
 
-Configure `NEXT_PUBLIC_API_BASE_URL` com a URL HTTPS pública da API. Execute o build dentro de ``. Não inclua `.env.local` ou segredos no bundle.
+Configure `NEXT_PUBLIC_API_BASE_URL` com a URL HTTPS pública da API. Execute o build a partir da raiz do repositório. Não inclua `.env.local` ou segredos no bundle.
 
 ### Backend
 

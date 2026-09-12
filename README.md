@@ -8,7 +8,7 @@ Sistema de Gestão de Acesso ao Armazenamento Científico (SIGAC), organizado em
 
 ## Execução rápida
 
-### Front-end
+### Aplicação web
 
 ```bash
 cp .env.example .env.local
@@ -16,7 +16,7 @@ pnpm install
 pnpm dev
 ```
 
-Acesse `http://localhost:3000`.
+Acesse `http://localhost:3000`. O Next.js está na raiz do repositório; não existe mais a pasta `front-end`.
 
 ### Back-end
 
@@ -34,7 +34,7 @@ A API fica disponível em `http://localhost:8080`. Consulte `http://localhost:80
 
 ## Containers
 
-Cada aplicação possui seu próprio `Dockerfile`, `docker-compose.yml`, `.dockerignore`, `.gitignore` e README. O front-end e o back-end devem ser construídos e publicados separadamente no JFrog Artifactory, usando `JFROG_REGISTRY`, `JFROG_DOCKER_REPOSITORY`, `IMAGE_TAG`, `JFROG_USER` e `JFROG_TOKEN` conforme os exemplos de ambiente de cada aplicação.
+A aplicação web na raiz possui seu próprio `Dockerfile`, `docker-compose.yml`, `.dockerignore` e configuração de ambiente. O `back-end/` possui Dockerfile, Compose, dependências e documentação próprios. As imagens são construídas e publicadas separadamente no JFrog Artifactory.
 
 O endpoint PyPI `jfrog.petrobras.dev.br/artifactory/api/pypi/pypi-group-all/simple` não deve ser usado como registry de imagens Docker.
 
