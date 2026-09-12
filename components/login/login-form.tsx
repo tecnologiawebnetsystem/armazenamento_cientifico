@@ -102,7 +102,7 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
                     {emailError && <LoginFieldError id="login-email-error">{emailError}</LoginFieldError>}
                   </div>
                 </div>
-                <Button type="submit" size="lg" disabled={loading !== null} className="w-full bg-[#063f58] text-white shadow-md shadow-[#063f58]/20 transition-all hover:-translate-y-0.5 hover:bg-[#075b70] hover:shadow-lg">
+                <Button type="submit" size="lg" disabled={loading !== null} className="w-full bg-gradient-to-r from-[#007f3e] to-[#fdbb30] text-white shadow-md shadow-[#007f3e]/30 transition-all hover:-translate-y-0.5 hover:from-[#006b35] hover:to-[#e8aa19] hover:shadow-lg hover:shadow-[#007f3e]/40">
                   {loading === "email" ? <Spinner aria-label="Validando e-mail" /> : "Entrar com e-mail"}
                 </Button>
               </form>
@@ -115,7 +115,7 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
 
               <div className="flex flex-col gap-3 text-center">
                 <p className="text-sm leading-6 text-muted-foreground">Use o acesso corporativo para validar sua identidade e carregar seus papéis e permissões.</p>
-                <Button type="button" size="lg" variant="outline" onClick={corporateLogin} disabled={loading !== null} className="w-full border-[#d8e1e7] bg-white text-[#063f58] shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#007f5f]/40 hover:bg-[#007f5f]/[0.04] hover:shadow-md">
+                <Button type="button" size="lg" variant="outline" onClick={corporateLogin} disabled={loading !== null} className="mx-auto w-full max-w-[18rem] border-[#063f58] bg-gradient-to-r from-[#063f58] to-[#fdbb30] text-white shadow-md shadow-[#063f58]/30 transition-all hover:-translate-y-0.5 hover:from-[#042d40] hover:to-[#e8aa19] hover:shadow-lg hover:shadow-[#063f58]/40">
                   <Building2Icon data-icon="inline-start" />
                   {loading === "corporate" ? "Conectando..." : "Login corporativo"}
                 </Button>

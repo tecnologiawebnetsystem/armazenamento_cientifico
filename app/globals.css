@@ -92,13 +92,13 @@
     --petrobras-blue: oklch(0.48 0.13 245);
     --petrobras-teal: oklch(0.56 0.11 190);
     /* Verde Petrobras alinhado ao logotipo: #007F3E, sem matiz oliva */
-    --sidebar: #007f3e;
+    --sidebar: #005c32;
     --sidebar-foreground: #ffffff;
     --sidebar-primary: #fdbb30;
     --sidebar-primary-foreground: #17324d;
-    --sidebar-accent: #006b35;
+    --sidebar-accent: #007f3e;
     --sidebar-accent-foreground: #ffffff;
-    --sidebar-border: #159653;
+    --sidebar-border: #2a9f63;
     --sidebar-ring: #fdbb30;
 }
 
@@ -130,14 +130,14 @@
     --chart-3: oklch(0.6 0.12 160);
     --chart-4: oklch(0.52 0.08 155);
     --chart-5: oklch(0.75 0.05 150);
-    /* Petrobras no modo escuro: mesma família do logotipo, com contraste elevado */
-    --sidebar: #005c32;
+    /* Menu preto no modo escuro, com os acentos institucionais preservados. */
+    --sidebar: #000000;
     --sidebar-foreground: #ffffff;
     --sidebar-primary: #fdbb30;
     --sidebar-primary-foreground: #17324d;
-    --sidebar-accent: #007f3e;
+    --sidebar-accent: #171717;
     --sidebar-accent-foreground: #ffffff;
-    --sidebar-border: #2a9f63;
+    --sidebar-border: #303030;
     --sidebar-ring: #fdbb30;
 }
 
@@ -161,13 +161,13 @@
     --border: oklch(0.9 0.01 152);
     --input: oklch(0.9 0.01 152);
     --ring: oklch(0.575 0.155 151);
-    --sidebar: oklch(0.32 0.065 155);
-    --sidebar-foreground: oklch(0.95 0.01 150);
-    --sidebar-primary: oklch(0.82 0.17 82);
-    --sidebar-primary-foreground: oklch(0.24 0.05 155);
-    --sidebar-accent: oklch(0.40 0.075 154);
-    --sidebar-accent-foreground: oklch(0.97 0.008 150);
-    --sidebar-border: oklch(0.38 0.07 154);
+    --sidebar: #005c32;
+    --sidebar-foreground: #ffffff;
+    --sidebar-primary: #fdbb30;
+    --sidebar-primary-foreground: #17324d;
+    --sidebar-accent: #007f3e;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #2a9f63;
 }
 
 @layer base {

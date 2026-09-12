@@ -25,7 +25,7 @@ export default function LoginPage() {
           <LogoMark className="size-10" />
           <div className="flex flex-col leading-tight">
             <span className="font-semibold tracking-tight">SIGAC</span>
-            <span className="text-[10px] text-muted-foreground">Sistema de Gestão de Acesso ao Armazenamento Científico</span>
+            <span className="text-[10px] text-white">Sistema de Gestão de Acesso ao Armazenamento Científico</span>
             <span className="text-xs font-medium text-accent">Petrobras</span>
           </div>
         </div>
@@ -68,7 +68,7 @@ export default function LoginPage() {
           <div className="mb-8 flex flex-col items-center gap-2 text-center lg:hidden">
             <LogoMark className="size-10" />
             <span className="font-semibold tracking-tight">SIGAC</span>
-            <span className="text-[10px] text-muted-foreground">Sistema de Gestão de Acesso ao Armazenamento Científico</span>
+            <span className="text-[10px] text-white">Sistema de Gestão de Acesso ao Armazenamento Científico</span>
           </div>
 
           <div className="mb-6 hidden flex-col gap-2 lg:flex">
