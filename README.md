@@ -24,11 +24,26 @@ A aplicação web é a interface usada pelos usuários do SIGAC. Ela apresenta l
 
 ### Tecnologias e responsabilidades
 
-- Next.js 16 com App Router, React 19, TypeScript e Tailwind CSS.
+- Next.js **16.2.6** com App Router, React **19.2.4**, TypeScript **5** e Tailwind CSS **4**.
 - Componentes reutilizáveis para navegação, formulários, tabelas, filtros, permissões e estados vazios.
 - Integração com a API por meio de `NEXT_PUBLIC_API_BASE_URL`.
 - Responsividade, acessibilidade, feedback visual e suporte aos temas claro e escuro.
 - Validação de entrada para melhorar a experiência, sempre acompanhada da validação definitiva no back-end.
+
+### Arquitetura e padrões de projeto do front-end
+
+O front-end utiliza a arquitetura **App Router do Next.js**, combinando Server Components por padrão com Client Components apenas quando há interação, estado ou APIs do navegador. A organização é orientada por componentes e responsabilidades: páginas cuidam da composição da tela, componentes reutilizáveis cuidam da interface e módulos de serviço cuidam da comunicação com a API.
+
+Principais padrões utilizados:
+
+- **Component-based architecture:** interface dividida em componentes reutilizáveis e acessíveis.
+- **Server/Client Components:** renderização no servidor por padrão e interatividade isolada no cliente.
+- **Design System:** tokens, variantes e componentes compartilhados para manter consistência visual.
+- **Container/Presentation:** separação entre composição, estado e apresentação sempre que a tela exigir maior complexidade.
+- **Service/API layer:** chamadas ao back-end centralizadas, sem colocar regras de negócio nos componentes visuais.
+- **Responsive design:** layout mobile-first com Tailwind CSS.
+
+O front-end é responsável pela experiência do usuário e pela apresentação dos dados; autenticação, autorização e regras definitivas permanecem no back-end.
 
 ## Execução rápida
 
