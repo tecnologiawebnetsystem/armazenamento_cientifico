@@ -311,18 +311,11 @@ ruff check .
 
 ## 6. Banco de dados
 
-O inventário abaixo foi conferido diretamente no banco Neon em 12/09/2026. O Neon possui **41 tabelas físicas**: 9 no schema `neon_auth` e 32 no schema `public`. Portanto, a versão anterior desta wiki estava desatualizada: informava 27 tabelas e omitia tabelas legadas e tabelas canônicas que coexistem no banco.
-
-- `neon_auth` é gerenciado pelo Neon Auth e não deve ser alterado por migrations da aplicação.
-- `public` contém as tabelas canônicas do SIGAC e tabelas legadas mantidas por compatibilidade.
-- A lista de colunas, tipos, nulabilidade e defaults deve ser conferida no arquivo [`docs/database-structure.md`](docs/database-structure.md), gerado a partir do schema real.
-- A estrutura SQLite versionada e as migrations Alembic continuam sendo referências de desenvolvimento, mas esta seção registra o estado físico atual do Neon.
-
 ### Ciclo de mudança
 
 1. Alterar o model SQLAlchemy;
 2. Criar uma migration Alembic incremental;
-3. Revisar o SQL e comparar com o Neon;
+3. Revisar o SQL e comparar com o PosgreSql;
 4. Fazer backup antes de alterar dados;
 5. Aplicar a migration em ambiente controlado;
 6. Validar tabelas, campos, PKs, FKs e contagens;
@@ -334,9 +327,9 @@ Não altere uma migration já aplicada e não remova tabelas legadas sem confirm
 
 ## 7. Tabelas, campos, PKs e FKs
 
-A tabela abaixo é o inventário físico do Neon. Os campos estão agrupados por tabela e representam exatamente os nomes usados no banco; `*` identifica a chave primária. As FKs são listadas separadamente para evitar inferências baseadas apenas em nomes parecidos.
+Os campos estão agrupados por tabela e representam exatamente os nomes usados no banco; `*` identifica a chave primária. As FKs são listadas separadamente para evitar inferências baseadas apenas em nomes parecidos.
 
-### Schema `neon_auth`
+### Schema `postgre_auth`
 
 | Tabela | Campos físicos | PK | FKs |
 |---|---|---|---|
@@ -396,13 +389,13 @@ As tabelas legadas não devem ser removidas automaticamente: ainda podem ser con
 
 ### Restrições UNIQUE relevantes
 
-`neon_auth.user.email`, `neon_auth.session.token`, `neon_auth.organization.slug`, `neon_auth.project_config.endpoint_id`, `public.profiles.name`, `public.modules.name`, `public.project_statuses.code`, `public.project_types.code`, `public.report_types.code` e `public.responsible_areas.prefix` possuem unicidade declarada.
+`postgre_auth.user.email`, `postgre_auth.session.token`, `postgre_auth.organization.slug`, `postgre_auth.project_config.endpoint_id`, `public.profiles.name`, `public.modules.name`, `public.project_statuses.code`, `public.project_types.code`, `public.report_types.code` e `public.responsible_areas.prefix` possuem unicidade declarada.
 
 ---
 
 ## 8. Modelagem e diagrama
 
-O estado físico atual possui **41 tabelas e 11 FKs**. O diagrama abaixo mostra somente relacionamentos declarados no banco; tabelas `public` como `projects`, `users`, `files` e `project_members` possuem nomes de colunas que sugerem vínculos, mas não têm FK declarada no Neon e, por isso, aparecem sem ligação oficial.
+O estado físico atual possui **41 tabelas e 11 FKs**. O diagrama abaixo mostra somente relacionamentos declarados no banco; tabelas `public` como `projects`, `users`, `files` e `project_members` possuem nomes de colunas que sugerem vínculos, mas não têm FK declarada no PosgreSql e, por isso, aparecem sem ligação oficial.
 
 ```mermaid
 erDiagram
@@ -425,7 +418,7 @@ No schema `public`, as tabelas de domínio e compatibilidade (`projects`, `proje
 
 ### Fonte e validação
 
-- Inventário live: `information_schema.columns`, `information_schema.table_constraints` e `information_schema.key_column_usage` do Neon;
+- Inventário live: `information_schema.columns`, `information_schema.table_constraints` e `information_schema.key_column_usage`;
 - Documento detalhado: [`docs/database-structure.md`](docs/database-structure.md);
 - Schema SQLite: [`back-end/database/sqlite-schema.sql`](back-end/database/sqlite-schema.sql);
 - Models: [`back-end/app/modules/*/models.py`](back-end/app/modules/);
