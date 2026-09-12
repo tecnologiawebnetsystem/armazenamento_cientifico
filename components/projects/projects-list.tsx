@@ -51,7 +51,7 @@ function StatCard({
   accent?: string
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-petrobras-blue/15 bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
+    <div className="flex items-center gap-3 rounded-xl border border-petrobras-blue/15 bg-card p-4 shadow-md shadow-petrobras-blue/5 transition-all hover:-translate-y-0.5 hover:shadow-lg">
       <div className={`flex size-10 items-center justify-center rounded-lg ${accent ?? "bg-primary/10 text-primary"}`}>
         <Icon className="size-5" />
       </div>
@@ -158,7 +158,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="overflow-hidden rounded-2xl border border-petrobras-blue/20 bg-gradient-to-r from-petrobras-blue/10 via-background to-petrobras-green/10 p-6 shadow-sm"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-petrobras-green">Gestão científica</p><h1 className="mt-1 text-3xl font-semibold tracking-tight text-petrobras-blue">Projetos</h1><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Acompanhe projetos, áreas responsáveis, acessos e armazenamento em um só lugar.</p></div>{canCreate && <Button render={<Link href="/projetos/novo" />} nativeButton={false} className="bg-petrobras-green text-primary-foreground hover:bg-petrobras-green/90"><FolderPlusIcon data-icon="inline-start" />Novo projeto</Button>}</div></div>
+      <div className="overflow-hidden rounded-2xl border border-petrobras-blue/20 bg-gradient-to-br from-petrobras-blue/15 via-background to-petrobras-green/15 p-6 shadow-xl shadow-petrobras-blue/10 ring-1 ring-white/70"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-petrobras-green">Gestão científica</p><h1 className="mt-1 text-3xl font-semibold tracking-tight text-petrobras-blue">Projetos</h1><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Acompanhe projetos, áreas responsáveis, acessos e armazenamento em um só lugar.</p></div>{canCreate && <Button render={<Link href="/projetos/novo" />} nativeButton={false} className="bg-petrobras-green text-primary-foreground hover:bg-petrobras-green/90"><FolderPlusIcon data-icon="inline-start" />Novo projeto</Button>}</div></div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Resumo dos projetos">
         <StatCard icon={LayersIcon} label="Projetos" value={stats.total} />
         <StatCard

@@ -29,11 +29,11 @@ export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazen
   const suspensos = projects.filter((project) => project.status === "suspenso").length
   const total = Math.max(projects.length, 1)
 
-  const areas = Array.from(new Set(projects.map((project) => project.areaResponsavel))).filter(Boolean).slice(0, 5)
+  const areas = Array.from(new Set(projects.map((project) => project.areaResponsavel).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR"))
 
   return (
     <div className="sw-motion flex flex-col gap-7">
-      <header className="sigac-grid relative flex flex-col gap-5 overflow-hidden rounded-2xl border border-petrobras-green/20 bg-card p-5 sigac-surface sm:flex-row sm:items-end sm:justify-between sm:p-7">
+      <header className="sigac-grid relative flex flex-col gap-5 overflow-hidden rounded-2xl border border-petrobras-green/30 bg-gradient-to-br from-petrobras-blue/10 via-card to-petrobras-green/10 p-5 shadow-lg shadow-petrobras-blue/5 ring-1 ring-white/60 sigac-surface sm:flex-row sm:items-end sm:justify-between sm:p-7">
         <div className="flex flex-col gap-2">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">SIGAC · visão executiva</p>
           <h1 className="font-heading text-3xl font-semibold tracking-tight text-balance">Portfólio científico em foco</h1>
@@ -50,7 +50,7 @@ export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazen
         ].map((item, index) => (
           <Card
             key={item.label}
-            className={`sigac-surface border-0 ring-1 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${[
+            className={`sigac-surface border-0 shadow-md transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${[
               "!bg-petrobras-green/10 ring-petrobras-green/30",
               "!bg-petrobras-blue/10 ring-petrobras-blue/30",
               "!bg-petrobras-teal/10 ring-petrobras-teal/30",
@@ -102,7 +102,19 @@ export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazen
         <Card className="sigac-surface border-0 ring-1 ring-border/70">
           <CardHeader className="border-b bg-muted/20 pb-4"><CardTitle>Distribuição por área</CardTitle><p className="text-sm text-muted-foreground">Onde o portfólio está concentrado.</p></CardHeader>
           <CardContent className="flex flex-col gap-4 p-5">
-            {areas.map((area) => { const count = projects.filter((project) => project.areaResponsavel === area).length; return <Link key={area} href={`/projetos?area=${encodeURIComponent(area)}`} className="group flex items-center justify-between gap-3"><span className="truncate text-sm font-medium">{area}</span><span className="flex items-center gap-2 text-sm text-muted-foreground"><Badge variant="secondary">{count}</Badge><ArrowRightIcon className="size-4 opacity-0 transition-opacity group-hover:opacity-100" /></span></Link> })}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {areas.map((area, index) => {
+                const areaProjects = projects.filter((project) => project.areaResponsavel === area)
+                const areaActive = areaProjects.filter((project) => project.status === "ativo").length
+                const areaStorage = areaProjects.reduce((sum, project) => sum + (project.armazenamentoUsadoMb ?? 0), 0)
+                const color = index % 3 === 0 ? "from-petrobras-green/20 to-petrobras-green/5 text-petrobras-green" : index % 3 === 1 ? "from-petrobras-blue/20 to-petrobras-blue/5 text-petrobras-blue" : "from-petrobras-yellow/30 to-petrobras-yellow/10 text-accent-foreground"
+                return <Link key={area} href={`/projetos?area=${encodeURIComponent(area)}`} className="group flex items-center gap-3 rounded-xl border border-border/70 bg-gradient-to-br p-3 shadow-sm transition-all hover:-translate-y-1 hover:border-petrobras-green/40 hover:shadow-lg">
+                  <span className={`flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br font-heading text-sm font-bold ${color}`}>{area.slice(0, 2).toUpperCase()}</span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{area}</span><span className="text-xs text-muted-foreground">{areaActive} ativos · {areaProjects.length} projetos · {formatStorage(areaStorage)}</span></span>
+                  <ArrowRightIcon className="size-4 text-petrobras-green opacity-60 transition-transform group-hover:translate-x-1" />
+                </Link>
+              })}
+            </div>
             {!areas.length && <p className="text-sm text-muted-foreground">Nenhuma área disponível no seu escopo.</p>}
           </CardContent>
         </Card>
