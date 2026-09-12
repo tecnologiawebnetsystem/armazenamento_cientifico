@@ -39,6 +39,26 @@ O SIGAC controla o acesso a projetos, arquivos científicos, membros, compartilh
 
 O frontend nunca deve ser a única barreira de segurança. Toda permissão precisa ser conferida no backend.
 
+### Stack, arquitetura e padrões adotados
+
+#### Front-end
+
+- **Next.js 16.2.6**, com **App Router**, usando **React 19.2.4**, **TypeScript 5** e **Tailwind CSS 4**.
+- Arquitetura baseada no **App Router**, com Server Components por padrão e Client Components somente quando são necessários estado, eventos ou APIs do navegador.
+- Organização por componentes e responsabilidades: páginas e layouts compõem as telas, componentes reutilizáveis concentram a apresentação e `lib/`/hooks centralizam integração, estado e utilitários.
+- Padrões principais: **Component-based Architecture**, **Server/Client Components**, **Container/Presentation**, **Service/API Layer**, **Design System** e **Responsive Mobile-first**.
+- O acesso à API é centralizado em `lib/api-client.ts`; componentes visuais não devem implementar regras definitivas de autorização.
+
+#### Back-end
+
+- **Python 3.11 ou superior**, com **FastAPI**, **SQLAlchemy 2.0**, **Pydantic 2**, **Alembic** e suporte a SQLite/PostgreSQL.
+- Arquitetura **modular por domínio**, em evolução para **Clean Architecture** e **Hexagonal Architecture (Ports and Adapters)**.
+- A camada HTTP recebe requisições, os application services orquestram casos de uso, repositories encapsulam a persistência e adapters isolam bancos e integrações externas.
+- Padrões principais: **Layered Architecture**, **Service Layer**, **Repository Pattern**, **Dependency Injection**, **Schema/DTO Pattern** e **Adapter de compatibilidade** para a API legada.
+- As rotas não devem acessar o banco diretamente; alterações estruturais devem ser feitas por migrations versionadas do Alembic.
+
+A separação entre as camadas mantém a interface independente das regras de negócio e permite evoluir o banco ou integrações sem acoplar todo o sistema. O back-end permanece como fonte definitiva para autenticação, autorização, validação e auditoria.
+
 ### Fluxo de uma operação
 
 1. O usuário acessa uma página em [`app/`](app/).
