@@ -7,6 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api.routes.cav4_auth import router as cav4_auth_router
 from app.api.routes.health import router as health_router
 from app.core.config import settings
 from app.core.exceptions import AppException
@@ -78,6 +79,7 @@ def create_app() -> FastAPI:
         return JSONResponse(status_code=500, content={"error": "InternalError", "message": message, "details": {}})
 
     application.include_router(health_router)
+    application.include_router(cav4_auth_router)
 
     application.include_router(projects_router)
     application.include_router(files_router)

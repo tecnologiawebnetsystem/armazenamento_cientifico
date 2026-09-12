@@ -9,7 +9,7 @@ O login corporativo pode envolver dois sistemas diferentes:
 - **Microsoft Entra ID:** provedor de identidade OIDC. Autentica o usuário e entrega uma identidade validável.
 - **CAV4:** integração corporativa ainda dependente de contrato técnico oficial. Não devemos inventar endpoints, chaves ou formato de token.
 
-O Entra autentica. O backend do SIGAC valida o token, localiza o usuário local, aplica o perfil interno e cria a sessão.
+O CAV4 será o provedor principal de autenticação quando o contrato técnico estiver disponível. O backend do SIGAC validará o retorno, localizará o usuário local, aplicará papéis e permissões e criará a sessão. Enquanto o contrato não existir, a integração permanece desligada e não simula login.
 
 ## 2. Fluxo visual
 
