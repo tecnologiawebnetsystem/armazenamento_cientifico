@@ -292,9 +292,9 @@ Não altere uma migration já aplicada sem confirmar o impacto na API.
 
 ---
 
-## 7. Tabelas, campos, PKs e FKs
+## 7. Tabelas
 
-A lista abaixo apresenta as tabelas utilizadas pelo SiGAC no schema `public`, com seus campos físicos, chaves primárias e chaves estrangeiras. Os campos representam os nomes definidos no PostgreSQL; `*` identifica a chave primária.
+A lista abaixo apresenta somente as tabelas utilizadas pelo SiGAC, com seus campos físicos, chaves primárias e chaves estrangeiras no PostgreSQL. `*` identifica a chave primária.
 
 | Tabela | Campos físicos | PK | FKs declaradas |
 |---|---|---|---|
