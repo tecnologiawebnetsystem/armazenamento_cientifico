@@ -276,7 +276,7 @@ O backend em [`back-end/`](back-end/) é um serviço FastAPI. Ele concentra aute
 
 ## 6. Banco de dados
 
-O SiGAC utiliza exclusivamente as tabelas da aplicação definidas em [`back-end/database/postgresql-schema.sql`](back-end/database/postgresql-schema.sql). Tabelas criadas automaticamente por Neon, como as relacionadas à autenticação gerenciada, não fazem parte deste inventário porque não são utilizadas pelo sistema.
+O SiGAC utiliza PostgreSQL como banco de dados relacional. A estrutura abaixo apresenta somente as tabelas da aplicação definidas no schema [`back-end/database/postgresql-schema.sql`](back-end/database/postgresql-schema.sql) e utilizadas pelos módulos de usuários, permissões, projetos, arquivos, solicitações, sessões e auditoria. O inventário não inclui tabelas técnicas de controle de migrations nem tabelas externas à aplicação.
 
 ### Ciclo de mudança
 
@@ -294,11 +294,10 @@ Não altere uma migration já aplicada sem confirmar o impacto na API.
 
 ## 7. Tabelas, campos, PKs e FKs
 
-A lista abaixo contém somente as tabelas utilizadas pelo SiGAC no schema `public`. Os campos representam os nomes físicos definidos no schema PostgreSQL; `*` identifica a chave primária.
+A lista abaixo contém somente as tabelas de negócio utilizadas pelo SiGAC no schema `public`. Os campos representam os nomes físicos definidos no PostgreSQL; `*` identifica a chave primária. A tabela técnica de controle de migrations não é listada porque não representa dados utilizados pelas funcionalidades do SiGAC.
 
 | Tabela | Campos físicos | PK | FKs declaradas |
 |---|---|---|---|
-| `schema_migrations` | `version*`, `applied_at` | `version` | — |
 | `profiles` | `id*`, `name`, `description`, `created_at` | `id` | — |
 | `users` | `id*`, `name`, `email`, `job_title`, `area`, `role`, `profile_id`, `avatar_url`, `last_login_at`, `created_at` | `id` | `profile_id -> profiles.id` |
 | `modules` | `id*`, `name`, `route`, `icon`, `display_order`, `active` | `id` | — |
@@ -307,6 +306,7 @@ A lista abaixo contém somente as tabelas utilizadas pelo SiGAC no schema `publi
 | `profile_modules` | `profile_id*`, `module_id*`, `can_view` | `(profile_id,module_id)` | `profile_id -> profiles.id`; `module_id -> modules.id` |
 | `project_statuses` | `id*`, `code`, `name`, `color`, `display_order`, `active`, `allows_edit` | `id` | — |
 | `project_types` | `id*`, `code`, `name`, `description`, `active` | `id` | — |
+| `responsible_areas` | `id*`, `name`, `prefix`, `next_number`, `active`, `created_at`, `updated_at` | `id` | — |
 | `system_settings` | `key*`, `value`, `value_type`, `description`, `group_name`, `active` | `key` | — |
 | `report_types` | `id*`, `code`, `name`, `description`, `formats`, `active` | `id` | — |
 | `report_fields` | `id*`, `report_code`, `field_key`, `label`, `source_key`, `display_order`, `active` | `id` | `report_code -> report_types.code` |
@@ -327,7 +327,7 @@ A lista abaixo contém somente as tabelas utilizadas pelo SiGAC no schema `publi
 
 ## 8. Modelagem e diagrama
 
-O modelo abaixo representa somente as tabelas utilizadas pelo SiGAC e os relacionamentos declarados no schema PostgreSQL. Tabelas auxiliares do Neon ou de outros serviços externos foram omitidas.
+O modelo abaixo representa somente as tabelas de negócio utilizadas pelo SiGAC e os relacionamentos declarados no schema PostgreSQL. O diagrama mostra as entidades, chaves estrangeiras e vínculos necessários para usuários, permissões, projetos, arquivos, solicitações, sessões e auditoria.
 
 ```mermaid
 erDiagram
