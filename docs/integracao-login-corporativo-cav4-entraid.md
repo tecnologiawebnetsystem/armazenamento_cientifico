@@ -4,12 +4,9 @@
 
 ## 1. Resumo executivo
 
-O login corporativo pode envolver dois sistemas diferentes:
+O backend do SIGAC possui atualmente um ponto de entrada reservado para o login corporativo **CAV4**, mas a integração permanece desativada até a disponibilização e validação do contrato técnico oficial. O Microsoft Entra ID aparece neste documento somente como referência de identidade corporativa e não deve ser tratado como fluxo implementado enquanto não existirem rotas, configuração e testes correspondentes no sistema.
 
-- **Microsoft Entra ID:** provedor de identidade OIDC. Autentica o usuário e entrega uma identidade validável.
-- **CAV4:** integração corporativa ainda dependente de contrato técnico oficial. Não devemos inventar endpoints, chaves ou formato de token.
-
-O CAV4 será o provedor principal de autenticação quando o contrato técnico estiver disponível. O backend do SIGAC validará o retorno, localizará o usuário local, aplicará papéis e permissões e criará a sessão. Enquanto o contrato não existir, a integração permanece desligada e não simula login.
+Não inventar endpoints, chaves, claims ou formato de token. Quando o contrato estiver disponível, o backend deverá validar a identidade, localizar o usuário nas tabelas `users` e `profiles`, aplicar as regras de `modules`, `permissions`, `profile_modules` e `profile_permissions`, registrar a sessão em `sessions` e auditar o evento em `activity_logs`.
 
 ## 2. Fluxo visual
 
