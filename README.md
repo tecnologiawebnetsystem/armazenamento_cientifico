@@ -231,26 +231,30 @@ alembic upgrade head
 
 ## 4. Estrutura do frontend
 
-A aplicação web está na raiz do repositório e é uma instalação Next.js independente. O diretório `back-end/` permanece separado como serviço FastAPI.
+O frontend está na raiz do repositório, é uma aplicação Next.js 16 com App Router e consome exclusivamente a API FastAPI configurada em `NEXT_PUBLIC_API_BASE_URL`. A camada visual não acessa o banco e não implementa autorização definitiva.
 
-| Pasta/arquivo | Finalidade |
+| Pasta/arquivo | Responsabilidade |
 |---|---|
-| [`app/`](app/) | Rotas, layouts, páginas e grupos de rotas do App Router. |
-| [`app/(app)/`](app/(app)/) | Área autenticada da aplicação. |
-| [`app/login/`](app/login/) | Página e fluxo visual de login. |
-| [`readme.md`](readme.md) | Documentação técnica consolidada. |
-| [`components/`](components/) | Componentes reutilizáveis de UI e domínio. |
-| [`components/ui/`](components/ui/) | Componentes base do shadcn/ui. |
-| [`hooks/`](hooks/) | Hooks para sessão, usuários, projetos, arquivos e permissões. |
-| [`lib/`](lib/) | Cliente HTTP, tipos, estado, navegação e utilitários. |
-| [`lib/api-client.ts`](lib/api-client.ts) | Centraliza chamadas para a API. |
-| [`public/`](public/) | Imagens, fontes e arquivos estáticos. |
-| [`tests/`](tests/) | Testes E2E e verificações do frontend. |
-| [`package.json`](package.json) | Scripts e dependências JavaScript. |
-| [`tsconfig.json`](tsconfig.json) | Configuração do TypeScript e aliases. |
-| [`next.config.ts`](next.config.ts) | Configuração do Next.js. |
-| [`components.json`](components.json) | Configuração do shadcn/ui. |
-| [`.env.local`](.env.local) | Variáveis locais não versionadas. |
+| [`app/`](app/) | Rotas, layouts, estados de carregamento e tratamento de erros. |
+| [`app/(app)/`](app/(app)/) | Área protegida: dashboard, projetos, pesquisas, relatórios e logs. |
+| [`app/login/`](app/login/) | Tela de login local e corporativo. |
+| [`components/`](components/) | Componentes de layout, domínio e apresentação. |
+| [`components/ui/`](components/ui/) | Componentes acessíveis baseados em shadcn/ui. |
+| [`hooks/`](hooks/) | Hooks de login, arquivos, catálogos, solicitações e auditoria. |
+| [`lib/api-client.ts`](lib/api-client.ts) | Cliente HTTP único, cookies, tratamento de erros e downloads. |
+| [`lib/session.ts`](lib/session.ts) | Leitura da sessão do backend para Server Components. |
+| [`lib/types.ts`](lib/types.ts) | Tipos compartilhados das respostas e modelos da API. |
+| [`public/`](public/) | Arquivos estáticos. |
+| [`tests/`](tests/) | Testes E2E, quando presentes. |
+| [`app/globals.css`](app/globals.css) | Tokens, tema e estilos globais Tailwind v4. |
+| [`package.json`](package.json) | Scripts e dependências do frontend. |
+
+### Fluxo de dados
+
+1. A página ou componente usa um hook ou uma função de `lib/api-client.ts`.
+2. O cliente envia `fetch` ao FastAPI com `credentials: include` e `cache: no-store`.
+3. O backend valida sessão, payload e permissão.
+4. O componente atualiza loading, dados, estado vazio ou erro.
 
 ### Comandos
 
@@ -267,45 +271,27 @@ pnpm test:e2e
 
 ## 5. Estrutura do backend
 
-O backend está em [`back-end/`](back-end/) e usa FastAPI, SQLAlchemy 2.0, Pydantic e Alembic. A arquitetura adotada é modular por domínio, com evolução para Clean Architecture e Hexagonal Architecture (Ports and Adapters). Controllers cuidam do HTTP, application services orquestram casos de uso, repositories encapsulam persistência e adapters isolam PostgreSQL/SQLite e integrações externas. A compatibilidade legada está isolada em [`back-end/app/api/legacy.py`](back-end/app/api/legacy.py) e não deve receber novos domínios.
+O backend em [`back-end/`](back-end/) é um serviço FastAPI. Ele concentra autenticação, autorização, regras de negócio, validação, auditoria e persistência. A organização atual combina módulos por domínio com uma camada legada mantida apenas para compatibilidade.
 
-| Pasta/arquivo | Finalidade |
+| Pasta/arquivo | Responsabilidade |
 |---|---|
-| [`back-end/app/`](back-end/app/) | Pacote principal da aplicação Python. |
-| [`back-end/app/main.py`](back-end/app/main.py) | Entry point ASGI usado pelo Uvicorn. |
-| [`back-end/app/app.py`](back-end/app/app.py) | Monta a aplicação, middlewares, CORS e routers. |
-| [`back-end/app/core/`](back-end/app/core/) | Configuração, ambiente, segurança e utilitários centrais. |
-| [`back-end/app/core/config.py`](back-end/app/core/config.py) | Lê variáveis de ambiente e configura o sistema. |
-| [`back-end/app/api/`](back-end/app/api/) | Dependências compartilhadas, sessão e autenticação das rotas. |
-| [`back-end/app/db/`](back-end/app/db/) | Engine, sessão, Base SQLAlchemy e seed. |
-| [`back-end/app/modules/`](back-end/app/modules/) | Domínios funcionais separados. |
-| [`back-end/app/modules/users/`](back-end/app/modules/users/) | Usuários, perfis, login e permissões. |
-| [`back-end/app/modules/projects/`](back-end/app/modules/projects/) | Projetos e membros. |
-| [`back-end/app/modules/files/`](back-end/app/modules/files/) | Arquivos e compartilhamentos. |
-| [`back-end/app/modules/audit/`](back-end/app/modules/audit/) | Logs de atividade e auditoria. |
-| `module.py` | Registra o módulo e seus routers. |
-| `models.py` | Define tabelas SQLAlchemy e relacionamentos. |
-| `schemas.py` | Define entrada e saída com Pydantic. |
-| `controller.py` | Define endpoints HTTP e respostas. |
-| `service.py`/`repository.py` | Regras de negócio e acesso a dados, quando presentes. |
-| [`back-end/alembic/`](back-end/alembic/) | Histórico de migrations do banco. |
-| [`back-end/alembic/env.py`](back-end/alembic/env.py) | Conecta Alembic à configuração e metadata. |
-| [`back-end/alembic/versions/`](back-end/alembic/versions/) | Migrations incrementais. |
-| [`back-end/data/`](back-end/data/) | Arquivo SQLite local; não é armazenamento de produção. |
-| [`back-end/tests/`](back-end/tests/) | Testes de contrato, schemas e integração. |
-| [`back-end/requirements.txt`](back-end/requirements.txt) | Dependências Python. |
-| [`back-end/.env.example`](back-end/.env.example) | Modelo de configuração local. |
-| [`README.md`](README.md) | Documentação operacional única do frontend e backend. |
+| [`back-end/app/app.py`](back-end/app/app.py) | Cria a aplicação, CORS, headers, handlers e registro de routers. |
+| [`back-end/app/api/routes/`](back-end/app/api/routes/) | Rotas transversais, como health e autenticação corporativa. |
+| [`back-end/app/api/dependencies.py`](back-end/app/api/dependencies.py) | Resolve usuário da sessão e dependências de autorização. |
+| [`back-end/app/api/legacy.py`](back-end/app/api/legacy.py) | Endpoints legados e compatibilidade OpenAPI. |
+| [`back-end/app/core/`](back-end/app/core/) | Configuração, autorização, segurança, Entra ID, CAV4, erros e logs. |
+| [`back-end/app/db/`](back-end/app/db/) | Pool/conexão, base e seed do banco. |
+| [`back-end/app/modules/projects/`](back-end/app/modules/projects/) | Controllers, schemas, services, repositories e models de projetos. |
+| [`back-end/app/modules/files/`](back-end/app/modules/files/) | Arquivos, pastas e permissões de arquivos. |
+| [`back-end/app/modules/audit/`](back-end/app/modules/audit/) | Registro e consulta de auditoria. |
+| [`back-end/app/modules/users/`](back-end/app/modules/users/) | Modelos de usuários, perfis e permissões. |
+| [`back-end/alembic/versions/`](back-end/alembic/versions/) | Migrations versionadas. |
+| [`back-end/database/`](back-end/database/) | Schemas SQL de referência. |
+| [`back-end/tests/`](back-end/tests/) | Testes de contrato, autorização, schemas, rotas e PostgreSQL. |
 
-### Comandos de qualidade
+### Camadas de um domínio
 
-```bash
-cd back-end
-python -m compileall -q app alembic
-python -m pip check
-python -m pytest -q
-ruff check .
-```
+`module.py` registra o router; `controller.py` trata HTTP; `schemas.py` valida DTOs; `service.py` orquestra regras; `repository.py` concentra consultas; `models.py` representa persistência. Nem todo módulo possui todas as camadas, mas novos endpoints devem preservar essa separação.
 
 ---
 
@@ -394,140 +380,99 @@ erDiagram
 
 ## 9. API e endpoints
 
-### Relatórios e exportação
+A API REST do SiGAC é fornecida pelo FastAPI em `back-end/`. O contrato publicado deve ser consultado no [Swagger](http://localhost:8080/docs), no [ReDoc](http://localhost:8080/redoc) ou no [`OpenAPI JSON`](http://localhost:8080/openapi.json) quando a documentação estiver habilitada.
 
-O relatório de projetos usa os dados persistidos de `projects`, `files`, `project_members` e os campos ativos de `report_fields`. A consulta JSON está em `GET /api/reports`; as exportações estão em `GET /api/reports/export` com `format=csv|txt|pdf`, filtros `status`, `area`, `gestorId` e `fields`. Os rótulos e campos são carregados do catálogo `report_fields`; o PDF retorna `application/pdf` com `Content-Disposition` próprio.
+### Grupos principais
 
-A tela de relatórios carrega os status ativos de `GET /api/catalogos`, sem lista fixa de status para o filtro. O backend reaplica a autorização e os filtros antes de gerar CSV, TXT ou PDF.
-
-### Estado da API
-
-Os endpoints em `back-end/app/modules/` são a arquitetura modular preferencial. A `legacy_api.py` ainda fornece compatibilidade para autenticação, relatórios, configurações, permissões, solicitações de acesso, exportações e alguns CRUDs. Rotas duplicadas de projetos, arquivos, usuários e membros devem ser migradas gradualmente para os controllers modulares antes da remoção da camada legada.
-
-## 9.1. API e endpoints
-
-A fonte viva do contrato é o [Swagger](http://localhost:8080/docs) e o arquivo [`OpenAPI JSON`](http://localhost:8080/openapi.json).
-
-| Grupo | Endpoints | Finalidade |
+| Grupo | Endpoints utilizados | Finalidade |
 |---|---|---|
-| Health | `GET /health`, `GET /health/live`, `GET /health/ready`, `GET /health/database` | Liveness, readiness e conexão com o banco. |
-| Login | `POST /api/auth/login` | Inicia sessão por e-mail. |
-| Session | `GET /api/auth/session` | Retorna o usuário atual. |
-| Logout | `POST /api/auth/logout` | Encerra sessão. |
-| Users | `GET /api/users` | Consulta autenticada para seleção de participantes e membros. |
-| Perfis | `GET /api/perfis` | Catálogo de perfis e autorização. |
-| Permissions | `GET /api/permissions` | Consulta permissões disponíveis. |
-| Projects | `GET/POST /api/projects`, `GET/PATCH/DELETE /api/projects/{id}` | CRUD de projetos. |
-| Members | `GET/POST /api/projects/{id}/members`, `DELETE /api/projects/{id}/members/{user_id}` | Participantes. |
-| Files | `GET/POST /api/files`, `GET/PATCH/DELETE /api/files/{id}` | Metadados de arquivos. |
-| Shares | `GET/POST /api/files/{id}/shares`, `DELETE /api/files/{id}/shares/{user_id}` | Acessos a arquivos. |
-| Logs | `GET /api/activity-logs` | Eventos do sistema. |
-| Reports | `GET /api/reports/summary`, `GET /api/reports/projects` | Dados agregados. |
+| Health | `GET /health`, `/health/live`, `/health/ready`, `/health/database` | Disponibilidade da aplicação e do banco. |
+| Autenticação | `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/session` | Login local, encerramento e consulta da sessão. |
+| Login corporativo | `GET /api/auth/cav4/start`, `GET /api/auth/cav4/callback` | Fluxo corporativo CAV4/OIDC. |
+| Catálogos e diretório | `GET /api/catalogos`, `/api/users`, `/api/perfis`, `/api/permissions` | Dados auxiliares para telas e autorização. |
+| Projetos | `GET/POST /api/projects`, `GET/PATCH/DELETE /api/projects/{id}` | CRUD, áreas, mapa de acesso e membros. |
+| Arquivos | `GET/POST /api/files`, `GET/PATCH/DELETE /api/files/{id}` | Pastas, arquivos e metadados. |
+| Compartilhamento | `/api/files/{id}/permissions` | Concessão e remoção de acesso a arquivos. |
+| Dashboard | `GET /api/dashboard/summary` | Indicadores da área autenticada. |
+| Auditoria | `GET /api/activity-logs` | Consulta dos eventos do sistema. |
+| Relatórios | `GET /api/reports`, `/api/reports/export`, `/api/report-fields` | Consulta e exportação CSV, TXT e PDF. |
+| Acesso | `GET /api/access-map`, `/api/access-map/export` | Visão e exportação do mapa de acesso. |
 
-### Códigos HTTP
+A implementação modular está em `back-end/app/modules/`. `back-end/app/api/legacy.py` permanece somente para compatibilidade com contratos antigos; novas funcionalidades devem ser implementadas nos módulos de domínio.
 
-- `200`/`201`: sucesso;
-- `400`: payload ou regra inválida;
-- `401`: sessão ausente ou expirada;
-- `403`: permissão insuficiente;
-- `404`: recurso inexistente;
-- `409`: conflito;
-- `422`: validação Pydantic;
-- `500`: erro inesperado.
+### Contrato de resposta e erros
+
+As requisições do frontend usam JSON, cookies de sessão e `cache: no-store`. Respostas de erro seguem `error`, `message` e, quando necessário, `details`. Os códigos mais usados são `200`/`201` para sucesso, `204` sem conteúdo, `401` sessão inválida, `403` acesso negado, `404` recurso inexistente, `409` conflito, `422` validação e `500` erro interno.
 
 ---
 
 ## 10. Mapa API x frontend
 
-| Domínio | API | Arquivos frontend |
+| Domínio | Endpoints | Arquivos frontend existentes |
 |---|---|---|
-| Cliente HTTP | Todos os endpoints | [`lib/api-client.ts`](lib/api-client.ts) |
-| Sessão | `/api/auth/session` | [`hooks/use-session.ts`](hooks/use-session.ts), [`app/login/page.tsx`](app/login/page.tsx) |
-| Diretório | `/api/users` | [`hooks/use-users.ts`](hooks/use-users.ts), seleção de membros de projetos |
-| Permissões | `/api/permissions` | [`hooks/use-permissions.ts`](hooks/use-permissions.ts) |
-| Projetos | `/api/projects` | [`hooks/use-projects.ts`](hooks/use-projects.ts), [`hooks/use-project.ts`](hooks/use-project.ts), páginas de projetos |
-| Membros | `/api/projects/{id}/members` | [`hooks/use-project-members.ts`](hooks/use-project-members.ts) |
-| Arquivos | `/api/files` | [`hooks/use-files.ts`](hooks/use-files.ts) |
-| Auditoria | `/api/activity-logs` | [`hooks/use-activity-logs.ts`](hooks/use-activity-logs.ts), tabela de logs |
-| Relatórios | `/api/reports/*` | [`app/(app)/relatorios/`](app/(app)/relatorios/) |
-
-### Arquitetura e qualidade do backend
-
-As rotas novas são organizadas por módulos em `back-end/app/modules/` (projetos, arquivos e auditoria), enquanto `legacy_api.py` permanece como camada de compatibilidade durante a migração gradual. O boundary oficial dessa compatibilidade é `back-end/app/api/legacy.py`; novos endpoints devem seguir controller → service → repository → banco ou port → adapter. O acesso ao banco é centralizado em `app/db/session.py`, com suporte a SQLite local e PostgreSQL em produção.
-
-As entradas são validadas por schemas Pydantic com limites para códigos, nomes, MIME type e tamanho de arquivos. A configuração de produção rejeita SQLite, cookies inseguros, documentação OpenAPI exposta e CORS wildcard. Os health checks são separados em `/health/live`, `/health/ready` e `/health/database`, mantendo `/health` como alias compatível.
-
-A suíte `back-end/tests/` cobre contrato OpenAPI, autorização, schemas, rotas e integração PostgreSQL. Execute `uv run pytest -q` no diretório `backend` antes de publicar alterações.
+| Cliente HTTP | Todos | [`lib/api-client.ts`](lib/api-client.ts) |
+| Login e sessão | `/api/auth/login`, `/api/auth/logout`, `/api/auth/session` | [`hooks/use-login.ts`](hooks/use-login.ts), [`app/login/page.tsx`](app/login/page.tsx), [`lib/session.ts`](lib/session.ts) |
+| Login corporativo | `/api/auth/cav4/start` | [`hooks/use-login.ts`](hooks/use-login.ts) |
+| Catálogos | `/api/catalogos`, `/api/projects/areas` | [`hooks/use-catalogs.ts`](hooks/use-catalogs.ts) |
+| Projetos | `/api/projects`, `/api/projects/{id}`, `/api/projects/{id}/access-map` | [`app/(app)/projetos/`](app/(app)/projetos/), [`components/project-form.tsx`](components/project-form.tsx) |
+| Membros e solicitações | `/api/projects/{id}/members`, `/api/access-requests` | [`components/projects/project-members-tab.tsx`](components/projects/project-members-tab.tsx), [`components/administracao/access-requests-queue.tsx`](components/administracao/access-requests-queue.tsx) |
+| Arquivos | `/api/files`, `/api/files/{id}`, `/api/files/{id}/permissions` | [`hooks/use-files.ts`](hooks/use-files.ts), [`components/projects/project-file-explorer.tsx`](components/projects/project-file-explorer.tsx) |
+| Dashboard | `/api/dashboard/summary` | [`app/(app)/dashboard/page.tsx`](app/(app)/dashboard/page.tsx), [`components/dashboard/`](components/dashboard/) |
+| Auditoria | `/api/activity-logs` | [`hooks/use-activity-logs.ts`](hooks/use-activity-logs.ts), [`app/(app)/logs/page.tsx`](app/(app)/logs/page.tsx) |
+| Relatórios | `/api/reports`, `/api/reports/export`, `/api/report-fields` | [`app/(app)/relatorios/page.tsx`](app/(app)/relatorios/page.tsx), [`components/export-fields-dialog.tsx`](components/export-fields-dialog.tsx) |
 
 ### Como rastrear uma chamada
 
-1. Comece pelo hook;
-2. Localize a função usada em `lib/api-client.ts`;
-3. Procure o path no controller Python;
-4. Identifique o schema e model consultados;
-5. Confira as regras de sessão e autorização;
-6. Atualize esta tabela quando criar uma nova integração.
+1. Comece na página ou componente que dispara a ação.
+2. Localize o hook ou função correspondente em `lib/api-client.ts`.
+3. Procure o endpoint no controller modular ou em `back-end/app/api/legacy.py`.
+4. Confira schema, regra de autorização, consulta e resposta.
+5. Atualize esta tabela quando o contrato ou a tela mudar.
 
 ---
 
 ## 11. Autenticação e permissões
 
-### Proteção de rotas e páginas de erro
+### Sessão
 
-As rotas privadas do frontend são protegidas por `middleware.ts`, que verifica o cookie HttpOnly `wayon_session_user_id` e redireciona usuários não autenticados para `/login`. A proteção é reforçada por `app/(app)/layout.tsx`, que valida a sessão no servidor.
+O login local envia o e-mail para `POST /api/auth/login`. O backend valida o usuário ativo em `users`, cria um registro em `sessions` e devolve um cookie HttpOnly com o nome configurado em `COOKIE_NAME`. O frontend usa `credentials: include`; não armazena sessão, token ou credencial em `localStorage`.
 
-As páginas parametrizadas são `app/not-found.tsx` para 404, `app/forbidden/page.tsx` para acesso negado e `app/error.tsx`/`global-error.tsx` para erros inesperados. Nenhuma dessas camadas substitui a autorização no backend.
+A proteção principal ocorre no backend por `get_current_user`, que lê o cookie, verifica a sessão e sua expiração. O layout [`app/(app)/layout.tsx`](app/(app)/layout.tsx) também consulta a sessão no servidor e redireciona para `/login` quando necessário.
 
-O backend é a autoridade para identidade, sessão e autorização.
+### Login corporativo
 
-### Microsoft Entra ID
+O botão corporativo inicia `GET /api/auth/cav4/start`. O backend conduz o fluxo OAuth 2.0/OpenID Connect, valida `state`, troca o código no provedor CAV4 e cria a mesma sessão HttpOnly após identificar o usuário. Segredos e configurações ficam somente no backend (`CAV4_*`); nunca use valores `NEXT_PUBLIC_*` para credenciais.
 
-O login corporativo usa OAuth 2.0 / OpenID Connect. O frontend inicia o fluxo no backend em `/api/auth/entra/login`; o callback `/api/auth/entra/callback` valida o `state`, troca o `code`, consulta a identidade e cria uma sessão HttpOnly. O backend é a única camada que conhece o segredo.
+### Autorização
 
-Todas as configurações ficam em `back-end/.env`, carregadas por `python-dotenv`: `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET`, `ENTRA_REDIRECT_URI`, `ENTRA_SCOPES`, `ENTRA_GROUPS` e `ENTRA_GROUP_SYNC_ENABLED`. Os valores reais não devem estar no frontend, em `NEXT_PUBLIC_*`, em logs ou no Git; use `back-end/.env.example` apenas como modelo.
-
-`ENTRA_GROUPS` aceita IDs ou nomes separados por vírgula. O backend registra grupos e o último login na auditoria, e rejeita configuração parcial na inicialização.
-
-### Login
-
-O login local recebe um e-mail, procura um usuário ativo em `users` e cria uma sessão protegida por cookie. Não existe cadastro automático pelo frontend.
-
-### Perfis e escopo
-
-O usuário possui um `perfil_id` com ID fixo e permissões associadas. O catálogo está em `perfis`; o campo `role` é legado e permanece somente para compatibilidade. Cada consulta precisa validar:
-
-- usuário autenticado;
-- vínculo com o projeto;
-- acesso ao arquivo;
-- permissão para a ação solicitada.
+As dependências `require_roles()` e `require_capabilities()` são aplicadas nas rotas protegidas. O backend deve validar usuário autenticado, perfil/capability necessária, vínculo com o projeto e acesso ao arquivo. `PermissionGuard` e elementos ocultos no frontend são apenas recursos de UX e nunca substituem essa verificação.
 
 ### Boas práticas
 
-- Usar HTTPS em produção;
-- Habilitar cookies `Secure` em produção;
-- Restringir CORS;
-- Validar entradas com Pydantic;
-- Usar queries parametrizadas;
-- Não registrar tokens ou segredos nos logs;
-- Nunca usar `localStorage` para sessão ou credenciais.
+- HTTPS e `Secure` no cookie em produção;
+- CORS restrito aos domínios conhecidos;
+- queries parametrizadas e validação Pydantic;
+- nenhum token ou segredo em logs, código ou frontend;
+- retornar `401` para sessão ausente/expirada e `403` para permissão insuficiente;
+- invalidar a sessão no logout e respeitar sua expiração.
 
 ---
 
 ## 12. Padrões de desenvolvimento
 
-### Nova tabela
+### Backend e banco
 
-Adicione model, migration, schema, repository/service, controller, testes e a entrada correspondente em [Tabelas e campos](#7-tabelas-e-campos). Teste banco vazio e banco já populado.
+Para uma alteração persistente, atualize model/schema, migration Alembic, repository/service, controller, testes e os itens 6–8 desta documentação. Migrations devem ser incrementais, revisadas e compatíveis com banco vazio e banco já populado.
 
 ### Novo endpoint
 
-Defina método, path, autenticação, payload, respostas e erros. Implemente o controller, conecte o hook do frontend, atualize o [Mapa API x frontend](#10-mapa-api-x-frontend) e valide no Swagger.
+Defina método, path, autenticação, capability, payload, respostas e códigos de erro. Implemente no módulo de domínio seguindo `controller → schema → service → repository`; use a camada legada somente quando for necessário preservar um contrato existente. Adicione a função do `lib/api-client.ts`, hook ou Server Component consumidor, teste de contrato e entrada no item 10.
 
-### Nova página
+### Nova tela ou componente
 
-Crie a rota em `app/`, extraia componentes reutilizáveis, use tokens existentes e implemente loading, estado vazio, erro, acessibilidade e responsividade.
+Crie a rota em `app/`, mantenha componentes de domínio separados, reutilize `components/ui/`, use TypeScript estrito e estados de carregamento, vazio e erro. Preserve acessibilidade, responsividade e o padrão visual definido em `app/globals.css`; chamadas HTTP devem passar pelo cliente centralizado.
 
-### Checklist
+### Checklist antes de publicar
 
 ```bash
 pnpm typecheck
@@ -535,9 +480,10 @@ pnpm lint
 pnpm build
 pnpm test:e2e
 
-cd ../backend
-python -m compileall -q app alembic
-python -m pytest -q
+cd back-end
+uv run ruff check app alembic scripts tests
+uv run pytest -q
+uv run alembic check
 ```
 
 ---
@@ -706,7 +652,7 @@ O login corporativo ainda está em fase de preparação. A aplicação mantém o
 
 A arquitetura recomendada é OpenID Connect sobre OAuth 2.0, usando Authorization Code + PKCE com o Microsoft Entra ID. O backend deve validar o retorno do provedor, identificar o colaborador por `oid`/`sub`, localizar ou provisionar o usuário local e aplicar os perfis e permissões do SIGAC. Tokens não devem ser armazenados em `localStorage`; a sessão deve usar cookie seguro e HttpOnly.
 
-O CAV4 deve ser integrado somente após o time proprietário fornecer seu contrato oficial: mecanismo de autenticação, endpoints, scopes, claims, grupos, certificado ou metadata, ambientes e regras de autorização. Não invente endpoints ou permissões do CAV4.
+O CAV4 deve ser integrado somente após o time proprietário fornecer seu contrato oficial: mecanismo de autentica��ão, endpoints, scopes, claims, grupos, certificado ou metadata, ambientes e regras de autorização. Não invente endpoints ou permissões do CAV4.
 
 Consulte o checklist completo em [`docs/integracao-login-corporativo-cav4-entraid.md`](docs/integracao-login-corporativo-cav4-entraid.md), que documenta:
 
