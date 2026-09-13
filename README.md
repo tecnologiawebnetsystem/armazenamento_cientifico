@@ -8,7 +8,7 @@
 
 - [1. Visão geral](#1-visão-geral)
 - [2. Como executar](#2-como-executar)
-- [3. SQLite e PostgreSQL](#3-sqlite-e-postgresql-passo-a-passo)
+- [3. PostgreSQL passo a passo](#3-postgresql-passo-a-passo)
 - [4. Estrutura do frontend](#4-estrutura-do-frontend)
 - [5. Estrutura do backend](#5-estrutura-do-backend)
 - [6. Banco de dados](#6-banco-de-dados)
@@ -50,7 +50,7 @@ O frontend nunca deve ser a única barreira de segurança. Toda permissão preci
 
 #### Back-end
 
-- **Python 3.11 ou superior**, com **FastAPI**, **SQLAlchemy 2.0**, **Pydantic 2**, **Alembic** e suporte a SQLite/PostgreSQL.
+- **Python 3.11 ou superior**, com **FastAPI**, **SQLAlchemy 2.0**, **Pydantic 2**, **Alembic** e **PostgreSQL**.
 - Arquitetura **modular por domínio**, em evolução para **Clean Architecture** e **Hexagonal Architecture (Ports and Adapters)**.
 - A camada HTTP recebe requisições, os application services orquestram casos de uso, repositories encapsulam a persistência e adapters isolam bancos e integrações externas.
 - Padrões principais: **Layered Architecture**, **Service Layer**, **Repository Pattern**, **Dependency Injection**, **Schema/DTO Pattern** e **Adapter de compatibilidade** para a API legada.
@@ -96,8 +96,7 @@ Frontend e backend são aplicações independentes e devem ser iniciados em term
 - Python 3.11 ou superior;
 - Node.js 20 ou superior;
 - pnpm;
-- SQLite 3 para desenvolvimento;
-- PostgreSQL para ambientes compartilhados ou produção.
+- PostgreSQL 14 ou superior, com acesso ao banco e permissão para executar migrations;
 
 ### Iniciar o backend
 
@@ -154,77 +153,58 @@ pnpm dev
 
 ---
 
-## 3. SQLite e PostgreSQL passo a passo
+## 3. PostgreSQL passo a passo
 
-O backend suporta dois bancos selecionáveis pelo `.env`: SQLite para desenvolvimento local e PostgreSQL para ambientes compartilhados ou produção. O mesmo contrato de API deve funcionar nos dois modos; altere apenas `DATABASE_ENGINE` e `DATABASE_URL`.
-
-### SQLite local
-
-O SQLite usa o arquivo `back-end/data/sigac.db` e é indicado para desenvolvimento individual.
+O SiGAC utiliza PostgreSQL como banco de dados relacional da aplicação. O banco concentra usuários, perfis, projetos, arquivos, vínculos de acesso, solicitações e registros de auditoria, enquanto o backend FastAPI centraliza as regras de negócio e o acesso aos dados.
 
 ### Configuração pelo `.env`
 
-#### SQLite local
+Defina as variáveis no arquivo `back-end/.env` local, que não deve ser versionado:
 
 ```env
-DATABASE_ENGINE=sqlite
-DATABASE_URL=sqlite+aiosqlite:///./data/sigac.db
-SEED_DATABASE=true
-CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+DATABASE_ENGINE=postgresql
+DATABASE_URL=postgresql://usuario:senha@host:5432/sigac?sslmode=require
+SEED_DATABASE=false
+CORS_ORIGINS=http://localhost:3000
 COOKIE_SECURE=false
 ENVIRONMENT=development
 ```
 
-#### PostgreSQL
-
-```env
-DATABASE_ENGINE=postgresql
-DATABASE_URL=postgresql://usuario:senha@host/postgresqldb?sslmode=require
-SEED_DATABASE=false
-CORS_ORIGINS=https://seu-frontend.example.com
-COOKIE_SECURE=true
-ENVIRONMENT=production
-```
-
-O valor de `DATABASE_ENGINE` decide o driver usado pela API. Nunca versionar credenciais reais; use as variáveis de ambiente do projeto ou o arquivo `.env` local não versionado.
-
-O caminho `./data/sigac.db` é relativo ao diretório em que a API é iniciada. Execute o Uvicorn dentro de `back-end/` para gerar:
-
-```text
-back-end/data/sigac.db
-```
+Em ambientes HTTPS compartilhados ou de produção, use o domínio real do frontend, habilite `COOKIE_SECURE=true` e mantenha `sslmode=require` na conexão. Nunca versionar credenciais reais ou expor a URL do banco no frontend.
 
 ### Criar e atualizar tabelas
 
-```bash
-cd back-end
-alembic upgrade head
-alembic current
-alembic history
-```
-
-A migration [`0002_remove_app_prefix.py`](back-end/alembic/versions/0002_remove_app_prefix.py) renomeia bancos antigos que ainda possuam o prefixo `app_`, preservando os registros.
-
-### Seed e login local
-
-Na primeira execução, o seed cria perfis e usuários iniciais apenas quando eles ainda não existem. O login local exige que o e-mail esteja na tabela [`users`](#users).
-
-### Visualizar dados
-
-- Use o [Swagger](http://localhost:8080/docs) para consultar a API;
-- Use o **DB Browser for SQLite** para abrir `back-end/data/sigac.db`;
-- Não coloque o `.db` dentro de `public/`;
-- Não crie uma rota HTTP que entregue o arquivo SQLite diretamente.
-
-### Resetar o banco local
-
-> Esta operação apaga os dados locais.
+As alterações estruturais devem ser feitas por migrations versionadas do Alembic:
 
 ```bash
-rm back-end/data/sigac.db
 cd back-end
-alembic upgrade head
+uv sync --dev
+uv run alembic upgrade head
+uv run alembic current
+uv run alembic history
 ```
+
+O schema de referência está em [`back-end/database/postgresql-schema.sql`](back-end/database/postgresql-schema.sql). Antes de alterar uma tabela, crie uma migration incremental, revise as chaves e índices e valide a compatibilidade com os models SQLAlchemy.
+
+### Seed e usuários iniciais
+
+O seed é controlado por `SEED_DATABASE`. Quando habilitado em um ambiente de desenvolvimento, cria apenas registros iniciais que ainda não existem. Em ambientes compartilhados ou de produção, mantenha `SEED_DATABASE=false` após a carga inicial e altere dados por migrations ou rotinas administrativas controladas.
+
+### Verificar o banco
+
+- Consulte a API pelo [Swagger](http://localhost:8080/docs) ou pelo [ReDoc](http://localhost:8080/redoc);
+- Use um cliente PostgreSQL para inspecionar o schema e os dados;
+- Execute `uv run alembic check` antes de publicar alterações;
+- Faça backup antes de migrations destrutivas ou operações de manutenção;
+- Restrinja o acesso do banco à aplicação e às ferramentas administrativas necessárias.
+
+### Boas práticas operacionais
+
+- Utilize conexões TLS e credenciais armazenadas somente em variáveis de ambiente;
+- Conceda ao usuário da aplicação apenas as permissões necessárias;
+- Não exponha o PostgreSQL diretamente pelo frontend nem crie endpoints que repassem credenciais;
+- Monitore conexões, erros de migration, latência e espaço disponível;
+- Teste migrations em uma cópia controlada antes de aplicá-las no ambiente compartilhado.
 
 ---
 
