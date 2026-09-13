@@ -276,7 +276,7 @@ O backend em [`back-end/`](back-end/) é um serviço FastAPI. Ele concentra aute
 
 ## 6. Banco de dados
 
-O SiGAC utiliza PostgreSQL como banco de dados relacional. A estrutura abaixo apresenta somente as tabelas da aplicação definidas no schema [`back-end/database/postgresql-schema.sql`](back-end/database/postgresql-schema.sql) e utilizadas pelos módulos de usuários, permissões, projetos, arquivos, solicitações, sessões e auditoria. O inventário não inclui tabelas técnicas de controle de migrations nem tabelas externas à aplicação.
+O SiGAC utiliza PostgreSQL como banco de dados relacional. A estrutura abaixo apresenta as tabelas utilizadas pelo sistema, conforme definidas no schema [`back-end/database/postgresql-schema.sql`](back-end/database/postgresql-schema.sql).
 
 ### Ciclo de mudança
 
@@ -294,7 +294,7 @@ Não altere uma migration já aplicada sem confirmar o impacto na API.
 
 ## 7. Tabelas, campos, PKs e FKs
 
-A lista abaixo contém somente as tabelas de negócio utilizadas pelo SiGAC no schema `public`. Os campos representam os nomes físicos definidos no PostgreSQL; `*` identifica a chave primária. A tabela técnica de controle de migrations não é listada porque não representa dados utilizados pelas funcionalidades do SiGAC.
+A lista abaixo apresenta as tabelas utilizadas pelo SiGAC no schema `public`, com seus campos físicos, chaves primárias e chaves estrangeiras. Os campos representam os nomes definidos no PostgreSQL; `*` identifica a chave primária.
 
 | Tabela | Campos físicos | PK | FKs declaradas |
 |---|---|---|---|
@@ -327,7 +327,7 @@ A lista abaixo contém somente as tabelas de negócio utilizadas pelo SiGAC no s
 
 ## 8. Modelagem e diagrama
 
-O modelo abaixo representa somente as tabelas de negócio utilizadas pelo SiGAC e os relacionamentos declarados no schema PostgreSQL. O diagrama mostra as entidades, chaves estrangeiras e vínculos necessários para usuários, permissões, projetos, arquivos, solicitações, sessões e auditoria.
+O modelo abaixo representa as tabelas utilizadas pelo SiGAC e seus relacionamentos no PostgreSQL. O diagrama mostra as tabelas, as chaves estrangeiras e os vínculos entre os dados do sistema.
 
 ```mermaid
 erDiagram
