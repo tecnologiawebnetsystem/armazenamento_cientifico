@@ -23,7 +23,6 @@
 - [15. Troubleshooting](#15-troubleshooting)
 - [16. Deploy](#16-deploy)
 - [17. Integração corporativa CAV4 e Entra ID](#17-integração-corporativa-cav4-e-entra-id)
-- [18. Referências do repositório](#18-referências-do-repositório)
 
 ---
 
@@ -490,9 +489,9 @@ uv run alembic check
 
 ## 13. Testes e resultados
 
-Execute os comandos abaixo na ordem. Um resultado **bom** termina com código `0`, sem `Error`, `Failed`, `Type error`, `Traceback` ou `ModuleNotFoundError`. Um resultado **ruim** termina com código diferente de `0`, apresenta falhas ou impede o fluxo principal; corrija o primeiro erro real antes de analisar mensagens posteriores.
+Os testes confirmam que frontend, backend, banco e integração entre as camadas continuam funcionando depois de uma alteração. Execute primeiro as verificações rápidas e, depois, os testes de integração e E2E. O resultado só deve ser considerado aprovado quando o comando termina com código `0` e não há falhas bloqueadoras.
 
-### Frontend: tipos, lint e build
+### Verificações do frontend
 
 ```bash
 pnpm install
@@ -501,9 +500,9 @@ pnpm lint
 pnpm build
 ```
 
-Bom: typecheck, lint e build terminam sem erros; o build é gerado. Warnings devem ser avaliados, mas não equivalem automaticamente a falha. Ruim: erro de TypeScript, falha do ESLint ou build interrompido.
+O `typecheck` detecta contratos inválidos entre componentes e API; o `lint` verifica padrões do código; o `build` confirma que o App Router pode ser compilado para publicação. Warnings devem ser avaliados, mas erros de TypeScript, ESLint ou build impedem a aprovação.
 
-### Backend: compilação, dependências e testes
+### Verificações do backend
 
 ```bash
 cd back-end
@@ -513,29 +512,25 @@ python -m pytest -q
 ruff check .
 ```
 
-Bom: `compileall` não imprime erros, `pip check` informa que não há dependências quebradas e o pytest mostra `passed` com código `0`. Ruim: traceback, teste `failed`, `error`, sintaxe inválida ou módulo ausente. Se `pytest` não estiver instalado, instale `requirements.txt` antes de concluir o diagnóstico.
+O `compileall` identifica erros de sintaxe, o `pip check` detecta dependências incompatíveis, o `pytest` valida regras e endpoints e o Ruff verifica qualidade estática. Um traceback, teste `failed`, módulo ausente ou dependência quebrada deve ser corrigido antes do merge.
 
-### E2E e validação manual
+### Teste integrado e validação manual
 
 ```bash
 pnpm test:e2e
 ```
 
-Valide login, Wiki Dev, navegação, API, estados de carregamento/vazio/erro e responsividade. Bom: smoke test sem timeout e tela funcional. Ruim: página em branco, erro no console, timeout ou endpoint inesperadamente 4xx/5xx.
-
-### Evidência no PR
-
-Registre comandos, resultado (passou/falhou), quantidade de testes, warnings relevantes e prints/logs quando necessário. Nunca oculte uma falha: informe o bloqueio e o impacto.
+Valide o fluxo principal: abrir o login, autenticar, navegar pela área protegida, consultar projetos, arquivos, relatórios e logs, testar estados de carregamento/vazio/erro e confirmar a responsividade. Registre no PR os comandos executados, o resultado, a quantidade de testes, warnings relevantes e evidências necessárias.
 
 ---
 
 ## 14. Branches, commits e PRs
 
-A padronização usa o identificador da demanda para facilitar rastreabilidade e revisão.
+Branches, commits e Pull Requests devem permitir rastrear a demanda, entender o impacto da alteração e repetir sua validação. Nunca desenvolva diretamente em `main` ou `develop`.
 
-### Branch
+### Branch de trabalho
 
-A branch deve ser criada a partir de `develop`:
+Crie a branch a partir de `develop`, usando o tipo da mudança, o identificador STS e uma descrição curta:
 
 ```text
 <tipo>/STS<numero>-<descricao-curta>
@@ -544,135 +539,114 @@ Exemplo:
 feature/STS0233556-exportacao-relatorio
 ```
 
+Use `feature` para funcionalidade, `fix` para correção, `refactor` para reorganização sem mudança funcional e `docs` para documentação.
+
 ### Commit
+
+O commit deve ser pequeno, objetivo e seguir o formato:
 
 ```text
 <tipo>(<escopo>): STS<numero> <mensagem>
 
 Exemplos:
 feat(api): STS0233556 criar endpoint de exportacao
-feat(ui): STS0233556 criar validacao de campo data
+fix(auth): STS0233556 corrigir expiracao da sessao
 ```
 
-### Pull Request para develop
+Não misture refatoração, correção não relacionada e alteração funcional no mesmo commit. A mensagem deve explicar a intenção, não apenas o arquivo alterado.
 
-Título:
+### Pull Request
 
-```text
-[STS<numero>] <titulo>
-```
+O PR deve apontar para `develop`, ter título no formato `[STS<numero>] <titulo>` e informar contexto, problema, solução, arquivos ou módulos impactados, como testar, evidências, riscos, migrações e necessidade de configuração. O autor deve confirmar que testes relevantes passaram e que não há credenciais, banco local ou arquivos gerados incluídos.
 
-O PR deve apontar para `develop` e conter link do ServiceNow, contexto, alterações, como testar, evidências, impactos, riscos e checklist.
-
-### Template automático
-
-O arquivo [`.github/pull_request_template.md`](.github/pull_request_template.md) é preenchido automaticamente ao abrir um PR. Mantenha suas seções e marque somente itens realmente verificados.
-
-### Fluxo recomendado
-
-```bash
-git switch develop
-git pull origin develop
-git switch -c feature/STS0233556-exportacao-relatorio
-git add .
-git commit -m "feat(api): STS0233556 criar endpoint de exportacao"
-git push -u origin feature/STS0233556-exportacao-relatorio
-```
+O arquivo [`.github/pull_request_template.md`](.github/pull_request_template.md) deve ser preenchido com informações verificadas. Revisões devem avaliar comportamento, segurança, autorização, compatibilidade da API, migrations e impacto nas telas.
 
 ---
 
 ## 15. Troubleshooting
 
-### Preview não abre
+Use esta seção para localizar a camada responsável pelo problema. Comece pelo primeiro erro real nos logs; mensagens posteriores podem ser apenas consequência dele.
 
-Confirme que o Next foi iniciado dentro de ``, que `pnpm install` terminou e que a porta está livre. Reinicie o servidor após alterar `package.json` ou variáveis de ambiente.
+### Preview ou frontend não abre
 
-### Frontend sem dados
+Confirme que as dependências foram instaladas, que o Next foi iniciado na raiz do projeto, que a porta está livre e que as variáveis estão disponíveis. Depois execute `pnpm typecheck`, `pnpm lint` e `pnpm build` separadamente para identificar a etapa que falhou.
 
-Verifique:
+### Frontend abre, mas não exibe dados
 
-1. Backend rodando em `localhost:8080`;
-2. `NEXT_PUBLIC_API_BASE_URL` em `.env.local`;
+Verifique, nesta ordem:
+
+1. API disponível em `http://localhost:8080`;
+2. `NEXT_PUBLIC_API_BASE_URL` configurada em `.env.local`;
 3. `CORS_ORIGINS` incluindo `http://localhost:3000`;
-4. [Health check](http://localhost:8080/health) respondendo;
-5. Console e Network do navegador.
+4. [health check](http://localhost:8080/health) respondendo;
+5. aba Network para status, URL e payload da requisição;
+6. console do navegador para erros de JavaScript ou CORS.
 
-### SQLite ou migration falha
+Não altere o componente para ignorar erros: corrija a URL, CORS, sessão ou contrato responsável.
+
+### Banco ou migration falha
 
 ```bash
 cd back-end
 alembic current
 alembic history
+alembic check
 ```
 
-Confira permissões de escrita em `back-end/data/` e faça backup antes de qualquer rename.
+Confira `DATABASE_ENGINE`, `DATABASE_URL`, permissões de escrita em `back-end/data/`, estado da migration e existência das tabelas. Faça backup antes de renomear ou remover dados e não edite uma migration já aplicada sem planejar a compatibilidade.
 
 ### Erro 401 ou 403
 
-- `401`: sessão ausente ou expirada;
-- `403`: perfil sem permissão.
+`401` significa que a sessão está ausente, inválida ou expirada; `403` significa que o usuário está autenticado, mas não possui a capability, perfil ou vínculo necessário. Inspecione cookie, CORS, e-mail do usuário, sessão no banco e dependência de autorização do endpoint. Nunca remova a proteção para contornar o erro.
 
-Confira o e-mail seed, cookies, CORS e autorização do controller. Não remova a proteção para contornar o erro.
+### API retorna 404, 422 ou 500
 
-### Build falha
-
-Execute `pnpm typecheck`, `pnpm lint` e `pnpm build` separadamente. Corrija o primeiro erro real; mensagens posteriores podem ser consequência dele.
+`404` normalmente indica rota ou identificador incorreto; `422` indica payload incompatível com o schema; `500` exige consultar os logs do backend e a causa original. Compare a chamada com o OpenAPI, valide o payload no frontend e confirme se a mudança foi implementada no módulo correto.
 
 ---
 
 ## 16. Deploy
 
-Frontend e backend devem ser publicados como serviços separados.
+Frontend e backend são serviços independentes e devem ser publicados separadamente, com configuração explícita para o ambiente. O frontend conhece apenas a URL pública da API; segredos, credenciais de banco e configurações corporativas permanecem no backend.
 
 ### Frontend
 
-Configure `NEXT_PUBLIC_API_BASE_URL` com a URL HTTPS pública da API. Execute o build a partir da raiz do repositório. Não inclua `.env.local` ou segredos no bundle.
+Configure `NEXT_PUBLIC_API_BASE_URL` com a URL HTTPS da API, instale dependências pelo lockfile e execute `pnpm typecheck`, `pnpm lint` e `pnpm build`. Não publique `.env.local`, cookies, tokens ou qualquer segredo no bundle do Next.js.
 
 ### Backend
 
-Use PostgreSQL, aplique migrations como etapa controlada, restrinja CORS ao domínio do frontend, habilite cookies Secure, desative seed automático após a carga inicial e monitore `/health`.
+Use PostgreSQL em ambientes compartilhados, aplique as migrations Alembic como etapa controlada, restrinja `CORS_ORIGINS` ao domínio real, habilite `COOKIE_SECURE=true`, mantenha `ENVIRONMENT=production`, desative `SEED_DATABASE` após a carga inicial e monitore `/health` e os logs. O processo de execução deve ter acesso somente às variáveis necessárias.
 
-### Release segura
+### Checklist de release
 
-1. Fazer backup;
-2. Revisar migrations;
-3. Validar variáveis;
-4. Testar login e autorização;
-5. Conferir logs sem dados sensíveis;
-6. Monitorar erros;
-7. Manter plano de rollback.
+1. Validar variáveis e URLs do ambiente;
+2. Fazer backup do banco;
+3. Revisar e aplicar migrations;
+4. Publicar backend e confirmar health check;
+5. Configurar o frontend para a API correta;
+6. Testar login, logout, autorização, projetos e arquivos;
+7. Conferir logs sem dados sensíveis;
+8. Monitorar a primeira execução e manter rollback documentado.
 
-SQLite não deve ser usado como base persistente em uma implantação com múltiplas instâncias.
+SQLite é adequado para desenvolvimento local, mas não deve ser usado como banco persistente em implantação com múltiplas instâncias.
 
 ---
 
 ## 17. Integração corporativa CAV4 e Entra ID
 
-O login corporativo ainda está em fase de preparação. A aplicação mantém o login local com usuários persistidos no backend; não se deve tratar o login local como integração SSO ou como autenticação mockada.
+O SIGAC possui login local funcional e mantém a integração corporativa como uma etapa dependente do contrato oficial dos sistemas CAV4 e Microsoft Entra ID. Login local não é SSO e não deve ser descrito como autenticação corporativa ou mockada.
 
-A arquitetura recomendada é OpenID Connect sobre OAuth 2.0, usando Authorization Code + PKCE com o Microsoft Entra ID. O backend deve validar o retorno do provedor, identificar o colaborador por `oid`/`sub`, localizar ou provisionar o usuário local e aplicar os perfis e permissões do SIGAC. Tokens não devem ser armazenados em `localStorage`; a sessão deve usar cookie seguro e HttpOnly.
+### Fluxo corporativo esperado
 
-O CAV4 deve ser integrado somente após o time proprietário fornecer seu contrato oficial: mecanismo de autentica��ão, endpoints, scopes, claims, grupos, certificado ou metadata, ambientes e regras de autorização. Não invente endpoints ou permissões do CAV4.
+A integração deve usar OpenID Connect sobre OAuth 2.0, preferencialmente Authorization Code + PKCE. O frontend inicia o fluxo, mas o backend é responsável por validar `state`, trocar o código, validar issuer, audience, assinatura e expiração dos tokens, identificar o colaborador por `oid` ou `sub`, localizar ou provisionar o usuário local e aplicar o perfil e as permissões do SIGAC.
 
-Consulte o checklist completo em [`docs/integracao-login-corporativo-cav4-entraid.md`](docs/integracao-login-corporativo-cav4-entraid.md), que documenta:
+Depois da validação, a aplicação deve criar a mesma sessão segura usada pelo login local. Tokens e credenciais não podem ser armazenados em `localStorage`, enviados em `NEXT_PUBLIC_*` ou registrados em logs; a sessão deve usar cookie `HttpOnly`, `Secure` em produção e política adequada de `SameSite`.
 
-- informações necess��rias do Entra ID e do CAV4;
-- permissões, claims, grupos e App Roles;
-- endpoints internos e externos;
-- variáveis de ambiente;
-- segurança, homologação, produção e rollback.
+### Informações obrigatórias antes da implementação
 
----
+O time proprietário deve fornecer o contrato oficial do CAV4/Entra ID: issuer e metadata, client ID, redirect URIs, scopes, claims, grupos ou App Roles, mapeamento de perfis, ambientes, certificados, política de logout e regras de provisionamento. Não invente endpoints, claims ou permissões que não estejam documentados.
 
-## 18. Referências do repositório
-
-- [README único do projeto](README.md)
-- [Modelo visual de dados em PDF](docs/SIGAC-modelo-dados.pdf)
-- [Schema SQLite](back-end/database/sqlite-schema.sql)
-- [Endpoints documentados](docs/api-endpoints.md)
-- [Arquitetura](docs/ARCHITECTURE.md)
-- [Integração corporativa CAV4 e Entra ID](docs/integracao-login-corporativo-cav4-entraid.md)
-- [Schema SQLite](back-end/database/sqlite-schema.sql)
+O checklist está em [`docs/integracao-login-corporativo-cav4-entraid.md`](docs/integracao-login-corporativo-cav4-entraid.md) e deve ser atualizado junto com qualquer mudança de contrato, variável, ambiente ou regra de autorização.
 
 ---
 
