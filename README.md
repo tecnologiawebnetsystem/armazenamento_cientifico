@@ -311,85 +311,85 @@ ruff check .
 
 ## 6. Banco de dados
 
+O SiGAC utiliza exclusivamente as tabelas da aplicação definidas em [`back-end/database/postgresql-schema.sql`](back-end/database/postgresql-schema.sql). Tabelas criadas automaticamente por Neon, como as relacionadas à autenticação gerenciada, não fazem parte deste inventário porque não são utilizadas pelo sistema.
+
 ### Ciclo de mudança
 
 1. Alterar o model SQLAlchemy;
 2. Criar uma migration Alembic incremental;
-3. Revisar o SQL e comparar com o PosgreSql;
+3. Revisar o SQL e comparar com o PostgreSQL;
 4. Fazer backup antes de alterar dados;
 5. Aplicar a migration em ambiente controlado;
 6. Validar tabelas, campos, PKs, FKs e contagens;
-7. Atualizar `docs/database-structure.md` e esta wiki.
+7. Atualizar esta documentação.
 
-Não altere uma migration já aplicada e não remova tabelas legadas sem confirmar o impacto na API.
+Não altere uma migration já aplicada sem confirmar o impacto na API.
 
 ---
 
 ## 7. Tabelas, campos, PKs e FKs
 
-Os campos estão agrupados por tabela e representam exatamente os nomes usados no banco; `*` identifica a chave primária. As FKs são listadas separadamente para evitar inferências baseadas apenas em nomes parecidos.
-
-### Schema `public`: tabelas canônicas
+A lista abaixo contém somente as tabelas utilizadas pelo SiGAC no schema `public`. Os campos representam os nomes físicos definidos no schema PostgreSQL; `*` identifica a chave primária.
 
 | Tabela | Campos físicos | PK | FKs declaradas |
 |---|---|---|---|
+| `schema_migrations` | `version*`, `applied_at` | `version` | — |
 | `profiles` | `id*`, `name`, `description`, `created_at` | `id` | — |
+| `users` | `id*`, `name`, `email`, `job_title`, `area`, `role`, `profile_id`, `avatar_url`, `last_login_at`, `created_at` | `id` | `profile_id -> profiles.id` |
 | `modules` | `id*`, `name`, `route`, `icon`, `display_order`, `active` | `id` | — |
 | `permissions` | `id*`, `module_id`, `name`, `description`, `active` | `id` | `module_id -> modules.id` |
-| `profile_modules` | `profile_id*`, `module_id*`, `can_view` | `(profile_id,module_id)` | `profile_id -> profiles.id`; `module_id -> modules.id` |
 | `profile_permissions` | `profile_id*`, `permission_id*`, `allowed` | `(profile_id,permission_id)` | `profile_id -> profiles.id`; `permission_id -> permissions.id` |
-| `project_statuses` | `id*`, `code`, `nome`, `color`, `display_order`, `active`, `allows_edit` | `id` | — |
-| `project_types` | `id*`, `code`, `nome`, `description`, `active` | `id` | — |
-| `projects` | `id`, `name`, `code`, `responsible_area`, `managers_ids`, `write_group`, `read_group`, `write_identity_role`, `read_identity_role`, `snow_task_number`, `parent_folder`, `description`, `status`, `participants_ids`, `created_at`, `updated_at` | sem PK declarada no inventário atual | — |
-| `project_members` | `project_id`, `user_id`, `papel`, `created_at` | sem PK declarada | — |
-| `files` | `id`, `project_id`, `parent_id`, `kind`, `name`, `size_bytes`, `mime_type`, `created_by`, `created_at`, `updated_at` | sem PK declarada | — |
-| `file_shares` | `file_id`, `user_id`, `level` | sem PK declarada | — |
-| `file_permissions` | `file_id`, `user_id`, `group_id`, `level`, `inherited_from`, `created_at` | sem PK declarada | — |
-| `access_requests` | `id`, `project_id`, `requester_id`, `status`, `created_at` | sem PK declarada | — |
-| `activity_logs` | `id`, `user_id`, `action`, `entity`, `entity_id`, `details`, `created_at` | sem PK declarada | — |
-| `menus` | `id`, `modulo_id`, `parent_id`, `nome`, `rota`, `icone`, `ordem`, `ativo` | sem PK declarada | — |
-| `report_types` | `id*`, `code`, `name`, `description`, `formats`, `active` | `id` | — |
-| `report_fields` | `id*`, `report_code`, `field_key`, `label`, `source_key`, `display_order`, `active` | `id` | sem FK declarada; `report_code` é referência lógica |
-| `responsible_areas` | `id*`, `name`, `prefix`, `next_number`, `active`, `created_at`, `updated_at` | `id` | — |
+| `profile_modules` | `profile_id*`, `module_id*`, `can_view` | `(profile_id,module_id)` | `profile_id -> profiles.id`; `module_id -> modules.id` |
+| `project_statuses` | `id*`, `code`, `name`, `color`, `display_order`, `active`, `allows_edit` | `id` | — |
+| `project_types` | `id*`, `code`, `name`, `description`, `active` | `id` | — |
 | `system_settings` | `key*`, `value`, `value_type`, `description`, `group_name`, `active` | `key` | — |
-
-### Schema `public`: tabelas legadas/compatibilidade
-
-| Tabela | Campos físicos |
-|---|---|
-| `perfis` | `id`, `nome`, `descricao`, `criado_em` |
-| `modulos` | `id`, `nome`, `rota`, `icone`, `ordem`, `ativo` |
-| `permissoes` | `id`, `modulo_id`, `nome`, `descricao`, `ativo` |
-| `perfil_modulos` | `perfil_id`, `modulo_id`, `pode_visualizar` |
-| `perfil_permissoes` | `perfil_id`, `permissao_id`, `permitido` |
-| `status_projetos` | `id`, `codigo`, `nome`, `cor`, `ordem`, `ativo`, `permite_edicao` |
-| `tipos_projetos` | `id`, `codigo`, `nome`, `descricao`, `ativo` |
-| `tipos_relatorios` | `id`, `codigo`, `nome`, `descricao`, `formatos`, `ativo` |
-| `users` | `id`, `name`, `email`, `cargo`, `area`, `role`, `perfil_id`, `created_at`, `avatar_url`, `last_login_at`, `job_title`, `profile_id` |
-| `sessions` | `id`, `user_id`, `expires_at` |
-| `settings` | `key`, `value` |
-| `configuracoes_sistema` | `chave`, `valor`, `tipo`, `descricao`, `grupo`, `ativo` |
-| `permission_matrix` | `id`, `matrix` |
+| `report_types` | `id*`, `code`, `name`, `description`, `formats`, `active` | `id` | — |
+| `report_fields` | `id*`, `report_code`, `field_key`, `label`, `source_key`, `display_order`, `active` | `id` | `report_code -> report_types.code` |
+| `menus` | `id*`, `module_id`, `parent_id`, `name`, `route`, `icon`, `display_order`, `active` | `id` | `module_id -> modules.id` |
+| `projects` | `id*`, `name`, `code`, `responsible_area`, `managers_ids`, `write_group`, `read_group`, `write_identity_role`, `read_identity_role`, `snow_task_number`, `parent_folder`, `description`, `status`, `participants_ids`, `created_at`, `updated_at` | `id` | — |
+| `project_members` | `project_id*`, `user_id*`, `role`, `created_at` | `(project_id,user_id)` | `project_id -> projects.id`; `user_id -> users.id` |
+| `files` | `id*`, `project_id`, `parent_id`, `kind`, `name`, `size_bytes`, `mime_type`, `created_by`, `last_viewed_at`, `created_at`, `updated_at` | `id` | `project_id -> projects.id`; `parent_id -> files.id`; `created_by -> users.id` |
+| `file_shares` | `file_id*`, `user_id*`, `access_level`, `created_at` | `(file_id,user_id)` | `file_id -> files.id`; `user_id -> users.id` |
+| `groups` | `id*`, `name`, `description`, `created_at` | `id` | — |
+| `group_members` | `group_id*`, `user_id*`, `created_at` | `(group_id,user_id)` | `group_id -> groups.id`; `user_id -> users.id` |
+| `file_permissions` | `file_id*`, `user_id`, `group_id`, `access_level`, `inherited_from`, `created_at` | não declarada | `file_id -> files.id`; `user_id -> users.id`; `group_id -> groups.id` |
+| `access_requests` | `id*`, `project_id`, `requester_id`, `status`, `created_at` | `id` | `project_id -> projects.id`; `requester_id -> users.id` |
+| `activity_logs` | `id*`, `user_id`, `action`, `entity`, `entity_id`, `details`, `created_at` | `id` | `user_id -> users.id` |
+| `sessions` | `id*`, `user_id`, `expires_at` | `id` | `user_id -> users.id` |
+| `permission_matrix` | `id*`, `matrix` | `id` | — |
 
 ---
 
 ## 8. Modelagem e diagrama
 
-O estado físico atual possui **41 tabelas e 11 FKs**. O diagrama abaixo mostra somente relacionamentos declarados no banco; tabelas `public` como `projects`, `users`, `files` e `project_members` possuem nomes de colunas que sugerem vínculos, mas não têm FK declarada no PosgreSql e, por isso, aparecem sem ligação oficial.
+O modelo abaixo representa somente as tabelas utilizadas pelo SiGAC e os relacionamentos declarados no schema PostgreSQL. Tabelas auxiliares do Neon ou de outros serviços externos foram omitidas.
 
 ```mermaid
 erDiagram
-  USER ||--o{ ACCOUNT : possui
-  USER ||--o{ SESSION : inicia
-  USER ||--o{ MEMBER : participa
-  USER ||--o{ INVITATION : envia
-  ORGANIZATION ||--o{ MEMBER : possui
-  ORGANIZATION ||--o{ INVITATION : recebe
+  PROFILES ||--o{ USERS : possui
   MODULES ||--o{ PERMISSIONS : define
   PROFILES ||--o{ PROFILE_MODULES : acessa
   MODULES ||--o{ PROFILE_MODULES : habilita
   PROFILES ||--o{ PROFILE_PERMISSIONS : recebe
   PERMISSIONS ||--o{ PROFILE_PERMISSIONS : concede
+  REPORT_TYPES ||--o{ REPORT_FIELDS : possui
+  MODULES ||--o{ MENUS : organiza
+  PROJECTS ||--o{ PROJECT_MEMBERS : possui
+  USERS ||--o{ PROJECT_MEMBERS : participa
+  PROJECTS ||--o{ FILES : contém
+  FILES ||--o{ FILES : organiza
+  USERS ||--o{ FILES : cria
+  FILES ||--o{ FILE_SHARES : compartilha
+  USERS ||--o{ FILE_SHARES : recebe
+  GROUPS ||--o{ GROUP_MEMBERS : possui
+  USERS ||--o{ GROUP_MEMBERS : participa
+  FILES ||--o{ FILE_PERMISSIONS : protege
+  USERS ||--o{ FILE_PERMISSIONS : recebe
+  GROUPS ||--o{ FILE_PERMISSIONS : recebe
+  PROJECTS ||--o{ ACCESS_REQUESTS : recebe
+  USERS ||--o{ ACCESS_REQUESTS : solicita
+  USERS ||--o{ ACTIVITY_LOGS : gera
+  USERS ||--o{ SESSIONS : possui
 ```
 
 ## 9. API e endpoints
@@ -710,7 +710,7 @@ O CAV4 deve ser integrado somente após o time proprietário fornecer seu contra
 
 Consulte o checklist completo em [`docs/integracao-login-corporativo-cav4-entraid.md`](docs/integracao-login-corporativo-cav4-entraid.md), que documenta:
 
-- informações necessárias do Entra ID e do CAV4;
+- informações necess��rias do Entra ID e do CAV4;
 - permissões, claims, grupos e App Roles;
 - endpoints internos e externos;
 - variáveis de ambiente;
