@@ -53,11 +53,6 @@ class FileCreate(BaseModel):
     mimeType: str | None = Field(default=None, max_length=160)
 
 
-class FilePatch(BaseModel):
-    nome: str | None = None
-    parentId: str | None = None
-
-
 class MemberRequest(BaseModel):
     userId: str
     papel: Literal["gerente", "participante", "visualizador"]

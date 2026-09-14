@@ -143,26 +143,6 @@ class ProjectPatch(BaseModel):
     participantesIds: list[str] | None = None
 
 
-class FileInput(BaseModel):
-    projectId: str
-    parentId: str | None = None
-    tipo: Literal["pasta", "arquivo"]
-    nome: str = Field(min_length=1, max_length=255, pattern=r"^[^\\x00/\\\\]+$")
-    tamanho: int = Field(default=0, ge=0, le=10 * 1024 * 1024 * 1024)
-    mimeType: str | None = Field(default=None, max_length=160)
-
-
-class FilePatch(BaseModel):
-    nome: str | None = None
-    parentId: str | None = None
-
-
-class ShareInput(BaseModel):
-    userId: str
-    nivel: Literal["leitura", "edicao"]
-
-
-
 
 class RolePatch(BaseModel):
     role: Role
@@ -705,31 +685,7 @@ def dump_file(r):
         "criadoPor": d["created_by"],
         "criadoEm": d["created_at"],
         "atualizadoEm": d["updated_at"],
-        "compartilhamentos": [],
     }
-
-
-@app.post("/api/files")
-async def create_file(x: FileInput, request: Request):
-    u = await require(request, ("admin", "gerente", "gestor", "participante"))
-    p = await db()
-    if not await visible(u, x.projectId):
-        raise HTTPException(404, "Projeto não encontrado")
-    i = str(uuid4())
-    await p.execute(
-        "insert into files(id,project_id,parent_id,kind,name,size_bytes,mime_type,created_by) values($1,$2,$3,$4,$5,$6,$7,$8)",
-        i,
-        x.projectId,
-        x.parentId,
-        x.tipo,
-        x.nome,
-        x.tamanho,
-        x.mimeType,
-        u["id"],
-    )
-    r = await p.fetchrow("select * from files where id=$1", i)
-    await audit(u, "criar-arquivo", "arquivo", i, x.nome)
-    return {"file": dump_file(r)}
 
 
 @app.get("/api/files/{fid}")
@@ -740,61 +696,6 @@ async def get_file(fid: str, request: Request):
     if not r or not await visible(u, r["project_id"]):
         raise HTTPException(404, "Arquivo não encontrado")
     return {"file": dump_file(r)}
-
-
-@app.patch("/api/files/{fid}")
-async def patch_file(fid: str, x: FilePatch, request: Request):
-    u = await require(request, ("admin", "gerente", "gestor", "participante"))
-    p = await db()
-    r = await p.fetchrow("select * from files where id=$1", fid)
-    if not r or not await visible(u, r["project_id"]):
-        raise HTTPException(404, "Arquivo não encontrado")
-    vals = x.model_dump(exclude_unset=True)
-    file_fields = {"nome": "name", "parentId": "parent_id"}
-    for k, v in vals.items():
-        column = file_fields.get(k)
-        if column is None:
-            raise HTTPException(422, f"Campo não permitido: {k}")
-        await p.execute(
-            f"update files set {column}=$1,updated_at=now() where id=$2",
-            v,
-            fid,
-        )
-    await audit(u, "editar-arquivo", "arquivo", fid, ",".join(vals))
-    return {"file": dump_file(await p.fetchrow("select * from files where id=$1", fid))}
-
-
-@app.delete("/api/files/{fid}", status_code=204)
-async def delete_file(fid: str, request: Request):
-    u = await require(request, ("admin", "gerente", "gestor", "participante"))
-    p = await db()
-    r = await p.fetchrow("delete from files where id=$1 returning *", fid)
-    if not r:
-        raise HTTPException(404, "Arquivo não encontrado")
-    await audit(u, "excluir-arquivo", "arquivo", fid, r["name"])
-
-
-@app.post("/api/files/{fid}/share")
-async def share(fid: str, x: ShareInput, request: Request):
-    u = await require(request, ("admin", "gerente"))
-    p = await db()
-    if not await p.fetchval("select 1 from files where id=$1", fid):
-        raise HTTPException(404, "Arquivo não encontrado")
-    await p.execute(
-        "insert into file_shares(file_id,user_id,level) values($1,$2,$3) on conflict(file_id,user_id) do update set level=excluded.level",
-        fid,
-        x.userId,
-        x.nivel,
-    )
-    await audit(u, "compartilhar-arquivo", "arquivo", fid, f"usuário={x.userId}; nível={x.nivel}")
-    return {"message": "Compartilhamento atualizado"}
-
-
-@app.delete("/api/files/{fid}/share")
-async def unshare(fid: str, userId: str, request: Request):
-    await require(request, ("admin", "gerente"))
-    p = await db()
-    await p.execute("delete from file_shares where file_id=$1 and user_id=$2", fid, userId)
 
 
 @app.get("/api/users", tags=["Directory"])
