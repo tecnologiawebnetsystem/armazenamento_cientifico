@@ -37,7 +37,7 @@ export default function ProjetoDetalhePage({ params }: { params: Promise<{ id: s
         <h1 className="text-2xl font-semibold tracking-tight text-balance">{project.nome}</h1>
         <p className="text-sm text-muted-foreground">{project.areaResponsavel}</p>
       </div>
-      <ProjectDetailTabs projectId={id} initialProject={project} canEdit={canEdit} canManageMembers={canEdit} canWriteFiles={canEdit} />
+      <ProjectDetailTabs projectId={id} initialProject={project} canEdit={canEdit} canManageMembers={canEdit} />
     </div>
   )
 }

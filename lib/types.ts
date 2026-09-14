@@ -111,7 +111,6 @@ export interface PermissionMatrixEntry {
   gerenciarMembros: boolean
   uploadArquivos: boolean
   excluirArquivos: boolean
-  compartilharArquivos: boolean
   aprovarSolicitacoes: boolean
 }
 

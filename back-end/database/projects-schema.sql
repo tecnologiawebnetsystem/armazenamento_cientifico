@@ -59,7 +59,7 @@ create index if not exists idx_projects_snow on projects(snow_task_number);
 create index if not exists idx_project_groups_project on project_access_groups(project_id);
 create index if not exists idx_project_roles_project on project_access_roles(project_id);
 
--- Arquivos, compartilhamentos, visualizações e trilha de auditoria
+-- Arquivos e pastas consultáveis, além da trilha de auditoria
 create table if not exists files (
   id uuid primary key default gen_random_uuid(),
   project_id uuid not null references projects(id) on delete cascade,

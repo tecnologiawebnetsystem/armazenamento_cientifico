@@ -184,7 +184,7 @@ uv run alembic current
 uv run alembic history
 ```
 
-O schema de referência está em [`back-end/database/postgresql-schema.sql`](back-end/database/postgresql-schema.sql). Antes de alterar uma tabela, crie uma migration incremental, revise as chaves e índices e valide a compatibilidade com os models SQLAlchemy.
+O schema de referência está em [`back-end/database/postgresql-schema.sql`](back-end/database/postgresql-schema.sql). O modelo visual está em [`docs/SIGAC-modelo-dados.pdf`](docs/SIGAC-modelo-dados.pdf). Antes de alterar uma tabela, crie uma migration incremental, revise as chaves e índices e valide a compatibilidade com os models SQLAlchemy.
 
 ### Seed e usuários iniciais
 
@@ -276,7 +276,7 @@ O backend em [`back-end/`](back-end/) é um serviço FastAPI. Ele concentra aute
 
 ## 6. Banco de dados
 
-O SiGAC utiliza PostgreSQL como banco de dados relacional. A estrutura abaixo apresenta somente as tabelas com consumidores identificados no frontend/backend, conforme definidas no schema [`back-end/database/postgresql-schema.sql`](back-end/database/postgresql-schema.sql). Tabelas legadas `app_*`, compartilhamentos de arquivos, permissões de arquivo, grupos e notificações foram removidas por não possuírem consumidores ativos.
+O SiGAC utiliza PostgreSQL como banco de dados relacional. A estrutura abaixo apresenta somente as tabelas com consumidores identificados no frontend/backend. O diagrama visual atualizado está em [`docs/SIGAC-modelo-dados.pdf`](docs/SIGAC-modelo-dados.pdf), gerado a partir do schema [`back-end/database/postgresql-schema.sql`](back-end/database/postgresql-schema.sql). Tabelas legadas `app_*`, compartilhamentos de arquivos, permissões de arquivo, grupos e notificações foram removidas por não possuírem consumidores ativos.
 
 ### Ciclo de mudança
 
@@ -313,7 +313,7 @@ A lista abaixo apresenta somente as tabelas utilizadas pelo SiGAC, com seus camp
 | `menus` | `id*`, `module_id`, `parent_id`, `name`, `route`, `icon`, `display_order`, `active` | `id` | `module_id -> modules.id` |
 | `projects` | `id*`, `name`, `code`, `responsible_area`, `managers_ids`, `write_group`, `read_group`, `write_identity_role`, `read_identity_role`, `snow_task_number`, `parent_folder`, `description`, `status`, `participants_ids`, `created_at`, `updated_at` | `id` | — |
 | `project_members` | `project_id*`, `user_id*`, `role`, `created_at` | `(project_id,user_id)` | `project_id -> projects.id`; `user_id -> users.id` |
-| `files` | `id*`, `project_id`, `parent_id`, `kind`, `name`, `size_bytes`, `mime_type`, `created_by`, `last_viewed_at`, `created_at`, `updated_at` | `id` | `project_id -> projects.id`; `parent_id -> files.id`; `created_by -> users.id` |
+| `files` | `id*`, `project_id`, `parent_id`, `kind`, `name`, `size_bytes`, `mime_type`, `created_by`, `last_viewed_at`, `created_at`, `updated_at` | `id` | `project_id -> projects.id`; `parent_id -> files.id`; `created_by -> users.id` (consulta somente leitura) |
 | `access_requests` | `id*`, `project_id`, `requester_id`, `status`, `created_at` | `id` | `project_id -> projects.id`; `requester_id -> users.id` |
 | `activity_logs` | `id*`, `user_id`, `action`, `entity`, `entity_id`, `details`, `created_at` | `id` | `user_id -> users.id` |
 | `sessions` | `id*`, `user_id`, `expires_at` | `id` | `user_id -> users.id` |
@@ -600,7 +600,7 @@ SQLite é adequado para desenvolvimento local, mas não deve ser usado como banc
 
 ---
 
-## 17. Integração corporativa CAV4 e Entra ID
+## 17. Integra��ão corporativa CAV4 e Entra ID
 
 O SIGAC possui login local funcional e mantém a integração corporativa como uma etapa dependente do contrato oficial dos sistemas CAV4 e Microsoft Entra ID. Login local não é SSO e não deve ser descrito como autenticação corporativa ou mockada.
 
