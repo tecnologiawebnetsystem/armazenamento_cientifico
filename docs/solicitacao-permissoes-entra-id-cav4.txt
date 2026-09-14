@@ -1,0 +1,157 @@
+ASSUNTO: Solicitação de cadastro e permissões — SiGAC — Entra ID e CAV4
+
+Prezados,
+
+Estamos configurando a autenticação corporativa do sistema SiGAC e solicitamos o cadastro das aplicações, permissões e informações técnicas necessárias para integração com o Microsoft Entra ID e o CAV4.
+
+Solicitamos, por gentileza, as configurações para os ambientes de desenvolvimento, homologação e produção.
+
+1. MICROSOFT ENTRA ID
+
+Solicitamos o cadastro da aplicação do SiGAC no tenant corporativo e o envio das seguintes informações:
+
+- Application (Client) ID;
+- Directory (Tenant) ID;
+- Tenant e autoridade de autenticação;
+- Nome atribuído à aplicação;
+- Tipo de contas permitidas;
+- Ambiente associado ao cadastro;
+- URI de logout, se aplicável;
+- Grupos, perfis ou usuários autorizados;
+- Claims disponibilizadas no token, especialmente nome, e-mail, identificador do usuário, nome de usuário corporativo, grupos ou perfis de acesso e identificador do tenant.
+
+Solicitamos o cadastro das seguintes URLs de redirecionamento, conforme cada ambiente:
+
+Desenvolvimento — Frontend:
+[URL_DO_FRONTEND_DEV]/auth/entra-callback
+
+Desenvolvimento — Backend:
+[URL_DO_BACKEND_DEV]/api/auth/entra/callback
+
+Homologação — Frontend:
+[URL_DO_FRONTEND_HML]/auth/entra-callback
+
+Homologação — Backend:
+[URL_DO_BACKEND_HML]/api/auth/entra/callback
+
+Produção — Frontend:
+[URL_DO_FRONTEND_PRD]/auth/entra-callback
+
+Produção — Backend:
+[URL_DO_BACKEND_PRD]/api/auth/entra/callback
+
+Solicitamos as permissões mínimas necessárias para autenticação:
+
+- openid;
+- profile;
+- email.
+
+Caso o SiGAC precise consultar dados do usuário no Microsoft Graph, solicitamos avaliar a concessão de User.Read.
+
+Caso a autorização dependa de grupos do Entra ID, solicitamos avaliar a concessão de GroupMember.Read.All, somente se necessária, com o respectivo consentimento administrativo.
+
+Solicitamos a criação de um client secret para cada ambiente, quando aplicável. Por segurança, pedimos que os segredos não sejam enviados no corpo do e-mail. Eles devem ser disponibilizados por cofre corporativo ou canal seguro, juntamente com a data de expiração.
+
+Pedimos também a confirmação sobre o prazo de validade do segredo, procedimento de renovação, responsável pela renovação, política de rotação, restrições de acesso por domínio, rede ou ambiente e necessidade de aprovação adicional.
+
+2. INTEGRAÇÃO COM O CAV4
+
+Solicitamos o cadastro do SiGAC no CAV4 e o fornecimento das informações técnicas necessárias para utilização do fluxo de autenticação corporativa.
+
+Solicitamos:
+
+- Identificador do cliente, como CA_CLIENT ou equivalente;
+- Segredo do cliente, disponibilizado por canal seguro;
+- URL base do CAV4;
+- Endpoint de autorização;
+- Endpoint de obtenção do token;
+- Endpoint de logout, caso exista;
+- Endpoint de consulta de dados do usuário, caso exista;
+- Escopos disponíveis;
+- Tipo de fluxo OAuth autorizado, preferencialmente authorization_code;
+- Método de autenticação do cliente;
+- Confirmação sobre a necessidade de PKCE;
+- Formato da resposta dos tokens;
+- Algoritmo e forma de validação dos tokens;
+- URL do emissor (issuer);
+- URL das chaves públicas (jwks_uri), se aplicável;
+- Tempo de expiração dos tokens;
+- Possibilidade de renovação por refresh token;
+- Claims retornadas pelo CAV4;
+- Identificação, e-mail e nome do usuário retornados;
+- Grupos, perfis, funções ou permissões retornados;
+- Documentação de erros e códigos de resposta;
+- Procedimento para renovação do segredo.
+
+Solicitamos também o cadastro das URLs de callback do CAV4:
+
+Desenvolvimento — Frontend:
+[URL_DO_FRONTEND_DEV]/auth/cav4-callback
+
+Desenvolvimento — Backend:
+[URL_DO_BACKEND_DEV]/api/auth/cav4/callback
+
+Homologação — Frontend:
+[URL_DO_FRONTEND_HML]/auth/cav4-callback
+
+Homologação — Backend:
+[URL_DO_BACKEND_HML]/api/auth/cav4/callback
+
+Produção — Frontend:
+[URL_DO_FRONTEND_PRD]/auth/cav4-callback
+
+Produção — Backend:
+[URL_DO_BACKEND_PRD]/api/auth/cav4/callback
+
+Pedimos a confirmação de que as URLs serão cadastradas exatamente como informadas, incluindo protocolo, domínio, porta quando aplicável, caminho completo e separação entre desenvolvimento, homologação e produção.
+
+3. REQUISITOS DE SEGURANÇA
+
+Não solicitamos o envio de segredos, certificados ou chaves privadas no corpo deste e-mail.
+
+Solicitamos que essas informações sejam disponibilizadas por cofre corporativo, ferramenta oficial de gestão de segredos, canal seguro indicado pela equipe responsável ou compartilhamento individual autorizado.
+
+Solicitamos informar também:
+
+- Equipe responsável pelo suporte da integração;
+- Procedimento para abertura de chamados;
+- Documentação oficial;
+- Contatos técnicos;
+- Processo de homologação;
+- Processo de aprovação para produção;
+- Restrições de rede, firewall, proxy ou allowlist;
+- Certificados exigidos;
+- Requisitos de TLS;
+- Logs ou evidências necessários para validação.
+
+4. INFORMAÇÕES DO SISTEMA
+
+Sistema: SiGAC
+Finalidade: autenticação e autorização de usuários corporativos
+Frontend: [URL OU TECNOLOGIA DO FRONTEND]
+Backend: [URL OU TECNOLOGIA DO BACKEND]
+Responsável técnico: [NOME]
+Equipe: [EQUIPE]
+E-mail: [E-MAIL]
+Telefone ou canal: [CONTATO]
+
+A integração deverá permitir que o SiGAC:
+
+1. Redirecione o usuário para autenticação corporativa;
+2. Receba o retorno no callback cadastrado;
+3. Valide o token recebido;
+4. Identifique o usuário autenticado;
+5. Obtenha grupos, perfis ou permissões, quando aplicável;
+6. Controle o acesso às funcionalidades do sistema;
+7. Encerre a sessão corretamente mediante logout.
+
+Solicitamos, por gentileza, a confirmação dos itens acima e o envio das informações técnicas, documentações e credenciais por canal seguro.
+
+Atenciosamente,
+
+[SEU NOME]
+[CARGO]
+[EQUIPE/ÁREA]
+[EMPRESA]
+[TELEFONE]
+[E-MAIL]
