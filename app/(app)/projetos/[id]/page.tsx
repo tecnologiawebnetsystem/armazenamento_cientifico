@@ -25,7 +25,6 @@ export default function ProjetoDetalhePage({ params }: { params: Promise<{ id: s
     return null
   }
 
-  const canEdit = user.role === "admin"
   return (
     <div className="flex flex-col gap-6">
       <BackButton />
@@ -37,7 +36,7 @@ export default function ProjetoDetalhePage({ params }: { params: Promise<{ id: s
         <h1 className="text-2xl font-semibold tracking-tight text-balance">{project.nome}</h1>
         <p className="text-sm text-muted-foreground">{project.areaResponsavel}</p>
       </div>
-      <ProjectDetailTabs projectId={id} initialProject={project} canEdit={canEdit} canManageMembers={canEdit} />
+      <ProjectDetailTabs projectId={id} initialProject={project} canManageMembers={false} />
     </div>
   )
 }
