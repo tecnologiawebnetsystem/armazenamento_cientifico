@@ -7,7 +7,7 @@ import { Field, FieldLabel, FieldDescription } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { Project } from "@/lib/types"
+import type { Project, ProjectStatus } from "@/lib/types"
 
 const statusOptions: { value: ProjectStatus; label: string }[] = [
   { value: "ativo", label: "Ativo" },
