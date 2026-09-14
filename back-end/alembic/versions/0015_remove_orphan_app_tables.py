@@ -26,8 +26,11 @@ ORPHAN_TABLES = (
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    cascade_clause = "" if bind.dialect.name == "sqlite" else " CASCADE"
+
     for table in ORPHAN_TABLES:
-        op.execute(f'DROP TABLE IF EXISTS "{table}" CASCADE')
+        op.execute(f'DROP TABLE IF EXISTS "{table}"{cascade_clause}')
 
 
 def downgrade() -> None:
