@@ -11,7 +11,6 @@ import type {
   ProjectMember,
   Role,
   SessionUser,
-  ShareLevel,
   User,
   PlatformCatalogs,
 } from "@/lib/types"
@@ -198,7 +197,6 @@ export async function getFiles(projectId: string, parentId: string | null) {
     criadoPor: String(file.criadoPor ?? file.created_by ?? ""),
     criadoEm: String(file.criadoEm ?? file.created_at ?? ""),
     atualizadoEm: String(file.atualizadoEm ?? file.updated_at ?? file.criadoEm ?? file.created_at ?? ""),
-    compartilhamentos: (file.compartilhamentos ?? []) as FileNode["compartilhamentos"],
   })
   return { files: (response.files ?? []).map((file) => normalize(file as FileNode & Record<string, unknown>)), breadcrumb: (response.breadcrumb ?? []).map((file) => normalize(file as FileNode & Record<string, unknown>)) }
 }
@@ -206,57 +204,6 @@ export async function getFiles(projectId: string, parentId: string | null) {
 /** Lista todas as pastas do projeto (sem filtrar por parentId), usada no diálogo de mover item. */
 export function getAllFolders(projectId: string) {
   return request<{ files: FileNode[] }>(`/api/files?projectId=${encodeURIComponent(projectId)}&allFolders=true`)
-}
-
-
-export function createFileNode(data: {
-  projectId: string
-  parentId: string | null
-  tipo: "pasta" | "arquivo"
-  nome: string
-  tamanho?: number
-  mimeType?: string
-}) {
-  return request<{ file: FileNode }>("/api/files", {
-    method: "POST",
-    body: JSON.stringify({
-      project_id: data.projectId,
-      parent_id: data.parentId,
-      kind: data.tipo,
-      name: data.nome,
-      size_bytes: data.tamanho ?? 0,
-      mime_type: data.mimeType,
-    }),
-  })
-}
-
-export function updateFileNode(id: string, data: Partial<Pick<FileNode, "nome" | "parentId">>) {
-  return request<{ file: FileNode }>(`/api/files/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify({
-      ...(data.nome !== undefined ? { name: data.nome } : {}),
-      ...(data.parentId !== undefined ? { parent_id: data.parentId } : {}),
-    }),
-  })
-}
-
-export function deleteFileNode(id: string) {
-  return request<void>(`/api/files/${id}`, { method: "DELETE" })
-}
-
-export async function shareFileNode(id: string, userId: string, nivel: ShareLevel) {
-  await request(`/api/files/${id}/permissions`, {
-    method: "POST",
-    body: JSON.stringify({ user_id: userId, level: nivel }),
-  })
-  return request<{ file: FileNode }>(`/api/files/${id}`)
-}
-
-export async function unshareFileNode(id: string, userId: string) {
-  await request<void>(`/api/files/${id}/permissions?user_id=${encodeURIComponent(userId)}`, {
-    method: "DELETE",
-  })
-  return request<{ file: FileNode }>(`/api/files/${id}`)
 }
 
 /* -------------------------------- Dashboard -------------------------------- */

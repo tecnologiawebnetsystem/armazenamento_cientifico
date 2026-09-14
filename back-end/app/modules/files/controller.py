@@ -1,19 +1,15 @@
-from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUser, require_roles
+from app.api.dependencies import CurrentUser
 from app.db.session import get_session
 from app.modules.projects.models import Project
 from app.modules.projects.repository import ProjectRepository
 
-from .models import File
-from .permissions_model import FilePermission
 from .repository import FileRepository
-from .schemas import FileListOut, FilePermissionCreate, FilePermissionOut, FileUpdate
+from .schemas import FileListOut
 from .service import FileService
 
 router = APIRouter(prefix="/api/files", tags=["Files"])
@@ -44,69 +40,6 @@ async def list_files(
     return {"files": files, "breadcrumb": []}
 
 
-
-@router.post("/{file_id}/permissions", response_model=FilePermissionOut, status_code=201)
-async def create_file_permission(
-    file_id: str,
-    data: FilePermissionCreate,
-    session: Session,
-    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
-):
-    if bool(data.user_id) == bool(data.group_id):
-        from fastapi import HTTPException
-        raise HTTPException(status_code=422, detail="Informe exatamente user_id ou group_id")
-    if not await session.get(File, file_id):
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail="Arquivo ou pasta não encontrado")
-    permission = FilePermission(
-        file_id=file_id,
-        user_id=data.user_id,
-        group_id=data.group_id,
-        level=data.level,
-        created_at=datetime.now(UTC),
-    )
-    session.add(permission)
-    await session.commit()
-    await session.refresh(permission)
-    return permission
-
-
-@router.get("/{file_id}/permissions", response_model=list[FilePermissionOut])
-async def list_file_permissions(
-    file_id: str,
-    session: Session,
-    _: CurrentUser,
-):
-    result = await session.scalars(
-        select(FilePermission)
-        .where(FilePermission.file_id == file_id)
-        .order_by(FilePermission.level, FilePermission.user_id, FilePermission.group_id)
-    )
-    return list(result)
-
-
-@router.delete("/{file_id}/permissions", status_code=204)
-async def delete_file_permission(
-    file_id: str,
-    session: Session,
-    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
-    user_id: str | None = None,
-    group_id: str | None = None,
-):
-    if not user_id and not group_id:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=422, detail="Informe user_id ou group_id")
-    statement = select(FilePermission).where(FilePermission.file_id == file_id)
-    if user_id:
-        statement = statement.where(FilePermission.user_id == user_id)
-    if group_id:
-        statement = statement.where(FilePermission.group_id == group_id)
-    permission = await session.scalar(statement)
-    if permission:
-        await session.delete(permission)
-        await session.commit()
-
-
 @router.get("/{file_id}", response_model=dict)
 async def get_file(
     file_id: str,
@@ -119,22 +52,3 @@ async def get_file(
     if not file:
         raise NotFoundException("Arquivo não encontrado")
     return {"file": file}
-
-
-@router.patch("/{file_id}", response_model=dict)
-async def update_file(
-    file_id: str,
-    data: FileUpdate,
-    service: Annotated[FileService, Depends(get_service)],
-    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
-):
-    return {"file": await service.update_file(file_id, data)}
-
-
-@router.delete("/{file_id}", status_code=204)
-async def delete_file(
-    file_id: str,
-    service: Annotated[FileService, Depends(get_service)],
-    _: Annotated[dict, Depends(require_roles("admin", "gerente"))],
-):
-    await service.delete_file(file_id)

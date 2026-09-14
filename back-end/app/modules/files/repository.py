@@ -18,12 +18,3 @@ class FileRepository:
 
     async def find_by_id(self, file_id: str) -> File | None:
         return await self.session.get(File, file_id)
-
-    async def create(self, file: File) -> File:
-        self.session.add(file)
-        await self.session.flush()
-        return file
-
-    async def delete(self, file: File) -> None:
-        await self.session.delete(file)
-        await self.session.flush()

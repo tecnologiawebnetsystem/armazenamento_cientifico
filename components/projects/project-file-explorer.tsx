@@ -15,15 +15,12 @@ import {
   EyeIcon,
   DownloadIcon,
   FoldersIcon,
-  Loader2Icon,
   SearchIcon,
   SearchXIcon,
 } from "lucide-react"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Input } from "@/components/ui/input"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import {
@@ -35,33 +32,12 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import {
-} from "@/components/ui/dropdown-menu"
-import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useFiles } from "@/hooks/use-files"
 import type { FileNode } from "@/lib/types"
 
@@ -94,164 +70,15 @@ type FileAction = {
   separator?: boolean
 }
 
-export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string; canWrite: boolean }) {
+export function ProjectFileExplorer({ projectId }: { projectId: string }) {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null)
   const { files, breadcrumb, isLoading } = useFiles(projectId, currentFolderId)
   const [search, setSearch] = useState("")
-  const newFolderOpen = false
-  const renameTarget: FileNode | null = null
-  const moveTarget: FileNode | null = null
-  const deleteTarget: FileNode | null = null
-  const newFolderName = ""
-  const renameValue = ""
-  const moveDestination = "root"
-  const isCreatingFolder = false
-  const isRenaming = false
-  const isMoving = false
-  const isDeleting = false
-  const setNewFolderOpen = (...args: [boolean]) => void args
-  const setRenameTarget = (...args: [FileNode | null]) => void args
-  const setMoveTarget = (...args: [FileNode | null]) => void args
-  const setDeleteTarget = (...args: [FileNode | null]) => void args
-  const setNewFolderName = (...args: [string]) => void args
-  const setRenameValue = (...args: [string]) => void args
-  const setMoveDestination = (...args: [string]) => void args
-  const handleCreateFolder = () => undefined
-  const handleRename = () => undefined
-  const handleMove = () => undefined
-  const handleDelete = () => undefined
-  const moveDestinationOptions: FileNode[] = []
-
   const visibleFiles = useMemo(() => {
     const q = search.trim().toLowerCase()
-    const folders = files.filter((f) => f.tipo === "pasta")
-    if (!q) return folders
-    return folders.filter((f) => f.nome.toLowerCase().includes(q))
+    if (!q) return files
+    return files.filter((f) => f.nome.toLowerCase().includes(q))
   }, [files, search])
-
-  /* Criação, upload, renomeação, movimentação e exclusão foram removidos: este módulo é somente leitura. */
-  /* async function handleUploadFiles(fileList: FileList) {
-    setIsUploading(true)
-    try {
-      for (const uploaded of Array.from(fileList)) {
-        await createFileNode({
-          projectId,
-          parentId: currentFolderId,
-          tipo: "arquivo",
-          nome: uploaded.name,
-          tamanho: uploaded.size,
-          mimeType: uploaded.type || "application/octet-stream",
-        })
-      }
-      toast.success(fileList.length > 1 ? `${fileList.length} arquivos enviados.` : "Arquivo enviado.")
-      refresh()
-    } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Não foi possível enviar o arquivo."
-      toast.error(message)
-    } finally {
-      setIsUploading(false)
-    }
-  }
-
-  async function handleCreateFolder() {
-    if (!newFolderName.trim()) return
-    setIsCreatingFolder(true)
-    try {
-      await createFileNode({ projectId, parentId: currentFolderId, tipo: "pasta", nome: newFolderName.trim() })
-      toast.success("Pasta criada.")
-      refresh()
-      setNewFolderOpen(false)
-      setNewFolderName("")
-    } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Não foi possível criar a pasta."
-      toast.error(message)
-    } finally {
-      setIsCreatingFolder(false)
-    }
-  }
-
-  async function handleRename() {
-    if (!renameTarget || !renameValue.trim()) return
-    setIsRenaming(true)
-    try {
-      await updateFileNode(renameTarget.id, { nome: renameValue.trim() })
-      toast.success("Item renomeado.")
-      refresh()
-      setRenameTarget(null)
-    } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Não foi possível renomear o item."
-      toast.error(message)
-    } finally {
-      setIsRenaming(false)
-    }
-  }
-
-  async function handleDelete() {
-    if (!deleteTarget) return
-    setIsDeleting(true)
-    try {
-      await deleteFileNode(deleteTarget.id)
-      toast.success(`"${deleteTarget.nome}" excluído.`)
-      refresh()
-      setDeleteTarget(null)
-    } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Não foi possível excluir o item."
-      toast.error(message)
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
-  /* Compartilhamento por arquivo foi removido; o acesso é controlado por membros e permissões do projeto. */
-  /* async function handleShare() {
-    if (!shareTarget || !shareUserId) return
-    setIsSharing(true)
-    try {
-      const { file } = await shareFileNode(shareTarget.id, shareUserId, shareLevel)
-      setShareTarget(file)
-      toast.success("Item compartilhado.")
-      refresh()
-      setShareUserId("")
-      setShareLevel("leitura")
-    } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Não foi possível compartilhar o item."
-      toast.error(message)
-    } finally {
-      setIsSharing(false)
-    }
-  }
-
-  async function handleUnshare(userId: string) {
-    if (!shareTarget) return
-    try {
-      const { file } = await unshareFileNode(shareTarget.id, userId)
-      setShareTarget(file)
-      toast.success("Compartilhamento removido.")
-      refresh()
-    } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Não foi possível remover o compartilhamento."
-      toast.error(message)
-    }
-  }
-
-  /* async function handleMove() {
-    if (!moveTarget) return
-    setIsMoving(true)
-    try {
-      const parentId = moveDestination === "root" ? null : moveDestination
-      await updateFileNode(moveTarget.id, { parentId })
-      toast.success(`"${moveTarget.nome}" movido.`)
-      refresh()
-      setMoveTarget(null)
-    } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Não foi possível mover o item."
-      toast.error(message)
-    } finally {
-      setIsMoving(false)
-    }
-  }
-
-  */
 
   function handleDownload(file: FileNode) {
     toast.info(`Simulação: em um ambiente real, o download de "${file.nome}" seria iniciado agora.`)
@@ -335,9 +162,7 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
               <EmptyDescription>
                 {search.trim()
                   ? "Nenhum item corresponde à busca nesta pasta."
-                  : canWrite
-                    ? "Envie arquivos ou crie pastas para começar."
-                    : "Esta pasta ainda não possui conteúdo."}
+                  : "Esta pasta ainda não possui conteúdo consultável."}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
@@ -384,124 +209,6 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
           </div>
         )}
       </CardContent>
-
-      {false && <Dialog open={newFolderOpen} onOpenChange={setNewFolderOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nova pasta</DialogTitle>
-            <DialogDescription>Crie uma pasta na localização atual do explorador.</DialogDescription>
-          </DialogHeader>
-          <Input
-            placeholder="Nome da pasta"
-            value={newFolderName}
-            onChange={(e) => setNewFolderName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.nativeEvent.isComposing) handleCreateFolder()
-            }}
-            autoFocus
-          />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setNewFolderOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleCreateFolder} disabled={!newFolderName.trim() || isCreatingFolder}>
-              {isCreatingFolder && <Loader2Icon data-icon="inline-start" className="animate-spin" />}
-              Criar pasta
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>}
-
-      {false && <Dialog open={renameTarget !== null} onOpenChange={(open) => !open && setRenameTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Renomear</DialogTitle>
-            <DialogDescription>Escolha um novo nome para &quot;{renameTarget?.nome}&quot;.</DialogDescription>
-          </DialogHeader>
-          <Input
-            value={renameValue}
-            onChange={(e) => setRenameValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.nativeEvent.isComposing) handleRename()
-            }}
-            autoFocus
-          />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRenameTarget(null)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleRename} disabled={!renameValue.trim() || isRenaming}>
-              {isRenaming && <Loader2Icon data-icon="inline-start" className="animate-spin" />}
-              Salvar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>}
-
-      {false && <Dialog open={moveTarget !== null} onOpenChange={(open) => !open && setMoveTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Mover &quot;{moveTarget?.nome}&quot;</DialogTitle>
-            <DialogDescription>Escolha a pasta de destino.</DialogDescription>
-          </DialogHeader>
-          <Select value={moveDestination} onValueChange={(v) => setMoveDestination(v ?? "root")}>
-            <SelectTrigger className="w-full">
-              <SelectValue>
-                {(value: string) =>
-                  value === "root" ? "Raiz" : moveDestinationOptions.find((f) => f.id === value)?.nome ?? value
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem value="root">Raiz</SelectItem>
-                {moveDestinationOptions.map((folder) => (
-                  <SelectItem key={folder.id} value={folder.id}>
-                    {folder.nome}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setMoveTarget(null)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleMove}
-              disabled={isMoving || (moveTarget?.parentId ?? "root") === moveDestination}
-            >
-              {isMoving && <Loader2Icon data-icon="inline-start" className="animate-spin" />}
-              Mover
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>}
-
-      {false && <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir &quot;{deleteTarget?.nome}&quot;?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deleteTarget?.tipo === "pasta"
-                ? "Esta pasta e todo o seu conteúdo serão excluídos permanentemente."
-                : "Este arquivo será excluído permanentemente."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-white hover:bg-destructive/90"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting && <Loader2Icon data-icon="inline-start" className="animate-spin" />}
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>}
-
 
 
     </Card>

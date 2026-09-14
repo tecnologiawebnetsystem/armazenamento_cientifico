@@ -59,7 +59,7 @@ create index if not exists idx_projects_snow on projects(snow_task_number);
 create index if not exists idx_project_groups_project on project_access_groups(project_id);
 create index if not exists idx_project_roles_project on project_access_roles(project_id);
 
--- Arquivos, compartilhamentos, visualizações e trilha de auditoria
+-- Arquivos e pastas consultáveis, além da trilha de auditoria
 create table if not exists files (
   id uuid primary key default gen_random_uuid(),
   project_id uuid not null references projects(id) on delete cascade,
@@ -72,15 +72,6 @@ create table if not exists files (
   last_viewed_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
-);
-
-create table if not exists file_shares (
-  file_id uuid not null references files(id) on delete cascade,
-  user_id uuid not null references users(id) on delete cascade,
-  access_level varchar(10) not null check (access_level in ('read', 'write')),
-  shared_by uuid references users(id) on delete set null,
-  created_at timestamptz not null default now(),
-  primary key (file_id, user_id)
 );
 
 create table if not exists activity_logs (
@@ -96,6 +87,5 @@ create table if not exists activity_logs (
 );
 
 create index if not exists idx_files_project_parent on files(project_id, parent_id);
-create index if not exists idx_file_shares_user on file_shares(user_id);
 create index if not exists idx_activity_logs_user_created on activity_logs(user_id, created_at desc);
 create index if not exists idx_activity_logs_entity_created on activity_logs(entity, created_at desc);

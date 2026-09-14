@@ -18,8 +18,6 @@ TABLES = (
     "project_members",
     "project_groups",
     "files",
-    "file_shares",
-    "file_permissions",
     "activity_logs",
     "access_requests",
     "permission_matrix",

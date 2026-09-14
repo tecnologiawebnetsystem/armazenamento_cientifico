@@ -14,13 +14,11 @@ export function ProjectDetailTabs({
   initialProject,
   canEdit,
   canManageMembers,
-  canWriteFiles,
 }: {
   projectId: string
   initialProject: Project
   canEdit: boolean
   canManageMembers: boolean
-  canWriteFiles: boolean
 }) {
   const searchParams = useSearchParams()
   const { project, refresh } = useProject(projectId)
@@ -35,7 +33,7 @@ export function ProjectDetailTabs({
         <TabsTrigger className="group flex min-h-10 items-center justify-center gap-2 rounded-lg px-2 py-2 text-xs font-semibold text-muted-foreground transition-all hover:bg-background/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-petrobras-green/50 data-[state=active]:bg-petrobras-green data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm sm:text-sm" value="informacoes"><Info aria-hidden="true" className="size-4 shrink-0" /><span>Informações</span></TabsTrigger>
       </TabsList>
       <TabsContent value="arquivos" className="mt-4">
-        <ProjectFileExplorer projectId={projectId} canWrite={canWriteFiles} />
+        <ProjectFileExplorer projectId={projectId} />
       </TabsContent>
       <TabsContent value="membros" className="mt-4">
         <ProjectMembersTab projectId={projectId} canManage={canManageMembers} />

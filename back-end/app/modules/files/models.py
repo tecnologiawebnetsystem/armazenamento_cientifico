@@ -21,12 +21,4 @@ class File(Base):
     updated_at: Mapped[datetime] = mapped_column(nullable=False)
 
 
-class FileShare(Base):
-    __tablename__ = "file_shares"
-
-    file_id: Mapped[str] = mapped_column(ForeignKey("files.id"), primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    level: Mapped[str] = mapped_column("access_level", String(20))
-
-
-__all__ = ["File", "FileShare"]
+__all__ = ["File"]
