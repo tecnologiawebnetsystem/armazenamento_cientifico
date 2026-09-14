@@ -180,30 +180,10 @@ export async function getProjectMembers(projectId: string) {
   return { members: Array.isArray(response) ? response : (response.members ?? []) }
 }
 
-/* ---------------------------------- Files --------------------------------- */
+/* --------------------------------- Folders -------------------------------- */
 
-export async function getFiles(projectId: string, parentId: string | null) {
-  const params = new URLSearchParams({ projectId })
-  if (parentId) params.set("parentId", parentId)
-  const response = await request<{ files: Array<FileNode & Record<string, unknown>>; breadcrumb?: FileNode[] }>(`/api/files?${params.toString()}`)
-  const normalize = (file: FileNode & Record<string, unknown>): FileNode => ({
-    id: String(file.id ?? ""),
-    projectId: String(file.projectId ?? file.project_id ?? ""),
-    parentId: (file.parentId ?? file.parent_id ?? null) as string | null,
-    tipo: (file.tipo ?? file.kind ?? "arquivo") as FileNode["tipo"],
-    nome: String(file.nome ?? file.name ?? ""),
-    tamanho: Number(file.tamanho ?? file.size_bytes ?? 0),
-    mimeType: (file.mimeType ?? file.mime_type ?? undefined) as string | undefined,
-    criadoPor: String(file.criadoPor ?? file.created_by ?? ""),
-    criadoEm: String(file.criadoEm ?? file.created_at ?? ""),
-    atualizadoEm: String(file.atualizadoEm ?? file.updated_at ?? file.criadoEm ?? file.created_at ?? ""),
-  })
-  return { files: (response.files ?? []).map((file) => normalize(file as FileNode & Record<string, unknown>)), breadcrumb: (response.breadcrumb ?? []).map((file) => normalize(file as FileNode & Record<string, unknown>)) }
-}
-
-/** Lista todas as pastas do projeto (sem filtrar por parentId), usada no diálogo de mover item. */
-export function getAllFolders(projectId: string) {
-  return request<{ files: FileNode[] }>(`/api/files?projectId=${encodeURIComponent(projectId)}&allFolders=true`)
+export function getFolders(projectId: string) {
+  return request<{ folders: FileNode[] }>(`/api/folders?projectId=${encodeURIComponent(projectId)}`)
 }
 
 /* -------------------------------- Dashboard -------------------------------- */

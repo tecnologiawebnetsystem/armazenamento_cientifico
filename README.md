@@ -22,7 +22,8 @@
 - [14. Branches, commits e PRs](#14-branches-commits-e-prs)
 - [15. Troubleshooting](#15-troubleshooting)
 - [16. Deploy](#16-deploy)
-- [17. Integração corporativa CAV4 e Entra ID](#17-integração-corporativa-cav4-e-entra-id)
+- [18. Integração corporativa CAV4 e Entra ID](#18-integração-corporativa-cav4-e-entra-id)
+- [17. Operação dos containers e cronograma](#17-operação-dos-containers-e-cronograma)
 
 ---
 
@@ -313,10 +314,9 @@ A lista abaixo apresenta somente as tabelas utilizadas pelo SiGAC, com seus camp
 | `menus` | `id*`, `module_id`, `parent_id`, `name`, `route`, `icon`, `display_order`, `active` | `id` | `module_id -> modules.id` |
 | `projects` | `id*`, `name`, `code`, `responsible_area`, `managers_ids`, `write_group`, `read_group`, `write_identity_role`, `read_identity_role`, `snow_task_number`, `parent_folder`, `description`, `status`, `participants_ids`, `created_at`, `updated_at` | `id` | — |
 | `project_members` | `project_id*`, `user_id*`, `role`, `created_at` | `(project_id,user_id)` | `project_id -> projects.id`; `user_id -> users.id` |
-| `files` | `id*`, `project_id`, `parent_id`, `kind`, `name`, `size_bytes`, `mime_type`, `created_by`, `last_viewed_at`, `created_at`, `updated_at` | `id` | `project_id -> projects.id`; `parent_id -> files.id`; `created_by -> users.id` (consulta somente leitura) |
+| `folders` | `id*`, `project_id`, `parent_id`, `kind='pasta'`, `name`, `size_bytes`, `mime_type`, `created_by`, `last_viewed_at`, `created_at`, `updated_at` | `id` | `project_id -> projects.id`; `parent_id -> folders.id`; `created_by -> users.id` (consulta somente leitura) |
 | `access_requests` | `id*`, `project_id`, `requester_id`, `status`, `created_at` | `id` | `project_id -> projects.id`; `requester_id -> users.id` |
 | `activity_logs` | `id*`, `user_id`, `action`, `entity`, `entity_id`, `details`, `created_at` | `id` | `user_id -> users.id` |
-| `sessions` | `id*`, `user_id`, `expires_at` | `id` | `user_id -> users.id` |
 | `permission_matrix` | `id*`, `matrix` | `id` | — |
 
 ---
@@ -337,13 +337,12 @@ erDiagram
   MODULES ||--o{ MENUS : organiza
   PROJECTS ||--o{ PROJECT_MEMBERS : possui
   USERS ||--o{ PROJECT_MEMBERS : participa
-  PROJECTS ||--o{ FILES : contém
-  FILES ||--o{ FILES : organiza
-  USERS ||--o{ FILES : cria
+  PROJECTS ||--o{ FOLDERS : contém
+  FOLDERS ||--o{ FOLDERS : organiza
+  USERS ||--o{ FOLDERS : cria
   PROJECTS ||--o{ ACCESS_REQUESTS : recebe
   USERS ||--o{ ACCESS_REQUESTS : solicita
   USERS ||--o{ ACTIVITY_LOGS : gera
-  USERS ||--o{ SESSIONS : possui
 ```
 
 ## 9. API e endpoints
@@ -359,7 +358,7 @@ A API REST do SiGAC é fornecida pelo FastAPI em `back-end/`. O contrato publica
 | Login corporativo | `GET /api/auth/cav4/start`, `GET /api/auth/cav4/callback` | Fluxo corporativo CAV4/OIDC. |
 | Catálogos e diretório | `GET /api/catalogos`, `/api/users`, `/api/perfis`, `/api/permissions` | Dados auxiliares para telas e autorização. |
 | Projetos | `GET/POST /api/projects`, `GET/PATCH/DELETE /api/projects/{id}` | CRUD, áreas, mapa de acesso e membros. |
-| Arquivos | `GET /api/files`, `GET /api/files/{id}` | Consulta de pastas, arquivos e metadados. |
+| Pastas | `GET /api/folders` | Consulta somente leitura das pastas do projeto. |
 | Dashboard | `GET /api/dashboard/summary` | Indicadores da área autenticada. |
 | Auditoria | `GET /api/activity-logs` | Consulta dos eventos do sistema. |
 | Relatórios | `GET /api/reports`, `/api/reports/export`, `/api/report-fields` | Consulta e exportação CSV, TXT e PDF. |
@@ -383,7 +382,7 @@ As requisições do frontend usam JSON, cookies de sessão e `cache: no-store`. 
 | Catálogos | `/api/catalogos`, `/api/projects/areas` | [`hooks/use-catalogs.ts`](hooks/use-catalogs.ts) |
 | Projetos | `/api/projects`, `/api/projects/{id}`, `/api/projects/{id}/access-map` | [`app/(app)/projetos/`](app/(app)/projetos/), [`components/project-form.tsx`](components/project-form.tsx) |
 | Membros e solicitações | `/api/projects/{id}/members`, `/api/access-requests` | [`components/projects/project-members-tab.tsx`](components/projects/project-members-tab.tsx), [`components/administracao/access-requests-queue.tsx`](components/administracao/access-requests-queue.tsx) |
-| Arquivos | `/api/files`, `/api/files/{id}` | [`hooks/use-files.ts`](hooks/use-files.ts), [`components/projects/project-file-explorer.tsx`](components/projects/project-file-explorer.tsx) — consulta somente leitura |
+| Pastas | `/api/folders` | [`components/projects/project-file-explorer.tsx`](components/projects/project-file-explorer.tsx) — consulta somente leitura |
 | Dashboard | `/api/dashboard/summary` | [`app/(app)/dashboard/page.tsx`](app/(app)/dashboard/page.tsx), [`components/dashboard/`](components/dashboard/) |
 | Auditoria | `/api/activity-logs` | [`hooks/use-activity-logs.ts`](hooks/use-activity-logs.ts), [`app/(app)/logs/page.tsx`](app/(app)/logs/page.tsx) |
 | Relatórios | `/api/reports`, `/api/reports/export`, `/api/report-fields` | [`app/(app)/relatorios/page.tsx`](app/(app)/relatorios/page.tsx), [`components/export-fields-dialog.tsx`](components/export-fields-dialog.tsx) |
@@ -433,7 +432,7 @@ Para uma alteração persistente, atualize model/schema, migration Alembic, repo
 
 ### Novo endpoint
 
-Defina método, path, autenticação, capability, payload, respostas e códigos de erro. Implemente no módulo de domínio seguindo `controller → schema → service → repository`; use a camada legada somente quando for necessário preservar um contrato existente. Adicione a função do `lib/api-client.ts`, hook ou Server Component consumidor, teste de contrato e entrada no item 10.
+Defina método, path, autenticação, capability, payload, respostas e códigos de erro. Implemente no módulo de domínio seguindo `controller → schema → service → repository`; use a camada legada somente quando for necess��rio preservar um contrato existente. Adicione a função do `lib/api-client.ts`, hook ou Server Component consumidor, teste de contrato e entrada no item 10.
 
 ### Nova tela ou componente
 
@@ -600,7 +599,7 @@ SQLite é adequado para desenvolvimento local, mas não deve ser usado como banc
 
 ---
 
-## 17. Integra��ão corporativa CAV4 e Entra ID
+## 18. Integração corporativa CAV4 e Entra ID
 
 O SIGAC possui login local funcional e mantém a integração corporativa como uma etapa dependente do contrato oficial dos sistemas CAV4 e Microsoft Entra ID. Login local não é SSO e não deve ser descrito como autenticação corporativa ou mockada.
 
@@ -618,6 +617,60 @@ O checklist está em [`docs/integracao-login-corporativo-cav4-entraid.md`](docs/
 
 ---
 
-## Manutenção desta documentação
+## 17. Operação dos containers e cronograma
+
+### Organograma técnico
+
+```mermaid
+flowchart LR
+  U[Usuário] --> W[Web Next.js]
+  W --> A[API FastAPI]
+  A --> M[Alembic]
+  A --> D[(PostgreSQL)]
+  L[SQLite local] --> S[Sincronização controlada]
+  S --> D
+```
+
+### Fluxo de inicialização
+
+1. O PostgreSQL inicia com volume persistente e healthcheck.
+2. A API aguarda o banco saudável e aplica `alembic upgrade head`.
+3. A API expõe `/health` e só então o Web inicia suas chamadas internas.
+4. O Web usa `BACKEND_INTERNAL_URL` na rede Compose e `NEXT_PUBLIC_API_BASE_URL` para chamadas públicas.
+5. Dados locais permanecem em SQLite apenas durante desenvolvimento; a sincronização é explícita e transacional.
+
+### Tabelas canônicas utilizadas
+
+`profiles`, `users`, `modules`, `permissions`, `profile_permissions`, `profile_modules`, `project_statuses`, `project_types`, `system_settings`, `report_types`, `report_fields`, `menus`, `projects`, `project_members`, `folders`, `access_requests`, `permission_matrix`, `activity_logs` e `responsible_areas`.
+
+A tabela `sessions` foi removida por não possuir consumidores ativos no contrato atual. `access_requests` e `permission_matrix` permanecem porque ainda são consumidas pela API legada e pelo seed de permissões. Tabelas externas de autenticação não fazem parte do schema da aplicação.
+
+### Cronograma técnico
+
+| Etapa | Estado | Fonte de verdade |
+|---|---|---|
+| Contrato somente leitura de pastas | Concluída | `GET /api/folders` |
+| Schema SQLite canônico | Concluída | `back-end/database/sqlite-schema.sql` |
+| Schema PostgreSQL canônico | Concluída | `back-end/database/postgresql-schema.sql` |
+| Migration de equalização | Concluída | Alembic `0017_align_canonical_schema` |
+| Containers com healthcheck e migrations | Concluída | Dockerfiles e Compose |
+| Modelo ER em PDF | Atualizar após validação | `docs/SIGAC-modelo-dados.pdf` |
+| Smoke test de publicação | Próxima validação | checklist de release |
+
+### Comandos Docker
+
+```bash
+docker compose config
+docker compose build
+docker compose up -d
+curl http://localhost:8080/health
+curl http://localhost:3000
+```
+
+O Compose raiz sobe Web, API e PostgreSQL. O Compose em `back-end/` sobe API e PostgreSQL para desenvolvimento isolado. Em ambos, migrations são aplicadas pela API antes do processo HTTP.
+
+---
+
+## 19. Manutenção desta documentação
 
 Ao alterar tabelas, endpoints, páginas, scripts ou estrutura de pastas, atualize este arquivo. A Wiki Dev é exclusivamente este Markdown; não existe uma página visual equivalente. Evite copiar blocos inteiros de outros documentos: mantenha aqui a referência consolidada e use links para a fonte técnica específica quando houver detalhes adicionais.

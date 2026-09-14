@@ -655,49 +655,6 @@ async def members(pid: str, request: Request):
     }
 
 
-@app.get("/api/files")
-async def list_files(
-    projectId: str, request: Request, parentId: str | None = None, allFolders: bool = False
-):
-    u = await require(request)
-    if not await visible(u, projectId):
-        raise HTTPException(404, "Projeto não encontrado")
-    p = await db()
-    rows = await p.fetch(
-        "select * from files where project_id=$1 and ($2 or parent_id is not distinct from $3) order by kind,name",
-        projectId,
-        allFolders,
-        parentId,
-    )
-    return {"files": [dump_file(r) for r in rows], "breadcrumb": []}
-
-
-def dump_file(r):
-    d = dump(r)
-    return {
-        "id": d["id"],
-        "projectId": d["project_id"],
-        "parentId": d["parent_id"],
-        "tipo": d["kind"],
-        "nome": d["name"],
-        "tamanho": d["size_bytes"],
-        "mimeType": d["mime_type"],
-        "criadoPor": d["created_by"],
-        "criadoEm": d["created_at"],
-        "atualizadoEm": d["updated_at"],
-    }
-
-
-@app.get("/api/files/{fid}")
-async def get_file(fid: str, request: Request):
-    u = await require(request)
-    p = await db()
-    r = await p.fetchrow("select * from files where id=$1", fid)
-    if not r or not await visible(u, r["project_id"]):
-        raise HTTPException(404, "Arquivo não encontrado")
-    return {"file": dump_file(r)}
-
-
 @app.get("/api/users", tags=["Directory"])
 async def users_directory(request: Request):
     await require(request)

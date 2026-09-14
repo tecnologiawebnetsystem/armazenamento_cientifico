@@ -141,6 +141,20 @@
     --sidebar-ring: #fdbb30;
 }
 
+/* O menu lateral acompanha explicitamente o tema aplicado pelo next-themes. */
+.dark [data-sidebar="sidebar"],
+.dark [data-slot="sidebar-inner"] {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+}
+
+.dark [data-sidebar="sidebar"] [data-sidebar="menu-button"],
+.dark [data-sidebar="sidebar"] [data-sidebar="group-label"],
+.dark [data-sidebar="sidebar"] [data-sidebar="header"],
+.dark [data-sidebar="sidebar"] [data-sidebar="footer"] {
+    color: #ffffff;
+}
+
 /* O login permanece claro mesmo quando a preferência persistida do navegador é escura. */
 .light {
     color-scheme: light;

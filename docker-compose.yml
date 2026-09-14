@@ -1,6 +1,6 @@
 services:
   web:
-    image: ${JFROG_REGISTRY:-jfrog.petrobras.dev.br}/${JFROG_DOCKER_REPOSITORY:?Defina JFROG_DOCKER_REPOSITORY no .env}/armazenamento-cientifico-web:${IMAGE_TAG:-local}
+    image: armazenamento-cientifico-web:${IMAGE_TAG:-local}
     build:
       context: .
       dockerfile: Dockerfile
@@ -11,8 +11,51 @@ services:
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
-      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://host.docker.internal:8080}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://back-end:8080}
+    depends_on:
+      back-end:
+        condition: service_healthy
     ports:
       - "3000:3000"
+
+  back-end:
+    build:
+      context: ./back-end
+      dockerfile: Dockerfile
+      args:
+        BUILD_VERSION: ${IMAGE_TAG:-local}
+    image: armazenamento-cientifico-back-end:${IMAGE_TAG:-local}
+    restart: unless-stopped
+    environment:
+      DATABASE_ENGINE: postgresql
+      DATABASE_URL: postgresql+asyncpg://armazenamento:armazenamento@postgres:5432/armazenamento_cientifico
+      PYTHONPATH: /app
+      SEED_DATABASE: ${SEED_DATABASE:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    ports:
+      - "8080:8080"
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: armazenamento_cientifico
+      POSTGRES_USER: armazenamento
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-armazenamento}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U armazenamento -d armazenamento_cientifico"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - armazenamento_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  armazenamento_postgres_data:

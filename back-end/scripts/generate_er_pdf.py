@@ -141,7 +141,7 @@ def main():
     frame = Frame(16 * mm, 18 * mm, PAGE[0] - 32 * mm, PAGE[1] - 40 * mm, id="normal")
     doc = BaseDocTemplate(str(OUTPUT), pagesize=PAGE, leftMargin=16 * mm, rightMargin=16 * mm, topMargin=24 * mm, bottomMargin=18 * mm, title="SIGAC — Modelo de dados")
     doc.addPageTemplates([PageTemplate(id="main", frames=frame, onPage=header_footer)])
-    story = [Spacer(1, 18 * mm), Paragraph("SIGAC — Tabelas e campos", title), Paragraph("Inventário das tabelas utilizadas pelo SiGAC no PostgreSQL, com campos físicos, chaves primárias, chaves estrangeiras e diagrama visual dos relacionamentos.", body), Spacer(1, 12 * mm), Paragraph(f"Tabelas: {len(tables)}", title), Paragraph("Legenda: PK = chave primária; * = campo obrigatório; linhas verdes = relacionamentos FK.", body), PageBreak()]
+    story = [Spacer(1, 18 * mm), Paragraph("SIGAC — Tabelas e campos", title), Paragraph("Inventário das tabelas canônicas utilizadas pelo SIGAC, com campos físicos, chaves primárias, chaves estrangeiras e diagrama visual dos relacionamentos.", body), Spacer(1, 12 * mm), Paragraph(f"Tabelas: {len(tables)}", title), Paragraph("Legenda: PK = chave primária; * = campo obrigatório; linhas verdes = relacionamentos FK.", body), PageBreak()]
     for i in range(0, len(tables), 3):
         group = tables[i:i + 3]
         story += [Paragraph(f"Diagrama ER visual · tabelas {i + 1}–{i + len(group)} de {len(tables)}", title), Spacer(1, 5 * mm), ERPage(group)]

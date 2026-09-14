@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-"""Sincroniza o banco SQLite canônico com o PostgreSQL/Neon.
+"""Sincroniza o banco SQLite canônico com o PostgreSQL.
 
-Uso seguro:
-  uv run python scripts/migrate_sqlite_to_postgresql.py        # somente diagnóstico
-  uv run python scripts/migrate_sqlite_to_postgresql.py --apply # substitui dados no Neon
+uv run python scripts/migrate_sqlite_to_postgresql.py        # somente diagnóstico
+uv run python scripts/migrate_sqlite_to_postgresql.py --apply # aplica os dados
 
 O SQLite é a fonte de verdade. O modo --apply executa a sincronização em uma
-transação, sem tocar em tabelas gerenciadas por Neon Auth.
+transação, sem tocar nas tabelas de autenticação gerenciadas pelo provedor.
 """
 
 import argparse
@@ -23,7 +22,7 @@ import asyncpg
 
 SOURCE = Path(__file__).resolve().parents[1] / "data" / "sigac.db"
 SKIP = {"alembic_version", "settings"}
-MANAGED_BY_NEON = {"user", "session", "account", "verification"}
+MANAGED_AUTH_TABLES = {"user", "session", "account", "verification"}
 
 # Tabelas legadas em português são convertidas para as tabelas canônicas em inglês.
 TABLE_MAP = {
@@ -51,14 +50,13 @@ COLUMN_MAP = {
 PREFERRED_ORDER = [
     "profiles", "users", "modules", "permissions", "profile_permissions", "profile_modules",
     "project_statuses", "project_types", "system_settings", "report_types", "report_fields",
-    "menus", "projects", "project_members", "files", "access_requests", "activity_logs", "sessions",
-    "permission_matrix", "responsible_areas",
+    "menus", "projects", "project_members", "folders", "access_requests", "activity_logs", "permission_matrix", "responsible_areas",
 ]
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--apply", action="store_true", help="aplica a substituição no Neon")
+    parser.add_argument("--apply", action="store_true", help="aplica a substituição no banco de destino")
     return parser.parse_args()
 
 
@@ -85,8 +83,7 @@ def normalize(value: Any, source_column: str) -> Any:
     if isinstance(value, (datetime, date)):
         return value
     if isinstance(value, str) and (
-        source_column.endswith("_at")
-        or source_column.endswith("_date")
+        source_column.endswith(("_at", "_date"))
         or source_column in {"created_at", "updated_at", "expires_at", "last_login_at", "last_viewed_at"}
     ):
         try:
@@ -117,7 +114,7 @@ def sqlite_rows(sqlite: sqlite3.Connection) -> dict[str, list[sqlite3.Row]]:
     return result
 
 
-async def neon_columns(pg: asyncpg.Connection) -> dict[str, set[str]]:
+async def destination_columns(pg: asyncpg.Connection) -> dict[str, set[str]]:
     rows = await pg.fetch("""
         SELECT table_name, column_name
         FROM information_schema.columns
@@ -131,7 +128,7 @@ async def neon_columns(pg: asyncpg.Connection) -> dict[str, set[str]]:
 
 def target_values(row: sqlite3.Row, target_columns: set[str]) -> tuple[list[str], list[Any]]:
     values: dict[str, Any] = {}
-    for source_column in row.keys():
+    for source_column in row:
         target_column = COLUMN_MAP.get(source_column, source_column)
         candidates = [target_column, source_column]
         candidates.extend(
@@ -161,15 +158,15 @@ async def main() -> None:
     data = sqlite_rows(sqlite)
     pg = await asyncpg.connect(database_url)
     try:
-        columns_by_table = await neon_columns(pg)
-        missing = sorted(set(data) - set(columns_by_table) - MANAGED_BY_NEON)
+        columns_by_table = await destination_columns(pg)
+        missing = sorted(set(data) - set(columns_by_table) - MANAGED_AUTH_TABLES)
         if missing:
             raise RuntimeError(
-                "Tabelas ausentes no Neon; aplique as migrations do backend antes de sincronizar: "
+                "Tabelas ausentes no banco de destino; aplique as migrations do backend antes de sincronizar: "
                 + ", ".join(missing)
             )
 
-        print("Diagnóstico SQLite -> Neon")
+        print("Diagnóstico SQLite -> banco de destino")
         for table in sorted(data):
             print(f"  {table}: {len(data[table])} registros")
         if not args.apply:
