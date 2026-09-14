@@ -50,8 +50,7 @@ COLUMN_MAP = {
 PREFERRED_ORDER = [
     "profiles", "users", "modules", "permissions", "profile_permissions", "profile_modules",
     "project_statuses", "project_types", "system_settings", "report_types", "report_fields",
-    "menus", "projects", "project_members", "folders", "access_requests", "activity_logs", "sessions",
-    "permission_matrix", "responsible_areas",
+    "menus", "projects", "project_members", "folders", "access_requests", "activity_logs", "permission_matrix", "responsible_areas",
 ]
 
 

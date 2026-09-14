@@ -1,6 +1,6 @@
 services:
   back-end:
-    image: ${JFROG_REGISTRY:-jfrog.petrobras.dev.br}/${JFROG_DOCKER_REPOSITORY:?Defina JFROG_DOCKER_REPOSITORY no .env}/armazenamento-cientifico-back-end:${IMAGE_TAG:-local}
+    image: armazenamento-cientifico-back-end:${IMAGE_TAG:-local}
     build:
       context: .
       dockerfile: Dockerfile
@@ -19,6 +19,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
   postgres:
     image: postgres:16-alpine
@@ -32,7 +37,6 @@ services:
       - "5432:5432"
     volumes:
       - armazenamento_postgres_data:/var/lib/postgresql/data
-      - ./database/projects-schema.sql:/docker-entrypoint-initdb.d/001-projects-schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U armazenamento -d armazenamento_cientifico"]
       interval: 5s

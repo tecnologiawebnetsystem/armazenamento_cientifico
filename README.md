@@ -22,7 +22,8 @@
 - [14. Branches, commits e PRs](#14-branches-commits-e-prs)
 - [15. Troubleshooting](#15-troubleshooting)
 - [16. Deploy](#16-deploy)
-- [17. Integração corporativa CAV4 e Entra ID](#17-integração-corporativa-cav4-e-entra-id)
+- [18. Integração corporativa CAV4 e Entra ID](#18-integração-corporativa-cav4-e-entra-id)
+- [17. Operação dos containers e cronograma](#17-operação-dos-containers-e-cronograma)
 
 ---
 
@@ -316,7 +317,6 @@ A lista abaixo apresenta somente as tabelas utilizadas pelo SiGAC, com seus camp
 | `folders` | `id*`, `project_id`, `parent_id`, `kind='pasta'`, `name`, `size_bytes`, `mime_type`, `created_by`, `last_viewed_at`, `created_at`, `updated_at` | `id` | `project_id -> projects.id`; `parent_id -> folders.id`; `created_by -> users.id` (consulta somente leitura) |
 | `access_requests` | `id*`, `project_id`, `requester_id`, `status`, `created_at` | `id` | `project_id -> projects.id`; `requester_id -> users.id` |
 | `activity_logs` | `id*`, `user_id`, `action`, `entity`, `entity_id`, `details`, `created_at` | `id` | `user_id -> users.id` |
-| `sessions` | `id*`, `user_id`, `expires_at` | `id` | `user_id -> users.id` |
 | `permission_matrix` | `id*`, `matrix` | `id` | — |
 
 ---
@@ -343,7 +343,6 @@ erDiagram
   PROJECTS ||--o{ ACCESS_REQUESTS : recebe
   USERS ||--o{ ACCESS_REQUESTS : solicita
   USERS ||--o{ ACTIVITY_LOGS : gera
-  USERS ||--o{ SESSIONS : possui
 ```
 
 ## 9. API e endpoints
@@ -600,7 +599,7 @@ SQLite é adequado para desenvolvimento local, mas não deve ser usado como banc
 
 ---
 
-## 17. Integra��ão corporativa CAV4 e Entra ID
+## 18. Integração corporativa CAV4 e Entra ID
 
 O SIGAC possui login local funcional e mantém a integração corporativa como uma etapa dependente do contrato oficial dos sistemas CAV4 e Microsoft Entra ID. Login local não é SSO e não deve ser descrito como autenticação corporativa ou mockada.
 
@@ -618,6 +617,60 @@ O checklist está em [`docs/integracao-login-corporativo-cav4-entraid.md`](docs/
 
 ---
 
-## Manutenção desta documentação
+## 17. Operação dos containers e cronograma
+
+### Organograma técnico
+
+```mermaid
+flowchart LR
+  U[Usuário] --> W[Web Next.js]
+  W --> A[API FastAPI]
+  A --> M[Alembic]
+  A --> D[(PostgreSQL)]
+  L[SQLite local] --> S[Sincronização controlada]
+  S --> D
+```
+
+### Fluxo de inicialização
+
+1. O PostgreSQL inicia com volume persistente e healthcheck.
+2. A API aguarda o banco saudável e aplica `alembic upgrade head`.
+3. A API expõe `/health` e só então o Web inicia suas chamadas internas.
+4. O Web usa `BACKEND_INTERNAL_URL` na rede Compose e `NEXT_PUBLIC_API_BASE_URL` para chamadas públicas.
+5. Dados locais permanecem em SQLite apenas durante desenvolvimento; a sincronização é explícita e transacional.
+
+### Tabelas canônicas utilizadas
+
+`profiles`, `users`, `modules`, `permissions`, `profile_permissions`, `profile_modules`, `project_statuses`, `project_types`, `system_settings`, `report_types`, `report_fields`, `menus`, `projects`, `project_members`, `folders`, `access_requests`, `permission_matrix`, `activity_logs` e `responsible_areas`.
+
+A tabela `sessions` foi removida por não possuir consumidores ativos no contrato atual. `access_requests` e `permission_matrix` permanecem porque ainda são consumidas pela API legada e pelo seed de permissões. Tabelas externas de autenticação não fazem parte do schema da aplicação.
+
+### Cronograma técnico
+
+| Etapa | Estado | Fonte de verdade |
+|---|---|---|
+| Contrato somente leitura de pastas | Concluída | `GET /api/folders` |
+| Schema SQLite canônico | Concluída | `back-end/database/sqlite-schema.sql` |
+| Schema PostgreSQL canônico | Concluída | `back-end/database/postgresql-schema.sql` |
+| Migration de equalização | Concluída | Alembic `0017_align_canonical_schema` |
+| Containers com healthcheck e migrations | Concluída | Dockerfiles e Compose |
+| Modelo ER em PDF | Atualizar após validação | `docs/SIGAC-modelo-dados.pdf` |
+| Smoke test de publicação | Próxima validação | checklist de release |
+
+### Comandos Docker
+
+```bash
+docker compose config
+docker compose build
+docker compose up -d
+curl http://localhost:8080/health
+curl http://localhost:3000
+```
+
+O Compose raiz sobe Web, API e PostgreSQL. O Compose em `back-end/` sobe API e PostgreSQL para desenvolvimento isolado. Em ambos, migrations são aplicadas pela API antes do processo HTTP.
+
+---
+
+## 19. Manutenção desta documentação
 
 Ao alterar tabelas, endpoints, páginas, scripts ou estrutura de pastas, atualize este arquivo. A Wiki Dev é exclusivamente este Markdown; não existe uma página visual equivalente. Evite copiar blocos inteiros de outros documentos: mantenha aqui a referência consolidada e use links para a fonte técnica específica quando houver detalhes adicionais.
