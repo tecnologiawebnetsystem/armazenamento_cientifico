@@ -1,7 +1,7 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
-class FileOut(BaseModel):
+class FolderOut(BaseModel):
     id: str
     project_id: str
     parent_id: str | None
@@ -14,6 +14,7 @@ class FileOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class FileListOut(BaseModel):
-    files: list[FileOut]
-    breadcrumb: list[dict] = Field(default_factory=list)
+class FolderListOut(BaseModel):
+    folders: list[FolderOut]
+
+    model_config = {"from_attributes": True}

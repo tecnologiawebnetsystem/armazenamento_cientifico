@@ -12,7 +12,7 @@ def test_openapi_exposes_required_operations():
         "/api/auth/logout",
         "/api/auth/session",
         "/api/projects",
-        "/api/files",
+        "/api/folders",
         "/api/reports",
         "/api/access-map",
         "/api/permissions",

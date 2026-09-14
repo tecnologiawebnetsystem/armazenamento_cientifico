@@ -1,9 +1,9 @@
-from .repository import FileRepository
+from .repository import FolderRepository
 
 
-class FileService:
-    def __init__(self, repository: FileRepository):
+class FolderService:
+    def __init__(self, repository: FolderRepository):
         self.repository = repository
 
-    async def list_files(self, project_id: str, parent_id: str | None, all_folders: bool):
-        return await self.repository.list_by_project(project_id, parent_id, all_folders)
+    async def list_folders(self, project_id: str):
+        return await self.repository.list_by_project(project_id)

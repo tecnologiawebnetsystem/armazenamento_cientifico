@@ -17,7 +17,7 @@ uv run uvicorn app.app:app --reload --port 8080
 - `/health` — disponibilidade da API.
 - `/api/auth/*` — login, logout, sessão e CAV4.
 - `/api/projects/*` — projetos e membros.
-- `/api/files/*` — consulta somente leitura de arquivos e pastas autorizados pelo projeto.
+- `/api/folders` — consulta somente leitura das pastas autorizadas pelo projeto.
 - `/api/dashboard/*` — indicadores.
 - `/api/reports/*` — relatórios e exportações.
 - `/api/permissions`, `/api/settings`, `/api/access-requests` — segurança.

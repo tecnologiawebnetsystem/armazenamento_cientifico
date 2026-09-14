@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import useSWR from "swr"
-import { getAllFolders } from "@/lib/api-client"
+import { getFolders } from "@/lib/api-client"
 import type { FileNode } from "@/lib/types"
 
 function FolderIconBadge() {
@@ -21,9 +21,9 @@ function FolderIconBadge() {
 }
 
 export function ProjectFileExplorer({ projectId }: { projectId: string }) {
-  const { data, isLoading } = useSWR(["project-folders", projectId], () => getAllFolders(projectId))
+  const { data, isLoading } = useSWR(["project-folders", projectId], () => getFolders(projectId))
   const [search, setSearch] = useState("")
-  const folders = data?.files?.filter((file) => file.tipo === "pasta") ?? []
+  const folders = data?.folders ?? []
   const visibleFolders = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return folders

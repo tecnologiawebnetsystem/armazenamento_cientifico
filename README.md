@@ -313,7 +313,7 @@ A lista abaixo apresenta somente as tabelas utilizadas pelo SiGAC, com seus camp
 | `menus` | `id*`, `module_id`, `parent_id`, `name`, `route`, `icon`, `display_order`, `active` | `id` | `module_id -> modules.id` |
 | `projects` | `id*`, `name`, `code`, `responsible_area`, `managers_ids`, `write_group`, `read_group`, `write_identity_role`, `read_identity_role`, `snow_task_number`, `parent_folder`, `description`, `status`, `participants_ids`, `created_at`, `updated_at` | `id` | — |
 | `project_members` | `project_id*`, `user_id*`, `role`, `created_at` | `(project_id,user_id)` | `project_id -> projects.id`; `user_id -> users.id` |
-| `files` | `id*`, `project_id`, `parent_id`, `kind`, `name`, `size_bytes`, `mime_type`, `created_by`, `last_viewed_at`, `created_at`, `updated_at` | `id` | `project_id -> projects.id`; `parent_id -> files.id`; `created_by -> users.id` (consulta somente leitura) |
+| `folders` | `id*`, `project_id`, `parent_id`, `kind='pasta'`, `name`, `size_bytes`, `mime_type`, `created_by`, `last_viewed_at`, `created_at`, `updated_at` | `id` | `project_id -> projects.id`; `parent_id -> folders.id`; `created_by -> users.id` (consulta somente leitura) |
 | `access_requests` | `id*`, `project_id`, `requester_id`, `status`, `created_at` | `id` | `project_id -> projects.id`; `requester_id -> users.id` |
 | `activity_logs` | `id*`, `user_id`, `action`, `entity`, `entity_id`, `details`, `created_at` | `id` | `user_id -> users.id` |
 | `sessions` | `id*`, `user_id`, `expires_at` | `id` | `user_id -> users.id` |
@@ -337,9 +337,9 @@ erDiagram
   MODULES ||--o{ MENUS : organiza
   PROJECTS ||--o{ PROJECT_MEMBERS : possui
   USERS ||--o{ PROJECT_MEMBERS : participa
-  PROJECTS ||--o{ FILES : contém
-  FILES ||--o{ FILES : organiza
-  USERS ||--o{ FILES : cria
+  PROJECTS ||--o{ FOLDERS : contém
+  FOLDERS ||--o{ FOLDERS : organiza
+  USERS ||--o{ FOLDERS : cria
   PROJECTS ||--o{ ACCESS_REQUESTS : recebe
   USERS ||--o{ ACCESS_REQUESTS : solicita
   USERS ||--o{ ACTIVITY_LOGS : gera
@@ -359,7 +359,7 @@ A API REST do SiGAC é fornecida pelo FastAPI em `back-end/`. O contrato publica
 | Login corporativo | `GET /api/auth/cav4/start`, `GET /api/auth/cav4/callback` | Fluxo corporativo CAV4/OIDC. |
 | Catálogos e diretório | `GET /api/catalogos`, `/api/users`, `/api/perfis`, `/api/permissions` | Dados auxiliares para telas e autorização. |
 | Projetos | `GET/POST /api/projects`, `GET/PATCH/DELETE /api/projects/{id}` | CRUD, áreas, mapa de acesso e membros. |
-| Arquivos | `GET /api/files`, `GET /api/files/{id}` | Consulta de pastas, arquivos e metadados. |
+| Pastas | `GET /api/folders` | Consulta somente leitura das pastas do projeto. |
 | Dashboard | `GET /api/dashboard/summary` | Indicadores da área autenticada. |
 | Auditoria | `GET /api/activity-logs` | Consulta dos eventos do sistema. |
 | Relatórios | `GET /api/reports`, `/api/reports/export`, `/api/report-fields` | Consulta e exportação CSV, TXT e PDF. |
@@ -383,7 +383,7 @@ As requisições do frontend usam JSON, cookies de sessão e `cache: no-store`. 
 | Catálogos | `/api/catalogos`, `/api/projects/areas` | [`hooks/use-catalogs.ts`](hooks/use-catalogs.ts) |
 | Projetos | `/api/projects`, `/api/projects/{id}`, `/api/projects/{id}/access-map` | [`app/(app)/projetos/`](app/(app)/projetos/), [`components/project-form.tsx`](components/project-form.tsx) |
 | Membros e solicitações | `/api/projects/{id}/members`, `/api/access-requests` | [`components/projects/project-members-tab.tsx`](components/projects/project-members-tab.tsx), [`components/administracao/access-requests-queue.tsx`](components/administracao/access-requests-queue.tsx) |
-| Arquivos | `/api/files`, `/api/files/{id}` | [`hooks/use-files.ts`](hooks/use-files.ts), [`components/projects/project-file-explorer.tsx`](components/projects/project-file-explorer.tsx) — consulta somente leitura |
+| Pastas | `/api/folders` | [`components/projects/project-file-explorer.tsx`](components/projects/project-file-explorer.tsx) — consulta somente leitura |
 | Dashboard | `/api/dashboard/summary` | [`app/(app)/dashboard/page.tsx`](app/(app)/dashboard/page.tsx), [`components/dashboard/`](components/dashboard/) |
 | Auditoria | `/api/activity-logs` | [`hooks/use-activity-logs.ts`](hooks/use-activity-logs.ts), [`app/(app)/logs/page.tsx`](app/(app)/logs/page.tsx) |
 | Relatórios | `/api/reports`, `/api/reports/export`, `/api/report-fields` | [`app/(app)/relatorios/page.tsx`](app/(app)/relatorios/page.tsx), [`components/export-fields-dialog.tsx`](components/export-fields-dialog.tsx) |
@@ -433,7 +433,7 @@ Para uma alteração persistente, atualize model/schema, migration Alembic, repo
 
 ### Novo endpoint
 
-Defina método, path, autenticação, capability, payload, respostas e códigos de erro. Implemente no módulo de domínio seguindo `controller → schema → service → repository`; use a camada legada somente quando for necessário preservar um contrato existente. Adicione a função do `lib/api-client.ts`, hook ou Server Component consumidor, teste de contrato e entrada no item 10.
+Defina método, path, autenticação, capability, payload, respostas e códigos de erro. Implemente no módulo de domínio seguindo `controller → schema → service → repository`; use a camada legada somente quando for necess��rio preservar um contrato existente. Adicione a função do `lib/api-client.ts`, hook ou Server Component consumidor, teste de contrato e entrada no item 10.
 
 ### Nova tela ou componente
 

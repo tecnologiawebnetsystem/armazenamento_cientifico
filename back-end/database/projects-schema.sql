@@ -1,7 +1,7 @@
 -- PostgreSQL: usuários, perfis e projetos
 create extension if not exists pgcrypto;
 
-create table if not exists profiles (
+create table if not exists profolders (
   id uuid primary key default gen_random_uuid(),
   name varchar(100) not null unique,
   description text,
@@ -13,7 +13,7 @@ create table if not exists users (
   external_id varchar(150) unique,
   name varchar(160) not null,
   email varchar(255) not null unique,
-  profile_id uuid references profiles(id) on delete set null,
+  profile_id uuid references profolders(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -60,10 +60,10 @@ create index if not exists idx_project_groups_project on project_access_groups(p
 create index if not exists idx_project_roles_project on project_access_roles(project_id);
 
 -- Arquivos e pastas consultáveis, além da trilha de auditoria
-create table if not exists files (
+create table if not exists folders (
   id uuid primary key default gen_random_uuid(),
   project_id uuid not null references projects(id) on delete cascade,
-  parent_id uuid references files(id) on delete cascade,
+  parent_id uuid references folders(id) on delete cascade,
   kind varchar(20) not null check (kind in ('folder', 'file')),
   name varchar(500) not null,
   size_bytes bigint not null default 0,
@@ -86,6 +86,6 @@ create table if not exists activity_logs (
   created_at timestamptz not null default now()
 );
 
-create index if not exists idx_files_project_parent on files(project_id, parent_id);
+create index if not exists idx_folders_project_parent on folders(project_id, parent_id);
 create index if not exists idx_activity_logs_user_created on activity_logs(user_id, created_at desc);
 create index if not exists idx_activity_logs_entity_created on activity_logs(entity, created_at desc);

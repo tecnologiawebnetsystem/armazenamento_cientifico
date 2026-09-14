@@ -1,20 +1,13 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .models import File
+from .models import Folder
 
 
-class FileRepository:
+class FolderRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def list_by_project(
-        self, project_id: str, parent_id: str | None, all_folders: bool
-    ) -> list[File]:
-        query = select(File).where(File.project_id == project_id).order_by(File.kind, File.name)
-        if not all_folders:
-            query = query.where(File.parent_id == parent_id)
+    async def list_by_project(self, project_id: str) -> list[Folder]:
+        query = select(Folder).where(Folder.project_id == project_id).where(Folder.kind == "pasta").order_by(Folder.name)
         return list((await self.session.scalars(query)).all())
-
-    async def find_by_id(self, file_id: str) -> File | None:
-        return await self.session.get(File, file_id)

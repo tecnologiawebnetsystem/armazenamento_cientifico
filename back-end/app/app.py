@@ -18,7 +18,7 @@ from app.core.logging import configure_logging
 from app.db.session import connect, disconnect
 
 configure_logging(settings.log_level)
-from app.modules.files.module import router as files_router
+from app.modules.files.module import router as folders_router
 from app.modules.projects.module import router as projects_router
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ TAGS_METADATA = [
     {"name": "Health", "description": "Verificação de disponibilidade da API e do banco."},
     {"name": "Authentication", "description": "Login local, logout, sessão e integração corporativa CAV4."},
     {"name": "Projects", "description": "Cadastro, consulta, atualização e membros de projetos."},
-    {"name": "Files", "description": "Consulta somente leitura de arquivos e pastas vinculados a projetos."},
+    {"name": "Folders", "description": "Consulta somente leitura das pastas vinculadas a projetos."},
     {"name": "Dashboard", "description": "Indicadores executivos e visão consolidada do portfólio."},
     {"name": "Reports", "description": "Relatórios, exportações e filtros analíticos."},
     {"name": "Directory", "description": "Usuários e catálogos disponíveis ao usuário autenticado."},
@@ -89,7 +89,7 @@ def create_app() -> FastAPI:
     application.include_router(cav4_auth_router)
 
     application.include_router(projects_router)
-    application.include_router(files_router)
+    application.include_router(folders_router)
     from app.modules.audit.controller import router as audit_router
     application.include_router(audit_router)
     mount_legacy(application)
