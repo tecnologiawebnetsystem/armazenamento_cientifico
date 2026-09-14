@@ -15,16 +15,16 @@ import {
   EyeIcon,
   DownloadIcon,
   FoldersIcon,
-  Loader2Icon,
   SearchIcon,
   SearchXIcon,
 } from "lucide-react"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
+import { Loader2Icon } from "lucide-react"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import {
   Breadcrumb,
@@ -35,33 +35,12 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import {
-} from "@/components/ui/dropdown-menu"
-import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useFiles } from "@/hooks/use-files"
 import type { FileNode } from "@/lib/types"
 
@@ -121,12 +100,10 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
   const handleMove = () => undefined
   const handleDelete = () => undefined
   const moveDestinationOptions: FileNode[] = []
-
   const visibleFiles = useMemo(() => {
     const q = search.trim().toLowerCase()
-    const folders = files.filter((f) => f.tipo === "pasta")
-    if (!q) return folders
-    return folders.filter((f) => f.nome.toLowerCase().includes(q))
+    if (!q) return files
+    return files.filter((f) => f.nome.toLowerCase().includes(q))
   }, [files, search])
 
   /* Criação, upload, renomeação, movimentação e exclusão foram removidos: este módulo é somente leitura. */
@@ -335,9 +312,7 @@ export function ProjectFileExplorer({ projectId, canWrite }: { projectId: string
               <EmptyDescription>
                 {search.trim()
                   ? "Nenhum item corresponde à busca nesta pasta."
-                  : canWrite
-                    ? "Envie arquivos ou crie pastas para começar."
-                    : "Esta pasta ainda não possui conteúdo."}
+                  : "Esta pasta ainda não possui conteúdo consultável."}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>

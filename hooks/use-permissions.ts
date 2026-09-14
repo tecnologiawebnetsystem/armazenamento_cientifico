@@ -1,4 +1,4 @@
-import type { PermissionMatrixEntry, Role, ShareLevel } from "@/lib/types"
+import type { PermissionMatrixEntry, Role } from "@/lib/types"
 
 /**
  * Modelo de permissões em dois níveis:
@@ -35,22 +35,6 @@ export function normalizeRole(role: Role | string | null | undefined): keyof typ
 
 export function getRolePermissions(role: Role, matrix: PermissionMatrixEntry[]) {
   return matrix.find((m) => m.papel === normalizeRole(role)) ?? matrix[matrix.length - 1]
-}
-
-export function canEditFile(projectRole: Role, _shareLevel: ShareLevel | null) {
-  void _shareLevel
-  return projectRole === "admin"
-}
-
-export function shareLevelLabel(level: ShareLevel) {
-  switch (level) {
-    case "leitura":
-      return "Somente leitura"
-    case "edicao":
-      return "Pode editar"
-    case "proprietario":
-      return "Proprietário"
-  }
 }
 
 export function roleLabel(role: Role | string | null | undefined) {

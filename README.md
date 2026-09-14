@@ -28,13 +28,13 @@
 
 ## 1. Visão geral
 
-O SIGAC controla o acesso a projetos, arquivos científicos, membros, compartilhamentos e registros de auditoria.
+O SIGAC controla o acesso a projetos, arquivos científicos, membros, solicitações e registros de auditoria. Arquivos e pastas são consultados em modo somente leitura; criação, edição, exclusão e compartilhamento de arquivos não fazem parte do contrato atual.
 
 ### Responsabilidade de cada camada
 
 - **Frontend:** telas, navegação, formulários, estados de carregamento, mensagens e interação com o usuário.
 - **Backend:** API HTTP, validação, autenticação, autorização, regras de negócio, auditoria e acesso ao banco.
-- **Banco:** persistência de usuários, perfis, projetos, arquivos, vínculos e logs.
+- **Banco:** persistência de usuários, perfis, projetos, arquivos somente leitura, vínculos, solicitações e logs.
 
 O frontend nunca deve ser a única barreira de segurança. Toda permissão precisa ser conferida no backend.
 
@@ -261,7 +261,7 @@ O backend em [`back-end/`](back-end/) é um serviço FastAPI. Ele concentra aute
 | [`back-end/app/core/`](back-end/app/core/) | Configuração, autorização, segurança, Entra ID, CAV4, erros e logs. |
 | [`back-end/app/db/`](back-end/app/db/) | Pool/conexão, base e seed do banco. |
 | [`back-end/app/modules/projects/`](back-end/app/modules/projects/) | Controllers, schemas, services, repositories e models de projetos. |
-| [`back-end/app/modules/files/`](back-end/app/modules/files/) | Arquivos, pastas e permissões de arquivos. |
+| [`back-end/app/modules/files/`](back-end/app/modules/files/) | Consulta somente leitura de arquivos e pastas. |
 | [`back-end/app/modules/audit/`](back-end/app/modules/audit/) | Registro e consulta de auditoria. |
 | [`back-end/app/modules/users/`](back-end/app/modules/users/) | Modelos de usuários, perfis e permissões. |
 | [`back-end/alembic/versions/`](back-end/alembic/versions/) | Migrations versionadas. |
@@ -276,7 +276,7 @@ O backend em [`back-end/`](back-end/) é um serviço FastAPI. Ele concentra aute
 
 ## 6. Banco de dados
 
-O SiGAC utiliza PostgreSQL como banco de dados relacional. A estrutura abaixo apresenta as tabelas utilizadas pelo sistema, conforme definidas no schema [`back-end/database/postgresql-schema.sql`](back-end/database/postgresql-schema.sql).
+O SiGAC utiliza PostgreSQL como banco de dados relacional. A estrutura abaixo apresenta somente as tabelas com consumidores identificados no frontend/backend, conforme definidas no schema [`back-end/database/postgresql-schema.sql`](back-end/database/postgresql-schema.sql). Tabelas legadas `app_*`, compartilhamentos de arquivos, permissões de arquivo, grupos e notificações foram removidas por não possuírem consumidores ativos.
 
 ### Ciclo de mudança
 
@@ -314,10 +314,6 @@ A lista abaixo apresenta somente as tabelas utilizadas pelo SiGAC, com seus camp
 | `projects` | `id*`, `name`, `code`, `responsible_area`, `managers_ids`, `write_group`, `read_group`, `write_identity_role`, `read_identity_role`, `snow_task_number`, `parent_folder`, `description`, `status`, `participants_ids`, `created_at`, `updated_at` | `id` | — |
 | `project_members` | `project_id*`, `user_id*`, `role`, `created_at` | `(project_id,user_id)` | `project_id -> projects.id`; `user_id -> users.id` |
 | `files` | `id*`, `project_id`, `parent_id`, `kind`, `name`, `size_bytes`, `mime_type`, `created_by`, `last_viewed_at`, `created_at`, `updated_at` | `id` | `project_id -> projects.id`; `parent_id -> files.id`; `created_by -> users.id` |
-| `file_shares` | `file_id*`, `user_id*`, `access_level`, `created_at` | `(file_id,user_id)` | `file_id -> files.id`; `user_id -> users.id` |
-| `groups` | `id*`, `name`, `description`, `created_at` | `id` | — |
-| `group_members` | `group_id*`, `user_id*`, `created_at` | `(group_id,user_id)` | `group_id -> groups.id`; `user_id -> users.id` |
-| `file_permissions` | `file_id*`, `user_id`, `group_id`, `access_level`, `inherited_from`, `created_at` | não declarada | `file_id -> files.id`; `user_id -> users.id`; `group_id -> groups.id` |
 | `access_requests` | `id*`, `project_id`, `requester_id`, `status`, `created_at` | `id` | `project_id -> projects.id`; `requester_id -> users.id` |
 | `activity_logs` | `id*`, `user_id`, `action`, `entity`, `entity_id`, `details`, `created_at` | `id` | `user_id -> users.id` |
 | `sessions` | `id*`, `user_id`, `expires_at` | `id` | `user_id -> users.id` |
@@ -344,13 +340,6 @@ erDiagram
   PROJECTS ||--o{ FILES : contém
   FILES ||--o{ FILES : organiza
   USERS ||--o{ FILES : cria
-  FILES ||--o{ FILE_SHARES : compartilha
-  USERS ||--o{ FILE_SHARES : recebe
-  GROUPS ||--o{ GROUP_MEMBERS : possui
-  USERS ||--o{ GROUP_MEMBERS : participa
-  FILES ||--o{ FILE_PERMISSIONS : protege
-  USERS ||--o{ FILE_PERMISSIONS : recebe
-  GROUPS ||--o{ FILE_PERMISSIONS : recebe
   PROJECTS ||--o{ ACCESS_REQUESTS : recebe
   USERS ||--o{ ACCESS_REQUESTS : solicita
   USERS ||--o{ ACTIVITY_LOGS : gera
@@ -370,8 +359,7 @@ A API REST do SiGAC é fornecida pelo FastAPI em `back-end/`. O contrato publica
 | Login corporativo | `GET /api/auth/cav4/start`, `GET /api/auth/cav4/callback` | Fluxo corporativo CAV4/OIDC. |
 | Catálogos e diretório | `GET /api/catalogos`, `/api/users`, `/api/perfis`, `/api/permissions` | Dados auxiliares para telas e autorização. |
 | Projetos | `GET/POST /api/projects`, `GET/PATCH/DELETE /api/projects/{id}` | CRUD, áreas, mapa de acesso e membros. |
-| Arquivos | `GET/POST /api/files`, `GET/PATCH/DELETE /api/files/{id}` | Pastas, arquivos e metadados. |
-| Compartilhamento | `/api/files/{id}/permissions` | Concessão e remoção de acesso a arquivos. |
+| Arquivos | `GET /api/files`, `GET /api/files/{id}` | Consulta de pastas, arquivos e metadados. |
 | Dashboard | `GET /api/dashboard/summary` | Indicadores da área autenticada. |
 | Auditoria | `GET /api/activity-logs` | Consulta dos eventos do sistema. |
 | Relatórios | `GET /api/reports`, `/api/reports/export`, `/api/report-fields` | Consulta e exportação CSV, TXT e PDF. |
@@ -395,7 +383,7 @@ As requisições do frontend usam JSON, cookies de sessão e `cache: no-store`. 
 | Catálogos | `/api/catalogos`, `/api/projects/areas` | [`hooks/use-catalogs.ts`](hooks/use-catalogs.ts) |
 | Projetos | `/api/projects`, `/api/projects/{id}`, `/api/projects/{id}/access-map` | [`app/(app)/projetos/`](app/(app)/projetos/), [`components/project-form.tsx`](components/project-form.tsx) |
 | Membros e solicitações | `/api/projects/{id}/members`, `/api/access-requests` | [`components/projects/project-members-tab.tsx`](components/projects/project-members-tab.tsx), [`components/administracao/access-requests-queue.tsx`](components/administracao/access-requests-queue.tsx) |
-| Arquivos | `/api/files`, `/api/files/{id}`, `/api/files/{id}/permissions` | [`hooks/use-files.ts`](hooks/use-files.ts), [`components/projects/project-file-explorer.tsx`](components/projects/project-file-explorer.tsx) |
+| Arquivos | `/api/files`, `/api/files/{id}` | [`hooks/use-files.ts`](hooks/use-files.ts), [`components/projects/project-file-explorer.tsx`](components/projects/project-file-explorer.tsx) — consulta somente leitura |
 | Dashboard | `/api/dashboard/summary` | [`app/(app)/dashboard/page.tsx`](app/(app)/dashboard/page.tsx), [`components/dashboard/`](components/dashboard/) |
 | Auditoria | `/api/activity-logs` | [`hooks/use-activity-logs.ts`](hooks/use-activity-logs.ts), [`app/(app)/logs/page.tsx`](app/(app)/logs/page.tsx) |
 | Relatórios | `/api/reports`, `/api/reports/export`, `/api/report-fields` | [`app/(app)/relatorios/page.tsx`](app/(app)/relatorios/page.tsx), [`components/export-fields-dialog.tsx`](components/export-fields-dialog.tsx) |

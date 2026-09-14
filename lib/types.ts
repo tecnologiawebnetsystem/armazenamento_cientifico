@@ -17,8 +17,6 @@ export type Role = "admin" | "gerente" | "patrocinador" | "auditor" | "solicitan
 /** Papel global ou de participação dentro de um projeto. */
 export type ProjectMemberRole = Role
 
-export type ShareLevel = "leitura" | "edicao" | "proprietario"
-
 export type AccessRequestStatus = "pendente" | "aprovado" | "negado"
 
 export type ProjectStatus = "ativo" | "concluido" | "suspenso" | "inativo" | "em_andamento"
@@ -54,9 +52,9 @@ export interface Project {
   areaResponsavel: string
   /** Gestores do projeto — um projeto pode ter mais de um gerente. */
   gestoresIds: string[]
-  /** Grupo do Azure AD com permissão de escrita. */
+  /** Grupo do Azure AD com acesso de escrita no projeto. */
   grupoAdEscrita: string
-  /** Grupo do Azure AD com permissão de leitura. */
+  /** Grupo do Azure AD com acesso de leitura no projeto. */
   grupoAdLeitura: string
   /** Role do Identidade com permissão de escrita. */
   roleIdentidadeEscrita: string
@@ -76,13 +74,6 @@ export interface Project {
   armazenamentoUsadoMb?: number
 }
 
-export interface ShareEntry {
-  id: string
-  userId: string
-  nivel: ShareLevel
-  compartilhadoEm: string
-}
-
 export interface FileNode {
   id: string
   projectId: string
@@ -94,7 +85,6 @@ export interface FileNode {
   criadoPor: string
   criadoEm: string
   atualizadoEm: string
-  compartilhamentos: ShareEntry[]
 }
 
 export interface AccessRequest {
@@ -163,13 +153,6 @@ export type ActivityAction =
   | "adicionar-membro"
   | "atualizar-membro"
   | "remover-membro"
-  | "criar-pasta"
-  | "enviar-arquivo"
-  | "renomear-item"
-  | "mover-item"
-  | "excluir-item"
-  | "compartilhar-item"
-  | "remover-compartilhamento"
   | "criar-solicitacao-acesso"
   | "aprovar-solicitacao"
   | "negar-solicitacao"
@@ -204,7 +187,7 @@ export interface AccessMapRow {
   resourceId: string
   resourceName: string
   resourceType: "pasta" | "arquivo"
-  accessLevel: ShareLevel | ProjectMemberRole
+  accessLevel: ProjectMemberRole
   lastViewedAt: string
 }
 
