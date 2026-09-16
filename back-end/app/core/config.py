@@ -12,12 +12,23 @@ def _database_url() -> str:
     direct_url = os.getenv("DATABASE_URL", "").strip()
     if direct_url:
         return direct_url
-    host = os.getenv("PGHOST", "").strip()
-    database = os.getenv("PGDATABASE", "").strip()
-    user = os.getenv("PGUSER", "").strip()
+
+    legacy_url = os.getenv("RDS_AURORA_POSTGRES_URL", "").strip()
+    if legacy_url:
+        return legacy_url if "://" in legacy_url else f"postgresql://{legacy_url}"
+
+    host = (os.getenv("PGHOST") or os.getenv("RDS_AURORA_POSTGRES_HOST") or "").strip()
+    database = (os.getenv("PGDATABASE") or os.getenv("RDS_AURORA_POSTGRES_DBNAME") or "").strip()
+    user = (os.getenv("PGUSER") or os.getenv("RDS_AURORA_POSTGRES_USERNAME") or "").strip()
+    password = (os.getenv("PGPASSWORD") or os.getenv("RDS_AURORA_POSTGRES_PASSWORD") or "").strip()
     if host and database and user:
+        from urllib.parse import quote
+
         port = os.getenv("PGPORT", "5432").strip()
-        return f"postgresql://{user}@{host}:{port}/{database}"
+        credentials = quote(user, safe="")
+        if password:
+            credentials += f":{quote(password, safe='')}"
+        return f"postgresql://{credentials}@{host}:{port}/{database}"
     return ""
 
 
