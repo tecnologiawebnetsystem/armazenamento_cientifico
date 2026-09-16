@@ -27,6 +27,28 @@ DARK = colors.HexColor("#0B253E")
 PALE = colors.HexColor("#E8F1EC")
 MUTED = colors.HexColor("#557064")
 
+TABLE_USAGE = {
+    "profiles": ("Perfis dos usuários e autorização", "app/login/page.tsx; app/(app)/layout.tsx; hooks/use-permissions.ts", "GET /api/auth/session; GET/PUT /api/permissions"),
+    "users": ("Login, diretório, vínculos e auditoria", "app/login/page.tsx; app/(app)/projetos/; app/(app)/logs/page.tsx", "POST /api/auth/login; GET /api/auth/session; GET /api/users; GET /api/projects/{id}/members; GET /api/activity-logs"),
+    "modules": ("Módulos e navegação", "app/(app)/layout.tsx; components/layout/app-sidebar.tsx; lib/nav-config.ts", "GET /api/auth/session; GET /api/permissions"),
+    "permissions": ("Capacidades por módulo", "hooks/use-permissions.ts; componentes de administração", "GET/PUT /api/permissions"),
+    "profile_permissions": ("Relação entre perfis e permissões", "hooks/use-permissions.ts", "GET/PUT /api/permissions"),
+    "profile_modules": ("Módulos visíveis por perfil", "app/(app)/layout.tsx; components/layout/app-sidebar.tsx", "GET /api/auth/session; GET /api/permissions"),
+    "project_statuses": ("Catálogo de status", "components/projects/new-project-form.tsx; app/(app)/relatorios/page.tsx", "GET /api/catalogos; GET /api/reports"),
+    "project_types": ("Catálogo de tipos de projeto", "components/project-form.tsx; hooks/use-catalogs.ts", "GET /api/catalogos"),
+    "responsible_areas": ("Áreas e geração de códigos", "components/projects/new-project-form.tsx; components/project-form.tsx", "GET /api/projects/areas; POST /api/projects"),
+    "system_settings": ("Configurações da plataforma", "hooks/use-settings.ts", "GET /api/settings; PATCH /api/settings"),
+    "report_types": ("Tipos de relatório", "app/(app)/relatorios/page.tsx", "GET /api/reports; GET /api/report-fields"),
+    "report_fields": ("Campos configuráveis de relatórios", "app/(app)/relatorios/page.tsx; components/export-fields-dialog.tsx", "GET /api/report-fields"),
+    "menus": ("Itens de menu e rotas", "components/layout/app-sidebar.tsx; lib/nav-config.ts", "GET /api/auth/session; GET /api/permissions"),
+    "projects": ("Cadastro, gestão e relatórios", "app/(app)/projetos/page.tsx; app/(app)/projetos/novo/page.tsx; app/(app)/projetos/[id]/page.tsx", "GET/POST /api/projects; GET/PATCH/DELETE /api/projects/{id}; GET /api/reports; GET /api/dashboard/summary"),
+    "project_members": ("Usuários vinculados aos projetos", "components/projects/project-members-tab.tsx; app/(app)/projetos/[id]/page.tsx", "GET /api/projects/{id}/members; GET /api/projects/{id}/access-map"),
+    "folders": ("Pastas do projeto, somente leitura", "components/projects/project-file-explorer.tsx; app/(app)/projetos/[id]/page.tsx", "GET /api/folders?projectId={id}"),
+    "access_requests": ("Solicitações de acesso", "components/administracao/access-requests-queue.tsx; app/(app)/projetos/[id]/page.tsx", "GET/POST /api/access-requests; PATCH /api/access-requests/{id}"),
+    "activity_logs": ("Auditoria das operações", "app/(app)/logs/page.tsx; hooks/use-activity-logs.ts", "GET /api/activity-logs"),
+    "permission_matrix": ("Matriz consolidada de permissões", "hooks/use-permissions.ts; componentes de administração", "GET/PUT /api/permissions"),
+}
+
 
 def parse_schema(text: str) -> list[dict]:
     tables = []
@@ -141,7 +163,7 @@ def main():
     frame = Frame(16 * mm, 18 * mm, PAGE[0] - 32 * mm, PAGE[1] - 40 * mm, id="normal")
     doc = BaseDocTemplate(str(OUTPUT), pagesize=PAGE, leftMargin=16 * mm, rightMargin=16 * mm, topMargin=24 * mm, bottomMargin=18 * mm, title="SIGAC — Modelo de dados")
     doc.addPageTemplates([PageTemplate(id="main", frames=frame, onPage=header_footer)])
-    story = [Spacer(1, 18 * mm), Paragraph("SIGAC — Tabelas e campos", title), Paragraph("Inventário das tabelas canônicas utilizadas pelo SIGAC, com campos físicos, chaves primárias, chaves estrangeiras e diagrama visual dos relacionamentos.", body), Spacer(1, 12 * mm), Paragraph(f"Tabelas: {len(tables)}", title), Paragraph("Legenda: PK = chave primária; * = campo obrigatório; linhas verdes = relacionamentos FK.", body), PageBreak()]
+    story = [Spacer(1, 18 * mm), Paragraph("SIGAC — Tabelas e campos", title), Paragraph("Inventário das tabelas utilizadas pelo SIGAC, com campos físicos, chaves primárias, chaves estrangeiras, finalidade, páginas do frontend, arquivos e endpoints do backend.", body), Spacer(1, 12 * mm), Paragraph(f"Tabelas: {len(tables)}", title), Paragraph("Legenda: PK = chave primária; * = campo obrigatório; linhas verdes = relacionamentos FK.", body), PageBreak()]
     for i in range(0, len(tables), 3):
         group = tables[i:i + 3]
         story += [Paragraph(f"Diagrama ER visual · tabelas {i + 1}–{i + len(group)} de {len(tables)}", title), Spacer(1, 5 * mm), ERPage(group)]
@@ -162,7 +184,18 @@ def main():
                 markers.append("NOT NULL")
             suffix = f" ({'; '.join(markers)})" if markers else ""
             field_lines.append(f"<b>{column}</b> · {data_type}{suffix}")
-        story += [Paragraph(f"<b>{table['name']}</b>", body), Paragraph("<br/>".join(field_lines), body), Spacer(1, 5 * mm)]
+        purpose, frontend_files, endpoints = TABLE_USAGE.get(table["name"], ("Uso não identificado no código atual", "—", "—"))
+        usage = (
+            f"<b>Finalidade:</b> {purpose}<br/>"
+            f"<b>Frontend:</b> {frontend_files}<br/>"
+            f"<b>Endpoints:</b> {endpoints}"
+        )
+        story += [
+            Paragraph(f"<b>{table['name']}</b>", body),
+            Paragraph("<br/>".join(field_lines), body),
+            Paragraph(usage, body),
+            Spacer(1, 5 * mm),
+        ]
     doc.build(story)
     print(f"Generated {OUTPUT} with {len(tables)} tables")
 

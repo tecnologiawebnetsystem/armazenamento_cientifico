@@ -319,6 +319,32 @@ A lista abaixo apresenta somente as tabelas utilizadas pelo SiGAC, com seus camp
 | `activity_logs` | `id*`, `user_id`, `action`, `entity`, `entity_id`, `details`, `created_at` | `id` | `user_id -> users.id` |
 | `permission_matrix` | `id*`, `matrix` | `id` | — |
 
+### Uso por tabela no sistema
+
+A tabela abaixo relaciona cada tabela ao uso funcional identificado no código atual: página ou componente do frontend, arquivo frontend responsável e endpoints do backend que a consultam ou alteram.
+
+| Tabela | Finalidade | Página/componente frontend | Arquivo frontend | Endpoints backend |
+|---|---|---|---|---|
+| `profiles` | Perfis dos usuários e autorização | Login, área protegida e administração | `app/login/page.tsx`; `app/(app)/layout.tsx`; `hooks/use-permissions.ts` | `GET /api/auth/session`; `GET /api/permissions`; `PUT /api/permissions` |
+| `users` | Usuários, login, diretório e vínculos | Login, projetos, solicitações e logs | `app/login/page.tsx`; `app/(app)/projetos/`; `components/administracao/access-requests-queue.tsx`; `app/(app)/logs/page.tsx` | `POST /api/auth/login`; `GET /api/auth/session`; `GET /api/users`; `GET /api/projects/{id}/members`; `GET /api/access-requests`; `GET /api/activity-logs` |
+| `modules` | Módulos disponíveis e controle de navegação | Layout e navegação protegida | `app/(app)/layout.tsx`; `components/layout/app-sidebar.tsx`; `lib/nav-config.ts` | `GET /api/auth/session`; `GET /api/permissions` |
+| `permissions` | Capacidades concedidas por módulo | Administração de permissões | `hooks/use-permissions.ts`; componentes de administração | `GET /api/permissions`; `PUT /api/permissions` |
+| `profile_permissions` | Relação entre perfis e permissões | Administração de permissões | `hooks/use-permissions.ts` | `GET /api/permissions`; `PUT /api/permissions` |
+| `profile_modules` | Módulos visíveis para cada perfil | Layout e menu lateral | `app/(app)/layout.tsx`; `components/layout/app-sidebar.tsx` | `GET /api/auth/session`; `GET /api/permissions` |
+| `project_statuses` | Catálogo de status dos projetos | Novo projeto e filtros de relatórios | `components/projects/new-project-form.tsx`; `app/(app)/relatorios/page.tsx` | `GET /api/catalogos`; `GET /api/reports` |
+| `project_types` | Catálogo de tipos de projeto | Formulários e filtros de projeto | `components/project-form.tsx`; `hooks/use-catalogs.ts` | `GET /api/catalogos` |
+| `responsible_areas` | Áreas responsáveis e geração de códigos | Novo projeto e filtros | `components/projects/new-project-form.tsx`; `components/project-form.tsx` | `GET /api/projects/areas`; `POST /api/projects` |
+| `system_settings` | Configurações administrativas da plataforma | Administração e configurações | `hooks/use-settings.ts` | `GET /api/settings`; `PATCH /api/settings` |
+| `report_types` | Tipos e configurações de relatórios | Relatórios | `app/(app)/relatorios/page.tsx` | `GET /api/reports`; `GET /api/report-fields` |
+| `report_fields` | Campos configuráveis dos relatórios | Seleção e exportação de campos | `app/(app)/relatorios/page.tsx`; `components/export-fields-dialog.tsx` | `GET /api/report-fields` |
+| `menus` | Itens de menu e rotas de navegação | Menu lateral | `components/layout/app-sidebar.tsx`; `lib/nav-config.ts` | `GET /api/auth/session`; `GET /api/permissions` |
+| `projects` | Cadastro, consulta e gestão dos projetos | Lista, cadastro, detalhe e relatórios | `app/(app)/projetos/page.tsx`; `app/(app)/projetos/novo/page.tsx`; `app/(app)/projetos/[id]/page.tsx`; `app/(app)/relatorios/page.tsx` | `GET/POST /api/projects`; `GET/PATCH/DELETE /api/projects/{id}`; `GET /api/reports`; `GET /api/dashboard/summary` |
+| `project_members` | Usuários vinculados aos projetos | Aba de membros e detalhe do projeto | `components/projects/project-members-tab.tsx`; `app/(app)/projetos/[id]/page.tsx` | `GET /api/projects/{id}/members`; `GET /api/projects/{id}/access-map` |
+| `folders` | Pastas e estrutura de arquivos somente leitura | Explorador de arquivos do projeto | `components/projects/project-file-explorer.tsx`; `app/(app)/projetos/[id]/page.tsx` | `GET /api/folders?projectId={id}` |
+| `access_requests` | Solicitações de acesso a projetos | Fila administrativa e solicitação de acesso | `components/administracao/access-requests-queue.tsx`; `app/(app)/projetos/[id]/page.tsx` | `GET/POST /api/access-requests`; `PATCH /api/access-requests/{id}` |
+| `activity_logs` | Auditoria das operações do sistema | Tela de logs | `app/(app)/logs/page.tsx`; `hooks/use-activity-logs.ts` | `GET /api/activity-logs` |
+| `permission_matrix` | Matriz consolidada de permissões | Administração de permissões | `hooks/use-permissions.ts`; componentes de administração | `GET /api/permissions`; `PUT /api/permissions` |
+
 ---
 
 ## 8. Modelagem e diagrama
@@ -639,22 +665,19 @@ flowchart LR
 4. O Web usa `BACKEND_INTERNAL_URL` na rede Compose e `NEXT_PUBLIC_API_BASE_URL` para chamadas públicas.
 5. Dados locais permanecem em SQLite apenas durante desenvolvimento; a sincronização é explícita e transacional.
 
-### Tabelas canônicas utilizadas
+### Tabelas utilizadas
 
-`profiles`, `users`, `modules`, `permissions`, `profile_permissions`, `profile_modules`, `project_statuses`, `project_types`, `system_settings`, `report_types`, `report_fields`, `menus`, `projects`, `project_members`, `folders`, `access_requests`, `permission_matrix`, `activity_logs` e `responsible_areas`.
-
-A tabela `sessions` foi removida por não possuir consumidores ativos no contrato atual. `access_requests` e `permission_matrix` permanecem porque ainda são consumidas pela API legada e pelo seed de permissões. Tabelas externas de autenticação não fazem parte do schema da aplicação.
+A lista oficial de tabelas, seus campos físicos, PKs, FKs, finalidade, páginas do frontend e endpoints do backend está no item 7 deste README e no documento [`docs/SIGAC-modelo-dados.pdf`](docs/SIGAC-modelo-dados.pdf).
 
 ### Cronograma técnico
 
 | Etapa | Estado | Fonte de verdade |
 |---|---|---|
 | Contrato somente leitura de pastas | Concluída | `GET /api/folders` |
-| Schema SQLite canônico | Concluída | `back-end/database/sqlite-schema.sql` |
-| Schema PostgreSQL canônico | Concluída | `back-end/database/postgresql-schema.sql` |
-| Migration de equalização | Concluída | Alembic `0017_align_canonical_schema` |
+| Schema PostgreSQL | Concluída | `back-end/database/postgresql-schema.sql` |
+| Migrations do banco | Concluída | Diretório `back-end/alembic/versions/` |
 | Containers com healthcheck e migrations | Concluída | Dockerfiles e Compose |
-| Modelo ER em PDF | Atualizar após validação | `docs/SIGAC-modelo-dados.pdf` |
+| Modelo ER em PDF | Atualizado | `docs/SIGAC-modelo-dados.pdf` |
 | Smoke test de publicação | Próxima validação | checklist de release |
 
 ### Comandos Docker

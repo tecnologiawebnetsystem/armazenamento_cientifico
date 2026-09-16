@@ -80,10 +80,18 @@ class Settings(BaseModel):
     entra_group_sync_enabled: bool = os.getenv("ENTRA_GROUP_SYNC_ENABLED", "true").lower() == "true"
     cav4_enabled: bool = os.getenv("CAV4_ENABLED", "false").lower() == "true"
     cav4_base_url: str = os.getenv("CAV4_BASE_URL", "")
-    cav4_client_id: str = os.getenv("CAV4_CLIENT_ID", "")
-    cav4_client_secret: str = os.getenv("CAV4_CLIENT_SECRET", "")
-    cav4_redirect_uri: str = os.getenv("CAV4_REDIRECT_URI", "http://localhost:8080/api/auth/cav4/callback")
-    cav4_scopes: str = os.getenv("CAV4_SCOPES", "openid profile email")
+    # O CAV4 fornece o identificador como CA_CLIENT_ID; CAV4_CLIENT_ID
+    # permanece aceito para compatibilidade com configurações anteriores.
+    cav4_client_id: str = os.getenv("CA_CLIENT_ID") or os.getenv("CAV4_CLIENT_ID", "")
+    cav4_client_secret: str = os.getenv("CA_CLIENT_SECRET") or os.getenv("CAV4_CLIENT_SECRET", "")
+    cav4_redirect_uri: str = os.getenv("CA_REDIRECT_URI") or os.getenv("CAV4_REDIRECT_URI", "http://localhost:8080/api/auth/cav4/callback")
+    cav4_scopes: str = os.getenv("CA_SCOPES") or os.getenv("CAV4_SCOPES", "openid profile email")
+    cav4_authorization_url: str = os.getenv("CA_AUTHORIZATION_URL", "")
+    cav4_token_url: str = os.getenv("CA_TOKEN_URL", "")
+    cav4_userinfo_url: str = os.getenv("CA_USERINFO_URL", "")
+    cav4_logout_url: str = os.getenv("CA_LOGOUT_URL", "")
+    cav4_issuer: str = os.getenv("CA_ISSUER") or os.getenv("CAV4_ISSUER", "")
+    cav4_jwks_url: str = os.getenv("CA_JWKS_URL", "")
 
     @model_validator(mode="after")
     def validate_entra(self) -> "Settings":
