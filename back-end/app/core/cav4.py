@@ -1,4 +1,5 @@
 import base64
+import base64
 import hashlib
 import json
 import logging
@@ -114,13 +115,14 @@ class CAV4OIDCProvider:
         if not auth_endpoint:
             raise CAV4AuthenticationError("Authorization endpoint não encontrado")
 
-        _, code_challenge = _generate_pkce_pair()
+        code_verifier, code_challenge = _generate_pkce_pair()
+        state_payload = base64.urlsafe_b64encode(json.dumps({"state": state, "verifier": code_verifier}).encode()).decode().rstrip("=")
         query = urlencode({
             "client_id": settings.cav4_client_id,
             "redirect_uri": redirect_uri,
             "response_type": "code",
             "scope": settings.cav4_scopes,
-            "state": state,
+            "state": state_payload,
             "code_challenge": code_challenge,
             "code_challenge_method": "S256",
         })
@@ -135,6 +137,13 @@ class CAV4OIDCProvider:
             raise CAV4AuthenticationError("Token endpoint não encontrado")
 
         try:
+            padded_state = state + "=" * (-len(state) % 4)
+            state_payload = json.loads(base64.urlsafe_b64decode(padded_state).decode())
+            code_verifier = state_payload["verifier"]
+        except (ValueError, KeyError, json.JSONDecodeError) as e:
+            raise CAV4AuthenticationError("State CAV4 inválido") from e
+
+        try:
             async with _build_httpx_client() as client:
                 token_resp = await client.post(
                     token_endpoint,
@@ -144,6 +153,7 @@ class CAV4OIDCProvider:
                         "client_secret": settings.cav4_client_secret,
                         "code": code,
                         "redirect_uri": settings.cav4_redirect_uri,
+                        "code_verifier": code_verifier,
                     },
                     timeout=10.0,
                 )
