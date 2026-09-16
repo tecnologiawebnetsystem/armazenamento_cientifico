@@ -13,6 +13,10 @@ from app.core.config import settings
 
 def _async_database_url() -> str:
     url = settings.database_url
+    if settings.database_engine == "sqlite":
+        if url.startswith("sqlite+aiosqlite://"):
+            return url
+        return url.replace("sqlite://", "sqlite+aiosqlite://", 1)
     if url.startswith("postgresql://"):
         url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
     if url.startswith("postgres://"):
@@ -32,15 +36,18 @@ def configure_engine() -> None:
     global engine, session_factory
     if engine is not None or not settings.database_url:
         return
-    engine_options = {
-        "echo": False,
-        "pool_pre_ping": True,
-        "pool_size": settings.db_max_size,
-        "max_overflow": 0,
-        "pool_timeout": settings.db_command_timeout,
-        "connect_args": {"ssl": True},
-    }
-    engine = create_async_engine(_async_database_url(), **engine_options)
+    if settings.database_engine == "sqlite":
+        engine = create_async_engine(_async_database_url(), echo=False)
+    else:
+        engine_options = {
+            "echo": False,
+            "pool_pre_ping": True,
+            "pool_size": settings.db_max_size,
+            "max_overflow": 0,
+            "pool_timeout": settings.db_command_timeout,
+            "connect_args": {"ssl": True},
+        }
+        engine = create_async_engine(_async_database_url(), **engine_options)
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
 
@@ -73,7 +80,16 @@ async def get_session() -> AsyncIterator[AsyncSession]:
 
 async def connect() -> None:
     configure_engine()
-    if engine is not None and settings.seed_database:
+    if engine is None:
+        return
+    if settings.database_engine == "sqlite":
+        from app.db.base import Base
+        from app.db import models as _legacy_models  # noqa: F401
+        from app.db import seed as _seed_models  # noqa: F401
+
+        async with engine.begin() as connection:
+            await connection.run_sync(Base.metadata.create_all)
+    if settings.seed_database:
         from app.db.seed import initialize_database
         await initialize_database(engine)
 
