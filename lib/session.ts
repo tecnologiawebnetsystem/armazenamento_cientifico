@@ -18,7 +18,7 @@ export async function getBackendSession(): Promise<SessionUser | null> {
   if (!sessionId) return null
 
   const baseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080").replace(/\/$/, "")
-  const response = await fetch(`${baseUrl}/api/auth/session`, {
+  const response = await fetch(`${baseUrl}/api/auth/cav4/session`, {
     headers: { Cookie: `${SESSION_COOKIE}=${encodeURIComponent(sessionId)}` },
     cache: "no-store",
   })

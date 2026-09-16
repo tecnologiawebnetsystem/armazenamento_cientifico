@@ -27,8 +27,10 @@ async def cav4_session(request: Request):
             return {"user": None}
         raise
     logger.info(
-        "cav4_session_authenticated user_id=%s roles=%s permissions=%s groups=%s",
+        "cav4_session_authenticated user_id=%s email=%s role=%s roles=%s permissions=%s groups=%s",
         user.get("id"),
+        user.get("email"),
+        user.get("role"),
         user.get("roles", []),
         user.get("permissions", []),
         user.get("groups", []),

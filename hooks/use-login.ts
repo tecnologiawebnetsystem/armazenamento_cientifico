@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useState } from "react"
-import { login } from "@/lib/api-client"
 
 export type LoginMode = "email" | "corporate"
 
@@ -11,18 +10,6 @@ export function useLogin(nextPath = "/dashboard") {
 
   const clearError = useCallback(() => setError(null), [])
 
-  const emailLogin = useCallback(async (email: string) => {
-    setError(null)
-    setLoading("email")
-    try {
-      await login(email)
-      window.location.assign(nextPath)
-    } catch {
-      setError("Não foi possível validar seu acesso. Verifique os dados e tente novamente.")
-      setLoading(null)
-    }
-  }, [nextPath])
-
   const corporateLogin = useCallback(() => {
     setError(null)
     setLoading("corporate")
@@ -31,5 +18,5 @@ export function useLogin(nextPath = "/dashboard") {
     window.location.assign(`${apiBase}/api/auth/cav4/start?next=${callback}`)
   }, [nextPath])
 
-  return { loading, error, clearError, emailLogin, corporateLogin }
+  return { loading, error, clearError, corporateLogin }
 }
