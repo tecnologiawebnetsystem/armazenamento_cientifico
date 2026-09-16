@@ -1,5 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
+from time import perf_counter
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -63,6 +64,8 @@ def create_app() -> FastAPI:
 
     @application.middleware("http")
     async def request_security_and_logging(request: Request, call_next: Any):
+        started_at = perf_counter()
+        logger.info("request_start method=%s path=%s", request.method, request.url.path)
         response = await call_next(request)
         if settings.security_headers_enabled:
             response.headers["X-Content-Type-Options"] = "nosniff"
@@ -71,7 +74,7 @@ def create_app() -> FastAPI:
             response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
             if settings.environment.lower() == "production":
                 response.headers["Strict-Transport-Security"] = "max-age=63072000"
-        logger.info("request_complete method=%s path=%s status=%s", request.method, request.url.path, response.status_code)
+        logger.info("request_complete method=%s path=%s status=%s duration_ms=%.2f", request.method, request.url.path, response.status_code, (perf_counter() - started_at) * 1000)
         return response
 
     @application.exception_handler(AppException)

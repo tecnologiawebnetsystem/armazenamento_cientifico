@@ -30,7 +30,12 @@ async def health_ready():
             "database_probe": "SELECT 1",
             "alembic_revision": revision,
         }
-    except Exception:
+    except Exception as exc:
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "database_readiness_failed error_type=%s", type(exc).__name__, exc_info=True
+        )
         return JSONResponse(status_code=503, content={"status": "degradado", "service": "fastapi", "database": "unavailable", "database_engine": settings.database_engine})
 
 

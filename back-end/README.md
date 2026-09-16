@@ -74,7 +74,7 @@ Principais padrões utilizados:
 - **Clean Architecture:** regras de negócio independentes de FastAPI, banco de dados e serviços externos.
 - **Hexagonal Architecture:** integrações acessadas por portas/interfaces e implementadas por adapters.
 - **Service Layer:** casos de uso e orquestração das transações ficam nos serviços, não nas rotas.
-- **Repository Pattern:** acesso a SQLite/PostgreSQL encapsulado em repositories.
+- **Repository Pattern:** acesso a PostgreSQL/Aurora encapsulado em repositories.
 - **Dependency Injection:** dependências, sessão de banco e segurança fornecidas pelo sistema de dependências do FastAPI.
 - **Schema/DTO Pattern:** Pydantic valida entradas e saídas da API sem expor diretamente os modelos de persistência.
 - **Adapter de compatibilidade:** `app/api/legacy.py` isola a API legada durante a migração por domínio.
@@ -293,7 +293,7 @@ O back-end utiliza uma arquitetura modular por domínio, evoluindo para **Clean 
 - **Application Services:** casos de uso e orquestração das transações.
 - **Repositories:** persistência encapsulada atrás de interfaces estáveis.
 - **Domain modules:** regras específicas de projetos, arquivos, auditoria e identidade.
-- **Adapters:** SQLite/PostgreSQL, Entra ID, CAV4 e integrações externas.
+- **Adapters:** PostgreSQL/Aurora, Entra ID, CAV4 e integrações externas.
 - **Core:** configuração, segurança, autorização, logging e exceções.
 - **Alembic:** única fonte versionada para evolução estrutural do banco.
 
@@ -351,7 +351,7 @@ A aplicação mantém `DATABASE_ENGINE` e `DATABASE_URL` configuráveis para per
 6. desativação do seed automático em ambientes compartilhados;
 7. atualização das variáveis secretas fora do repositório.
 
-O SQLite permanece como opção de desenvolvimento até que o ambiente corporativo de banco esteja definido e validado.
+O PostgreSQL/Aurora é o único banco suportado em desenvolvimento, homologação e produção. A conexão é obrigatória via DATABASE_URL ou variáveis PG*/RDS_AURORA_POSTGRES_*; não existe fallback SQLite.
 
 ## Separação para repositório próprio
 

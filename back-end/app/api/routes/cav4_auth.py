@@ -3,14 +3,50 @@ from secrets import compare_digest
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import text
 
 from app.core.cav4 import CAV4AuthenticationError, decode_state_nonce, get_cav4_provider
 from app.core.config import settings
+from app.api.dependencies import get_current_user
 from app.db.session import get_session
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth/cav4", tags=["Authentication"])
+
+
+@router.get("/session", include_in_schema=True)
+async def cav4_session(request: Request):
+    """Retorna a identidade autenticada e suas permissões efetivas."""
+    try:
+        user = await get_current_user(request)
+    except HTTPException as exc:
+        if exc.status_code == 401:
+            return {"user": None}
+        raise
+    logger.info(
+        "cav4_session_authenticated user_id=%s roles=%s permissions=%s groups=%s",
+        user.get("id"),
+        user.get("roles", []),
+        user.get("permissions", []),
+        user.get("groups", []),
+    )
+    return {"user": dict(user)}
+
+
+@router.post("/logout", status_code=204)
+async def cav4_logout(request: Request):
+    session_id = request.cookies.get(settings.cookie_name)
+    if session_id:
+        async for database in get_session():
+            await database.execute(text("delete from sessions where id=:session_id"), {"session_id": session_id})
+            await database.commit()
+        logger.info("cav4_logout session_revoked=true")
+    response = Response(status_code=204)
+    response.delete_cookie(settings.cookie_name)
+    return response
 
 
 @router.get("/start")
@@ -83,6 +119,13 @@ async def cav4_callback(request: Request, code: str, state: str):
         )
         await database.commit()
     safe_next = next_path if next_path.startswith("/") and not next_path.startswith("//") else "/dashboard"
+    logger.info(
+        "cav4_authentication_ok subject=%s email=%s roles=%s permissions=%s",
+        identity.subject,
+        identity.email,
+        list(identity.roles),
+        list(identity.permissions),
+    )
     response = RedirectResponse(url=safe_next, status_code=status.HTTP_302_FOUND)
     response.delete_cookie("cav4_oauth_state")
     response.set_cookie(settings.cookie_name, session_id, httponly=True, secure=settings.cookie_secure, samesite="lax", max_age=settings.session_hours * 3600)

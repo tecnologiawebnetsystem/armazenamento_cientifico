@@ -62,15 +62,24 @@ async def get_session() -> AsyncIterator[AsyncSession]:
 
 
 async def connect() -> None:
+    import logging
+
+    logger = logging.getLogger(__name__)
     configure_engine()
     if engine is None:
         raise RuntimeError("DATABASE_URL não configurada")
+    logger.info("database_connect_start engine=postgresql pool_max=%s", settings.db_max_size)
     async with engine.connect() as connection:
         await connection.execute(text("SELECT 1"))
+    logger.info("database_connect_ok probe=SELECT_1")
 
 
 async def disconnect() -> None:
+    import logging
+
+    logger = logging.getLogger(__name__)
     await dispose_engine()
+    logger.info("database_disconnect_ok")
 
 
 __all__ = ["connect", "disconnect", "engine", "get_session"]
