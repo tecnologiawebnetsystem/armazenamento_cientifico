@@ -79,7 +79,11 @@ class Settings(BaseModel):
     entra_groups: list[str] = Field(default_factory=lambda: _csv("ENTRA_GROUPS"))
     entra_group_sync_enabled: bool = os.getenv("ENTRA_GROUP_SYNC_ENABLED", "true").lower() == "true"
     cav4_enabled: bool = os.getenv("CAV4_ENABLED", "false").lower() == "true"
-    cav4_base_url: str = os.getenv("CAV4_BASE_URL", "")
+    cav4_base_url: str = os.getenv("CA_API_BASE_URL") or os.getenv("CAV4_BASE_URL", "")
+    oidc_discovery_url: str = os.getenv("OIDC_DISCOVERY_URL", "")
+    ca_ssl_use_truststore: bool = os.getenv("CA_SSL_USE_TRUSTSTORE", "true").lower() == "true"
+    ca_ssl_cert_file: str = os.getenv("CA_SSL_CERT_FILE", "")
+    ca_ssl_verify: bool = os.getenv("CA_SSL_VERIFY", "true").lower() == "true"
     # O CAV4 fornece o identificador como CA_CLIENT_ID; CAV4_CLIENT_ID
     # permanece aceito para compatibilidade com configurações anteriores.
     cav4_client_id: str = os.getenv("CA_CLIENT_ID") or os.getenv("CAV4_CLIENT_ID", "")
@@ -126,6 +130,21 @@ class Settings(BaseModel):
             raise ValueError(f"Configuração Entra ID incompleta; faltando: {missing}")
         if any(required.values()) and (not self.entra_redirect_uri.strip() or not self.entra_scopes.strip()):
             raise ValueError("Configuração Entra ID incompleta; callback e escopos são obrigatórios")
+        cav4_values = {
+            "CA_CLIENT_ID": self.cav4_client_id, "CA_CLIENT_SECRET": self.cav4_client_secret,
+            "CA_REDIRECT_URI": self.cav4_redirect_uri, "OIDC_DISCOVERY_URL": self.oidc_discovery_url,
+        }
+        if self.cav4_enabled:
+            missing = [key for key, value in cav4_values.items() if not value.strip()]
+            if missing:
+                raise ValueError(f"Configuração CAV4 incompleta; faltando: {', '.join(missing)}")
+            for key, value in cav4_values.items():
+                if key.endswith("URL") and not value.startswith(("http://", "https://")):
+                    raise ValueError(f"{key} deve começar com http:// ou https://")
+            if self.environment.lower() == "production" and not self.ca_ssl_verify:
+                raise ValueError("CA_SSL_VERIFY deve ser true em produção")
+            if self.ca_ssl_cert_file and not Path(self.ca_ssl_cert_file).is_file():
+                raise ValueError("CA_SSL_CERT_FILE aponta para um arquivo inexistente")
         return self
 
 
