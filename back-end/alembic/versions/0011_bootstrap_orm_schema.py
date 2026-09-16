@@ -1,7 +1,7 @@
-"""Garante que o banco SQLite tenha todas as tabelas do modelo ORM.
+"""Garante a estrutura inicial compatível com o metadata ORM.
 
 A revisão 0001 é apenas uma baseline histórica e não cria tabelas. Esta revisão
-fecha essa lacuna para bancos novos e bancos legados parcialmente inicializados.
+fecha essa lacuna para bancos novos e bancos parcialmente inicializados.
 """
 
 from alembic import op

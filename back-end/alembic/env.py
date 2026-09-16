@@ -2,8 +2,19 @@ from logging.config import fileConfig
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import app.db.models  # noqa: F401 - registra todos os modelos no metadata
+
+
+def _async_database_url(url: str) -> str:
+    if url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    elif url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+    parts = urlsplit(url)
+    query = [(key, value) for key, value in parse_qsl(parts.query) if key not in {"sslmode", "channel_binding"}]
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
 from alembic import context
 from app.core.config import settings
 from app.db.base import Base
@@ -14,7 +25,8 @@ if config.config_file_name is not None:
 
 
 DATABASE_URL = settings.database_url
-config.set_main_option("sqlalchemy.url", DATABASE_URL.replace("%", "%%"))
+ASYNC_DATABASE_URL = _async_database_url(DATABASE_URL)
+config.set_main_option("sqlalchemy.url", ASYNC_DATABASE_URL.replace("%", "%%"))
 target_metadata = Base.metadata
 
 

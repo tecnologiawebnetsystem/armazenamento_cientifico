@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.core.config import settings
-from app.db.session import engine, configure_engine
+from app.db import session as db_session
 
 router = APIRouter(tags=["Health"])
 
@@ -16,10 +16,10 @@ async def health_live():
 @router.get("/health/ready")
 async def health_ready():
     try:
-        configure_engine()
-        if engine is None:
+        db_session.configure_engine()
+        if db_session.engine is None:
             raise RuntimeError("DATABASE_URL não configurada")
-        async with engine.connect() as connection:
+        async with db_session.engine.connect() as connection:
             await connection.execute(text("SELECT 1"))
             revision = await connection.scalar(text("SELECT version_num FROM alembic_version LIMIT 1"))
         return {

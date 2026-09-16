@@ -1,8 +1,6 @@
 __pycache__/
 *.py[cod]
 *.db
-*.sqlite
-*.sqlite3
 .pytest_cache/
 .ruff_cache/
 .venv/
