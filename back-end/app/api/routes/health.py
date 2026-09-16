@@ -1,8 +1,9 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
 
 from app.core.config import settings
-from app.legacy_api import database_probe
+from app.db.session import engine, configure_engine
 
 router = APIRouter(tags=["Health"])
 
@@ -15,9 +16,21 @@ async def health_live():
 @router.get("/health/ready")
 async def health_ready():
     try:
-        probe = await database_probe()
-        return {"status": "ok", "service": "fastapi", "database": "connected", "database_engine": settings.database_engine, "database_probe": probe}
-    except (OSError, RuntimeError):
+        configure_engine()
+        if engine is None:
+            raise RuntimeError("DATABASE_URL não configurada")
+        async with engine.connect() as connection:
+            await connection.execute(text("SELECT 1"))
+            revision = await connection.scalar(text("SELECT version_num FROM alembic_version LIMIT 1"))
+        return {
+            "status": "ok",
+            "service": "fastapi",
+            "database": "connected",
+            "database_engine": "postgresql",
+            "database_probe": "SELECT 1",
+            "alembic_revision": revision,
+        }
+    except Exception:
         return JSONResponse(status_code=503, content={"status": "degradado", "service": "fastapi", "database": "unavailable", "database_engine": settings.database_engine})
 
 

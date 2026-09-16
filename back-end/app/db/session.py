@@ -1,6 +1,7 @@
 from collections.abc import AsyncIterator
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -13,10 +14,6 @@ from app.core.config import settings
 
 def _async_database_url() -> str:
     url = settings.database_url
-    if settings.database_engine == "sqlite":
-        if url.startswith("sqlite+aiosqlite://"):
-            return url
-        return url.replace("sqlite://", "sqlite+aiosqlite://", 1)
     if url.startswith("postgresql://"):
         url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
     if url.startswith("postgres://"):
@@ -36,18 +33,15 @@ def configure_engine() -> None:
     global engine, session_factory
     if engine is not None or not settings.database_url:
         return
-    if settings.database_engine == "sqlite":
-        engine = create_async_engine(_async_database_url(), echo=False)
-    else:
-        engine_options = {
-            "echo": False,
-            "pool_pre_ping": True,
-            "pool_size": settings.db_max_size,
-            "max_overflow": 0,
-            "pool_timeout": settings.db_command_timeout,
-            "connect_args": {"ssl": True},
-        }
-        engine = create_async_engine(_async_database_url(), **engine_options)
+    engine_options = {
+        "echo": False,
+        "pool_pre_ping": True,
+        "pool_size": settings.db_max_size,
+        "max_overflow": 0,
+        "pool_timeout": settings.db_command_timeout,
+        "connect_args": {"ssl": True},
+    }
+    engine = create_async_engine(_async_database_url(), **engine_options)
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
 
@@ -57,17 +51,6 @@ async def dispose_engine() -> None:
         await engine.dispose()
     engine = None
     session_factory = None
-
-
-async def get_pool():
-    """Compatibilidade para módulos legados que usam asyncpg.
-
-    O pool continua sendo gerenciado pelo legacy_api durante a migração;
-    esta função evita imports quebrados sem alterar contratos HTTP.
-    """
-    from app.legacy_api import db
-
-    return await db()
 
 
 async def get_session() -> AsyncIterator[AsyncSession]:
@@ -81,21 +64,13 @@ async def get_session() -> AsyncIterator[AsyncSession]:
 async def connect() -> None:
     configure_engine()
     if engine is None:
-        return
-    if settings.database_engine == "sqlite":
-        from app.db.base import Base
-        from app.db import models as _legacy_models  # noqa: F401
-        from app.db import seed as _seed_models  # noqa: F401
-
-        async with engine.begin() as connection:
-            await connection.run_sync(Base.metadata.create_all)
-    if settings.seed_database:
-        from app.db.seed import initialize_database
-        await initialize_database(engine)
+        raise RuntimeError("DATABASE_URL não configurada")
+    async with engine.connect() as connection:
+        await connection.execute(text("SELECT 1"))
 
 
 async def disconnect() -> None:
     await dispose_engine()
 
 
-__all__ = ["connect", "disconnect", "engine", "get_pool", "get_session"]
+__all__ = ["connect", "disconnect", "engine", "get_session"]

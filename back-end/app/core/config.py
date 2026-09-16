@@ -1,11 +1,10 @@
 import os
 from functools import lru_cache
-from pathlib import Path
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, model_validator
 
-load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+load_dotenv()
 
 
 def _database_url() -> str:
@@ -29,20 +28,14 @@ def _database_url() -> str:
         if password:
             credentials += f":{quote(password, safe='')}"
         return f"postgresql://{credentials}@{host}:{port}/{database}"
-    if os.getenv("DATABASE_ENGINE", "sqlite").strip().lower() == "sqlite":
-        return "sqlite:///./sigac.db"
     return ""
 
 
 class Settings(BaseModel):
     app_name: str = "SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico API"
     app_version: str = "3.1.0"
-    database_engine: str = os.getenv("DATABASE_ENGINE", "sqlite").strip().lower()
+    database_engine: str = "postgresql"
     database_url: str = _database_url()
-    seed_database: bool = os.getenv(
-        "SEED_DATABASE",
-        "false" if os.getenv("ENVIRONMENT", "development").lower() == "production" else "true",
-    ).lower() == "true"
     cors_origins: list[str] = [
         x.strip()
         for x in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
@@ -96,12 +89,10 @@ class Settings(BaseModel):
 
     @model_validator(mode="after")
     def validate_entra(self) -> "Settings":
-        if self.database_engine not in {"sqlite", "postgresql"}:
-            raise ValueError("DATABASE_ENGINE deve ser sqlite ou postgresql")
-        if self.database_engine == "sqlite" and self.database_url and not self.database_url.startswith(("sqlite://", "sqlite+aiosqlite://")):
-            raise ValueError("DATABASE_URL deve usar o esquema SQLite quando DATABASE_ENGINE=sqlite")
-        if self.database_engine == "postgresql" and self.database_url and not self.database_url.startswith(("postgresql://", "postgres://")):
-            raise ValueError("DATABASE_URL deve usar o esquema PostgreSQL quando DATABASE_ENGINE=postgresql")
+        if self.database_url and not self.database_url.startswith(("postgresql://", "postgres://")):
+            raise ValueError("DATABASE_URL deve usar o esquema PostgreSQL/Aurora")
+        if not self.database_url:
+            raise ValueError("DATABASE_URL ou variáveis PG*/RDS_AURORA_POSTGRES_* são obrigatórias")
         if self.db_min_size < 1 or self.db_max_size < self.db_min_size:
             raise ValueError("DB_MIN_SIZE e DB_MAX_SIZE possuem valores inválidos")
         if self.environment.lower() == "production":

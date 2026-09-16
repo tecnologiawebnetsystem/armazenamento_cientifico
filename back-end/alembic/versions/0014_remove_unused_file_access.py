@@ -12,7 +12,7 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     bind = op.get_bind()
-    cascade_clause = "" if bind.dialect.name == "sqlite" else " CASCADE"
+    cascade_clause = " CASCADE"
 
     for table in ("file_permissions", "file_shares", "group_members", "groups", "notifications"):
         op.execute(f'DROP TABLE IF EXISTS "{table}"{cascade_clause}')

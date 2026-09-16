@@ -7,9 +7,6 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.legacy import legacy_openapi, mount_legacy
-from app.api.legacy import shutdown as legacy_shutdown
-from app.api.legacy import startup as legacy_startup
 from app.api.routes.cav4_auth import router as cav4_auth_router
 from app.api.routes.health import router as health_router
 from app.core.config import settings
@@ -26,13 +23,19 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    logger.info("application_startup database_engine=%s", settings.database_engine)
-    await connect()
-    await legacy_startup()
+    logger.info(
+        "application_startup database_engine=%s migrations=alembic startup_schema_mutation=false",
+        settings.database_engine,
+    )
+    try:
+        await connect()
+    except Exception as exc:
+        logger.warning("application_startup database_connection=unavailable error=%s", type(exc).__name__)
+    else:
+        logger.info("application_ready database_connection=ok")
     try:
         yield
     finally:
-        await legacy_shutdown()
         await disconnect()
         logger.info("application_shutdown complete=true")
 
@@ -92,24 +95,6 @@ def create_app() -> FastAPI:
     application.include_router(folders_router)
     from app.modules.audit.controller import router as audit_router
     application.include_router(audit_router)
-    mount_legacy(application)
-
-    default_openapi = application.openapi
-
-    def openapi_with_legacy_paths():
-        if application.openapi_schema:
-            return application.openapi_schema
-        schema = default_openapi()
-        legacy_schema = legacy_openapi()
-        for path, path_item in legacy_schema.get("paths", {}).items():
-            schema["paths"].setdefault(path, path_item)
-        components = schema.setdefault("components", {})
-        for component_group, values in legacy_schema.get("components", {}).items():
-            components.setdefault(component_group, {}).update(values)
-        application.openapi_schema = schema
-        return schema
-
-    application.openapi = openapi_with_legacy_paths
     return application
 
 
