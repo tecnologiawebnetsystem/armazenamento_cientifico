@@ -54,6 +54,19 @@ def _generate_pkce_pair() -> tuple[str, str]:
     return code_verifier, code_challenge
 
 
+def decode_state_nonce(state: str) -> str:
+    """Extrai o nonce original do state assinado pelo fluxo de login."""
+    try:
+        padded_state = state + "=" * (-len(state) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(padded_state).decode("utf-8"))
+        nonce = payload["state"]
+        if not isinstance(nonce, str) or not nonce:
+            raise ValueError("nonce ausente")
+        return nonce
+    except (ValueError, KeyError, TypeError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise CAV4AuthenticationError("State CAV4 inválido") from exc
+
+
 def _build_httpx_client() -> httpx.AsyncClient:
     """Cria cliente HTTP com certificados SSL configurados."""
     ca_certs = None

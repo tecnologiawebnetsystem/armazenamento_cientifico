@@ -1,10 +1,11 @@
 from datetime import UTC, datetime, timedelta
+from secrets import compare_digest
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse
 
-from app.core.cav4 import CAV4AuthenticationError, get_cav4_provider
+from app.core.cav4 import CAV4AuthenticationError, decode_state_nonce, get_cav4_provider
 from app.core.config import settings
 from app.db.session import get_pool
 
@@ -13,20 +14,31 @@ router = APIRouter(prefix="/api/auth/cav4", tags=["Authentication"])
 
 @router.get("/start")
 async def start_cav4_login(next: str = Query(default="/dashboard", max_length=512)):
-    """Ponto de entrada do login CAV4; permanece bloqueado sem contrato/configuração."""
+    """Inicia o login CAV4 e vincula o callback à sessão do navegador."""
     if not settings.cav4_enabled:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={"code": "CAV4_NOT_CONFIGURED", "message": "Login corporativo CAV4 ainda não configurado."},
         )
+    safe_next = next if next.startswith("/") and not next.startswith("//") else "/dashboard"
+    nonce = str(uuid4())
     try:
         url = await get_cav4_provider().build_login_url(
-            state=next,
+            state=nonce,
             redirect_uri=settings.cav4_redirect_uri,
         )
     except CAV4AuthenticationError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
-    return RedirectResponse(url=url, status_code=status.HTTP_302_FOUND)
+    response = RedirectResponse(url=url, status_code=status.HTTP_302_FOUND)
+    response.set_cookie(
+        "cav4_oauth_state",
+        f"{nonce}|{safe_next}",
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite="lax",
+        max_age=600,
+    )
+    return response
 
 
 @router.get("/callback")
@@ -34,6 +46,14 @@ async def cav4_callback(request: Request, code: str, state: str):
     """Valida o callback, cria sessão HttpOnly e retorna ao frontend."""
     if not settings.cav4_enabled:
         raise HTTPException(status_code=503, detail={"code": "CAV4_NOT_CONFIGURED"})
+    expected_cookie = request.cookies.get("cav4_oauth_state", "")
+    expected_nonce, separator, next_path = expected_cookie.partition("|")
+    try:
+        returned_nonce = decode_state_nonce(state)
+    except CAV4AuthenticationError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    if not separator or not expected_nonce or not compare_digest(returned_nonce, expected_nonce):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Callback CAV4 inválido")
     try:
         identity = await get_cav4_provider().exchange_callback(code=code, state=state)
     except CAV4AuthenticationError as exc:
@@ -51,6 +71,8 @@ async def cav4_callback(request: Request, code: str, state: str):
         "insert into sessions(id,user_id,expires_at) values($1,$2,$3)",
         session_id, user["id"], datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours),
     )
-    response = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+    safe_next = next_path if next_path.startswith("/") and not next_path.startswith("//") else "/dashboard"
+    response = RedirectResponse(url=safe_next, status_code=status.HTTP_302_FOUND)
+    response.delete_cookie("cav4_oauth_state")
     response.set_cookie(settings.cookie_name, session_id, httponly=True, secure=settings.cookie_secure, samesite="lax", max_age=settings.session_hours * 3600)
     return response
