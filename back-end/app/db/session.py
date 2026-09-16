@@ -1,5 +1,4 @@
 from collections.abc import AsyncIterator
-from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sqlalchemy.ext.asyncio import (
@@ -14,18 +13,6 @@ from app.core.config import settings
 
 def _async_database_url() -> str:
     url = settings.database_url
-    if settings.database_engine == "sqlite" and url.startswith("sqlite://"):
-        url = url.replace("sqlite://", "sqlite+aiosqlite://", 1)
-    if settings.database_engine == "sqlite" and url.startswith("sqlite+aiosqlite:///"):
-        database_path = url.removeprefix("sqlite+aiosqlite:///")
-        if database_path not in (":memory:", ""):
-            # Caminhos relativos devem ser resolvidos a partir de `backend`,
-            # independentemente do diretório usado para iniciar o Uvicorn.
-            path = Path(database_path)
-            if not path.is_absolute():
-                path = Path(__file__).resolve().parents[2] / path
-            path.parent.mkdir(parents=True, exist_ok=True)
-            url = f"sqlite+aiosqlite:///{path.as_posix()}"
     if url.startswith("postgresql://"):
         url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
     if url.startswith("postgres://"):
@@ -45,14 +32,14 @@ def configure_engine() -> None:
     global engine, session_factory
     if engine is not None or not settings.database_url:
         return
-    engine_options = {"echo": False}
-    if settings.database_engine != "sqlite":
-        engine_options.update(
-            pool_pre_ping=True,
-            pool_size=settings.db_max_size,
-            max_overflow=0,
-            pool_timeout=settings.db_command_timeout,
-        )
+    engine_options = {
+        "echo": False,
+        "pool_pre_ping": True,
+        "pool_size": settings.db_max_size,
+        "max_overflow": 0,
+        "pool_timeout": settings.db_command_timeout,
+        "connect_args": {"ssl": True},
+    }
     engine = create_async_engine(_async_database_url(), **engine_options)
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
 

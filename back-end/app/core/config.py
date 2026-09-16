@@ -8,40 +8,35 @@ from pydantic import BaseModel, Field, model_validator
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 
-def _resolve_engine() -> str:
-    """Determina o banco ativo.
+def _database_url() -> str:
+    direct_url = os.getenv("DATABASE_URL", "").strip()
+    if direct_url:
+        return direct_url
 
-    Se DATABASE_ENGINE for informado, ele tem prioridade. Caso contrário,
-    o engine é inferido a partir do esquema da DATABASE_URL — assim um
-    deploy que fornece apenas uma DATABASE_URL PostgreSQL.
-    funciona sem exigir variáveis extras.
-    """
-    explicit = os.getenv("DATABASE_ENGINE")
-    if explicit:
-        engine = explicit.lower()
-        if engine not in {"sqlite", "postgresql", "postgres"}:
-            raise ValueError("DATABASE_ENGINE deve ser sqlite ou postgresql")
-        return "postgresql" if engine == "postgres" else engine
-    url = (os.getenv("DATABASE_URL") or "").lower()
-    if url.startswith(("postgresql://", "postgres://")):
-        return "postgresql"
-    return "sqlite"
+    legacy_url = os.getenv("RDS_AURORA_POSTGRES_URL", "").strip()
+    if legacy_url:
+        return legacy_url if "://" in legacy_url else f"postgresql://{legacy_url}"
 
+    host = (os.getenv("PGHOST") or os.getenv("RDS_AURORA_POSTGRES_HOST") or "").strip()
+    database = (os.getenv("PGDATABASE") or os.getenv("RDS_AURORA_POSTGRES_DBNAME") or "").strip()
+    user = (os.getenv("PGUSER") or os.getenv("RDS_AURORA_POSTGRES_USERNAME") or "").strip()
+    password = (os.getenv("PGPASSWORD") or os.getenv("RDS_AURORA_POSTGRES_PASSWORD") or "").strip()
+    if host and database and user:
+        from urllib.parse import quote
 
-def _database_url(engine: str) -> str:
-    if engine == "sqlite":
-        return os.getenv("DATABASE_URL_SQLITE") or os.getenv("DATABASE_URL") or "sqlite+aiosqlite:///./data/sigac.db"
-    return os.getenv("DATABASE_URL_POSTGRESQL") or os.getenv("DATABASE_URL") or ""
-
-
-_RESOLVED_ENGINE = _resolve_engine()
+        port = os.getenv("PGPORT", "5432").strip()
+        credentials = quote(user, safe="")
+        if password:
+            credentials += f":{quote(password, safe='')}"
+        return f"postgresql://{credentials}@{host}:{port}/{database}"
+    return ""
 
 
 class Settings(BaseModel):
     app_name: str = "SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico API"
     app_version: str = "3.1.0"
-    database_engine: str = _RESOLVED_ENGINE
-    database_url: str = _database_url(_RESOLVED_ENGINE)
+    database_engine: str = "postgresql"
+    database_url: str = _database_url()
     seed_database: bool = os.getenv(
         "SEED_DATABASE",
         "false" if os.getenv("ENVIRONMENT", "development").lower() == "production" else "true",
@@ -79,7 +74,11 @@ class Settings(BaseModel):
     entra_groups: list[str] = Field(default_factory=lambda: _csv("ENTRA_GROUPS"))
     entra_group_sync_enabled: bool = os.getenv("ENTRA_GROUP_SYNC_ENABLED", "true").lower() == "true"
     cav4_enabled: bool = os.getenv("CAV4_ENABLED", "false").lower() == "true"
-    cav4_base_url: str = os.getenv("CAV4_BASE_URL", "")
+    cav4_base_url: str = os.getenv("CA_API_BASE_URL") or os.getenv("CAV4_BASE_URL", "")
+    oidc_discovery_url: str = os.getenv("OIDC_DISCOVERY_URL", "")
+    ca_ssl_use_truststore: bool = os.getenv("CA_SSL_USE_TRUSTSTORE", "true").lower() == "true"
+    ca_ssl_cert_file: str = os.getenv("CA_SSL_CERT_FILE", "")
+    ca_ssl_verify: bool = os.getenv("CA_SSL_VERIFY", "true").lower() == "true"
     # O CAV4 fornece o identificador como CA_CLIENT_ID; CAV4_CLIENT_ID
     # permanece aceito para compatibilidade com configurações anteriores.
     cav4_client_id: str = os.getenv("CA_CLIENT_ID") or os.getenv("CAV4_CLIENT_ID", "")
@@ -95,19 +94,13 @@ class Settings(BaseModel):
 
     @model_validator(mode="after")
     def validate_entra(self) -> "Settings":
-        if self.database_engine not in {"sqlite", "postgresql", "postgres"}:
-            raise ValueError("DATABASE_ENGINE deve ser sqlite ou postgresql")
-        if not self.database_url.strip():
-            raise ValueError("DATABASE_URL é obrigatória para o banco selecionado")
-        if self.database_engine == "sqlite" and not self.database_url.startswith(("sqlite://", "sqlite+aiosqlite://")):
-            raise ValueError("SQLite exige uma DATABASE_URL sqlite:// ou sqlite+aiosqlite://")
-        if self.database_engine != "sqlite" and not self.database_url.startswith(("postgresql://", "postgres://")):
-            raise ValueError("PostgreSQL exige uma DATABASE_URL PostgreSQL")
+        if self.database_engine != "postgresql":
+            raise ValueError("Somente PostgreSQL Aurora é suportado")
+        if self.database_url and not self.database_url.startswith(("postgresql://", "postgres://")):
+            raise ValueError("DATABASE_URL deve usar o esquema PostgreSQL")
         if self.db_min_size < 1 or self.db_max_size < self.db_min_size:
             raise ValueError("DB_MIN_SIZE e DB_MAX_SIZE possuem valores inválidos")
         if self.environment.lower() == "production":
-            if self.database_engine == "sqlite":
-                raise ValueError("SQLite não é permitido em produção")
             if not self.cookie_secure:
                 raise ValueError("COOKIE_SECURE deve ser true em produção")
             if self.expose_api_docs:
@@ -126,6 +119,21 @@ class Settings(BaseModel):
             raise ValueError(f"Configuração Entra ID incompleta; faltando: {missing}")
         if any(required.values()) and (not self.entra_redirect_uri.strip() or not self.entra_scopes.strip()):
             raise ValueError("Configuração Entra ID incompleta; callback e escopos são obrigatórios")
+        cav4_values = {
+            "CA_CLIENT_ID": self.cav4_client_id, "CA_CLIENT_SECRET": self.cav4_client_secret,
+            "CA_REDIRECT_URI": self.cav4_redirect_uri, "OIDC_DISCOVERY_URL": self.oidc_discovery_url,
+        }
+        if self.cav4_enabled:
+            missing = [key for key, value in cav4_values.items() if not value.strip()]
+            if missing:
+                raise ValueError(f"Configuração CAV4 incompleta; faltando: {', '.join(missing)}")
+            for key, value in cav4_values.items():
+                if key.endswith("URL") and not value.startswith(("http://", "https://")):
+                    raise ValueError(f"{key} deve começar com http:// ou https://")
+            if self.environment.lower() == "production" and not self.ca_ssl_verify:
+                raise ValueError("CA_SSL_VERIFY deve ser true em produção")
+            if self.ca_ssl_cert_file and not Path(self.ca_ssl_cert_file).is_file():
+                raise ValueError("CA_SSL_CERT_FILE aponta para um arquivo inexistente")
         return self
 
 

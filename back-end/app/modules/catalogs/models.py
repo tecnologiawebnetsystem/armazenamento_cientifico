@@ -71,7 +71,7 @@ class SystemSetting(Base):
 class ReportField(Base):
     __tablename__ = "report_fields"
     id: Mapped[str] = mapped_column(String(60), primary_key=True)
-    report_code: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    report_code: Mapped[str] = mapped_column(String(60), ForeignKey("report_types.code", ondelete="CASCADE"), nullable=False, index=True)
     field_key: Mapped[str] = mapped_column(String(100), nullable=False)
     label: Mapped[str] = mapped_column(String(160), nullable=False)
     source_key: Mapped[str] = mapped_column(String(160), nullable=False)
