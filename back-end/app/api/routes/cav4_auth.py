@@ -3,13 +3,52 @@ from secrets import compare_digest
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
+from sqlalchemy import text
 
 from app.core.cav4 import CAV4AuthenticationError, decode_state_nonce, get_cav4_provider
 from app.core.config import settings
-from app.db.session import get_pool
+from app.api.dependencies import get_current_user
+from app.db.session import get_session
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth/cav4", tags=["Authentication"])
+
+
+@router.get("/session", include_in_schema=True)
+async def cav4_session(request: Request):
+    """Retorna a identidade autenticada e suas permissões efetivas."""
+    try:
+        user = await get_current_user(request)
+    except HTTPException as exc:
+        if exc.status_code == 401:
+            return {"user": None}
+        raise
+    logger.info(
+        "cav4_session_authenticated user_id=%s email=%s role=%s roles=%s permissions=%s groups=%s",
+        user.get("id"),
+        user.get("email"),
+        user.get("role"),
+        user.get("roles", []),
+        user.get("permissions", []),
+        user.get("groups", []),
+    )
+    return {"user": dict(user)}
+
+
+@router.post("/logout", status_code=204)
+async def cav4_logout(request: Request):
+    session_id = request.cookies.get(settings.cookie_name)
+    if session_id:
+        async for database in get_session():
+            await database.execute(text("delete from sessions where id=:session_id"), {"session_id": session_id})
+            await database.commit()
+        logger.info("cav4_logout session_revoked=true")
+    response = Response(status_code=204)
+    response.delete_cookie(settings.cookie_name)
+    return response
 
 
 @router.get("/start")
@@ -61,17 +100,34 @@ async def cav4_callback(request: Request, code: str, state: str):
     if not identity.subject or not identity.email:
         raise HTTPException(status_code=401, detail="Claims obrigatórias ausentes no token CAV4")
 
-    pool = await get_pool()
-    user = await pool.fetchrow("select * from users where lower(email)=lower($1)", identity.email)
-    if not user:
-        raise HTTPException(status_code=403, detail="Usuário CAV4 não cadastrado na plataforma")
     session_id = str(uuid4())
-    await pool.execute("delete from sessions where user_id=$1", user["id"])
-    await pool.execute(
-        "insert into sessions(id,user_id,expires_at) values($1,$2,$3)",
-        session_id, user["id"], datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours),
-    )
+    async for database in get_session():
+        user = (
+            await database.execute(
+                text("select id from users where lower(email)=lower(:email)"),
+                {"email": identity.email},
+            )
+        ).mappings().first()
+        if not user:
+            raise HTTPException(status_code=403, detail="Usuário CAV4 não cadastrado na plataforma")
+        await database.execute(text("delete from sessions where user_id=:user_id"), {"user_id": user["id"]})
+        await database.execute(
+            text("insert into sessions(id,user_id,expires_at) values(:id,:user_id,:expires_at)"),
+            {
+                "id": session_id,
+                "user_id": user["id"],
+                "expires_at": datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours),
+            },
+        )
+        await database.commit()
     safe_next = next_path if next_path.startswith("/") and not next_path.startswith("//") else "/dashboard"
+    logger.info(
+        "cav4_authentication_ok subject=%s email=%s roles=%s permissions=%s",
+        identity.subject,
+        identity.email,
+        list(identity.roles),
+        list(identity.permissions),
+    )
     response = RedirectResponse(url=safe_next, status_code=status.HTTP_302_FOUND)
     response.delete_cookie("cav4_oauth_state")
     response.set_cookie(settings.cookie_name, session_id, httponly=True, secure=settings.cookie_secure, samesite="lax", max_age=settings.session_hours * 3600)

@@ -5,7 +5,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, model_validator
 
-load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+load_dotenv()
 
 
 def _database_url() -> str:
@@ -37,10 +37,6 @@ class Settings(BaseModel):
     app_version: str = "3.1.0"
     database_engine: str = "postgresql"
     database_url: str = _database_url()
-    seed_database: bool = os.getenv(
-        "SEED_DATABASE",
-        "false" if os.getenv("ENVIRONMENT", "development").lower() == "production" else "true",
-    ).lower() == "true"
     cors_origins: list[str] = [
         x.strip()
         for x in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
@@ -94,10 +90,10 @@ class Settings(BaseModel):
 
     @model_validator(mode="after")
     def validate_entra(self) -> "Settings":
-        if self.database_engine != "postgresql":
-            raise ValueError("Somente PostgreSQL Aurora é suportado")
         if self.database_url and not self.database_url.startswith(("postgresql://", "postgres://")):
-            raise ValueError("DATABASE_URL deve usar o esquema PostgreSQL")
+            raise ValueError("DATABASE_URL deve usar o esquema PostgreSQL/Aurora")
+        if not self.database_url:
+            raise ValueError("DATABASE_URL ou variáveis PG*/RDS_AURORA_POSTGRES_* são obrigatórias")
         if self.db_min_size < 1 or self.db_max_size < self.db_min_size:
             raise ValueError("DB_MIN_SIZE e DB_MAX_SIZE possuem valores inválidos")
         if self.environment.lower() == "production":

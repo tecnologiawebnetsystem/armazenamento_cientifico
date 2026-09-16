@@ -8,16 +8,12 @@ def test_openapi_exposes_required_operations():
     paths = schema["paths"]
     required = {
         "/health",
-        "/api/auth/login",
-        "/api/auth/logout",
-        "/api/auth/session",
+        "/api/auth/cav4/session",
+        "/api/auth/cav4/start",
+        "/api/auth/cav4/callback",
         "/api/projects",
         "/api/folders",
-        "/api/reports",
-        "/api/access-map",
-        "/api/permissions",
-        "/api/settings",
-        "/api/activity-logs",
+        "/api/audit/logs",
     }
     assert required <= paths.keys()
     assert schema["info"]["title"] == "SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico API"
@@ -34,7 +30,7 @@ def test_protected_operations_keep_expected_methods():
     schema = app.openapi()
     assert "get" in schema["paths"]["/api/projects"]
     assert "post" in schema["paths"]["/api/projects"]
-    assert "get" in schema["paths"]["/api/reports"]
+    assert "get" in schema["paths"]["/api/audit/logs"]
 
 
 def test_health_endpoints_are_registered():

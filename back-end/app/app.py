@@ -1,5 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
+from time import perf_counter
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -7,9 +8,6 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.legacy import legacy_openapi, mount_legacy
-from app.api.legacy import shutdown as legacy_shutdown
-from app.api.legacy import startup as legacy_startup
 from app.api.routes.cav4_auth import router as cav4_auth_router
 from app.api.routes.health import router as health_router
 from app.core.config import settings
@@ -19,6 +17,7 @@ from app.db.session import connect, disconnect
 
 configure_logging(settings.log_level)
 from app.modules.files.module import router as folders_router
+from app.modules.platform.controller import router as platform_router
 from app.modules.projects.module import router as projects_router
 
 logger = logging.getLogger(__name__)
@@ -26,13 +25,19 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    logger.info("application_startup database_engine=%s", settings.database_engine)
-    await connect()
-    await legacy_startup()
+    logger.info(
+        "application_startup database_engine=%s migrations=alembic startup_schema_mutation=false",
+        settings.database_engine,
+    )
+    try:
+        await connect()
+    except Exception as exc:
+        logger.warning("application_startup database_connection=unavailable error=%s", type(exc).__name__)
+    else:
+        logger.info("application_ready database_connection=ok")
     try:
         yield
     finally:
-        await legacy_shutdown()
         await disconnect()
         logger.info("application_shutdown complete=true")
 
@@ -60,6 +65,8 @@ def create_app() -> FastAPI:
 
     @application.middleware("http")
     async def request_security_and_logging(request: Request, call_next: Any):
+        started_at = perf_counter()
+        logger.info("request_start method=%s path=%s", request.method, request.url.path)
         response = await call_next(request)
         if settings.security_headers_enabled:
             response.headers["X-Content-Type-Options"] = "nosniff"
@@ -68,7 +75,7 @@ def create_app() -> FastAPI:
             response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
             if settings.environment.lower() == "production":
                 response.headers["Strict-Transport-Security"] = "max-age=63072000"
-        logger.info("request_complete method=%s path=%s status=%s", request.method, request.url.path, response.status_code)
+        logger.info("request_complete method=%s path=%s status=%s duration_ms=%.2f", request.method, request.url.path, response.status_code, (perf_counter() - started_at) * 1000)
         return response
 
     @application.exception_handler(AppException)
@@ -90,26 +97,9 @@ def create_app() -> FastAPI:
 
     application.include_router(projects_router)
     application.include_router(folders_router)
+    application.include_router(platform_router)
     from app.modules.audit.controller import router as audit_router
     application.include_router(audit_router)
-    mount_legacy(application)
-
-    default_openapi = application.openapi
-
-    def openapi_with_legacy_paths():
-        if application.openapi_schema:
-            return application.openapi_schema
-        schema = default_openapi()
-        legacy_schema = legacy_openapi()
-        for path, path_item in legacy_schema.get("paths", {}).items():
-            schema["paths"].setdefault(path, path_item)
-        components = schema.setdefault("components", {})
-        for component_group, values in legacy_schema.get("components", {}).items():
-            components.setdefault(component_group, {}).update(values)
-        application.openapi_schema = schema
-        return schema
-
-    application.openapi = openapi_with_legacy_paths
     return application
 
 

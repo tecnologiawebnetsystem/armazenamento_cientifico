@@ -1,36 +1,13 @@
 "use client"
 
-import { FormEvent, useEffect, useRef, useState } from "react"
-import { Building2Icon, MailIcon, ShieldCheckIcon } from "lucide-react"
+import { Building2Icon, ShieldCheckIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/spinner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { LoginFieldError } from "@/components/login/login-field-error"
 import { useLogin } from "@/hooks/use-login"
 
 export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
-  const [email, setEmail] = useState("")
-  const [emailError, setEmailError] = useState<string | null>(null)
-  const emailRef = useRef<HTMLInputElement>(null)
-  const { loading, error, emailLogin, corporateLogin } = useLogin(nextPath)
-
-  useEffect(() => emailRef.current?.focus(), [])
-
-  function validateEmail(value: string) {
-    if (!value.trim()) return "Informe seu e-mail para continuar."
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) return "Informe um e-mail válido."
-    return null
-  }
-
-  async function handleEmailLogin(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const validationError = validateEmail(email)
-    setEmailError(validationError)
-    if (validationError) return
-    await emailLogin(email.trim())
-  }
+  const { loading, error, corporateLogin } = useLogin(nextPath)
 
   return (
     <div className="relative">
@@ -78,40 +55,6 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-
-              <form className="flex flex-col gap-4" onSubmit={handleEmailLogin}>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="login-email">E-mail cadastrado</Label>
-                  <div className="relative">
-                    <MailIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-                    <Input
-                      ref={emailRef}
-                      id="login-email"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      placeholder="nome@empresa.com.br"
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      disabled={loading !== null}
-                      aria-invalid={Boolean(emailError)}
-                      aria-describedby={emailError ? "login-email-error" : undefined}
-                      className="border-[#d8e1e7] bg-[#fbfcfd] pl-9 shadow-sm transition-colors placeholder:text-[#7a8791] focus-visible:border-[#007f5f] focus-visible:ring-[#007f5f]/20"
-                      required
-                    />
-                    {emailError && <LoginFieldError id="login-email-error">{emailError}</LoginFieldError>}
-                  </div>
-                </div>
-                <Button type="submit" size="lg" disabled={loading !== null} className="w-full bg-gradient-to-r from-[#007f3e] to-[#fdbb30] text-white shadow-md shadow-[#007f3e]/30 transition-all hover:-translate-y-0.5 hover:from-[#006b35] hover:to-[#e8aa19] hover:shadow-lg hover:shadow-[#007f3e]/40">
-                  {loading === "email" ? <Spinner aria-label="Validando e-mail" /> : "Entrar com e-mail"}
-                </Button>
-              </form>
-
-              <div className="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true">
-                <span className="h-px flex-1 bg-border" />
-                <span>ou</span>
-                <span className="h-px flex-1 bg-border" />
-              </div>
 
               <div className="flex flex-col gap-3 text-center">
                 <p className="text-sm leading-6 text-muted-foreground">Use o acesso corporativo para validar sua identidade e carregar seus papéis e permissões.</p>
