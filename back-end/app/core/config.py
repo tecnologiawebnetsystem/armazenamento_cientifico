@@ -8,40 +8,24 @@ from pydantic import BaseModel, Field, model_validator
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 
-def _resolve_engine() -> str:
-    """Determina o banco ativo.
-
-    Se DATABASE_ENGINE for informado, ele tem prioridade. Caso contrário,
-    o engine é inferido a partir do esquema da DATABASE_URL — assim um
-    deploy que fornece apenas uma DATABASE_URL PostgreSQL.
-    funciona sem exigir variáveis extras.
-    """
-    explicit = os.getenv("DATABASE_ENGINE")
-    if explicit:
-        engine = explicit.lower()
-        if engine not in {"sqlite", "postgresql", "postgres"}:
-            raise ValueError("DATABASE_ENGINE deve ser sqlite ou postgresql")
-        return "postgresql" if engine == "postgres" else engine
-    url = (os.getenv("DATABASE_URL") or "").lower()
-    if url.startswith(("postgresql://", "postgres://")):
-        return "postgresql"
-    return "sqlite"
-
-
-def _database_url(engine: str) -> str:
-    if engine == "sqlite":
-        return os.getenv("DATABASE_URL_SQLITE") or os.getenv("DATABASE_URL") or "sqlite+aiosqlite:///./data/sigac.db"
-    return os.getenv("DATABASE_URL_POSTGRESQL") or os.getenv("DATABASE_URL") or ""
-
-
-_RESOLVED_ENGINE = _resolve_engine()
+def _database_url() -> str:
+    direct_url = os.getenv("DATABASE_URL", "").strip()
+    if direct_url:
+        return direct_url
+    host = os.getenv("PGHOST", "").strip()
+    database = os.getenv("PGDATABASE", "").strip()
+    user = os.getenv("PGUSER", "").strip()
+    if host and database and user:
+        port = os.getenv("PGPORT", "5432").strip()
+        return f"postgresql://{user}@{host}:{port}/{database}"
+    return ""
 
 
 class Settings(BaseModel):
     app_name: str = "SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico API"
     app_version: str = "3.1.0"
-    database_engine: str = _RESOLVED_ENGINE
-    database_url: str = _database_url(_RESOLVED_ENGINE)
+    database_engine: str = "postgresql"
+    database_url: str = _database_url()
     seed_database: bool = os.getenv(
         "SEED_DATABASE",
         "false" if os.getenv("ENVIRONMENT", "development").lower() == "production" else "true",
@@ -99,19 +83,13 @@ class Settings(BaseModel):
 
     @model_validator(mode="after")
     def validate_entra(self) -> "Settings":
-        if self.database_engine not in {"sqlite", "postgresql", "postgres"}:
-            raise ValueError("DATABASE_ENGINE deve ser sqlite ou postgresql")
-        if not self.database_url.strip():
-            raise ValueError("DATABASE_URL é obrigatória para o banco selecionado")
-        if self.database_engine == "sqlite" and not self.database_url.startswith(("sqlite://", "sqlite+aiosqlite://")):
-            raise ValueError("SQLite exige uma DATABASE_URL sqlite:// ou sqlite+aiosqlite://")
-        if self.database_engine != "sqlite" and not self.database_url.startswith(("postgresql://", "postgres://")):
-            raise ValueError("PostgreSQL exige uma DATABASE_URL PostgreSQL")
+        if self.database_engine != "postgresql":
+            raise ValueError("Somente PostgreSQL Aurora é suportado")
+        if self.database_url and not self.database_url.startswith(("postgresql://", "postgres://")):
+            raise ValueError("DATABASE_URL deve usar o esquema PostgreSQL")
         if self.db_min_size < 1 or self.db_max_size < self.db_min_size:
             raise ValueError("DB_MIN_SIZE e DB_MAX_SIZE possuem valores inválidos")
         if self.environment.lower() == "production":
-            if self.database_engine == "sqlite":
-                raise ValueError("SQLite não é permitido em produção")
             if not self.cookie_secure:
                 raise ValueError("COOKIE_SECURE deve ser true em produção")
             if self.expose_api_docs:
