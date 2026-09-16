@@ -324,8 +324,8 @@ Route/Controller -> Application Service -> Repository -> SQLAlchemy -> Database
 
 ## Segurança
 
-- Nunca versione `.env`, tokens, senhas ou dados reais do SQLite.
-- Em produção, use PostgreSQL ou outro banco corporativo aprovado.
+- Nunca versione `.env`, tokens, senhas ou dados reais do banco.
+- O único banco suportado pela aplicação é PostgreSQL/Aurora PostgreSQL.
 - Configure `COOKIE_SECURE=true` quando a aplicação estiver atrás de HTTPS.
 - Restrinja `CORS_ORIGINS` às origens conhecidas.
 - Desabilite a documentação OpenAPI pública em produção quando a política do ambiente exigir.
