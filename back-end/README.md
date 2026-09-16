@@ -57,8 +57,8 @@ Este diretório contém exclusivamente o serviço de API. Ele possui Dockerfile,
 - **Pydantic** `>=2.8,<3.0` para validação e schemas.
 - **SQLAlchemy** `>=2.0,<3.0` com suporte assíncrono.
 - **Alembic** `>=1.16,<2.0` para migrations.
-- **SQLite** com `aiosqlite` no desenvolvimento atual.
-- **PostgreSQL** previsto para ambientes compartilhados e produção.
+- **PostgreSQL/Aurora PostgreSQL** via `asyncpg` em todos os ambientes suportados.
+- **Alembic** como única fonte de criação e alteração estrutural do schema.
 - **Pytest** `>=8.3,<9.0` e `pytest-asyncio` para testes automatizados.
 - Docker e Docker Compose.
 
@@ -77,7 +77,7 @@ Principais padrões utilizados:
 - **Repository Pattern:** acesso a PostgreSQL/Aurora encapsulado em repositories.
 - **Dependency Injection:** dependências, sessão de banco e segurança fornecidas pelo sistema de dependências do FastAPI.
 - **Schema/DTO Pattern:** Pydantic valida entradas e saídas da API sem expor diretamente os modelos de persistência.
-- **Adapter de compatibilidade:** `app/api/legacy.py` isola a API legada durante a migração por domínio.
+- **Adapters:** CAV4 e integrações externas ficam isolados dos serviços de aplicação.
 
 Fluxo padrão:
 
@@ -101,25 +101,20 @@ Para execução em container:
 - Docker Desktop ou Docker Engine
 - Docker Compose v2
 
-## Banco de dados atual: SQLite
+## Banco de dados: PostgreSQL/Aurora
 
-No momento, o banco padrão do projeto é o **SQLite**. Ele é adequado para desenvolvimento local, testes funcionais e demonstrações porque não exige a instalação ou manutenção de um servidor de banco separado.
+O único banco suportado é **PostgreSQL**, incluindo Amazon Aurora PostgreSQL. A API não cria schema no startup, não usa SQLite e não possui fallback local. O schema é criado e alterado exclusivamente pelo Alembic.
 
-Por padrão, o arquivo é criado em:
-
-```text
-back-end/data/sigac.db
-```
-
-A conexão é configurada no `.env`:
+A conexão pode ser informada por `DATABASE_URL` ou pelo conjunto `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER` e `PGPASSWORD` (ou pelos nomes equivalentes `RDS_AURORA_POSTGRES_*`). Para Aurora com autenticação IAM, use a URL/credenciais injetadas pelo ambiente de execução e TLS obrigatório.
 
 ```dotenv
-DATABASE_ENGINE=sqlite
-DATABASE_URL=sqlite+aiosqlite:///./data/sigac.db
-SEED_DATABASE=true
+DATABASE_URL=postgresql+asyncpg://usuario:senha@host:5432/sigac
+DB_MIN_SIZE=1
+DB_MAX_SIZE=10
+DB_COMMAND_TIMEOUT=30
 ```
 
-A pasta `data/` deve permanecer fora do controle de versão quando contiver dados locais. O banco SQLite não deve ser considerado a solução definitiva para produção, alta concorrência ou múltiplas réplicas da API. Em produção, o arquivo não deve ser compartilhado entre containers nem armazenado dentro da imagem Docker.
+Não versionar `.env`, credenciais, tokens ou dados reais. A conexão real só será validada quando o Aurora estiver configurado no ambiente.
 
 ## Configuração de ambiente
 
@@ -130,12 +125,13 @@ cd back-end
 cp .env.example .env
 ```
 
-Configuração mínima recomendada para desenvolvimento:
+Configuração mínima recomendada para desenvolvimento conectado ao Aurora/PostgreSQL:
 
 ```dotenv
-DATABASE_ENGINE=sqlite
-DATABASE_URL=sqlite+aiosqlite:///./data/sigac.db
-SEED_DATABASE=true
+DATABASE_URL=postgresql+asyncpg://usuario:senha@localhost:5432/sigac
+DB_MIN_SIZE=1
+DB_MAX_SIZE=10
+DB_COMMAND_TIMEOUT=30
 ENVIRONMENT=development
 COOKIE_SECURE=false
 CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
@@ -180,7 +176,7 @@ Endpoints úteis:
 
 ## Execução com Docker Compose
 
-O back-end possui Compose independente. Para iniciar a API com o SQLite local:
+O back-end possui Compose independente. Para iniciar a API apontando para o PostgreSQL/Aurora configurado no ambiente:
 
 ```bash
 cd back-end
@@ -205,7 +201,7 @@ Para parar a aplicação:
 docker compose down
 ```
 
-O diretório `data/` deve ser montado como volume para que o arquivo SQLite sobreviva à recriação do container. A imagem não deve conter dados de banco pré-populados nem segredos.
+A imagem não deve conter dados de banco pré-populados nem segredos. O container deve receber a configuração PostgreSQL/Aurora por variáveis de ambiente.
 
 ## Migrations com Alembic
 
@@ -223,7 +219,7 @@ alembic history
 alembic downgrade -1
 ```
 
-Não altere tabelas manualmente em ambientes compartilhados sem criar a migration correspondente. Para SQLite, algumas alterações de schema podem exigir a estratégia de recriação de tabela suportada pelo Alembic.
+Não altere tabelas manualmente em ambientes compartilhados sem criar a migration correspondente. O comando `alembic check` deve ser executado antes da publicação para detectar divergências entre o metadata ORM e as migrations.
 
 ## API e integração com o aplicação web
 
@@ -285,7 +281,7 @@ curl http://localhost:8080/health
 
 ## Arquitetura
 
-O back-end utiliza uma arquitetura modular por domínio, evoluindo para **Clean Architecture** e **Hexagonal Architecture (Ports and Adapters)**. A aplicação mantém compatibilidade temporária com a API legada por meio de um adaptador isolado em `app/api/legacy.py`; novos recursos não devem adicionar lógica ao `legacy_api.py`.
+O back-end utiliza uma arquitetura modular por domínio, com separação em camadas: controllers/rotas HTTP, services para regras de negócio e repositories para persistência. A API legada foi removida; novos recursos devem seguir esse fluxo.
 
 ### Camadas e padrões
 
@@ -310,18 +306,16 @@ Route/Controller -> Application Service -> Repository -> SQLAlchemy -> Database
 2. Regras de negócio não ficam em controllers.
 3. Integrações externas são acessadas por ports/adapters.
 4. Toda alteração de banco exige migration Alembic.
-5. A API legada somente recebe correções de compatibilidade até sua migração por domínio.
-6. PostgreSQL é o banco-alvo de produção; SQLite fica restrito a desenvolvimento e testes rápidos.
+5. PostgreSQL/Aurora é o único banco suportado.
+6. Logs de conexão, Alembic e CAV4 nunca exibem segredos, tokens ou senhas.
 
-> Estado atual: `ruff` e os testes passam. O `alembic check` ainda identifica tabelas legadas presentes no SQLite local que não fazem parte dos models atuais; isso deve ser resolvido por uma migration explícita de compatibilidade antes de remover qualquer tabela em ambiente compartilhado.
+> Estado atual: a conexão real e `alembic check` dependem de um Aurora PostgreSQL configurado no ambiente; sem essa configuração, a aplicação falha explicitamente em vez de usar armazenamento local.
 
 ## Estrutura de diretórios
 
-- `app/api/legacy.py`: boundary adapter temporário da API legada.
-- `app/`: aplicação FastAPI, módulos, controllers, schemas, serviços e autenticação.
-- `alembic/`: migrations versionadas.
+- `app/`: aplicação FastAPI, módulos, controllers, services, repositories, schemas e autenticação.
+- `alembic/`: migrations versionadas, única fonte estrutural do banco.
 - `database/`: schemas SQL e referências de dados.
-- `data/`: banco SQLite local; não deve conter dados corporativos versionados.
 - `scripts/`: scripts auxiliares de desenvolvimento e migração.
 - `tests/`: testes automatizados.
 - `Dockerfile`: imagem independente da API.
@@ -339,19 +333,17 @@ Route/Controller -> Application Service -> Repository -> SQLAlchemy -> Database
 - Execute o container com usuário não-root.
 - Use imagens base atualizadas e faça varredura de vulnerabilidades antes da publicação.
 
-## Migração futura de SQLite para PostgreSQL
+## Operação PostgreSQL/Aurora
 
-A aplicação mantém `DATABASE_ENGINE` e `DATABASE_URL` configuráveis para permitir a evolução do ambiente local para um banco compartilhado. A migração deve incluir:
+A sequência de publicação é:
 
-1. provisionamento do PostgreSQL conforme o padrão corporativo;
-2. aplicação das migrations com `alembic upgrade head`;
-3. exportação e transformação dos dados necessários do SQLite;
-4. validação de chaves, índices, constraints e encoding;
-5. testes de integração usando a URL do PostgreSQL;
-6. desativação do seed automático em ambientes compartilhados;
-7. atualização das variáveis secretas fora do repositório.
+1. configurar as variáveis PostgreSQL/Aurora no ambiente;
+2. executar `alembic upgrade head`;
+3. validar `alembic check` e `python -m compileall app`;
+4. iniciar a API e verificar `/health` e `/health/ready`;
+5. confirmar nos logs apenas o host, banco, versão Alembic e resultado de `SELECT 1`, sem segredos.
 
-O PostgreSQL/Aurora é o único banco suportado em desenvolvimento, homologação e produção. A conexão é obrigatória via DATABASE_URL ou variáveis PG*/RDS_AURORA_POSTGRES_*; não existe fallback SQLite.
+Não há migração automática de SQLite. Dados existentes devem ser exportados e tratados por um procedimento controlado fora do startup da aplicação.
 
 ## Separação para repositório próprio
 
