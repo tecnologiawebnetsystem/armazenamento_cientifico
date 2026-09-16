@@ -5,6 +5,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, model_validator
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(PROJECT_ROOT / ".env")
 load_dotenv()
 
 
@@ -90,7 +92,7 @@ class Settings(BaseModel):
 
     @model_validator(mode="after")
     def validate_entra(self) -> "Settings":
-        if self.database_url and not self.database_url.startswith(("postgresql://", "postgres://")):
+        if self.database_url and not self.database_url.startswith(("postgresql://", "postgres://", "postgresql+asyncpg://")):
             raise ValueError("DATABASE_URL deve usar o esquema PostgreSQL/Aurora")
         if not self.database_url:
             raise ValueError("DATABASE_URL ou variáveis PG*/RDS_AURORA_POSTGRES_* são obrigatórias")
