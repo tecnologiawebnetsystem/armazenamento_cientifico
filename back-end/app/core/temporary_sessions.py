@@ -20,6 +20,7 @@ def create_session(identity: Any) -> tuple[str, datetime]:
         "roles": list(identity.roles),
         "permissions": list(identity.permissions),
         "groups": [],
+        "cav4_access_token": identity.access_token,
         "created_at": datetime.now(UTC),
         "expires_at": expires_at,
     }

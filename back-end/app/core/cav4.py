@@ -29,12 +29,15 @@ class CAV4Identity:
     roles: tuple[str, ...] = ()
     permissions: tuple[str, ...] = ()
     raw_claims: dict[str, Any] | None = None
+    access_token: str | None = None
 
 
 class CAV4Provider(Protocol):
     async def build_login_url(self, *, state: str, redirect_uri: str) -> str: ...
 
     async def exchange_callback(self, *, code: str, state: str) -> CAV4Identity: ...
+
+    async def get_user_data(self, *, access_token: str, endpoint: str) -> Any: ...
 
 
 class UnconfiguredCAV4Provider:
@@ -217,7 +220,24 @@ class CAV4OIDCProvider:
             roles=tuple(claims.get("roles", [])) if isinstance(claims.get("roles"), list) else (),
             permissions=tuple(claims.get("permissions", [])) if isinstance(claims.get("permissions"), list) else (),
             raw_claims=claims,
+            access_token=token_data.get("access_token"),
         )
+
+    async def get_user_data(self, *, access_token: str, endpoint: str) -> Any:
+        """Consulta dados do usuário no CAV4 sem expor o bearer token nos logs."""
+        if not settings.cav4_base_url:
+            raise CAV4AuthenticationError("CA_API_BASE_URL não está configurada")
+        url = f"{settings.cav4_base_url.rstrip('/')}/{endpoint.lstrip('/')}"
+        try:
+            async with _build_httpx_client() as client:
+                response = await client.get(url, headers={"Authorization": f"Bearer {access_token}"}, timeout=10.0)
+                response.raise_for_status()
+                payload = response.json()
+                logger.info("[CAV4] Consulta concluída endpoint=%s status=%s", endpoint, response.status_code)
+                return payload
+        except (httpx.HTTPError, ValueError) as exc:
+            logger.error("[CAV4] Falha na consulta endpoint=%s erro=%s", endpoint, exc)
+            raise CAV4AuthenticationError(f"Erro ao consultar CAV4: {exc}") from exc
 
 
 def get_cav4_provider() -> CAV4Provider:
