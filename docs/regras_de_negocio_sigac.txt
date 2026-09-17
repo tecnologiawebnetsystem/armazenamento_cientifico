@@ -1,0 +1,738 @@
+DOCUMENTO DE REGRAS DE NEGÓCIO
+SIGAC – Sistema de Gestão de Acesso ao Armazenamento Científico
+
+Versão: 1.0
+Status: Para validação do gestor do projeto
+Data: 17/09/2026
+
+======================================================================
+1. OBJETIVO DO DOCUMENTO
+======================================================================
+
+Este documento descreve as regras de negócio, os perfis, as permissões, os
+módulos e os fluxos de autenticação previstos para o SIGAC.
+
+O documento deve ser validado pelo gestor do projeto. Após a validação,
+ele deverá ser utilizado como referência para:
+
+- desenvolvimento e manutenção do sistema;
+- configuração dos menus e permissões;
+- integração com o CAV4;
+- definição dos acessos a projetos, pastas e relatórios;
+- testes funcionais, de segurança e de aceite;
+- auditorias e futuras alterações de requisitos.
+
+As regras abaixo refletem a implementação atual identificada no backend e
+as decisões funcionais registradas durante a construção do projeto. Onde
+houver uma dependência externa ou uma regra ainda sujeita à confirmação,
+ela está identificada como "PONTO PARA VALIDAÇÃO".
+
+======================================================================
+2. VISÃO GERAL DO SISTEMA
+======================================================================
+
+O SIGAC é uma aplicação web para gestão de acesso ao armazenamento de
+informações e documentos científicos, organizada em projetos, áreas
+responsáveis, pastas, usuários, relatórios e trilhas de auditoria.
+
+O sistema possui:
+
+- frontend web para interação com os usuários;
+- backend REST desenvolvido com FastAPI;
+- banco PostgreSQL Aurora para persistência definitiva;
+- Alembic para criação e evolução versionada do schema do banco;
+- CAV4 como mecanismo de autenticação corporativa;
+- controle de acesso baseado em perfil, projeto e escopo de pasta;
+- logs de auditoria para rastreabilidade das operações relevantes.
+
+A arquitetura técnica segue um padrão em camadas e modular:
+
+- rotas/controllers: comunicação HTTP e validação de entrada;
+- services: regras de negócio e orquestração dos fluxos;
+- repositories: acesso ao banco e consultas parametrizadas;
+- modelos ORM: representação da persistência;
+- schemas: contratos de entrada e saída da API;
+- core/configuração: autenticação, autorização, banco, logs e integrações.
+
+======================================================================
+3. AUTENTICAÇÃO CORPORATIVA PELO CAV4
+======================================================================
+
+3.1. Responsabilidade do CAV4
+
+O CAV4 é a fonte corporativa de autenticação. É por meio dele que o
+sistema deverá identificar o usuário, validar sua identidade e fornecer
+os claims corporativos disponíveis, como nome, e-mail, identificador e,
+quando configurado, grupos ou papéis corporativos.
+
+O SIGAC não deve solicitar nem armazenar senha corporativa do usuário.
+O backend redireciona o usuário ao CAV4, recebe o callback autenticado e
+cria a sessão da aplicação.
+
+3.2. Fluxo normal de login
+
+1. O usuário acessa o frontend.
+2. O frontend chama o endpoint de início do login do backend:
+   /api/auth/cav4/start?next=/dashboard
+3. O backend gera o estado de segurança e a URL de autorização.
+4. O usuário é redirecionado para o CAV4.
+5. O CAV4 autentica o usuário e retorna ao callback configurado.
+6. O backend valida o retorno, troca o código por tokens e consulta as
+   informações do usuário.
+7. O backend identifica o perfil/papel do usuário.
+8. O backend cria a sessão da aplicação.
+9. O backend redireciona o navegador para o frontend, normalmente:
+   http://localhost:3000/dashboard em desenvolvimento ou a URL pública
+   do frontend em homologação/produção.
+10. O frontend utiliza a sessão para carregar menus, módulos e dados
+    autorizados.
+
+3.3. Sessão temporária para contingência
+
+Enquanto o Aurora PostgreSQL não estiver acessível, pode ser utilizado o
+modo temporário:
+
+TEMPORARY_CAV4_SESSION=true
+
+Nesse modo:
+
+- a identidade é autenticada pelo CAV4;
+- a sessão é armazenada somente em memória do backend;
+- o banco não é consultado para criar a sessão;
+- o logout remove a sessão temporária;
+- reiniciar o backend encerra todas as sessões temporárias;
+- a solução não é adequada para múltiplas instâncias sem armazenamento
+  compartilhado;
+- o modo temporário deve ser removido após a ativação do Aurora.
+
+O modo temporário não substitui a persistência definitiva, a gestão de
+usuários, a auditoria ou o controle de permissões baseado no banco.
+
+3.4. Requisitos de configuração do CAV4
+
+O ambiente do backend deve conter, conforme o ambiente:
+
+- CAV4_ENABLED=true;
+- CA_CLIENT_ID;
+- CA_CLIENT_SECRET;
+- OIDC_DISCOVERY_URL;
+- CA_API_BASE_URL, quando utilizado;
+- CA_REDIRECT_URI;
+- CA_SCOPES, normalmente openid profile email;
+- CA_SSL_VERIFY=true;
+- FRONTEND_URL, utilizada no redirecionamento final;
+- CORS_ORIGINS, utilizada para permitir a origem do frontend.
+
+O CA_REDIRECT_URI precisa ser cadastrado no CAV4 exatamente igual ao
+callback utilizado pela aplicação, incluindo protocolo, host, porta e
+caminho.
+
+3.5. Origem do perfil e dos papéis
+
+A decisão definitiva dos papéis deverá ser baseada nas informações
+corporativas fornecidas pelo CAV4, especialmente grupos, funções, perfis
+ou atributos equivalentes. O e-mail pode ser utilizado para associação
+com um cadastro local, mas não deve ser a única regra definitiva quando
+houver grupos corporativos disponíveis.
+
+PONTO PARA VALIDAÇÃO:
+O gestor deve confirmar o mapeamento oficial entre grupos/claims do CAV4
+e os perfis SIGAC. Depois dessa confirmação, o sistema deverá aplicar o
+mapeamento de forma centralizada e não espalhada pelo frontend.
+
+======================================================================
+4. PERFIS OFICIAIS E RESPONSABILIDADES
+======================================================================
+
+Os perfis oficiais reconhecidos pelo backend são:
+
+- admin: administrador;
+- gerente: gestão operacional;
+- patrocinador: acompanhamento, visão executiva e aprovação conforme regra;
+- auditor: consulta e auditoria;
+- solicitante: solicitação e acompanhamento de acessos.
+
+Também existem nomes legados ou equivalentes que são normalizados:
+
+- administrador, administrator -> admin;
+- gestor, manager, participante -> gerente;
+- visualizador, viewer -> auditor;
+- sponsor -> patrocinador;
+- requester -> solicitante.
+
+PONTO PARA VALIDAÇÃO:
+A normalização acima existe para compatibilidade com dados legados, mas o
+CAV4 deverá fornecer os papéis oficiais que serão efetivamente adotados.
+O termo "participante" aparece no seed/catalogo como perfil funcional,
+mas no núcleo de autorização atual é tratado como equivalente legado de
+"gerente". O gestor deve confirmar se participante deverá ser um perfil
+independente no futuro.
+
+4.1. Administrador (admin)
+
+Responsabilidade: administração global do SIGAC.
+
+Permissões técnicas atuais:
+
+- visualizar dados;
+- criar registros;
+- atualizar registros;
+- excluir registros;
+- gerenciar usuários;
+- gerenciar membros de projetos;
+- aprovar acessos;
+- revogar acessos;
+- consultar auditoria;
+- consultar relatórios;
+- consultar mapa de acessos;
+- visualizar todos os projetos;
+- visualizar todas as pastas.
+
+Regras funcionais:
+
+- pode administrar a plataforma de forma global;
+- pode criar, editar e excluir projetos;
+- pode gerenciar usuários e perfis, conforme os endpoints habilitados;
+- pode gerenciar membros e acessos de projetos;
+- pode consultar logs de auditoria;
+- pode acessar relatórios e mapas de acesso;
+- não fica limitado ao escopo de um projeto específico.
+
+4.2. Gerente (gerente)
+
+Responsabilidade: gestão operacional de projetos e acessos dentro do
+escopo atribuído.
+
+Permissões técnicas atuais:
+
+- visualizar dados;
+- aprovar acessos;
+- revogar acessos;
+- consultar mapa de acessos;
+- operar no escopo de projetos;
+- operar no escopo de pastas.
+
+Regras funcionais:
+
+- pode acompanhar e administrar projetos dentro do seu escopo;
+- pode aprovar ou revogar solicitações quando autorizado pelo projeto;
+- pode consultar a composição de membros e grupos de acesso;
+- não possui administração global equivalente ao admin;
+- não deve alterar configurações globais ou usuários fora do escopo.
+
+4.3. Patrocinador (patrocinador)
+
+Responsabilidade: acompanhamento executivo, governança e tomada de
+conhecimento sobre projetos e acessos.
+
+Permissões técnicas atuais:
+
+- visualizar dados;
+- consultar auditoria;
+- consultar relatórios;
+- consultar mapa de acessos;
+- visualizar todos os projetos;
+- visualizar todas as pastas.
+
+Regras funcionais:
+
+- pode acompanhar o portfólio de projetos;
+- pode consultar relatórios executivos;
+- pode verificar trilhas de auditoria;
+- pode visualizar mapas de acesso;
+- não possui, por padrão, criação, edição ou exclusão de projetos;
+- qualquer aprovação operacional deve ser confirmada pelo gestor.
+
+4.4. Auditor (auditor)
+
+Responsabilidade: consulta independente e auditoria.
+
+Permissões técnicas atuais:
+
+- visualizar dados;
+- consultar logs de auditoria.
+
+Regras funcionais:
+
+- pode consultar informações necessárias para auditoria;
+- pode visualizar logs de atividade;
+- não deve criar, editar ou excluir projetos;
+- não deve alterar usuários, membros ou configurações;
+- não deve aprovar ou revogar acessos, salvo decisão futura formal.
+
+4.5. Solicitante (solicitante)
+
+Responsabilidade: solicitar e acompanhar acessos dentro do contexto
+permitido.
+
+Permissões técnicas atuais:
+
+- visualizar dados;
+- atuar no escopo do projeto;
+- atuar no escopo da pasta.
+
+Regras funcionais:
+
+- pode consultar projetos e recursos aos quais tenha acesso;
+- pode acompanhar solicitações e informações do seu escopo;
+- não possui administração global;
+- não pode consultar todos os projetos ou todas as pastas;
+- não pode alterar configurações ou logs.
+
+======================================================================
+5. MENUS E MÓDULOS
+======================================================================
+
+Os módulos principais cadastrados são:
+
+1. Projetos – /projetos
+2. Usuários – /usuarios
+3. Relatórios – /relatorios
+4. Administração – /administracao
+
+Os menus exibidos no frontend deverão ser derivados do perfil e das
+permissões efetivas do usuário autenticado. O frontend não deve ser a
+única barreira: toda API deve repetir a validação no backend.
+
+5.1. Regra de exibição de menus
+
+- menu visível não significa autorização automática;
+- menu oculto não substitui a proteção do endpoint;
+- o backend deve devolver ou permitir somente os módulos autorizados;
+- o frontend deve montar a navegação com base no usuário e suas
+  permissões atuais;
+- alterações de papel devem refletir no próximo carregamento da sessão;
+- usuários sem permissão devem receber resposta HTTP 403 ao tentar
+  acessar diretamente um endpoint protegido.
+
+5.2. Menu Projetos
+
+Destinado à consulta, criação, manutenção e acompanhamento do portfólio.
+
+- admin: acesso global e operações administrativas;
+- gerente: projetos dentro do escopo atribuído;
+- patrocinador: visão global para acompanhamento e relatórios;
+- auditor: consulta para fins de auditoria;
+- solicitante: consulta conforme vínculo e escopo.
+
+5.3. Menu Usuários
+
+Destinado à consulta e manutenção de usuários, papéis e vínculos.
+
+- admin: administração de usuários e perfis;
+- gerente: somente operações de usuários/membros autorizadas no escopo;
+- demais perfis: consulta limitada quando explicitamente autorizada.
+
+PONTO PARA VALIDAÇÃO:
+A tela completa de administração de usuários deve ser restrita ao admin,
+a menos que o gestor aprove uma delegação formal para gerente.
+
+5.4. Menu Relatórios
+
+Destinado a relatórios de projetos e mapa de acessos.
+
+- admin: consulta e exportação;
+- patrocinador: consulta e exportação, conforme regras de governança;
+- auditor: consulta dos dados necessários à auditoria;
+- gerente: relatórios do seu escopo, quando habilitado;
+- solicitante: somente informações do seu escopo, quando habilitado.
+
+5.5. Menu Administração
+
+Destinado a parâmetros, catálogo, matriz de permissões e configurações.
+
+- admin: acesso total;
+- demais perfis: sem acesso por padrão;
+- alterações na matriz de permissões devem ser auditadas;
+- configurações críticas devem exigir autenticação válida e autorização.
+
+======================================================================
+6. PROJETOS
+======================================================================
+
+6.1. Cadastro
+
+Um projeto possui, no mínimo:
+
+- nome;
+- código;
+- área responsável;
+- descrição;
+- status;
+- gestores;
+- participantes;
+- grupo de Active Directory de escrita;
+- grupo de Active Directory de leitura;
+- papel de identidade de escrita;
+- papel de identidade de leitura;
+- número de tarefa Snow;
+- pasta mãe;
+- datas de criação e atualização.
+
+6.2. Código do projeto
+
+O código é gerado automaticamente a partir da área responsável. O usuário
+não deve substituir o código gerado manualmente. A área precisa estar
+ativa e o código deve ser único.
+
+Se o código informado pelo cliente for diferente do código gerado, a API
+rejeita a operação.
+
+6.3. Status
+
+Os status catalogados são:
+
+- ativo: projeto operacional;
+- inativo: projeto sem operação corrente;
+- concluído: projeto finalizado;
+- suspenso: projeto temporariamente interrompido.
+
+A alteração de status deve respeitar as permissões administrativas e as
+regras futuras de transição definidas pelo gestor.
+
+6.4. Visibilidade
+
+- admin e perfis com all_projects podem visualizar todos os projetos;
+- demais usuários precisam estar vinculados ao projeto ou ter autorização
+  equivalente;
+- acessar diretamente o identificador de um projeto não concede acesso;
+- a API deve validar o vínculo antes de devolver os dados.
+
+6.5. Membros
+
+Cada membro vinculado a um projeto possui um papel no contexto do projeto,
+como administrador, gestor ou auditor. O papel global do usuário e o papel
+no projeto devem ser tratados separadamente.
+
+A remoção, inclusão ou alteração de membro deve ser auditável e permitida
+somente a usuários autorizados.
+
+======================================================================
+7. PASTAS E PERMISSÕES DE ACESSO
+======================================================================
+
+7.1. Escopo da primeira fase
+
+Na primeira fase do SIGAC, o sistema terá escopo exclusivamente de consulta
+e administração de acessos às pastas existentes no servidor corporativo.
+
+Não fazem parte desta fase:
+
+- criação de novas pastas pelo SIGAC;
+- exclusão de pastas pelo SIGAC;
+- renomeação ou movimentação de pastas pelo SIGAC;
+- upload de arquivos;
+- download de arquivos;
+- visualização do conteúdo dos arquivos;
+- alteração ou exclusão de arquivos;
+- armazenamento de arquivos dentro do SIGAC.
+
+O SIGAC não será um repositório de arquivos. Ele funcionará como uma camada
+de consulta, organização e governança dos acessos às pastas existentes.
+
+7.2. Origem da listagem de pastas
+
+As pastas serão listadas a partir do servidor ou armazenamento corporativo,
+por meio da integração disponibilizada pela infraestrutura responsável. O
+SIGAC não criará a estrutura física das pastas e não deverá inventar ou
+manter uma cópia independente da árvore de diretórios.
+
+A listagem deve apresentar, conforme disponibilidade da integração:
+
+- nome da pasta;
+- caminho ou identificador da pasta;
+- pasta superior;
+- projeto associado;
+- situação da pasta;
+- grupos ou usuários com acesso;
+- nível de acesso concedido.
+
+Caso o servidor não esteja disponível, o sistema deve informar a falha de
+integração sem apresentar uma lista como se fosse atualizada.
+
+7.3. Regras para visualizar pastas
+
+Para visualizar uma pasta, o usuário precisa:
+
+- estar autenticado pelo CAV4;
+- possuir um perfil autorizado;
+- informar um projeto válido, quando a consulta for por projeto;
+- ter permissão de leitura sobre o projeto e/ou pasta;
+- possuir vínculo ou escopo de acesso ao recurso.
+
+O backend não deve liberar uma pasta somente porque seu identificador foi
+informado na URL. Toda consulta deve validar o usuário, o projeto, a pasta
+e o nível de acesso correspondente.
+
+7.4. Níveis de acesso
+
+A matriz de acesso deve diferenciar, quando fornecida pelo servidor:
+
+- leitura: permite visualizar a existência, identificação e metadados da
+  pasta conforme o escopo autorizado;
+- escrita: representa a autorização corporativa para alteração no conteúdo
+  ou na estrutura administrada pelo servidor, mas não habilita operações de
+  criação, upload ou alteração dentro do SIGAC nesta primeira fase;
+- grupos de leitura;
+- grupos de escrita;
+- papel de identidade de leitura;
+- papel de identidade de escrita;
+- usuários diretamente autorizados, quando informados pela integração.
+
+A permissão de escrita poderá ser exibida e administrada como informação de
+acesso, mas nenhuma ação de escrita será executada pelo SIGAC na primeira
+fase. A efetivação da escrita permanece sob responsabilidade do servidor e
+das ferramentas corporativas autorizadas.
+
+7.5. Responsabilidade do SIGAC
+
+O SIGAC deverá:
+
+- listar as pastas retornadas pelo servidor;
+- apresentar os usuários, grupos e identidades associados;
+- indicar se o acesso é de leitura ou escrita;
+- aplicar as regras de visibilidade conforme o perfil do usuário;
+- registrar consultas relevantes e alterações administrativas de acesso,
+  quando a integração permitir;
+- impedir operações de criação de pastas e manipulação de arquivos.
+
+Qualquer inclusão, remoção ou alteração de permissões deverá respeitar a
+origem oficial da autorização. Quando a integração for somente de leitura,
+o SIGAC exibirá as permissões, mas não as alterará.
+
+7.6. Evolução futura
+
+Operações sobre arquivos ou pastas somente poderão ser incluídas em fase
+posterior, mediante aprovação formal do gestor, definição da integração com
+o armazenamento corporativo, revisão da matriz de permissões e validação de
+segurança. A existência de uma permissão de escrita não significa que essas
+funções estejam disponíveis atualmente.
+
+======================================================================
+8. RELATÓRIOS E EXPORTAÇÕES
+======================================================================
+
+Relatórios catalogados:
+
+- relatório de projetos;
+- mapa de acessos.
+
+Formatos previstos:
+
+- CSV;
+- XLSX;
+- PDF.
+
+Campos do relatório de projetos incluem nome, código, área, status,
+quantidade de mapas e quantidade de membros.
+
+Campos do mapa de acessos incluem usuário, e-mail, perfil, área, projeto,
+recurso, tipo de recurso, nível de acesso e última visualização.
+
+Regras:
+
+- o relatório deve respeitar o escopo do usuário;
+- admin pode consultar o universo global;
+- patrocinador pode consultar visão global quando autorizado;
+- auditor deve receber somente os dados necessários à auditoria;
+- exportações devem registrar usuário, data, tipo e filtro utilizado;
+- dados sensíveis não devem ser exportados para perfis sem autorização.
+
+======================================================================
+9. LOGS E AUDITORIA
+======================================================================
+
+A auditoria deve registrar operações relevantes para rastreabilidade,
+segurança e prestação de contas.
+
+Eventos recomendados:
+
+- login iniciado;
+- login concluído;
+- login recusado;
+- logout;
+- criação, alteração e exclusão de projeto;
+- inclusão, alteração e remoção de membro;
+- aprovação e revogação de acesso;
+- alteração de perfil;
+- alteração de matriz de permissões;
+- consulta ou exportação de relatório;
+- acesso a pasta ou recurso sensível;
+- falha de autenticação ou autorização;
+- falha de conexão com Aurora ou CAV4.
+
+Cada registro deve procurar conter:
+
+- identificador do evento;
+- usuário;
+- papel no momento da operação;
+- ação;
+- entidade;
+- identificador da entidade;
+- projeto relacionado, quando aplicável;
+- detalhes sem dados secretos;
+- resultado;
+- data e hora;
+- origem ou contexto técnico, quando disponível.
+
+Nunca registrar em log:
+
+- senha;
+- client secret do CAV4;
+- token de acesso;
+- cookie de sessão completo;
+- string completa de conexão com o banco;
+- dados pessoais além do necessário.
+
+A retenção configurada para logs de auditoria é de 365 dias, sujeita à
+política corporativa e à validação do gestor.
+
+Os logs técnicos do backend podem ser visualizados em formato legível no
+ambiente local e em JSON em ambientes com agregador de logs. Os eventos de
+banco e CAV4 devem indicar claramente componente, operação, resultado,
+duração e tipo de erro, sem expor segredos.
+
+======================================================================
+10. BANCO DE DADOS E MIGRATIONS
+======================================================================
+
+O banco oficial é PostgreSQL Aurora.
+
+- SQLite não faz parte da arquitetura definitiva;
+- a aplicação utiliza DATABASE_URL ou variáveis equivalentes;
+- o schema não deve ser criado automaticamente no startup;
+- o Alembic é a fonte oficial para aplicar o schema;
+- a criação inicial ocorre com alembic upgrade head;
+- migrations devem permanecer versionadas e encadeadas;
+- seeds devem ser executados após o schema existir;
+- consultas devem ser parametrizadas;
+- o acesso a dados deve respeitar o user_id e o escopo autorizado.
+
+Em banco vazio, todas as migrations válidas são aplicadas em sequência.
+O arquivo de histórico é necessário para reproduzir o banco em outros
+ambientes e controlar futuras alterações.
+
+======================================================================
+11. REGRAS DE SEGURANÇA
+======================================================================
+
+- autenticação deve ocorrer pelo CAV4 em ambientes corporativos;
+- o client secret fica somente no backend;
+- cookies de sessão devem possuir atributos seguros conforme o ambiente;
+- CORS deve permitir somente origens conhecidas;
+- endpoints protegidos devem validar sessão no backend;
+- autorização deve ser repetida na API, mesmo que o menu esteja oculto;
+- entradas devem ser validadas por schemas;
+- SQL deve ser parametrizado;
+- TLS/SSL deve ser validado para CAV4 e Aurora;
+- mensagens de erro de produção não devem revelar detalhes internos;
+- logs não podem conter credenciais ou tokens;
+- operações administrativas devem ser auditáveis.
+
+======================================================================
+12. USUÁRIOS ADMINISTRADORES INICIAIS
+======================================================================
+
+Os usuários abaixo foram adicionados ao seed com perfil administrador,
+conforme solicitação do projeto:
+
+- Kleber Goncalves
+  kleber.goncalves.prestserv@petrobras.com.br
+- Fabio Junior
+  fabio.j.lima.prestserv@petrobras.com.br
+- Jefferson Breno
+  jefferson.breno.prestserv@petrobras.com.br
+- Raisa Cananeia
+  raisa.moreira.prestserv@petrobras.com.br
+- Wagner Gaspar Brazil
+  wagner.brazil@petrobras.com.br
+- Jose Elisio Balouta de Almeida Ribeiro
+  jose.balouta.prestserv@petrobras.com.br
+- Jairo Farias das Neves
+  jairo.farias@petrobras.com.br
+- Fabio Rodrigues de Carvalho
+  fabio_carvalho.prestserv@petrobras.com.br
+
+PONTO PARA VALIDAÇÃO:
+A lista de administradores deve ser confirmada pelo gestor e pelo
+responsável de segurança antes de produção. O seed não deve ser a única
+forma de administrar usuários em produção; a fonte oficial deve ser o
+CAV4 e/ou um processo administrativo controlado.
+
+======================================================================
+13. MATRIZ RESUMIDA DE PERMISSÕES
+======================================================================
+
+Legenda:
+S = permitido por padrão
+E = permitido somente conforme escopo/vínculo
+N = não permitido por padrão
+
+Operação                         Admin  Gerente  Patrocinador  Auditor  Solicitante
+------------------------------------------------------------------------------------
+Visualizar dados                  S       E          S            S          E
+Criar projeto                     S       N          N            N          N
+Editar projeto                    S       N          N            N          N
+Excluir projeto                   S       N          N            N          N
+Gerenciar usuários                S       E          N            N          N
+Gerenciar membros                 S       E          N            N          N
+Aprovar/revogar acessos           S       E          N            N          N
+Ver todos os projetos              S       N          S            N          N
+Ver todas as pastas                S       N          S            N          N
+Ver logs de auditoria              S       N          S            S          N
+Ver relatórios                     S       E          S            E          E
+Administrar configurações         S       N          N            N          N
+
+A matriz acima é uma síntese funcional. A decisão final deve considerar:
+
+- o papel global vindo do CAV4;
+- o vínculo do usuário ao projeto;
+- o papel do usuário dentro do projeto;
+- o grupo corporativo de leitura/escrita;
+- as permissões específicas configuradas no catálogo;
+- as regras aprovadas pelo gestor.
+
+======================================================================
+14. PONTOS PARA APROVAÇÃO DO GESTOR
+======================================================================
+
+1. Confirmar os perfis oficiais e o significado de participante, gestor e
+   gerente.
+2. Confirmar o mapeamento de grupos/claims do CAV4 para perfis SIGAC.
+3. Confirmar se patrocinador pode visualizar todos os projetos e pastas.
+4. Confirmar se gerente pode aprovar/revogar acessos e em qual escopo.
+5. Confirmar quem pode administrar usuários e alterar perfis.
+6. Confirmar a lista definitiva de administradores.
+7. Confirmar a origem oficial da listagem de pastas no servidor corporativo.
+8. Confirmar se o SIGAC terá integração somente de leitura nesta primeira fase.
+9. Confirmar a retenção de logs de 365 dias.
+10. Confirmar as transições permitidas entre os status de projeto.
+11. Confirmar os níveis de acesso de leitura e escrita das pastas.
+12. Confirmar os formatos e restrições de exportação de relatórios.
+13. Confirmar quais operações devem gerar evento de auditoria obrigatório.
+14. Confirmar o procedimento de contingência durante o modo de sessão
+    temporária sem Aurora.
+15. Confirmar a data de desativação do modo temporário após a liberação do
+    banco Aurora.
+
+======================================================================
+15. CONCLUSÃO
+======================================================================
+
+O SIGAC foi estruturado para separar autenticação, autorização, regras de
+negócio, persistência e apresentação. O CAV4 autentica e fornece a
+identidade corporativa; o SIGAC interpreta os papéis, aplica o escopo e
+define os menus e permissões; o Aurora mantém os dados e as sessões
+permanentes; e a auditoria registra as operações relevantes.
+
+A regra central é que a interface deve refletir as permissões do usuário,
+mas a decisão final deve sempre ser tomada no backend. Dessa forma, um
+usuário só visualiza e executa operações compatíveis com seu papel, seus
+vínculos de projeto, seus grupos corporativos e as regras aprovadas pelo
+gestor.
+
+Este documento deve ser atualizado quando houver mudança de perfil,
+permissão, fluxo do CAV4, armazenamento, retenção de logs ou estrutura de
+projetos.
+
+FIM DO DOCUMENTO
