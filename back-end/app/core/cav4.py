@@ -202,6 +202,7 @@ class CAV4OIDCProvider:
                 algorithms=["RS256"],
                 audience=settings.cav4_client_id,
                 issuer=settings.cav4_issuer or discovery.get("issuer"),
+                leeway=settings.cav4_jwt_leeway_seconds,
                 options={"verify_aud": bool(settings.cav4_client_id)},
             )
             logger.info(f"[CAV4] JWT validado para usuário {claims.get('sub')}")

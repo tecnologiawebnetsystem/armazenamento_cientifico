@@ -85,6 +85,7 @@ class Settings(BaseModel):
     cav4_client_secret: str = os.getenv("CA_CLIENT_SECRET") or os.getenv("CAV4_CLIENT_SECRET", "")
     cav4_redirect_uri: str = os.getenv("CA_REDIRECT_URI") or os.getenv("CAV4_REDIRECT_URI", "http://localhost:8080/api/auth/cav4/callback")
     cav4_scopes: str = os.getenv("CA_SCOPES") or os.getenv("CAV4_SCOPES", "openid profile email")
+    cav4_jwt_leeway_seconds: int = int(os.getenv("CAV4_JWT_LEEWAY_SECONDS", "120"))
     cav4_authorization_url: str = os.getenv("CA_AUTHORIZATION_URL", "")
     cav4_token_url: str = os.getenv("CA_TOKEN_URL", "")
     cav4_userinfo_url: str = os.getenv("CA_USERINFO_URL", "")
