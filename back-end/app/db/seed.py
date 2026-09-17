@@ -77,9 +77,13 @@ SEED_MENUS = [("menu-projetos", "projetos", "Projetos", "/projetos", "folder", 1
 
 SEED_USERS = [
     ("Kleber Goncalves", "kleber.goncalves.prestserv@petrobras.com.br", "administrador"),
-    ("Fabio Junior", "fabio.j.lima.prestserv@petrobras.com.br", "gerente"),
-    ("Jefferson Breno", "jefferson.breno.prestserv@petrobras.com.br", "auditor"),
-    ("Raisa Cananeia", "raisa.moreira.prestserv@petrobras.com.br", "patrocinador"),
+    ("Fabio Junior", "fabio.j.lima.prestserv@petrobras.com.br", "administrador"),
+    ("Jefferson Breno", "jefferson.breno.prestserv@petrobras.com.br", "administrador"),
+    ("Raisa Cananeia", "raisa.moreira.prestserv@petrobras.com.br", "administrador"),
+    ("Wagner Gaspar Brazil", "wagner.brazil@petrobras.com.br", "administrador"),
+    ("Jose Elisio Balouta de Almeida Ribeiro", "jose.balouta.prestserv@petrobras.com.br", "administrador"),
+    ("Jairo Farias das Neves", "jairo.farias@petrobras.com.br", "administrador"),
+    ("Fabio Rodrigues de Carvalho", "fabio_carvalho.prestserv@petrobras.com.br", "administrador"),
 ]
 
 SEED_PROJECTS = [
