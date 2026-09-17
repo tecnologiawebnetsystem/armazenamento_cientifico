@@ -14,7 +14,7 @@ class Folder(Base):
     parent_id: Mapped[str | None] = mapped_column(ForeignKey("folders.id", ondelete="CASCADE"), nullable=True, index=True)
     kind: Mapped[str] = mapped_column(String(20))
     name: Mapped[str] = mapped_column(String(500))
-    size_bytes: Mapped[int] = mapped_column(default=0)
+    size: Mapped[int] = mapped_column("size_bytes", default=0)
     mime_type: Mapped[str | None] = mapped_column(String(160), nullable=True)
     created_by: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
     created_at: Mapped[datetime] = mapped_column(nullable=False)

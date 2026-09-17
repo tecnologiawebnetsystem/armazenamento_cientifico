@@ -8,6 +8,7 @@ from contextvars import ContextVar, Token
 from typing import Any
 
 user_id_var: ContextVar[str] = ContextVar("user_id", default="-")
+request_id_var: ContextVar[str] = ContextVar("request_id", default="-")
 
 
 class HumanFormatter(logging.Formatter):
@@ -17,7 +18,9 @@ class HumanFormatter(logging.Formatter):
         timestamp = self.formatTime(record, "%Y-%m-%d %H:%M:%S")
         area = record.name.replace("app.", "")
         user_id = user_id_var.get()
+        request_id = request_id_var.get()
         line = f"{timestamp} | {record.levelname:<8} | {area:<28} | {record.getMessage()}"
+        line += f" | request_id={request_id}"
         if user_id != "-":
             line += f" | user_id={user_id}"
         if record.exc_info:
@@ -33,6 +36,7 @@ class JsonFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
             "user_id": user_id_var.get(),
+            "request_id": request_id_var.get(),
         }
         if record.exc_info:
             payload["exception"] = self.formatException(record.exc_info)
@@ -51,6 +55,14 @@ def configure_logging(level: str = "INFO") -> None:
 
 def set_request_context(user_id: str = "-") -> Token[str]:
     return user_id_var.set(user_id)
+
+
+def set_request_id(request_id: str) -> Token[str]:
+    return request_id_var.set(request_id)
+
+
+def reset_request_id(token: Token[str]) -> None:
+    request_id_var.reset(token)
 
 
 def reset_request_context(token: Token[str]) -> None:
