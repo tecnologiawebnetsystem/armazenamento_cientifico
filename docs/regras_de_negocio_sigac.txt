@@ -408,35 +408,105 @@ A remoção, inclusão ou alteração de membro deve ser auditável e permitida
 somente a usuários autorizados.
 
 ======================================================================
-7. PASTAS, ARQUIVOS E RECURSOS
+7. PASTAS E PERMISSÕES DE ACESSO
 ======================================================================
 
-As pastas são consultadas dentro do projeto selecionado. Para listar uma
-pasta, o usuário precisa:
+7.1. Escopo da primeira fase
 
-- estar autenticado;
-- informar um projeto válido;
-- ter permissão para visualizar o projeto;
+Na primeira fase do SIGAC, o sistema terá escopo exclusivamente de consulta
+e administração de acessos às pastas existentes no servidor corporativo.
+
+Não fazem parte desta fase:
+
+- criação de novas pastas pelo SIGAC;
+- exclusão de pastas pelo SIGAC;
+- renomeação ou movimentação de pastas pelo SIGAC;
+- upload de arquivos;
+- download de arquivos;
+- visualização do conteúdo dos arquivos;
+- alteração ou exclusão de arquivos;
+- armazenamento de arquivos dentro do SIGAC.
+
+O SIGAC não será um repositório de arquivos. Ele funcionará como uma camada
+de consulta, organização e governança dos acessos às pastas existentes.
+
+7.2. Origem da listagem de pastas
+
+As pastas serão listadas a partir do servidor ou armazenamento corporativo,
+por meio da integração disponibilizada pela infraestrutura responsável. O
+SIGAC não criará a estrutura física das pastas e não deverá inventar ou
+manter uma cópia independente da árvore de diretórios.
+
+A listagem deve apresentar, conforme disponibilidade da integração:
+
+- nome da pasta;
+- caminho ou identificador da pasta;
+- pasta superior;
+- projeto associado;
+- situação da pasta;
+- grupos ou usuários com acesso;
+- nível de acesso concedido.
+
+Caso o servidor não esteja disponível, o sistema deve informar a falha de
+integração sem apresentar uma lista como se fosse atualizada.
+
+7.3. Regras para visualizar pastas
+
+Para visualizar uma pasta, o usuário precisa:
+
+- estar autenticado pelo CAV4;
+- possuir um perfil autorizado;
+- informar um projeto válido, quando a consulta for por projeto;
+- ter permissão de leitura sobre o projeto e/ou pasta;
 - possuir vínculo ou escopo de acesso ao recurso.
 
-O backend não deve liberar pastas somente porque o identificador foi
-informado na URL.
+O backend não deve liberar uma pasta somente porque seu identificador foi
+informado na URL. Toda consulta deve validar o usuário, o projeto, a pasta
+e o nível de acesso correspondente.
 
-A matriz de acesso diferencia, quando configurado:
+7.4. Níveis de acesso
 
-- grupo de leitura;
-- grupo de escrita;
+A matriz de acesso deve diferenciar, quando fornecida pelo servidor:
+
+- leitura: permite visualizar a existência, identificação e metadados da
+  pasta conforme o escopo autorizado;
+- escrita: representa a autorização corporativa para alteração no conteúdo
+  ou na estrutura administrada pelo servidor, mas não habilita operações de
+  criação, upload ou alteração dentro do SIGAC nesta primeira fase;
+- grupos de leitura;
+- grupos de escrita;
 - papel de identidade de leitura;
-- papel de identidade de escrita.
+- papel de identidade de escrita;
+- usuários diretamente autorizados, quando informados pela integração.
 
-PONTO PARA VALIDAÇÃO:
-A operação efetiva de upload, download, alteração e exclusão de arquivos
-dependerá da integração definitiva com o armazenamento corporativo. As
-permissões do SIGAC devem ser aplicadas antes da chamada ao armazenamento.
+A permissão de escrita poderá ser exibida e administrada como informação de
+acesso, mas nenhuma ação de escrita será executada pelo SIGAC na primeira
+fase. A efetivação da escrita permanece sob responsabilidade do servidor e
+das ferramentas corporativas autorizadas.
 
-Parâmetro cadastrado atualmente:
+7.5. Responsabilidade do SIGAC
 
-- limite máximo de arquivo: 100 MB, sujeito à validação do gestor.
+O SIGAC deverá:
+
+- listar as pastas retornadas pelo servidor;
+- apresentar os usuários, grupos e identidades associados;
+- indicar se o acesso é de leitura ou escrita;
+- aplicar as regras de visibilidade conforme o perfil do usuário;
+- registrar consultas relevantes e alterações administrativas de acesso,
+  quando a integração permitir;
+- impedir operações de criação de pastas e manipulação de arquivos.
+
+Qualquer inclusão, remoção ou alteração de permissões deverá respeitar a
+origem oficial da autorização. Quando a integração for somente de leitura,
+o SIGAC exibirá as permissões, mas não as alterará.
+
+7.6. Evolução futura
+
+Operações sobre arquivos ou pastas somente poderão ser incluídas em fase
+posterior, mediante aprovação formal do gestor, definição da integração com
+o armazenamento corporativo, revisão da matriz de permissões e validação de
+segurança. A existência de uma permissão de escrita não significa que essas
+funções estejam disponíveis atualmente.
 
 ======================================================================
 8. RELATÓRIOS E EXPORTAÇÕES
@@ -633,15 +703,16 @@ A matriz acima é uma síntese funcional. A decisão final deve considerar:
 4. Confirmar se gerente pode aprovar/revogar acessos e em qual escopo.
 5. Confirmar quem pode administrar usuários e alterar perfis.
 6. Confirmar a lista definitiva de administradores.
-7. Confirmar o limite máximo de arquivo de 100 MB.
-8. Confirmar a retenção de logs de 365 dias.
-9. Confirmar as transições permitidas entre os status de projeto.
-10. Confirmar os níveis de acesso de leitura e escrita das pastas.
-11. Confirmar os formatos e restrições de exportação de relatórios.
-12. Confirmar quais operações devem gerar evento de auditoria obrigatório.
-13. Confirmar o procedimento de contingência durante o modo de sessão
+7. Confirmar a origem oficial da listagem de pastas no servidor corporativo.
+8. Confirmar se o SIGAC terá integração somente de leitura nesta primeira fase.
+9. Confirmar a retenção de logs de 365 dias.
+10. Confirmar as transições permitidas entre os status de projeto.
+11. Confirmar os níveis de acesso de leitura e escrita das pastas.
+12. Confirmar os formatos e restrições de exportação de relatórios.
+13. Confirmar quais operações devem gerar evento de auditoria obrigatório.
+14. Confirmar o procedimento de contingência durante o modo de sessão
     temporária sem Aurora.
-14. Confirmar a data de desativação do modo temporário após a liberação do
+15. Confirmar a data de desativação do modo temporário após a liberação do
     banco Aurora.
 
 ======================================================================
