@@ -2,11 +2,27 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sys
 from contextvars import ContextVar, Token
 from typing import Any
 
 user_id_var: ContextVar[str] = ContextVar("user_id", default="-")
+
+
+class HumanFormatter(logging.Formatter):
+    """Formato compacto para leitura local e troubleshooting no terminal."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        timestamp = self.formatTime(record, "%Y-%m-%d %H:%M:%S")
+        area = record.name.replace("app.", "")
+        user_id = user_id_var.get()
+        line = f"{timestamp} | {record.levelname:<8} | {area:<28} | {record.getMessage()}"
+        if user_id != "-":
+            line += f" | user_id={user_id}"
+        if record.exc_info:
+            line += f"\n{self.formatException(record.exc_info)}"
+        return line
 
 
 class JsonFormatter(logging.Formatter):
@@ -25,7 +41,8 @@ class JsonFormatter(logging.Formatter):
 
 def configure_logging(level: str = "INFO") -> None:
     handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(JsonFormatter())
+    log_format = os.getenv("LOG_FORMAT", "pretty").lower()
+    handler.setFormatter(JsonFormatter() if log_format == "json" else HumanFormatter())
     root = logging.getLogger()
     root.handlers.clear()
     root.addHandler(handler)
