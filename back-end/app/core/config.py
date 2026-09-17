@@ -50,6 +50,7 @@ class Settings(BaseModel):
         "true" if os.getenv("ENVIRONMENT", "development").lower() == "production" else "false",
     ).lower() == "true"
     session_hours: int = int(os.getenv("SESSION_HOURS", "8"))
+    temporary_cav4_session: bool = os.getenv("TEMPORARY_CAV4_SESSION", "false").lower() == "true"
     db_min_size: int = int(os.getenv("DB_MIN_SIZE", "1"))
     db_max_size: int = int(os.getenv("DB_MAX_SIZE", "10"))
     db_command_timeout: int = int(os.getenv("DB_COMMAND_TIMEOUT", "30"))
@@ -94,7 +95,7 @@ class Settings(BaseModel):
     def validate_entra(self) -> "Settings":
         if self.database_url and not self.database_url.startswith(("postgresql://", "postgres://", "postgresql+asyncpg://")):
             raise ValueError("DATABASE_URL deve usar o esquema PostgreSQL/Aurora")
-        if not self.database_url:
+        if not self.database_url and not self.temporary_cav4_session:
             raise ValueError("DATABASE_URL ou variáveis PG*/RDS_AURORA_POSTGRES_* são obrigatórias")
         if self.db_min_size < 1 or self.db_max_size < self.db_min_size:
             raise ValueError("DB_MIN_SIZE e DB_MAX_SIZE possuem valores inválidos")

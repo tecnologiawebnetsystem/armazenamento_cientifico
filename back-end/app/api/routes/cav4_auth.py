@@ -8,6 +8,7 @@ from sqlalchemy import text
 
 from app.core.cav4 import CAV4AuthenticationError, decode_state_nonce, get_cav4_provider
 from app.core.config import settings
+from app.core.temporary_sessions import create_session, delete_session
 from app.api.dependencies import get_current_user
 from app.db.session import get_session
 import logging
@@ -42,10 +43,13 @@ async def cav4_session(request: Request):
 async def cav4_logout(request: Request):
     session_id = request.cookies.get(settings.cookie_name)
     if session_id:
-        async for database in get_session():
-            await database.execute(text("delete from sessions where id=:session_id"), {"session_id": session_id})
-            await database.commit()
-        logger.info("cav4_logout session_revoked=true")
+        if settings.temporary_cav4_session:
+            delete_session(session_id)
+        else:
+            async for database in get_session():
+                await database.execute(text("delete from sessions where id=:session_id"), {"session_id": session_id})
+                await database.commit()
+        logger.info("cav4_logout session_revoked=true backend=%s", "memory" if settings.temporary_cav4_session else "database")
     response = Response(status_code=204)
     response.delete_cookie(settings.cookie_name)
     return response
@@ -100,26 +104,26 @@ async def cav4_callback(request: Request, code: str, state: str):
     if not identity.subject or not identity.email:
         raise HTTPException(status_code=401, detail="Claims obrigatórias ausentes no token CAV4")
 
-    session_id = str(uuid4())
-    async for database in get_session():
-        user = (
+    if settings.temporary_cav4_session:
+        session_id, expires_at = create_session(identity)
+    else:
+        session_id = str(uuid4())
+        expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours)
+        async for database in get_session():
+            user = (
+                await database.execute(
+                    text("select id from users where lower(email)=lower(:email)"),
+                    {"email": identity.email},
+                )
+            ).mappings().first()
+            if not user:
+                raise HTTPException(status_code=403, detail="Usuário CAV4 não cadastrado na plataforma")
+            await database.execute(text("delete from sessions where user_id=:user_id"), {"user_id": user["id"]})
             await database.execute(
-                text("select id from users where lower(email)=lower(:email)"),
-                {"email": identity.email},
+                text("insert into sessions(id,user_id,expires_at) values(:id,:user_id,:expires_at)"),
+                {"id": session_id, "user_id": user["id"], "expires_at": expires_at.replace(tzinfo=None)},
             )
-        ).mappings().first()
-        if not user:
-            raise HTTPException(status_code=403, detail="Usuário CAV4 não cadastrado na plataforma")
-        await database.execute(text("delete from sessions where user_id=:user_id"), {"user_id": user["id"]})
-        await database.execute(
-            text("insert into sessions(id,user_id,expires_at) values(:id,:user_id,:expires_at)"),
-            {
-                "id": session_id,
-                "user_id": user["id"],
-                "expires_at": datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours),
-            },
-        )
-        await database.commit()
+            await database.commit()
     safe_next = next_path if next_path.startswith("/") and not next_path.startswith("//") else "/dashboard"
     logger.info(
         "cav4_authentication_ok subject=%s email=%s roles=%s permissions=%s",

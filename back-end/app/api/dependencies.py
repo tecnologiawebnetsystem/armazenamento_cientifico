@@ -6,6 +6,7 @@ from sqlalchemy import text
 
 from app.core.authorization import ensure_role, require_capability, role_capabilities
 from app.core.config import settings
+from app.core.temporary_sessions import get_session_user
 from app.db.session import get_session
 
 
@@ -13,16 +14,19 @@ async def get_current_user(request: Request):
     session_id = request.cookies.get(settings.cookie_name)
     if not session_id:
         raise HTTPException(status_code=401, detail="Sessão ausente")
-    async for database in get_session():
-        user = (
-            await database.execute(
-                text(
-                    "select u.* from sessions s join users u on u.id=s.user_id "
-                    "where s.id=:session_id and s.expires_at > now()"
-                ),
-                {"session_id": session_id},
-            )
-        ).mappings().first()
+    if settings.temporary_cav4_session:
+        user = get_session_user(session_id)
+    else:
+        async for database in get_session():
+            user = (
+                await database.execute(
+                    text(
+                        "select u.* from sessions s join users u on u.id=s.user_id "
+                        "where s.id=:session_id and s.expires_at > now()"
+                    ),
+                    {"session_id": session_id},
+                )
+            ).mappings().first()
     if not user:
         raise HTTPException(status_code=401, detail="Sessão inválida ou expirada")
 
