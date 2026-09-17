@@ -125,6 +125,7 @@ async def cav4_callback(request: Request, code: str, state: str):
             )
             await database.commit()
     safe_next = next_path if next_path.startswith("/") and not next_path.startswith("//") else "/dashboard"
+    redirect_url = f"{settings.frontend_url}{safe_next}"
     logger.info(
         "cav4_authentication_ok subject=%s email=%s roles=%s permissions=%s",
         identity.subject,
@@ -132,7 +133,7 @@ async def cav4_callback(request: Request, code: str, state: str):
         list(identity.roles),
         list(identity.permissions),
     )
-    response = RedirectResponse(url=safe_next, status_code=status.HTTP_302_FOUND)
+    response = RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
     response.delete_cookie("cav4_oauth_state")
     response.set_cookie(settings.cookie_name, session_id, httponly=True, secure=settings.cookie_secure, samesite="lax", max_age=settings.session_hours * 3600)
     return response

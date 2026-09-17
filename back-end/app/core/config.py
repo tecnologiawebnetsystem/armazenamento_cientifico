@@ -44,6 +44,7 @@ class Settings(BaseModel):
         for x in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
         if x.strip()
     ]
+    frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
     cookie_name: str = os.getenv("COOKIE_NAME", "wayon_session_id")
     cookie_secure: bool = os.getenv(
         "COOKIE_SECURE",
