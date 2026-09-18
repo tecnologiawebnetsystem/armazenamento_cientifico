@@ -109,10 +109,8 @@ class Settings(BaseModel):
         if self.environment.lower() == "production":
             if not self.cookie_secure:
                 raise ValueError("COOKIE_SECURE deve ser true em produção")
-            if self.expose_api_docs:
-                raise ValueError("EXPOSE_API_DOCS deve ser false em produção")
-        if not self.cors_origins:
-            raise ValueError("CORS_ORIGINS deve conter pelo menos uma origem")
+            if not self.cors_origins:
+                raise ValueError("CORS_ORIGINS deve conter pelo menos uma origem")
         if any(origin == "*" for origin in self.cors_origins) and self.environment.lower() == "production":
             raise ValueError("CORS_ORIGINS não pode usar wildcard em produção")
         required = {
