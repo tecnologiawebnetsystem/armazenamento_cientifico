@@ -85,6 +85,12 @@ async def start_cav4_login(next: str = Query(default="/dashboard", max_length=51
 @router.get("/callback")
 async def cav4_callback(request: Request, code: str, state: str):
     """Valida o callback, cria sessão HttpOnly e retorna ao frontend."""
+    logger.info(
+        "cav4_callback_start code_present=%s state_present=%s cookie_present=%s",
+        bool(code),
+        bool(state),
+        bool(request.cookies.get("cav4_oauth_state")),
+    )
     if not settings.cav4_enabled:
         raise HTTPException(status_code=503, detail={"code": "CAV4_NOT_CONFIGURED"})
     expected_cookie = request.cookies.get("cav4_oauth_state", "")
@@ -114,6 +120,13 @@ async def cav4_callback(request: Request, code: str, state: str):
                         {"email": identity.email},
                     )
                 ).mappings().first()
+                logger.info(
+                    "cav4_user_lookup email=%s found=%s user_id=%s profile_id=%s",
+                    identity.email,
+                    bool(user),
+                    user.get("id") if user else None,
+                    user.get("profile_id") if user else None,
+                )
                 if not user:
                     raise HTTPException(status_code=403, detail="Usuário CAV4 não cadastrado na plataforma")
                 if not user.get("profile_id"):

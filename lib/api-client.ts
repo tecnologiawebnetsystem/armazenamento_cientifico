@@ -68,7 +68,14 @@ async function fetchRequest(url: string, init?: RequestInit): Promise<Response> 
 type ApiErrorBody = { message?: string; detail?: string }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const startedAt = performance.now()
   const res = await fetchRequest(`${API_BASE_URL}${path}`, init)
+  console.info("[v0] api_request", {
+    path,
+    status: res.status,
+    durationMs: Math.round(performance.now() - startedAt),
+    requestId: res.headers.get("x-request-id"),
+  })
   if (!res.ok) {
     const body = (await res.json().catch(() => ({ message: res.statusText }))) as ApiErrorBody
     throw new ApiError(res.status, body.message ?? body.detail ?? "Erro inesperado na requisição")
