@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import text
@@ -43,7 +43,7 @@ class PlatformRepository:
         projects = await self.rows("select id, name as nome, code as codigo, responsible_area as \"areaResponsavel\", status, description as descricao, created_at as \"criadoEm\", updated_at as \"atualizadoEm\" from projects order by updated_at desc")
         counts = await self.one("select (select count(*) from project_members) as membros, (select count(*) from folders) as mapas, (select count(*) from access_requests where status = 'pendente') as pendencias, (select coalesce(sum(size), 0) from folders) as armazenamento")
         activity = await self.rows("select id, user_id as \"userId\", action as acao, entity as entidade, entity_id as \"entidadeId\", details as detalhes, created_at as \"criadoEm\", result as resultado, project_id as \"projetoId\" from activity_logs order by created_at desc limit 10")
-        return {"projects": projects, "totalMembros": counts["membros"], "totalMapas": counts["mapas"], "armazenamentoMb": counts["armazenamento"], "pendencias": counts["pendencias"], "activity": activity, "source": "database", "consultedAt": datetime.utcnow().isoformat()}
+        return {"projects": projects, "totalMembros": counts["membros"], "totalMapas": counts["mapas"], "armazenamentoMb": counts["armazenamento"], "pendencias": counts["pendencias"], "activity": activity, "source": "database", "consultedAt": datetime.now(UTC).isoformat()}
 
     async def access_requests(self) -> list[dict[str, Any]]:
         return await self.rows("select id, requester_id as \"usuarioId\", project_id as \"projetoId\", request_type as tipo, requested_role as \"papelSolicitado\", justification as justificativa, servicenow_ticket as \"numeroChamadoServiceNow\", status, created_at as \"criadoEm\", updated_at as \"atualizadoEm\", analyzed_by as \"analisadoPor\" from access_requests order by created_at desc")

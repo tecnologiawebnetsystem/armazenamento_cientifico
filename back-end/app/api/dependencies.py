@@ -1,10 +1,14 @@
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request
-
 from sqlalchemy import text
 
-from app.core.authorization import canonical_role, ensure_role, require_capability, role_capabilities
+from app.core.authorization import (
+    canonical_role,
+    ensure_role,
+    require_capability,
+    role_capabilities,
+)
 from app.core.config import settings
 from app.core.temporary_sessions import get_session_user
 from app.db.session import get_session

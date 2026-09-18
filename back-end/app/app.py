@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.routes.cav4_auth import router as cav4_auth_router
 from app.api.routes.cav4_directory import router as cav4_directory_router
@@ -33,7 +34,7 @@ async def lifespan(_: FastAPI):
     )
     try:
         await connect()
-    except Exception as exc:
+    except (SQLAlchemyError, OSError, RuntimeError) as exc:
         logger.warning("application_startup database_connection=unavailable error=%s", type(exc).__name__)
     else:
         logger.info("application_ready database_connection=ok")

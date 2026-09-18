@@ -1,15 +1,15 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.catalogs.area_model import ResponsibleArea
 from app.modules.catalogs.models import (
+    MenuItem,
     Module,
     Permission,
-    SystemSetting,
     ProjectStatusCatalog,
     ProjectType,
-    MenuItem,
+    SystemSetting,
 )
-from app.modules.catalogs.area_model import ResponsibleArea
 
 
 class ModuleRepository:

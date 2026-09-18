@@ -26,7 +26,6 @@ ORPHAN_TABLES = (
 
 
 def upgrade() -> None:
-    bind = op.get_bind()
     cascade_clause = " CASCADE"
 
     for table in ORPHAN_TABLES:

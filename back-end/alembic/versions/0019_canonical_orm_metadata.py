@@ -2,8 +2,6 @@
 
 from collections.abc import Sequence
 
-from alembic import op
-
 revision: str = "0019_canonical_orm_metadata"
 down_revision: str | None = "0018_remove_legacy_schema"
 branch_labels: Sequence[str] | None = None

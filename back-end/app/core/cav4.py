@@ -152,7 +152,7 @@ class CAV4OIDCProvider:
             "code_challenge": code_challenge,
             "code_challenge_method": "S256",
         })
-        logger.debug(f"[CAV4] URL de login construída com PKCE")
+        logger.debug("[CAV4] URL de login construída com PKCE")
         return f"{auth_endpoint}?{query}"
 
     async def exchange_callback(self, *, code: str, state: str) -> CAV4Identity:

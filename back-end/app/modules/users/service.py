@@ -1,9 +1,9 @@
-from uuid import uuid4
 from datetime import UTC, datetime
+from uuid import uuid4
 
-from app.modules.users.models import User, Perfil
-from app.modules.users.repository import UserRepository, PerfilRepository
-from app.modules.users.schemas import UserCreate, UserUpdate, PerfilCreate
+from app.modules.users.models import Perfil, User
+from app.modules.users.repository import PerfilRepository, UserRepository
+from app.modules.users.schemas import PerfilCreate, UserCreate, UserUpdate
 
 
 class UserService:

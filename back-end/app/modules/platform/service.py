@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
@@ -52,4 +52,4 @@ class PlatformService:
 
     async def access_map(self) -> dict[str, Any]:
         rows = await self.repository.rows("""select u.id as \"userId\", u.name as \"userName\", u.email as \"userEmail\", u.role as \"userRole\", u.area, p.id as \"projectId\", p.name as \"projectName\", p.status as \"projectStatus\", f.id as \"resourceId\", f.name as \"resourceName\", 'pasta' as \"resourceType\", pm.role as \"accessLevel\", f.updated_at as \"lastViewedAt\" from project_members pm join users u on u.id = pm.user_id join projects p on p.id = pm.project_id left join folders f on f.project_id = p.id order by p.name, u.name""")
-        return {"source": "database", "consultedAt": datetime.utcnow().isoformat(), "summary": {"users": len({r["userId"] for r in rows}), "projects": len({r["projectId"] for r in rows}), "folders": len([r for r in rows if r["resourceId"]]), "files": 0, "relationships": len(rows)}, "rows": rows}
+        return {"source": "database", "consultedAt": datetime.now(UTC).isoformat(), "summary": {"users": len({r["userId"] for r in rows}), "projects": len({r["projectId"] for r in rows}), "folders": len([r for r in rows if r["resourceId"]]), "files": 0, "relationships": len(rows)}, "rows": rows}

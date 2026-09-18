@@ -19,7 +19,7 @@ export function ProjectDetailTabs({
   canManageMembers: boolean
 }) {
   const searchParams = useSearchParams()
-  const { project, refresh } = useProject(projectId)
+  const { project } = useProject(projectId)
   const current = project ?? initialProject
   const initialTab = searchParams.get("aba") === "informacoes" ? "informacoes" : searchParams.get("aba") === "membros" ? "membros" : "pastas"
 

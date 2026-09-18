@@ -2,7 +2,6 @@
 
 import os
 
-
 # Os testes de contrato importam a aplicação durante a coleta. Um DSN PostgreSQL
 # sintaticamente válido mantém a configuração fiel ao runtime; o probe real pode
 # retornar 503 quando não existe Aurora disponível no ambiente de testes.

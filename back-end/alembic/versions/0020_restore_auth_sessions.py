@@ -1,8 +1,9 @@
 """Restore SIGAC authentication sessions removed by legacy cleanup."""
 from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 revision: str = "0020_restore_auth_sessions"
 down_revision: str | None = "0019_canonical_orm_metadata"
