@@ -18,7 +18,13 @@ export function useLogin(nextPath = "/dashboard") {
       ? (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "")
       : ""
     const callback = encodeURIComponent(nextPath)
-    window.location.assign(`${apiBase}/api/auth/cav4/start?next=${callback}`)
+    const loginUrl = `${apiBase}/api/auth/cav4/start?next=${callback}`
+    console.info("[v0][CAV4] iniciando login corporativo", {
+      environment: process.env.NODE_ENV,
+      endpoint: loginUrl,
+      nextPath,
+    })
+    window.location.assign(loginUrl)
   }, [nextPath])
 
   return { loading, error, clearError, corporateLogin }
