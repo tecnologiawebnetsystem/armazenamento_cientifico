@@ -1,4 +1,5 @@
 import os
+import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -55,6 +56,7 @@ class Settings(BaseModel):
     db_min_size: int = int(os.getenv("DB_MIN_SIZE", "1"))
     db_max_size: int = int(os.getenv("DB_MAX_SIZE", "10"))
     db_command_timeout: int = int(os.getenv("DB_COMMAND_TIMEOUT", "30"))
+    db_schema: str = os.getenv("DB_SCHEMA", "public").strip()
     api_prefix: str = os.getenv("API_PREFIX", "/api")
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
     environment: str = os.getenv("ENVIRONMENT", "development")
@@ -85,6 +87,7 @@ class Settings(BaseModel):
     cav4_client_secret: str = os.getenv("CA_CLIENT_SECRET") or os.getenv("CAV4_CLIENT_SECRET", "")
     cav4_redirect_uri: str = os.getenv("CA_REDIRECT_URI") or os.getenv("CAV4_REDIRECT_URI", "http://localhost:8080/api/auth/cav4/callback")
     cav4_scopes: str = os.getenv("CA_SCOPES") or os.getenv("CAV4_SCOPES", "openid profile email")
+    cav4_jwt_leeway_seconds: int = int(os.getenv("CAV4_JWT_LEEWAY_SECONDS", "120"))
     cav4_authorization_url: str = os.getenv("CA_AUTHORIZATION_URL", "")
     cav4_token_url: str = os.getenv("CA_TOKEN_URL", "")
     cav4_userinfo_url: str = os.getenv("CA_USERINFO_URL", "")
@@ -98,6 +101,8 @@ class Settings(BaseModel):
             raise ValueError("DATABASE_URL deve usar o esquema PostgreSQL/Aurora")
         if not self.database_url and not self.temporary_cav4_session:
             raise ValueError("DATABASE_URL ou variáveis PG*/RDS_AURORA_POSTGRES_* são obrigatórias")
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", self.db_schema):
+            raise ValueError("DB_SCHEMA deve conter apenas um identificador PostgreSQL válido")
         if self.db_min_size < 1 or self.db_max_size < self.db_min_size:
             raise ValueError("DB_MIN_SIZE e DB_MAX_SIZE possuem valores inválidos")
         if self.environment.lower() == "production":

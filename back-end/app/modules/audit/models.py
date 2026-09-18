@@ -15,4 +15,6 @@ class ActivityLog(Base):
     entity: Mapped[str] = mapped_column(String(100), index=True)
     entity_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     details: Mapped[str] = mapped_column(Text, default="")
+    result: Mapped[str] = mapped_column(String(30), default="success", nullable=False)
+    project_id: Mapped[str | None] = mapped_column(ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(nullable=False, index=True)

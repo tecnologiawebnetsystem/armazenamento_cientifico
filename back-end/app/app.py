@@ -2,6 +2,7 @@ import logging
 from contextlib import asynccontextmanager
 from time import perf_counter
 from typing import Any
+from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -9,10 +10,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.routes.cav4_auth import router as cav4_auth_router
+from app.api.routes.cav4_directory import router as cav4_directory_router
 from app.api.routes.health import router as health_router
 from app.core.config import settings
 from app.core.exceptions import AppException
-from app.core.logging import configure_logging
+from app.core.logging import configure_logging, reset_request_id, set_request_id
 from app.db.session import connect, disconnect
 
 configure_logging(settings.log_level)
@@ -66,6 +68,8 @@ def create_app() -> FastAPI:
     @application.middleware("http")
     async def request_security_and_logging(request: Request, call_next: Any):
         started_at = perf_counter()
+        request_id = request.headers.get("X-Request-ID", str(uuid4()))
+        context_token = set_request_id(request_id)
         logger.info("request_start method=%s path=%s", request.method, request.url.path)
         response = await call_next(request)
         if settings.security_headers_enabled:
@@ -75,7 +79,9 @@ def create_app() -> FastAPI:
             response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
             if settings.environment.lower() == "production":
                 response.headers["Strict-Transport-Security"] = "max-age=63072000"
+        response.headers["X-Request-ID"] = request_id
         logger.info("request_complete method=%s path=%s status=%s duration_ms=%.2f", request.method, request.url.path, response.status_code, (perf_counter() - started_at) * 1000)
+        reset_request_id(context_token)
         return response
 
     @application.exception_handler(AppException)
@@ -94,6 +100,7 @@ def create_app() -> FastAPI:
 
     application.include_router(health_router)
     application.include_router(cav4_auth_router)
+    application.include_router(cav4_directory_router)
 
     application.include_router(projects_router)
     application.include_router(folders_router)
