@@ -57,7 +57,7 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
               )}
 
               <div className="flex flex-col gap-3 text-center">
-                <p className="text-sm leading-6 text-muted-foreground">Use o acesso corporativo para validar sua identidade e carregar seus papéis e permissões.</p>
+                <p className="text-sm leading-6 text-muted-foreground">Use o acesso corporativo para validar sua identidade e carregar seus dados. As permissões são definidas pelo banco SIGAC.</p>
                 <Button type="button" size="lg" variant="outline" onClick={corporateLogin} disabled={loading !== null} className="mx-auto w-full max-w-[18rem] border-[#063f58] bg-gradient-to-r from-[#063f58] to-[#fdbb30] text-white shadow-md shadow-[#063f58]/30 transition-all hover:-translate-y-0.5 hover:from-[#042d40] hover:to-[#e8aa19] hover:shadow-lg hover:shadow-[#063f58]/40">
                   <Building2Icon data-icon="inline-start" />
                   {loading === "corporate" ? "Conectando..." : "Login corporativo"}

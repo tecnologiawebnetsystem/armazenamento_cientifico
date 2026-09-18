@@ -4,6 +4,7 @@ import {
   FlaskConicalIcon,
   BarChart3Icon,
   ClipboardListIcon,
+  ShieldCheckIcon,
   type LucideIcon,
 } from "lucide-react"
 import type { Role } from "@/lib/types"
@@ -33,6 +34,7 @@ export const navGroups: NavGroup[] = [
     label: "Principal",
     items: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboardIcon },
+      { title: "Meu perfil", url: "/perfil", icon: ShieldCheckIcon },
       { title: "Projetos", url: "/projetos", icon: FolderKanbanIcon, permissions: ["projeto.visualizar", "read"] },
       {
         title: "Relatórios",

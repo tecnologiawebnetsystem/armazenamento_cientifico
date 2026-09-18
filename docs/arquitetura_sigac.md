@@ -6,14 +6,15 @@
 
 ## 1. Decisão arquitetural principal
 
-O SIGAC adota arquitetura web corporativa em camadas, modular por domínio, com Next.js no frontend e FastAPI no backend. O CAV4 é a autoridade de identidade, papéis e permissões corporativas. O Aurora PostgreSQL é a fonte persistente dos dados próprios do SIGAC.
+O SIGAC adota arquitetura web corporativa em camadas, modular por domínio, com Next.js no frontend e FastAPI no backend. O CAV4 é a autoridade de autenticação e identidade. Nesta fase, o Aurora PostgreSQL é a autoridade do SIGAC para perfil, permissões, menu e autorização das operações.
 
 A regra central é:
 
 ```text
-CAV4 (claims corporativos)
-  -> resolução determinística do papel SIGAC
-  -> capacidades efetivas
+CAV4 (autenticação e identidade)
+  -> e-mail/subject validado
+  -> localização do usuário no banco SIGAC
+  -> perfil e permissões do banco
   -> sessão segura
   -> menu contextual no frontend
   -> validação novamente em cada endpoint
@@ -23,8 +24,8 @@ O frontend melhora a experiência e esconde ações indisponíveis, mas nunca co
 
 ## 2. Princípios
 
-- Negação por padrão: papel desconhecido não recebe acesso.
-- CAV4 como fonte de identidade; SIGAC interpreta, não inventa identidade corporativa.
+- CAV4 autentica; o banco SIGAC define o perfil e as permissões locais.
+- Usuário autenticado sem cadastro ou perfil no banco não acessa o SIGAC.
 - Contratos estáveis: rotas, endpoints e regras de negócio permanecem preservados.
 - Separação entre apresentação, aplicação, domínio, persistência e infraestrutura.
 - Segredos, tokens e senhas nunca são registrados em logs.
@@ -37,7 +38,7 @@ O frontend melhora a experiência e esconde ações indisponíveis, mas nunca co
 | Browser | Interface corporativa e interação do usuário |
 | Next.js | App Router, layout, componentes, hooks e cliente HTTP |
 | FastAPI | APIs, sessões, regras, validação e autorização |
-| CAV4 | Autenticação OIDC e claims de grupos/roles/permissões |
+| CAV4 | Autenticação OIDC, subject e e-mail validados |
 | Aurora PostgreSQL | Usuários locais, projetos, catálogos, auditoria e configurações |
 | Servidor de armazenamento | Origem das pastas e permissões consultivas |
 
@@ -54,15 +55,15 @@ O frontend melhora a experiência e esconde ações indisponíveis, mas nunca co
 
 ### 5.1 Sessão existente
 
-Ao entrar no sistema, o backend valida se há sessão CAV4 válida. Havendo sessão, recupera os claims, resolve o papel e redireciona para `/dashboard`. Sem sessão válida, conduz o usuário ao login corporativo.
+Ao entrar no sistema, o backend valida se há sessão SIGAC válida. Havendo sessão, recupera o usuário e o perfil do banco e redireciona para `/dashboard`. Sem sessão válida, conduz o usuário ao login corporativo CAV4.
 
 ### 5.2 Login corporativo
 
 O fluxo usa Authorization Code/OIDC: state e nonce são gerados, o CAV4 autentica, o callback troca o código por tokens, valida issuer/audience/assinatura/expiração e cria a sessão segura.
 
-### 5.3 Resolução de papel
+### 5.3 Perfil e permissões no banco
 
-O backend normaliza os papéis CAV4 para os perfis SIGAC oficiais: `admin`, `gerente`, `patrocinador`, `auditor` e `solicitante`. Quando houver múltiplos papéis, a resolução é determinística. Quando não houver papel reconhecido, o acesso é negado com `403`.
+O backend usa o e-mail e o subject autenticados pelo CAV4 para localizar o usuário pré-cadastrado no banco SIGAC. O perfil ligado ao usuário (`users.profile_id`) e as permissões ativas (`profile_permissions`) são carregados do banco. Claims de papéis ou grupos do CAV4 são apenas informativos nesta fase e não bloqueiam o login.
 
 ### 5.4 Frontend
 

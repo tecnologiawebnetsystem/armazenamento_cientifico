@@ -35,6 +35,8 @@ export interface User {
   roles?: string[]
   permissions?: string[]
   perfilId?: string
+  perfilNome?: string
+  chaveCav4?: string | null
   criadoEm: string
 }
 

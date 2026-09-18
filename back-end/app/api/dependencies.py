@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, Request
 
 from sqlalchemy import text
 
-from app.core.authorization import ensure_role, require_capability, resolve_cav4_role, role_capabilities
+from app.core.authorization import ensure_role, require_capability, role_capabilities
 from app.core.config import settings
 from app.core.temporary_sessions import get_session_user
 from app.db.session import get_session
@@ -21,7 +21,7 @@ async def get_current_user(request: Request):
             user = (
                 await database.execute(
                     text(
-                        "select u.*, p.id as profile_id, p.name as profile_name, "
+                        "select u.*, s.cav4_subject, p.id as profile_id, p.name as profile_name, "
                         "coalesce(array_agg(distinct perm.id) filter (where pp.allowed = true and perm.active = true), '{}') as db_permissions "
                         "from sessions s join users u on u.id=s.user_id "
                         "left join profiles p on p.id=u.profile_id "
@@ -37,21 +37,18 @@ async def get_current_user(request: Request):
     if not user:
         raise HTTPException(status_code=401, detail="Sessão inválida ou expirada")
 
-    cav4_roles = list(user.get("roles") or [])
-    if not cav4_roles and user.get("role"):
-        cav4_roles = [str(user["role"])]
-    resolved_role = resolve_cav4_role(cav4_roles)
-    if resolved_role is None:
-        raise HTTPException(status_code=403, detail="Usuário sem papel SIGAC atribuído no CAV4")
+    database_role = user.get("role")
+    if not database_role:
+        raise HTTPException(status_code=403, detail="Usuário autenticado sem perfil SIGAC configurado no banco de dados")
     database_permissions = set(user.get("db_permissions") or [])
-    fallback_permissions = set(role_capabilities(resolved_role))
+    fallback_permissions = set(role_capabilities(database_role))
     effective_permissions = sorted(
         fallback_permissions if settings.temporary_cav4_session else database_permissions
     )
     return {
         **dict(user),
-        "role": resolved_role,
-        "roles": cav4_roles,
+        "role": database_role,
+        "roles": list(user.get("roles") or []),
         "permissions": effective_permissions,
         "nome": user.get("name"),
         "cargo": user.get("job_title"),
@@ -60,6 +57,7 @@ async def get_current_user(request: Request):
         "ultimoLogin": user.get("last_login_at"),
         "perfilId": user.get("profile_id"),
         "perfilNome": user.get("profile_name"),
+        "chaveCav4": user.get("cav4_subject"),
         "criadoEm": user.get("created_at"),
         "groups": [],
     }

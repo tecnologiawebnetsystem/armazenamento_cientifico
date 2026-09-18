@@ -67,13 +67,19 @@ O CAV4 é a fonte corporativa de autenticação. O SIGAC não solicita nem
 armazena a senha corporativa. Após o login, o backend recebe a identidade,
 os claims e, quando disponível, os grupos, papéis e atributos do usuário.
 
-O e-mail pode ser utilizado como identificador auxiliar, mas não deve ser a
-única fonte definitiva de autorização quando existirem grupos ou papéis
-corporativos no CAV4.
+O e-mail recebido e validado no CAV4 é utilizado para localizar o usuário
+pré-cadastrado no banco do SIGAC. Nesta fase, o CAV4 é somente autoridade de
+autenticação. O SIGAC não exige nem valida papéis, grupos ou permissões vindos
+do CAV4. O perfil e as permissões efetivas são exclusivamente os cadastrados
+nas tabelas do SIGAC.
 
-3.2. Sessão CAV4 já existente
+3.2. Sessão SIGAC já existente
 
-Quando o usuário acessar o SIGAC e já possuir uma sessão CAV4 válida, o backend deve validar a sessão antes de exibir o login. Se a sessão estiver válida, o sistema consulta ou recupera os grupos e papéis corporativos, resolve o perfil SIGAC e redireciona diretamente para `/dashboard`.
+Quando o usuário acessar o SIGAC e já possuir uma sessão SIGAC válida, o backend deve validar a sessão antes de exibir o login. Se a sessão estiver válida, o sistema recupera o usuário, o perfil e as permissões do banco SIGAC e redireciona diretamente para `/dashboard`.
+
+3.3. Perfil local do SIGAC
+
+Após a autenticação CAV4, o e-mail identifica o usuário pré-cadastrado. O SIGAC carrega `users.profile_id`, `profiles` e `profile_permissions`. O CAV4 não é consultado para validar papéis nesta fase; seus papéis e grupos, se presentes, são apenas informativos.
 
 A página `/login` também deve redirecionar para `/dashboard` quando a sessão backend estiver válida. Essa verificação não deve confiar apenas na existência do cookie: a sessão precisa ser validada pelo backend.
 
