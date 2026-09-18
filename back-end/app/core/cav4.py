@@ -2,6 +2,7 @@ import base64
 import hashlib
 import json
 import logging
+from time import perf_counter
 import secrets
 from dataclasses import dataclass
 from pathlib import Path
@@ -111,12 +112,18 @@ class CAV4OIDCProvider:
             return self._discovery_cache
         if not settings.oidc_discovery_url:
             raise CAV4AuthenticationError("OIDC_DISCOVERY_URL não está configurada")
+        started_at = perf_counter()
         try:
             async with _build_httpx_client() as client:
                 resp = await client.get(settings.oidc_discovery_url, timeout=10.0)
                 resp.raise_for_status()
                 self._discovery_cache = resp.json()
-                logger.info("[CAV4] Discovery endpoint carregado com sucesso")
+                logger.info(
+                    "[CAV4] discovery_ok status=%s duration_ms=%.2f host=%s",
+                    resp.status_code,
+                    (perf_counter() - started_at) * 1000,
+                    settings.oidc_discovery_url.split('/')[2],
+                )
                 return self._discovery_cache
         except httpx.HTTPError as e:
             logger.error(
@@ -182,6 +189,7 @@ class CAV4OIDCProvider:
         except (ValueError, KeyError, json.JSONDecodeError) as e:
             raise CAV4AuthenticationError("State CAV4 inválido") from e
 
+        started_at = perf_counter()
         try:
             async with _build_httpx_client() as client:
                 token_resp = await client.post(
@@ -198,6 +206,12 @@ class CAV4OIDCProvider:
                 )
                 token_resp.raise_for_status()
                 token_data = token_resp.json()
+                logger.info(
+                    "[CAV4] token_exchange_ok status=%s duration_ms=%.2f id_token_present=%s",
+                    token_resp.status_code,
+                    (perf_counter() - started_at) * 1000,
+                    bool(token_data.get("id_token")),
+                )
         except httpx.HTTPStatusError as e:
             logger.error("[CAV4] Troca de código rejeitada status=%s response=%s", e.response.status_code, e.response.text[:500])
             raise CAV4AuthenticationError(f"CAV4 rejeitou a troca do código (HTTP {e.response.status_code}); inicie o login novamente") from e
