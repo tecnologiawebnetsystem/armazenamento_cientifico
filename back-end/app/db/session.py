@@ -39,7 +39,7 @@ def configure_engine() -> None:
         "pool_size": settings.db_max_size,
         "max_overflow": 0,
         "pool_timeout": settings.db_command_timeout,
-        "connect_args": {"ssl": True, "server_settings": {"search_path": settings.db_schema}},
+        "connect_args": {"ssl": settings.db_ssl_verify, "server_settings": {"search_path": settings.db_schema}},
     }
     engine = create_async_engine(_async_database_url(), **engine_options)
     session_factory = async_sessionmaker(engine, expire_on_commit=False)

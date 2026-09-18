@@ -50,6 +50,17 @@ class UnconfiguredCAV4Provider:
         raise CAV4AuthenticationError("CAV4 ainda não está configurado")
 
 
+def _claim_values(claims: dict[str, Any], *names: str) -> tuple[str, ...]:
+    values: list[str] = []
+    for name in names:
+        value = claims.get(name)
+        if isinstance(value, str):
+            values.extend(part.strip() for part in value.replace(",", " ").split() if part.strip())
+        elif isinstance(value, list):
+            values.extend(str(item).strip() for item in value if str(item).strip())
+    return tuple(dict.fromkeys(values))
+
+
 def _generate_pkce_pair() -> tuple[str, str]:
     """Gera code_verifier e code_challenge para PKCE."""
     code_verifier = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode("utf-8").rstrip("=")
@@ -174,6 +185,9 @@ class CAV4OIDCProvider:
                 )
                 token_resp.raise_for_status()
                 token_data = token_resp.json()
+        except httpx.HTTPStatusError as e:
+            logger.error("[CAV4] Troca de código rejeitada status=%s response=%s", e.response.status_code, e.response.text[:500])
+            raise CAV4AuthenticationError(f"CAV4 rejeitou a troca do código (HTTP {e.response.status_code}); inicie o login novamente") from e
         except httpx.HTTPError as e:
             logger.error(f"[CAV4] Erro ao trocar código: {e}")
             raise CAV4AuthenticationError(f"Erro ao obter token: {e}") from e
@@ -217,8 +231,8 @@ class CAV4OIDCProvider:
             subject=claims.get("sub", ""),
             email=claims.get("email", ""),
             display_name=claims.get("name"),
-            roles=tuple(claims.get("roles", [])) if isinstance(claims.get("roles"), list) else (),
-            permissions=tuple(claims.get("permissions", [])) if isinstance(claims.get("permissions"), list) else (),
+            roles=_claim_values(claims, "roles", "groups", "role", "group", "information-values"),
+            permissions=_claim_values(claims, "permissions", "scp", "scope"),
             raw_claims=claims,
             access_token=token_data.get("access_token"),
         )
