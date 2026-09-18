@@ -21,7 +21,7 @@ async def get_current_user(request: Request):
             user = (
                 await database.execute(
                     text(
-                        "select u.*, p.id as profile_id, p.name as profile_name, "
+                        "select u.*, s.cav4_subject, p.id as profile_id, p.name as profile_name, "
                         "coalesce(array_agg(distinct perm.id) filter (where pp.allowed = true and perm.active = true), '{}') as db_permissions "
                         "from sessions s join users u on u.id=s.user_id "
                         "left join profiles p on p.id=u.profile_id "
@@ -57,6 +57,7 @@ async def get_current_user(request: Request):
         "ultimoLogin": user.get("last_login_at"),
         "perfilId": user.get("profile_id"),
         "perfilNome": user.get("profile_name"),
+        "chaveCav4": user.get("cav4_subject"),
         "criadoEm": user.get("created_at"),
         "groups": [],
     }

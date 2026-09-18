@@ -10,7 +10,7 @@ _sessions: dict[str, dict[str, Any]] = {}
 def create_session(identity: Any) -> tuple[str, datetime]:
     session_id = str(uuid4())
     expires_at = datetime.now(UTC) + timedelta(hours=settings.session_hours)
-    role = identity.roles[0] if identity.roles else "solicitante"
+    role = "solicitante"
     _sessions[session_id] = {
         "id": identity.subject,
         "subject": identity.subject,

@@ -124,8 +124,8 @@ async def cav4_callback(request: Request, code: str, state: str):
                 await database.execute(text("update users set last_login_at=now() where id=:user_id"), {"user_id": user["id"]})
                 await database.execute(text("delete from sessions where user_id=:user_id"), {"user_id": user["id"]})
                 await database.execute(
-                    text("insert into sessions(id,user_id,expires_at) values(:id,:user_id,:expires_at)"),
-                    {"id": session_id, "user_id": user["id"], "expires_at": expires_at.replace(tzinfo=None)},
+                    text("insert into sessions(id,user_id,expires_at,cav4_subject) values(:id,:user_id,:expires_at,:cav4_subject)"),
+                    {"id": session_id, "user_id": user["id"], "expires_at": expires_at.replace(tzinfo=None), "cav4_subject": identity.subject},
                 )
                 await database.commit()
         except HTTPException:
