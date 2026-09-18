@@ -2,10 +2,10 @@ import base64
 import hashlib
 import json
 import logging
-from time import perf_counter
 import secrets
 from dataclasses import dataclass
 from pathlib import Path
+from time import perf_counter
 from typing import Any, Protocol
 from urllib.parse import urlencode
 
