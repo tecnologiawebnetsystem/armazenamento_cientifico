@@ -137,7 +137,7 @@ def header_footer(canvas, doc):
     canvas.drawString(51 * mm, height - 12 * mm, "SIGAC — Arquitetura da Solução")
     canvas.setFillColor(MUTED)
     canvas.setFont("Helvetica", 7)
-    canvas.drawString(16 * mm, 9 * mm, "Documento técnico para validação do gestor · versão 1.0 · 2026")
+    canvas.drawString(16 * mm, 9 * mm, "Documento técnico para validação do gestor · versão 2.0 · 2026")
     canvas.drawRightString(width - 16 * mm, 9 * mm, f"Página {doc.page}")
     canvas.restoreState()
 
@@ -197,7 +197,7 @@ def main():
         P("O backend é uma aplicação FastAPI modular. Cada domínio possui controllers, services, repositories, schemas e modelos quando necessário. O acesso ao banco deve ficar encapsulado nos repositories; services não devem depender de detalhes de HTTP.", s["Body"]),
         table([["Módulo", "Responsabilidade principal"], ["api/routes", "Autenticação CAV4, diretório CAV4, health e composição das rotas"], ["modules/users", "Usuários, perfis e identidade local"], ["modules/projects", "Projetos, participantes, estados e acesso"], ["modules/files", "Pastas e metadados consultivos"], ["modules/catalogs", "Áreas, perfis, módulos, permissões e catálogos"], ["modules/audit", "Registro e consulta da auditoria"], ["core", "Configuração, autorização, logs, CAV4 e sessões"], ["db", "Engine, modelos SQLAlchemy, seed e base declarativa"]], [55 * mm, 123 * mm], s),
         P("5. Integração e autenticação CAV4", s["H1"]),
-        P("O fluxo segue Authorization Code/OIDC: o SIGAC inicia o login, o CAV4 autentica o usuário, o callback troca o código por tokens, valida o JWT e consulta os endpoints corporativos quando necessário. O backend então cria a sessão e redireciona o navegador para o frontend.", s["Body"]),
+        P("O fluxo segue Authorization Code/OIDC: primeiro o backend valida se já existe uma sessão CAV4 válida; nesse caso, resolve o perfil e redireciona diretamente para /dashboard. Sem sessão válida, o SIGAC inicia o login, o CAV4 autentica o usuário, o callback troca o código por tokens, valida o JWT e consulta os endpoints corporativos quando necessário. O backend então cria a sessão e redireciona o navegador para o frontend.", s["Body"]),
         ArchitectureDiagram("Fluxo de autenticação", [("Usuário", "acessa /login", "blue"), ("SIGAC", "gera state\\redireciona", "green"), ("CAV4", "login corporativo\\code", "yellow"), ("Callback", "troca code\\valida JWT", "green"), ("Sessão", "cookie seguro\\dashboard", "blue")], [(0, 1), (1, 2), (2, 3), (3, 4)]),
         P("Endpoints consultivos implementados: grupos do usuário, information-values, dados administrativos, enterprise-groups e roles. Tokens não devem ser gravados em logs. O modo temporário em memória existe para contingência, mas perde sessões ao reiniciar e não é adequado para múltiplas instâncias.", s["Body"]),
         P("6. Autorização e perfis", s["H1"]),

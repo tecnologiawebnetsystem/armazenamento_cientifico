@@ -1,8 +1,13 @@
 import Image from "next/image"
+import { redirect } from "next/navigation"
 import { LoginForm } from "@/components/login/login-form"
 import { LogoMark } from "@/components/brand/logo-mark"
+import { getBackendSession } from "@/lib/session"
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const user = await getBackendSession()
+  if (user) redirect("/dashboard")
+
   return (
     <div className="light grid min-h-svh bg-background text-foreground lg:grid-cols-[1.1fr_1fr]">
       <div className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-10 shadow-2xl shadow-petrobras-blue/20 lg:flex">
@@ -75,7 +80,7 @@ export default function LoginPage() {
             <span className="h-1 w-12 rounded-full bg-petrobras-yellow" />
             <h1 className="text-3xl font-semibold tracking-tight text-[#09263d]">Acesse sua conta</h1>
             <p className="text-sm text-muted-foreground">
-              Use seu email corporativo Petrobras para entrar na plataforma.
+              Use o acesso corporativo Petrobras para entrar na plataforma com seus papéis e permissões.
             </p>
           </div>
 

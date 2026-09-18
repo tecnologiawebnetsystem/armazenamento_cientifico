@@ -71,7 +71,15 @@ O e-mail pode ser utilizado como identificador auxiliar, mas não deve ser a
 única fonte definitiva de autorização quando existirem grupos ou papéis
 corporativos no CAV4.
 
-3.2. Fluxo normal
+3.2. Sessão CAV4 já existente
+
+Quando o usuário acessar o SIGAC e já possuir uma sessão CAV4 válida, o backend deve validar a sessão antes de exibir o login. Se a sessão estiver válida, o sistema consulta ou recupera os grupos e papéis corporativos, resolve o perfil SIGAC e redireciona diretamente para `/dashboard`.
+
+A página `/login` também deve redirecionar para `/dashboard` quando a sessão backend estiver válida. Essa verificação não deve confiar apenas na existência do cookie: a sessão precisa ser validada pelo backend.
+
+Se a sessão estiver ausente, expirada ou inválida, o usuário seguirá para o login corporativo.
+
+3.3. Fluxo normal
 
 1. O usuário acessa o frontend.
 2. O frontend inicia o login no backend.
@@ -88,7 +96,7 @@ corporativos no CAV4.
 O callback deve redirecionar para a origem configurada em `FRONTEND_URL`,
 e não para uma rota relativa do backend.
 
-3.3. Consultas CAV4 previstas
+3.4. Consultas CAV4 previstas
 
 Após a autenticação, o backend poderá consultar, usando o token autorizado:
 
@@ -102,7 +110,7 @@ Após a autenticação, o backend poderá consultar, usando o token autorizado:
 Essas consultas devem ser usadas para enriquecer a identidade e definir o
 acesso. Tokens, client secrets e credenciais nunca podem aparecer nos logs.
 
-3.4. Contingência temporária
+3.5. Contingência temporária
 
 Enquanto o Aurora não estiver disponível, pode ser ativado:
 
