@@ -42,7 +42,11 @@ def configure_engine() -> None:
                 raise RuntimeError("DB_SSL_CA_FILE aponta para um arquivo inexistente")
             ssl_context = ssl.create_default_context(cafile=settings.db_ssl_ca_file)
         else:
+            # O ambiente não possui uma CA local. O TLS continua ativo,
+            # mas a verificação do certificado fica desabilitada explicitamente.
             ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
     else:
         ssl_context = False
 
