@@ -26,7 +26,7 @@ export function AppSidebar() {
   const { user } = useSession()
   const [search] = useState("")
 
-  const groups = user ? filterNavForRole(navGroups, user.role).map((group) => ({ ...group, items: group.items.filter((item) => item.title.toLowerCase().includes(search.toLowerCase())) })).filter((group) => group.items.length) : []
+  const groups = user ? filterNavForRole(navGroups, user.role, user.permissions ?? []).map((group) => ({ ...group, items: group.items.filter((item) => item.title.toLowerCase().includes(search.toLowerCase())) })).filter((group) => group.items.length) : []
 
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border/70 bg-sidebar shadow-2xl shadow-sidebar/25 transition-[width] duration-200 md:flex">
@@ -48,9 +48,9 @@ export function AppSidebar() {
               <div className="flex size-9 items-center justify-center rounded-xl bg-sidebar-primary/15 ring-1 ring-sidebar-primary/40 shadow-[0_0_20px_color-mix(in_oklch,var(--sidebar-primary)_18%,transparent)]">
                 <LogoMark className="size-5" />
               </div>
-              <div className="flex min-w-0 flex-col gap-0.5 leading-none">
-                <span className="truncate text-sm font-semibold">SIGAC</span>
-                <span className="hidden truncate text-[10px] text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden">Sistema de Gestão de Acesso ao Armazenamento Científico</span>
+              <div className="flex min-w-0 flex-col gap-1 leading-none">
+                <span className="truncate text-sm font-semibold tracking-wide">SIGAC</span>
+                <span className="hidden truncate text-[10px] text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden">Gestão de acesso ao armazenamento científico</span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -67,14 +67,11 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu className="gap-0.5">
                 {group.items.map((item) => {
-                  const isActive = pathname === item.url || pathname.startsWith(`${item.url}/`)
+                  const isActive = pathname === item.url || pathname.startsWith(`${item.url}/`) || item.children?.some((child) => pathname === child.url || pathname.startsWith(`${child.url}/`))
                   return (
                     <SidebarMenuItem key={item.url} className="relative">
                       {isActive ? (
-                        <span
-                          aria-hidden
-                          className="absolute top-1/2 left-0 h-6 w-0.5 -translate-y-1/2 rounded-r-full bg-sidebar-primary shadow-[0_0_8px_color-mix(in_oklch,var(--sidebar-primary)_55%,transparent)] group-data-[collapsible=icon]:hidden"
-                        />
+                        <span aria-hidden className="absolute top-1/2 left-0 h-6 w-0.5 -translate-y-1/2 rounded-r-full bg-sidebar-primary shadow-[0_0_8px_color-mix(in_oklch,var(--sidebar-primary)_55%,transparent)] group-data-[collapsible=icon]:hidden" />
                       ) : null}
                       <SidebarMenuButton
                         render={<Link href={item.url} />}
@@ -85,6 +82,24 @@ export function AppSidebar() {
                         <item.icon />
                         <span className="truncate">{item.title}</span>
                       </SidebarMenuButton>
+                      {item.children?.length ? (
+                        <div className="ml-5 flex flex-col gap-0.5 border-l border-sidebar-border/60 py-1 pl-2 group-data-[collapsible=icon]:hidden">
+                          {item.children.map((child) => {
+                            const childIsActive = pathname === child.url || pathname.startsWith(`${child.url}/`)
+                            return (
+                              <Link
+                                key={child.url}
+                                href={child.url}
+                                aria-current={childIsActive ? "page" : undefined}
+                                className="flex min-h-8 items-center gap-2 rounded-md px-2 text-xs text-sidebar-foreground/65 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground aria-[current=page]:bg-sidebar-accent aria-[current=page]:font-semibold aria-[current=page]:text-sidebar-primary"
+                              >
+                                <child.icon aria-hidden="true" />
+                                <span className="truncate">{child.title}</span>
+                              </Link>
+                            )
+                          })}
+                        </div>
+                      ) : null}
                     </SidebarMenuItem>
                   )
                 })}

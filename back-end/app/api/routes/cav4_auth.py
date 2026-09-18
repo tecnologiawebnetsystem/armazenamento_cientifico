@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import text
 
+from app.core.authorization import resolve_cav4_role
 from app.core.cav4 import CAV4AuthenticationError, decode_state_nonce, get_cav4_provider
 from app.core.config import settings
 from app.core.temporary_sessions import create_session, delete_session
@@ -103,6 +104,9 @@ async def cav4_callback(request: Request, code: str, state: str):
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     if not identity.subject or not identity.email:
         raise HTTPException(status_code=401, detail="Claims obrigatórias ausentes no token CAV4")
+    resolved_role = resolve_cav4_role(list(identity.roles))
+    if resolved_role is None:
+        raise HTTPException(status_code=403, detail="Usuário sem papel SIGAC atribuído no CAV4")
 
     if settings.temporary_cav4_session:
         session_id, expires_at = create_session(identity)
@@ -118,6 +122,15 @@ async def cav4_callback(request: Request, code: str, state: str):
             ).mappings().first()
             if not user:
                 raise HTTPException(status_code=403, detail="Usuário CAV4 não cadastrado na plataforma")
+            profile = (
+                await database.execute(
+                    text("select id from profiles where lower(name) in (:role, :role_alias) order by case when lower(name)=:role then 0 else 1 end limit 1"),
+                    {"role": resolved_role, "role_alias": {"admin": "administrador", "gerente": "gestor", "solicitante": "participante"}.get(resolved_role, resolved_role)},
+                )
+            ).mappings().first()
+            if not profile:
+                raise HTTPException(status_code=403, detail="Perfil SIGAC não configurado no banco de dados")
+            await database.execute(text("update users set role=:role, profile_id=:profile_id, last_login_at=now() where id=:user_id"), {"role": resolved_role, "profile_id": profile["id"], "user_id": user["id"]})
             await database.execute(text("delete from sessions where user_id=:user_id"), {"user_id": user["id"]})
             await database.execute(
                 text("insert into sessions(id,user_id,expires_at) values(:id,:user_id,:expires_at)"),

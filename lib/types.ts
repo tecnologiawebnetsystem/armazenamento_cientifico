@@ -29,8 +29,11 @@ export interface User {
   area: string
   avatarUrl?: string
   ultimoLogin?: string | null
-  /** Papel global do usuário na plataforma (independe do papel por projeto). */
+  /** Papel efetivo resolvido a partir dos papéis corporativos do CAV4. */
   role: Role
+  /** Claims recebidos do CAV4, mantidos para diagnóstico e UI contextual. */
+  roles?: string[]
+  permissions?: string[]
   perfilId?: string
   criadoEm: string
 }

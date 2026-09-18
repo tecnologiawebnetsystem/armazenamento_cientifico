@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUser, require_roles
+from app.api.dependencies import CurrentUser, require_capabilities
 from app.db.session import get_session
 from app.modules.catalogs.area_model import ResponsibleArea
 from app.modules.projects.member_model import ProjectMember
@@ -52,7 +52,7 @@ async def list_projects(
 async def create_project(
     data: ProjectCreate,
     session: Annotated[AsyncSession, Depends(get_session)],
-    user: Annotated[dict, Depends(require_roles("admin"))],
+    user: Annotated[dict, Depends(require_capabilities("create"))],
 ):
     area = (await session.execute(select(ResponsibleArea).where(ResponsibleArea.name == data.areaResponsavel, ResponsibleArea.active.is_(True)).with_for_update())).scalar_one_or_none()
     if not area:
@@ -76,7 +76,7 @@ async def update_project(
     project_id: str,
     data: ProjectPatch,
     session: Annotated[AsyncSession, Depends(get_session)],
-    _: Annotated[dict, Depends(require_roles("admin"))],
+    _: Annotated[dict, Depends(require_capabilities("update"))],
 ):
     project = await session.get(Project, project_id)
     if not project:
@@ -94,7 +94,7 @@ async def update_project(
 async def delete_project(
     project_id: str,
     session: Annotated[AsyncSession, Depends(get_session)],
-    _: Annotated[dict, Depends(require_roles("admin"))],
+    _: Annotated[dict, Depends(require_capabilities("delete"))],
 ):
     project = await session.get(Project, project_id)
     if project:

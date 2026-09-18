@@ -25,15 +25,41 @@ ROLE_CAPABILITIES: Final[dict[str, frozenset[str]]] = {
 } 
 
 
+CAPABILITY_PERMISSION_MAP: Final[dict[str, str]] = {
+    "read": "projeto.visualizar",
+    "create": "projeto.criar",
+    "update": "projeto.editar",
+    "manage_users": "usuario.editar",
+    "reports": "relatorio.exportar",
+    "configure": "administracao.configurar",
+    "delete": "projeto.excluir",
+}
+
+
 def has_capability(user: Any, capability: str) -> bool:
     raw_role = user.get("role") if isinstance(user, Mapping) else getattr(user, "role", None)
-    return capability in ROLE_CAPABILITIES.get(canonical_role(raw_role), frozenset())
+    if capability not in ROLE_CAPABILITIES.get(canonical_role(raw_role), frozenset()):
+        return False
+    permissions = user.get("permissions") if isinstance(user, Mapping) else getattr(user, "permissions", None)
+    required_permission = CAPABILITY_PERMISSION_MAP.get(capability)
+    return not permissions or not required_permission or required_permission in permissions
 
 
 def require_capability(user: Any, capability: str) -> Any:
     if not has_capability(user, capability):
         raise HTTPException(status_code=403, detail="Usuário sem permissão para esta operação")
     return user
+
+
+def resolve_cav4_role(roles: list[str] | tuple[str, ...] | None) -> str | None:
+    """Converte os papéis do CAV4 no único perfil efetivo do SIGAC.
+
+    A ordem evita que a ordem dos claims do provedor altere a autorização.
+    Papéis desconhecidos não recebem acesso por fallback.
+    """
+    priority = ("admin", "gerente", "patrocinador", "auditor", "solicitante")
+    canonical = {canonical_role(role) for role in (roles or [])}
+    return next((role for role in priority if role in canonical), None)
 
 
 def role_capabilities(role: str | None) -> frozenset[str]:

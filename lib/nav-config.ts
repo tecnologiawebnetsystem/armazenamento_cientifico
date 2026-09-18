@@ -15,6 +15,8 @@ export interface NavItem {
   icon: LucideIcon
   /** Papéis que podem ver este item. Vazio = todos os papéis autenticados. */
   roles?: Role[]
+  permissions?: string[]
+  children?: NavItem[]
 }
 
 export interface NavGroup {
@@ -31,18 +33,17 @@ export const navGroups: NavGroup[] = [
     label: "Principal",
     items: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboardIcon },
-      { title: "Projetos", url: "/projetos", icon: FolderKanbanIcon },
+      { title: "Projetos", url: "/projetos", icon: FolderKanbanIcon, permissions: ["projeto.visualizar", "read"] },
       {
-        title: "Pesquisas",
-        url: "/pesquisas",
-        icon: FlaskConicalIcon,
-        roles: ["admin", "patrocinador", "gerente"],
-      },
-      {
-        title: "Consultas e relatórios",
+        title: "Relatórios",
         url: "/relatorios",
         icon: BarChart3Icon,
         roles: ["admin", "patrocinador", "gerente"],
+        permissions: ["relatorio.exportar", "reports"],
+        children: [
+          { title: "Relatório de projetos", url: "/relatorios", icon: BarChart3Icon },
+          { title: "Mapa de acessos", url: "/pesquisas", icon: FlaskConicalIcon },
+        ],
       },
       {
         title: "Consulta de logs",
@@ -59,11 +60,16 @@ export const navGroups: NavGroup[] = [
   },
 ]
 
-export function filterNavForRole(groups: NavGroup[], role: Role): NavGroup[] {
-  return groups
-    .map((group) => ({
-      ...group,
-      items: group.items.filter((item) => !item.roles || item.roles.includes(normalizeRole(role) as Role)),
-    }))
-    .filter((group) => group.items.length > 0)
+export function filterNavForRole(groups: NavGroup[], role: Role, permissions: string[] = []): NavGroup[] {
+  const normalizedRole = normalizeRole(role) as Role
+  const canSee = (item: NavItem) => {
+    const roleAllowed = !item.roles || item.roles.includes(normalizedRole)
+    const permissionAllowed = !item.permissions || item.permissions.some((permission) => permissions.includes(permission))
+    return roleAllowed && permissionAllowed
+  }
+  const filterItems = (items: NavItem[]): NavItem[] => items
+    .filter(canSee)
+    .map((item) => ({ ...item, children: item.children ? filterItems(item.children) : undefined }))
+    .filter((item) => !item.children || item.children.length > 0)
+  return groups.map((group) => ({ ...group, items: filterItems(group.items) })).filter((group) => group.items.length > 0)
 }

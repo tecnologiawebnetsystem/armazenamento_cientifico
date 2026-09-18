@@ -1,11 +1,11 @@
 import { getBackendSession } from "@/lib/session"
-import { hasCapability } from "@/hooks/use-permissions"
+import { hasEffectiveCapability } from "@/hooks/use-permissions"
 import { ProjectsList } from "@/components/projects/projects-list"
 import { BackButton } from "@/components/navigation/back-button"
 
 export default async function ProjetosPage() {
   const user = await getBackendSession()
-  const canCreate = Boolean(user && hasCapability(user.role, "create"))
+  const canCreate = Boolean(user && hasEffectiveCapability(user.role, user.permissions, "create"))
 
   return (
     <div className="flex flex-col gap-6">
