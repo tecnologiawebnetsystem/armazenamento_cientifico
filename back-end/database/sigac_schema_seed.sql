@@ -71,6 +71,17 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS sessions (
+    id VARCHAR(128) PRIMARY KEY,
+    user_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TIMESTAMP NOT NULL,
+    cav4_subject VARCHAR(255),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS ix_sessions_user_id ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS ix_sessions_expires_at ON sessions(expires_at);
+
 CREATE TABLE IF NOT EXISTS responsible_areas (
     id VARCHAR(40) PRIMARY KEY,
     name VARCHAR(160) NOT NULL UNIQUE,

@@ -1,3 +1,0 @@
--- Compatibilidade histórica.
--- O schema canônico está em postgresql-schema.sql e é aplicado pelo Alembic.
--- Este arquivo não é montado automaticamente pelos containers.
