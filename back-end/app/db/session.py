@@ -70,8 +70,15 @@ async def connect() -> None:
         raise RuntimeError("DATABASE_URL não configurada")
     logger.info("database_connect_start engine=postgresql pool_max=%s", settings.db_max_size)
     async with engine.connect() as connection:
-        await connection.execute(text("SELECT 1"))
-    logger.info("database_connect_ok probe=SELECT_1")
+        result = await connection.execute(text("SELECT current_database(), current_user, current_schema()"))
+        database_name, database_user, schema_name = result.one()
+    logger.info(
+        "database_connect_ok database=%s user=%s schema=%s ssl_verify=%s",
+        database_name,
+        database_user,
+        schema_name,
+        settings.db_ssl_verify,
+    )
 
 
 async def disconnect() -> None:

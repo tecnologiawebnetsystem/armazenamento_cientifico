@@ -1,4 +1,7 @@
+import logging
 from typing import Annotated
+
+logger = logging.getLogger(__name__)
 
 from fastapi import Depends, HTTPException, Request
 from sqlalchemy import text
@@ -39,8 +42,17 @@ async def get_current_user(request: Request):
             )
 
     if not user:
+        logger.warning("auth_session_lookup_not_found session_present=true")
         raise HTTPException(status_code=401, detail="Sessão inválida ou expirada")
 
+    logger.info(
+        "auth_session_lookup_ok user_id=%s email=%s profile_id=%s profile_name=%s permissions_count=%s",
+        user.get("id"),
+        user.get("email"),
+        user.get("profile_id"),
+        user.get("profile_name"),
+        len(user.get("db_permissions") or []),
+    )
     database_role = user.get("profile_name") or user.get("role")
     if not database_role:
         raise HTTPException(status_code=403, detail="Usuário autenticado sem perfil SIGAC configurado no banco de dados")

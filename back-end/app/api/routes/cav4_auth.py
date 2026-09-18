@@ -114,6 +114,13 @@ async def cav4_callback(request: Request, code: str, state: str):
                         {"email": identity.email},
                     )
                 ).mappings().first()
+                logger.info(
+                    "cav4_user_lookup email=%s found=%s user_id=%s profile_id=%s",
+                    identity.email,
+                    bool(user),
+                    user.get("id") if user else None,
+                    user.get("profile_id") if user else None,
+                )
                 if not user:
                     raise HTTPException(status_code=403, detail="Usuário CAV4 não cadastrado na plataforma")
                 if not user.get("profile_id"):
