@@ -45,7 +45,9 @@ async def get_current_user(request: Request):
         raise HTTPException(status_code=403, detail="Usuário sem papel SIGAC atribuído no CAV4")
     database_permissions = set(user.get("db_permissions") or [])
     fallback_permissions = set(role_capabilities(resolved_role))
-    effective_permissions = sorted(database_permissions or fallback_permissions)
+    effective_permissions = sorted(
+        fallback_permissions if settings.temporary_cav4_session else database_permissions
+    )
     return {
         **dict(user),
         "role": resolved_role,
