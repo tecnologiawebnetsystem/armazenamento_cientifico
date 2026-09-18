@@ -114,12 +114,11 @@ async def cav4_callback(request: Request, code: str, state: str):
         expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours)
         try:
             async for database in get_session():
-                user = (
-                    await database.execute(
-                        text("select id, profile_id from users where lower(email)=lower(:email)"),
-                        {"email": identity.email},
-                    )
-                ).mappings().first()
+                user_result = await database.execute(
+                    text("select id, profile_id from users where lower(email)=lower(:email)"),
+                    {"email": identity.email},
+                )
+                user = user_result.mappings().first()
                 logger.info(
                     "cav4_user_lookup email=%s found=%s user_id=%s profile_id=%s",
                     identity.email,
