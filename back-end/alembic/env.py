@@ -1,8 +1,9 @@
 from logging.config import fileConfig
-from sqlalchemy import pool
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
+from sqlalchemy import pool, text
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import app.db.models  # noqa: F401 - registra todos os modelos no metadata
 
@@ -49,6 +50,7 @@ async def run_async_migrations() -> None:
         poolclass=pool.NullPool,
     )
     async with connectable.connect() as connection:
+        await connection.execute(text(f'SET search_path TO "{settings.db_schema}"'))
         await connection.run_sync(do_run_migrations)
     await connectable.dispose()
 
