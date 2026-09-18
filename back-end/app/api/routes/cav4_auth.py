@@ -122,7 +122,15 @@ async def cav4_callback(request: Request, code: str, state: str):
             ).mappings().first()
             if not user:
                 raise HTTPException(status_code=403, detail="Usuário CAV4 não cadastrado na plataforma")
-            await database.execute(text("update users set role=:role where id=:user_id"), {"role": resolved_role, "user_id": user["id"]})
+            profile = (
+                await database.execute(
+                    text("select id from profiles where lower(name) in (:role, :role_alias) order by case when lower(name)=:role then 0 else 1 end limit 1"),
+                    {"role": resolved_role, "role_alias": {"admin": "administrador", "gerente": "gestor", "solicitante": "participante"}.get(resolved_role, resolved_role)},
+                )
+            ).mappings().first()
+            if not profile:
+                raise HTTPException(status_code=403, detail="Perfil SIGAC não configurado no banco de dados")
+            await database.execute(text("update users set role=:role, profile_id=:profile_id, last_login_at=now() where id=:user_id"), {"role": resolved_role, "profile_id": profile["id"], "user_id": user["id"]})
             await database.execute(text("delete from sessions where user_id=:user_id"), {"user_id": user["id"]})
             await database.execute(
                 text("insert into sessions(id,user_id,expires_at) values(:id,:user_id,:expires_at)"),

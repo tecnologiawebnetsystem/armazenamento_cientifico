@@ -21,12 +21,19 @@ async def get_current_user(request: Request):
             user = (
                 await database.execute(
                     text(
-                        "select u.* from sessions s join users u on u.id=s.user_id "
-                        "where s.id=:session_id and s.expires_at > now()"
+                        "select u.*, p.id as profile_id, p.name as profile_name, "
+                        "coalesce(array_agg(distinct perm.id) filter (where pp.allowed = true and perm.active = true), '{}') as db_permissions "
+                        "from sessions s join users u on u.id=s.user_id "
+                        "left join profiles p on p.id=u.profile_id "
+                        "left join profile_permissions pp on pp.profile_id=p.id "
+                        "left join permissions perm on perm.id=pp.permission_id "
+                        "where s.id=:session_id and s.expires_at > now() "
+                        "group by u.id, p.id, p.name"
                     ),
                     {"session_id": session_id},
-                )
-            ).mappings().first()
+                ).mappings().first()
+            )
+
     if not user:
         raise HTTPException(status_code=401, detail="Sessão inválida ou expirada")
 
@@ -36,8 +43,9 @@ async def get_current_user(request: Request):
     resolved_role = resolve_cav4_role(cav4_roles)
     if resolved_role is None:
         raise HTTPException(status_code=403, detail="Usuário sem papel SIGAC atribuído no CAV4")
-    claimed_permissions = set(user.get("permissions") or [])
-    effective_permissions = sorted((claimed_permissions or set(role_capabilities(resolved_role))) & set(role_capabilities(resolved_role)))
+    database_permissions = set(user.get("db_permissions") or [])
+    fallback_permissions = set(role_capabilities(resolved_role))
+    effective_permissions = sorted(database_permissions or fallback_permissions)
     return {
         **dict(user),
         "role": resolved_role,
@@ -49,9 +57,8 @@ async def get_current_user(request: Request):
         "avatarUrl": user.get("avatar_url"),
         "ultimoLogin": user.get("last_login_at"),
         "perfilId": user.get("profile_id"),
+        "perfilNome": user.get("profile_name"),
         "criadoEm": user.get("created_at"),
-        "roles": [normalized_role],
-        "permissions": sorted(role_capabilities(normalized_role)),
         "groups": [],
     }
 

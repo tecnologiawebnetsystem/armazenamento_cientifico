@@ -26,7 +26,7 @@ export function AppSidebar() {
   const { user } = useSession()
   const [search] = useState("")
 
-  const groups = user ? filterNavForRole(navGroups, user.role).map((group) => ({ ...group, items: group.items.filter((item) => item.title.toLowerCase().includes(search.toLowerCase())) })).filter((group) => group.items.length) : []
+  const groups = user ? filterNavForRole(navGroups, user.role, user.permissions ?? []).map((group) => ({ ...group, items: group.items.filter((item) => item.title.toLowerCase().includes(search.toLowerCase())) })).filter((group) => group.items.length) : []
 
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border/70 bg-sidebar shadow-2xl shadow-sidebar/25 transition-[width] duration-200 md:flex">
