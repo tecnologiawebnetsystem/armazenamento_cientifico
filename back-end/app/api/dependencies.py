@@ -25,21 +25,20 @@ async def get_current_user(request: Request):
         user = get_session_user(session_id)
     else:
         async for database in get_session():
-            user = (
-                await database.execute(
-                    text(
-                        "select u.*, s.cav4_subject, p.id as profile_id, p.name as profile_name, "
-                        "coalesce(array_agg(distinct perm.id) filter (where pp.allowed = true and perm.active = true), '{}') as db_permissions "
-                        "from sessions s join users u on u.id=s.user_id "
-                        "left join profiles p on p.id=u.profile_id "
-                        "left join profile_permissions pp on pp.profile_id=p.id "
-                        "left join permissions perm on perm.id=pp.permission_id "
-                        "where s.id=:session_id and s.expires_at > now() "
-                        "group by u.id, p.id, p.name"
-                    ),
-                    {"session_id": session_id},
-                ).mappings().first()
+            user_result = await database.execute(
+                text(
+                    "select u.*, s.cav4_subject, p.id as profile_id, p.name as profile_name, "
+                    "coalesce(array_agg(distinct perm.id) filter (where pp.allowed = true and perm.active = true), '{}') as db_permissions "
+                    "from sessions s join users u on u.id=s.user_id "
+                    "left join profiles p on p.id=u.profile_id "
+                    "left join profile_permissions pp on pp.profile_id=p.id "
+                    "left join permissions perm on perm.id=pp.permission_id "
+                    "where s.id=:session_id and s.expires_at > now() "
+                    "group by u.id, p.id, p.name"
+                ),
+                {"session_id": session_id},
             )
+            user = user_result.mappings().first()
 
     if not user:
         logger.warning("auth_session_lookup_not_found session_present=true")
