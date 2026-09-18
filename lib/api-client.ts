@@ -25,13 +25,9 @@ import type {
  */
 const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
 const isProduction = process.env.NODE_ENV === "production"
-const isLocalBackendOutsideBrowser = Boolean(
-  typeof window !== "undefined" &&
-    configuredApiBaseUrl &&
-    /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?$/i.test(configuredApiBaseUrl.replace(/\/$/, "")) &&
-    !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(window.location.origin),
-)
-const API_BASE_URL = (isLocalBackendOutsideBrowser ? "" : configuredApiBaseUrl || "").replace(/\/$/, "")
+// No desenvolvimento, sempre use o proxy relativo `/api` para evitar CORS.
+// A URL absoluta fica reservada para o bundle de produção.
+const API_BASE_URL = (isProduction ? configuredApiBaseUrl || "" : "").replace(/\/$/, "")
 
 /**
  * Todas as chamadas são direcionadas ao FastAPI configurado. Em desenvolvimento,
