@@ -24,6 +24,20 @@ export function hasCapability(role: Role | string | null | undefined, capability
   return (roleCapabilities[normalized as keyof typeof roleCapabilities] ?? []).includes(capability as never)
 }
 
+const capabilityPermissions: Partial<Record<Capability, string>> = {
+  read: "projeto.visualizar",
+  create: "projeto.criar",
+  update: "projeto.editar",
+  delete: "projeto.excluir",
+  reports: "relatorio.exportar",
+}
+
+export function hasEffectiveCapability(role: Role | string | null | undefined, permissions: string[] | undefined, capability: Capability) {
+  if (!hasCapability(role, capability)) return false
+  const requiredPermission = capabilityPermissions[capability]
+  return !requiredPermission || !permissions || permissions.includes(requiredPermission)
+}
+
 export function normalizeRole(role: Role | string | null | undefined): keyof typeof roleCapabilities {
   const aliases: Record<string, keyof typeof roleCapabilities> = {
     administrador: "admin", administrator: "admin", gestor: "gerente", manager: "gerente",
