@@ -88,7 +88,14 @@ def _build_httpx_client() -> httpx.AsyncClient:
         ca_certs = settings.ca_ssl_cert_file
     elif settings.ca_ssl_use_truststore:
         ca_certs = True
-    return httpx.AsyncClient(verify=ca_certs if settings.ca_ssl_verify else False)
+    verify = ca_certs if settings.ca_ssl_verify else False
+    logger.info(
+        "[CAV4] TLS configurado verify=%s truststore=%s ca_file_configured=%s",
+        settings.ca_ssl_verify,
+        settings.ca_ssl_use_truststore,
+        bool(settings.ca_ssl_cert_file),
+    )
+    return httpx.AsyncClient(verify=verify)
 
 
 class CAV4OIDCProvider:
@@ -112,8 +119,14 @@ class CAV4OIDCProvider:
                 logger.info("[CAV4] Discovery endpoint carregado com sucesso")
                 return self._discovery_cache
         except httpx.HTTPError as e:
-            logger.error(f"[CAV4] Erro ao buscar discovery: {e}")
-            raise CAV4AuthenticationError(f"Erro ao conectar com CAV4: {e}") from e
+            logger.error(
+                "[CAV4] Erro ao buscar discovery verify=%s erro=%s",
+                settings.ca_ssl_verify,
+                str(e),
+            )
+            raise CAV4AuthenticationError(
+                "Erro ao conectar com CAV4. Verifique CA_SSL_VERIFY e reinicie o backend."
+            ) from e
 
     async def _fetch_jwks(self) -> dict[str, Any]:
         """Busca JWKS público para validar assinaturas JWT."""
@@ -189,8 +202,14 @@ class CAV4OIDCProvider:
             logger.error("[CAV4] Troca de código rejeitada status=%s response=%s", e.response.status_code, e.response.text[:500])
             raise CAV4AuthenticationError(f"CAV4 rejeitou a troca do código (HTTP {e.response.status_code}); inicie o login novamente") from e
         except httpx.HTTPError as e:
-            logger.error(f"[CAV4] Erro ao trocar código: {e}")
-            raise CAV4AuthenticationError(f"Erro ao obter token: {e}") from e
+            logger.error(
+                "[CAV4] Erro ao trocar código verify=%s erro=%s",
+                settings.ca_ssl_verify,
+                str(e),
+            )
+            raise CAV4AuthenticationError(
+                "Erro ao obter token do CAV4. Verifique CA_SSL_VERIFY e reinicie o backend."
+            ) from e
 
         id_token = token_data.get("id_token")
         if not id_token:
