@@ -69,8 +69,14 @@ type ApiErrorBody = { message?: string; detail?: string }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const startedAt = performance.now()
-  const res = await fetchRequest(`${API_BASE_URL}${path}`, init)
-  console.info("[v0] api_request", {
+  const requestUrl = `${API_BASE_URL}${path}`
+  console.info("[v0][API] request_start", {
+    path,
+    url: requestUrl,
+    credentials: "include",
+  })
+  const res = await fetchRequest(requestUrl, init)
+  console.info("[v0][API] request_complete", {
     path,
     status: res.status,
     durationMs: Math.round(performance.now() - startedAt),

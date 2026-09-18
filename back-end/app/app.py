@@ -29,8 +29,13 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     logger.info(
-        "application_startup database_engine=%s migrations=alembic startup_schema_mutation=false",
+        "[DIAGNOSTIC] application_startup database_engine=%s migrations=alembic startup_schema_mutation=false cav4_enabled=%s ca_ssl_verify=%s ca_ssl_truststore=%s db_ssl_verify=%s frontend_url=%s",
         settings.database_engine,
+        settings.cav4_enabled,
+        settings.ca_ssl_verify,
+        settings.ca_ssl_use_truststore,
+        settings.db_ssl_verify,
+        settings.frontend_url,
     )
     try:
         await connect()
