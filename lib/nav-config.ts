@@ -15,6 +15,7 @@ export interface NavItem {
   icon: LucideIcon
   /** Papéis que podem ver este item. Vazio = todos os papéis autenticados. */
   roles?: Role[]
+  children?: NavItem[]
 }
 
 export interface NavGroup {
@@ -33,16 +34,14 @@ export const navGroups: NavGroup[] = [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboardIcon },
       { title: "Projetos", url: "/projetos", icon: FolderKanbanIcon },
       {
-        title: "Pesquisas",
-        url: "/pesquisas",
-        icon: FlaskConicalIcon,
-        roles: ["admin", "patrocinador", "gerente"],
-      },
-      {
-        title: "Consultas e relatórios",
+        title: "Relatórios",
         url: "/relatorios",
         icon: BarChart3Icon,
         roles: ["admin", "patrocinador", "gerente"],
+        children: [
+          { title: "Relatório de projetos", url: "/relatorios", icon: BarChart3Icon },
+          { title: "Mapa de acessos", url: "/pesquisas", icon: FlaskConicalIcon },
+        ],
       },
       {
         title: "Consulta de logs",
@@ -63,7 +62,13 @@ export function filterNavForRole(groups: NavGroup[], role: Role): NavGroup[] {
   return groups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => !item.roles || item.roles.includes(normalizeRole(role) as Role)),
+      items: group.items
+        .filter((item) => !item.roles || item.roles.includes(normalizeRole(role) as Role))
+        .map((item) => ({
+          ...item,
+          children: item.children?.filter((child) => !child.roles || child.roles.includes(normalizeRole(role) as Role)),
+        }))
+        .filter((item) => !item.children || item.children.length > 0),
     }))
     .filter((group) => group.items.length > 0)
 }

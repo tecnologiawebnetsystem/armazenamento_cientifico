@@ -67,14 +67,11 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu className="gap-0.5">
                 {group.items.map((item) => {
-                  const isActive = pathname === item.url || pathname.startsWith(`${item.url}/`)
+                  const isActive = pathname === item.url || pathname.startsWith(`${item.url}/`) || item.children?.some((child) => pathname === child.url || pathname.startsWith(`${child.url}/`))
                   return (
                     <SidebarMenuItem key={item.url} className="relative">
                       {isActive ? (
-                        <span
-                          aria-hidden
-                          className="absolute top-1/2 left-0 h-6 w-0.5 -translate-y-1/2 rounded-r-full bg-sidebar-primary shadow-[0_0_8px_color-mix(in_oklch,var(--sidebar-primary)_55%,transparent)] group-data-[collapsible=icon]:hidden"
-                        />
+                        <span aria-hidden className="absolute top-1/2 left-0 h-6 w-0.5 -translate-y-1/2 rounded-r-full bg-sidebar-primary shadow-[0_0_8px_color-mix(in_oklch,var(--sidebar-primary)_55%,transparent)] group-data-[collapsible=icon]:hidden" />
                       ) : null}
                       <SidebarMenuButton
                         render={<Link href={item.url} />}
@@ -85,6 +82,24 @@ export function AppSidebar() {
                         <item.icon />
                         <span className="truncate">{item.title}</span>
                       </SidebarMenuButton>
+                      {item.children?.length ? (
+                        <div className="ml-5 flex flex-col gap-0.5 border-l border-sidebar-border/60 py-1 pl-2 group-data-[collapsible=icon]:hidden">
+                          {item.children.map((child) => {
+                            const childIsActive = pathname === child.url || pathname.startsWith(`${child.url}/`)
+                            return (
+                              <Link
+                                key={child.url}
+                                href={child.url}
+                                aria-current={childIsActive ? "page" : undefined}
+                                className="flex min-h-8 items-center gap-2 rounded-md px-2 text-xs text-sidebar-foreground/65 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground aria-[current=page]:bg-sidebar-accent aria-[current=page]:font-semibold aria-[current=page]:text-sidebar-primary"
+                              >
+                                <child.icon aria-hidden="true" />
+                                <span className="truncate">{child.title}</span>
+                              </Link>
+                            )
+                          })}
+                        </div>
+                      ) : null}
                     </SidebarMenuItem>
                   )
                 })}
