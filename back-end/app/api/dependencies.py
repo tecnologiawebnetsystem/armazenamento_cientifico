@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, Request
 
 from sqlalchemy import text
 
-from app.core.authorization import ensure_role, require_capability, role_capabilities
+from app.core.authorization import canonical_role, ensure_role, require_capability, role_capabilities
 from app.core.config import settings
 from app.core.temporary_sessions import get_session_user
 from app.db.session import get_session
@@ -37,7 +37,7 @@ async def get_current_user(request: Request):
     if not user:
         raise HTTPException(status_code=401, detail="Sessão inválida ou expirada")
 
-    database_role = user.get("role")
+    database_role = user.get("profile_name") or user.get("role")
     if not database_role:
         raise HTTPException(status_code=403, detail="Usuário autenticado sem perfil SIGAC configurado no banco de dados")
     database_permissions = set(user.get("db_permissions") or [])
@@ -47,7 +47,7 @@ async def get_current_user(request: Request):
     )
     return {
         **dict(user),
-        "role": database_role,
+        "role": canonical_role(database_role),
         "roles": list(user.get("roles") or []),
         "permissions": effective_permissions,
         "nome": user.get("name"),
