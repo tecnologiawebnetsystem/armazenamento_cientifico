@@ -3,6 +3,7 @@
 import useSWR from "swr"
 import { ExecutiveDashboard } from "@/components/dashboard/executive-dashboard"
 import { PageError, PageLoading } from "@/components/ui/page-state"
+import { PageHeader, PageLayout } from "@/components/shared/page-layout"
 import { getDashboardSummary } from "@/lib/api-client"
 import type { DashboardSummary } from "@/lib/types"
 
@@ -14,11 +15,11 @@ export default function DashboardPage() {
   })
 
   if (isLoading) {
-    return <main className="flex flex-col gap-6"><h1 className="text-2xl font-semibold">Dashboard</h1><PageLoading label="Consultando indicadores no banco de dados..." /></main>
+    return <PageLayout><PageHeader title="Dashboard" description="Visão executiva dos projetos e acessos autorizados." /><PageLoading label="Consultando indicadores no banco de dados..." /></PageLayout>
   }
 
   if (error || !data) {
-    return <main className="flex flex-col gap-4"><h1 className="text-2xl font-semibold">Dashboard</h1><PageError title="Não foi possível consultar o dashboard" message="Verifique a sessão e a disponibilidade da API." /></main>
+    return <PageLayout><PageHeader title="Dashboard" description="Visão executiva dos projetos e acessos autorizados." /><PageError title="Não foi possível consultar o dashboard" message="Verifique a sessão e a disponibilidade da API." /></PageLayout>
   }
 
   return <ExecutiveDashboard projects={data.projects} totalMembros={data.totalMembros} totalMapas={data.totalMapas} armazenamentoMb={data.armazenamentoMb} pendencias={data.pendencias} />
