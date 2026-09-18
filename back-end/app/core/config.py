@@ -79,9 +79,15 @@ class Settings(BaseModel):
     cav4_enabled: bool = os.getenv("CAV4_ENABLED", "false").lower() == "true"
     cav4_base_url: str = os.getenv("CA_API_BASE_URL") or os.getenv("CAV4_BASE_URL", "")
     oidc_discovery_url: str = os.getenv("OIDC_DISCOVERY_URL", "")
-    ca_ssl_use_truststore: bool = os.getenv("CA_SSL_USE_TRUSTSTORE", "true").lower() == "true"
+    ca_ssl_use_truststore: bool = os.getenv(
+        "CA_SSL_USE_TRUSTSTORE",
+        "true" if os.getenv("ENVIRONMENT", "development").lower() == "production" else "false",
+    ).lower() == "true"
     ca_ssl_cert_file: str = os.getenv("CA_SSL_CERT_FILE", "")
-    ca_ssl_verify: bool = os.getenv("CA_SSL_VERIFY", "true").lower() == "true"
+    ca_ssl_verify: bool = os.getenv(
+        "CA_SSL_VERIFY",
+        "true" if os.getenv("ENVIRONMENT", "development").lower() == "production" else "false",
+    ).lower() == "true"
     # O CAV4 fornece o identificador como CA_CLIENT_ID; CAV4_CLIENT_ID
     # permanece aceito para compatibilidade com configurações anteriores.
     cav4_client_id: str = os.getenv("CA_CLIENT_ID") or os.getenv("CAV4_CLIENT_ID", "")

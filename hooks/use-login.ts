@@ -13,7 +13,10 @@ export function useLogin(nextPath = "/dashboard") {
   const corporateLogin = useCallback(() => {
     setError(null)
     setLoading("corporate")
-    const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080").replace(/\/$/, "")
+    // Navegação relativa mantém o fluxo no proxy Next.js e evita CORS no navegador.
+    const apiBase = process.env.NODE_ENV === "production"
+      ? (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "")
+      : ""
     const callback = encodeURIComponent(nextPath)
     window.location.assign(`${apiBase}/api/auth/cav4/start?next=${callback}`)
   }, [nextPath])
