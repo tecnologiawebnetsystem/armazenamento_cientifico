@@ -25,7 +25,13 @@ import type {
  */
 const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
 const isProduction = process.env.NODE_ENV === "production"
-const API_BASE_URL = (configuredApiBaseUrl || "").replace(/\/$/, "")
+const isLocalBackendOutsideBrowser = Boolean(
+  typeof window !== "undefined" &&
+    configuredApiBaseUrl &&
+    /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?$/i.test(configuredApiBaseUrl.replace(/\/$/, "")) &&
+    !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(window.location.origin),
+)
+const API_BASE_URL = (isLocalBackendOutsideBrowser ? "" : configuredApiBaseUrl || "").replace(/\/$/, "")
 
 /**
  * Todas as chamadas são direcionadas ao FastAPI configurado. Em desenvolvimento,

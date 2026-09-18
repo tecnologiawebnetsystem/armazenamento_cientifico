@@ -63,7 +63,7 @@ TAGS_METADATA = [
 
 def create_app() -> FastAPI:
     application = FastAPI(title=settings.app_name, version=settings.app_version, description=API_DESCRIPTION, openapi_tags=TAGS_METADATA, lifespan=lifespan, docs_url="/docs" if settings.expose_api_docs else None, redoc_url="/redoc" if settings.expose_api_docs else None, openapi_url="/openapi.json" if settings.expose_api_docs else None)
-    application.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True, allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"], allow_headers=["Content-Type"], max_age=600)
+    application.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True, allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Authorization", "X-Request-ID"], max_age=600)
 
     @application.middleware("http")
     async def request_security_and_logging(request: Request, call_next: Any):
