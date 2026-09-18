@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.api.routes.cav4_auth import email_router as email_auth_router
 from app.api.routes.cav4_auth import router as cav4_auth_router
 from app.api.routes.cav4_directory import router as cav4_directory_router
 from app.api.routes.health import router as health_router
@@ -106,6 +107,7 @@ def create_app() -> FastAPI:
 
     application.include_router(health_router)
     application.include_router(cav4_auth_router)
+    application.include_router(email_auth_router)
     application.include_router(cav4_directory_router)
 
     application.include_router(projects_router)

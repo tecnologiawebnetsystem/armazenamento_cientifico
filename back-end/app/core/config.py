@@ -53,6 +53,10 @@ class Settings(BaseModel):
     ).lower() == "true"
     session_hours: int = int(os.getenv("SESSION_HOURS", "8"))
     temporary_cav4_session: bool = os.getenv("TEMPORARY_CAV4_SESSION", "false").lower() == "true"
+    email_login_enabled: bool = os.getenv(
+        "EMAIL_LOGIN_ENABLED",
+        "true" if os.getenv("ENVIRONMENT", "development").lower() != "production" else "false",
+    ).lower() == "true"
     db_min_size: int = int(os.getenv("DB_MIN_SIZE", "1"))
     db_max_size: int = int(os.getenv("DB_MAX_SIZE", "10"))
     db_command_timeout: int = int(os.getenv("DB_COMMAND_TIMEOUT", "30"))
