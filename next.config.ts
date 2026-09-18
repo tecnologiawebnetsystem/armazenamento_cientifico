@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [{
       source: "/api/:path*",
-      destination: `${process.env.BACKEND_INTERNAL_URL ?? "http://localhost:8080"}/api/:path*`,
+      destination: `${process.env.NODE_ENV === "development" ? "http://localhost:8080" : process.env.BACKEND_INTERNAL_URL ?? "http://localhost:8080"}/api/:path*`,
     }]
   },
 }
