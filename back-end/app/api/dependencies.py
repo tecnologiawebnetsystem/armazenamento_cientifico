@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, Request
 
 from sqlalchemy import text
 
-from app.core.authorization import ensure_role, require_capability, role_capabilities
+from app.core.authorization import ensure_role, require_capability, resolve_cav4_role, role_capabilities
 from app.core.config import settings
 from app.core.temporary_sessions import get_session_user
 from app.db.session import get_session
@@ -30,9 +30,19 @@ async def get_current_user(request: Request):
     if not user:
         raise HTTPException(status_code=401, detail="Sessão inválida ou expirada")
 
-    normalized_role = user.get("role") or "solicitante"
+    cav4_roles = list(user.get("roles") or [])
+    if not cav4_roles and user.get("role"):
+        cav4_roles = [str(user["role"])]
+    resolved_role = resolve_cav4_role(cav4_roles)
+    if resolved_role is None:
+        raise HTTPException(status_code=403, detail="Usuário sem papel SIGAC atribuído no CAV4")
+    claimed_permissions = set(user.get("permissions") or [])
+    effective_permissions = sorted((claimed_permissions or set(role_capabilities(resolved_role))) & set(role_capabilities(resolved_role)))
     return {
         **dict(user),
+        "role": resolved_role,
+        "roles": cav4_roles,
+        "permissions": effective_permissions,
         "nome": user.get("name"),
         "cargo": user.get("job_title"),
         "area": user.get("area"),

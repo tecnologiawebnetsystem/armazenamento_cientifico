@@ -36,6 +36,17 @@ def require_capability(user: Any, capability: str) -> Any:
     return user
 
 
+def resolve_cav4_role(roles: list[str] | tuple[str, ...] | None) -> str | None:
+    """Converte os papéis do CAV4 no único perfil efetivo do SIGAC.
+
+    A ordem evita que a ordem dos claims do provedor altere a autorização.
+    Papéis desconhecidos não recebem acesso por fallback.
+    """
+    priority = ("admin", "gerente", "patrocinador", "auditor", "solicitante")
+    canonical = {canonical_role(role) for role in (roles or [])}
+    return next((role for role in priority if role in canonical), None)
+
+
 def role_capabilities(role: str | None) -> frozenset[str]:
     return ROLE_CAPABILITIES.get(canonical_role(role), frozenset())
 
