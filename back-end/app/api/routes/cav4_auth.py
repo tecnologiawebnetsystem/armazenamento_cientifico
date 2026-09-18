@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse, Response
+from pydantic import BaseModel, EmailStr
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -17,6 +18,50 @@ from app.db.session import get_session
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth/cav4", tags=["Authentication"])
+email_router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+
+
+class EmailLoginRequest(BaseModel):
+    email: EmailStr
+
+
+@email_router.post("/login")
+async def email_login(payload: EmailLoginRequest):
+    """Login direto pelo e-mail para desenvolvimento/homologação; não usa CAV4."""
+    if not settings.email_login_enabled:
+        raise HTTPException(status_code=404, detail="Login direto por e-mail desabilitado")
+
+    email = str(payload.email).strip().lower()
+    session_id = str(uuid4())
+    expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours)
+    try:
+        async for database in get_session():
+            result = await database.execute(
+                text("select id, profile_id from users where lower(email)=:email"),
+                {"email": email},
+            )
+            user = result.mappings().first()
+            if not user:
+                raise HTTPException(status_code=401, detail="E-mail não cadastrado na plataforma")
+            if not user.get("profile_id"):
+                raise HTTPException(status_code=403, detail="Usuário sem perfil SIGAC configurado")
+            await database.execute(text("update users set last_login_at=now() where id=:user_id"), {"user_id": user["id"]})
+            await database.execute(text("delete from sessions where user_id=:user_id"), {"user_id": user["id"]})
+            await database.execute(
+                text("insert into sessions(id,user_id,expires_at,cav4_subject) values(:id,:user_id,:expires_at,:subject)"),
+                {"id": session_id, "user_id": user["id"], "expires_at": expires_at, "subject": f"email:{email}"},
+            )
+            await database.commit()
+    except HTTPException:
+        raise
+    except SQLAlchemyError as exc:
+        logger.exception("email_login_failed reason=database_unavailable")
+        raise HTTPException(status_code=503, detail="Banco de dados indisponível") from exc
+
+    response = Response(content='{"ok":true}', media_type="application/json")
+    response.set_cookie(settings.cookie_name, session_id, httponly=True, secure=settings.cookie_secure, samesite="lax", max_age=settings.session_hours * 3600)
+    logger.info("email_login_ok user_id=%s profile_id=%s", user["id"], user["profile_id"])
+    return response
 
 
 @router.get("/session", include_in_schema=True)

@@ -1,4 +1,6 @@
+import ssl
 from collections.abc import AsyncIterator
+from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sqlalchemy import text
@@ -33,13 +35,28 @@ def configure_engine() -> None:
     global engine, session_factory
     if engine is not None or not settings.database_url:
         return
+    ssl_context: ssl.SSLContext | bool
+    if settings.db_ssl_verify:
+        if settings.db_ssl_ca_file:
+            if not Path(settings.db_ssl_ca_file).is_file():
+                raise RuntimeError("DB_SSL_CA_FILE aponta para um arquivo inexistente")
+            ssl_context = ssl.create_default_context(cafile=settings.db_ssl_ca_file)
+        else:
+            # O ambiente não possui uma CA local. O TLS continua ativo,
+            # mas a verificação do certificado fica desabilitada explicitamente.
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+    else:
+        ssl_context = False
+
     engine_options = {
         "echo": False,
         "pool_pre_ping": True,
         "pool_size": settings.db_max_size,
         "max_overflow": 0,
         "pool_timeout": settings.db_command_timeout,
-        "connect_args": {"ssl": settings.db_ssl_verify, "server_settings": {"search_path": settings.db_schema}},
+        "connect_args": {"ssl": ssl_context, "server_settings": {"search_path": settings.db_schema}},
     }
     engine = create_async_engine(_async_database_url(), **engine_options)
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
