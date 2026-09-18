@@ -1,6 +1,7 @@
 """Store the authenticated CAV4 subject on the SIGAC session only."""
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 revision = "0016_add_cav4_subject_to_sessions"
 down_revision = "0015_remove_orphan_app_tables"

@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, datetime, timedelta
 from secrets import compare_digest
 from uuid import uuid4
@@ -7,12 +8,11 @@ from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.api.dependencies import get_current_user
 from app.core.cav4 import CAV4AuthenticationError, decode_state_nonce, get_cav4_provider
 from app.core.config import settings
 from app.core.temporary_sessions import create_session, delete_session
-from app.api.dependencies import get_current_user
 from app.db.session import get_session
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -29,13 +29,10 @@ async def cav4_session(request: Request):
             return {"user": None}
         raise
     logger.info(
-        "cav4_session_authenticated user_id=%s email=%s role=%s roles=%s permissions=%s groups=%s",
+        "cav4_session_authenticated user_id=%s email=%s role=%s",
         user.get("id"),
         user.get("email"),
         user.get("role"),
-        user.get("roles", []),
-        user.get("permissions", []),
-        user.get("groups", []),
     )
     return {"user": dict(user)}
 
@@ -136,11 +133,9 @@ async def cav4_callback(request: Request, code: str, state: str):
     safe_next = next_path if next_path.startswith("/") and not next_path.startswith("//") else "/dashboard"
     redirect_url = f"{settings.frontend_url}{safe_next}"
     logger.info(
-        "cav4_authentication_ok subject=%s email=%s roles=%s permissions=%s",
+        "cav4_authentication_ok subject=%s email=%s",
         identity.subject,
         identity.email,
-        list(identity.roles),
-        list(identity.permissions),
     )
     response = RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
     response.delete_cookie("cav4_oauth_state")

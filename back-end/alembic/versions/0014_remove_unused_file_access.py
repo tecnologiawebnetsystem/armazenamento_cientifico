@@ -11,7 +11,6 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    bind = op.get_bind()
     cascade_clause = " CASCADE"
 
     for table in ("file_permissions", "file_shares", "group_members", "groups", "notifications"):

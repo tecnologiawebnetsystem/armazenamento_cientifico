@@ -1,20 +1,20 @@
+from app.modules.catalogs.area_model import ResponsibleArea
 from app.modules.catalogs.models import (
+    MenuItem,
     Module,
     Permission,
-    SystemSetting,
     ProjectStatusCatalog,
     ProjectType,
-    MenuItem,
+    SystemSetting,
 )
-from app.modules.catalogs.area_model import ResponsibleArea
 from app.modules.catalogs.repository import (
+    MenuItemRepository,
     ModuleRepository,
     PermissionRepository,
-    SystemSettingRepository,
     ProjectStatusRepository,
     ProjectTypeRepository,
     ResponsibleAreaRepository,
-    MenuItemRepository,
+    SystemSettingRepository,
 )
 
 

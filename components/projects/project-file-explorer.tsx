@@ -14,8 +14,6 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/in
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import useSWR from "swr"
 import { getFolders } from "@/lib/api-client"
-import type { FileNode } from "@/lib/types"
-
 function FolderIconBadge() {
   return <FolderIcon className="size-5 shrink-0 text-petrobras-green" aria-hidden="true" />
 }
@@ -23,12 +21,12 @@ function FolderIconBadge() {
 export function ProjectFileExplorer({ projectId }: { projectId: string }) {
   const { data, isLoading } = useSWR(["project-folders", projectId], () => getFolders(projectId))
   const [search, setSearch] = useState("")
-  const folders = data?.folders ?? []
   const visibleFolders = useMemo(() => {
+    const folders = data?.folders ?? []
     const q = search.trim().toLowerCase()
     if (!q) return folders
     return folders.filter((folder) => folder.nome.toLowerCase().includes(q))
-  }, [folders, search])
+  }, [data?.folders, search])
 
   return (
     <Card className="overflow-hidden border-border/80 shadow-sm">
