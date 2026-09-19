@@ -26,8 +26,14 @@ def _database_url() -> str:
     if host and user and password:
         from urllib.parse import quote
 
+        database = (
+            os.getenv("RDS_AURORA_POSTGRES_DATABASE", "").strip()
+            or os.getenv("POSTGRES_DATABASE", "").strip()
+            or os.getenv("PGDATABASE", "").strip()
+            or "armazenamento_cientifico"
+        )
         credentials = f"{quote(user, safe='')}:{quote(password, safe='')}"
-        return f"postgresql://{credentials}@{host}:5432/armazenamento_cientifico"
+        return f"postgresql://{credentials}@{host}:5432/{quote(database, safe='')}"
     return ""
 
 
