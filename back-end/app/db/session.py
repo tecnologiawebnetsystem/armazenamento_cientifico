@@ -89,7 +89,7 @@ async def get_pool():
 async def get_session() -> AsyncIterator[AsyncSession]:
     configure_engine()
     if session_factory is None:
-        raise RuntimeError("DATABASE_URL não configurada ou banco indisponível")
+        raise RuntimeError("Banco não configurado: informe as variáveis RDS_AURORA_POSTGRES_* ou configure o SQLite local")
     async with session_factory() as session:
         yield session
 

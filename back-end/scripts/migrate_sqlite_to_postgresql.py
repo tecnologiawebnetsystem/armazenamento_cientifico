@@ -149,9 +149,17 @@ async def main() -> None:
     args = parse_args()
     if not SOURCE.exists():
         raise FileNotFoundError(f"SQLite não encontrado: {SOURCE}")
-    database_url = os.getenv("DATABASE_URL")
+    database_url = os.getenv("RDS_AURORA_POSTGRES_URL", "").strip()
     if not database_url:
-        raise RuntimeError("DATABASE_URL não está disponível")
+        host = os.getenv("RDS_AURORA_POSTGRES_HOST", "").strip()
+        username = os.getenv("RDS_AURORA_POSTGRES_USERNAME", "").strip()
+        password = os.getenv("RDS_AURORA_POSTGRES_PASSWORD", "")
+        database = os.getenv("RDS_AURORA_POSTGRES_DATABASE", "armazenamento_cientifico").strip()
+        port = os.getenv("RDS_AURORA_POSTGRES_PORT", "5432").strip()
+        if not all((host, username, password)):
+            raise RuntimeError("Configure RDS_AURORA_POSTGRES_URL ou host, usuário e senha do Aurora PostgreSQL")
+        from urllib.parse import quote_plus
+        database_url = f"postgresql://{quote_plus(username)}:{quote_plus(password)}@{host}:{port}/{quote_plus(database)}?sslmode=require"
 
     sqlite = sqlite3.connect(SOURCE)
     sqlite.row_factory = sqlite3.Row

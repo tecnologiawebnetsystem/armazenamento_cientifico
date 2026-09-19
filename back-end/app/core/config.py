@@ -1,6 +1,7 @@
 import os
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import quote_plus
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, model_validator
@@ -22,16 +23,30 @@ def _resolve_engine() -> str:
         if engine not in {"sqlite", "postgresql", "postgres"}:
             raise ValueError("DATABASE_ENGINE deve ser sqlite ou postgresql")
         return "postgresql" if engine == "postgres" else engine
-    url = (os.getenv("DATABASE_URL") or "").lower()
-    if url.startswith(("postgresql://", "postgres://")):
+    if os.getenv("RDS_AURORA_POSTGRES_URL") or os.getenv("RDS_AURORA_POSTGRES_HOST"):
         return "postgresql"
     return "sqlite"
 
 
 def _database_url(engine: str) -> str:
     if engine == "sqlite":
-        return os.getenv("DATABASE_URL_SQLITE") or os.getenv("DATABASE_URL") or "sqlite+aiosqlite:///./data/sigac.db"
-    return os.getenv("DATABASE_URL_POSTGRESQL") or os.getenv("DATABASE_URL") or ""
+        return os.getenv("DATABASE_URL_SQLITE") or "sqlite+aiosqlite:///./data/sigac.db"
+
+    direct_url = os.getenv("RDS_AURORA_POSTGRES_URL", "").strip()
+    if direct_url:
+        return direct_url
+
+    host = os.getenv("RDS_AURORA_POSTGRES_HOST", "").strip()
+    username = os.getenv("RDS_AURORA_POSTGRES_USERNAME", "").strip()
+    password = os.getenv("RDS_AURORA_POSTGRES_PASSWORD", "")
+    database = os.getenv("RDS_AURORA_POSTGRES_DATABASE", "armazenamento_cientifico").strip()
+    port = os.getenv("RDS_AURORA_POSTGRES_PORT", "5432").strip()
+    if host and username and password:
+        return (
+            f"postgresql://{quote_plus(username)}:{quote_plus(password)}"
+            f"@{host}:{port}/{quote_plus(database)}?sslmode=require"
+        )
+    return ""
 
 
 _RESOLVED_ENGINE = _resolve_engine()
@@ -98,11 +113,11 @@ class Settings(BaseModel):
         if self.database_engine not in {"sqlite", "postgresql", "postgres"}:
             raise ValueError("DATABASE_ENGINE deve ser sqlite ou postgresql")
         if not self.database_url.strip():
-            raise ValueError("DATABASE_URL é obrigatória para o banco selecionado")
+            raise ValueError("Configure RDS_AURORA_POSTGRES_URL ou host, usuário e senha do Aurora PostgreSQL")
         if self.database_engine == "sqlite" and not self.database_url.startswith(("sqlite://", "sqlite+aiosqlite://")):
-            raise ValueError("SQLite exige uma DATABASE_URL sqlite:// ou sqlite+aiosqlite://")
+            raise ValueError("SQLite exige DATABASE_URL_SQLITE com esquema sqlite:// ou sqlite+aiosqlite://")
         if self.database_engine != "sqlite" and not self.database_url.startswith(("postgresql://", "postgres://")):
-            raise ValueError("PostgreSQL exige uma DATABASE_URL PostgreSQL")
+            raise ValueError("Aurora PostgreSQL exige RDS_AURORA_POSTGRES_URL ou os componentes RDS_AURORA_POSTGRES_*")
         if self.db_min_size < 1 or self.db_max_size < self.db_min_size:
             raise ValueError("DB_MIN_SIZE e DB_MAX_SIZE possuem valores inválidos")
         if self.environment.lower() == "production":
