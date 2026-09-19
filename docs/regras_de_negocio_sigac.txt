@@ -145,15 +145,13 @@ Os perfis funcionais previstos são:
 - gerente: operação dentro do escopo autorizado;
 - patrocinador: acompanhamento executivo e visão autorizada;
 - auditor: consulta e auditoria;
-- solicitante: consulta e acompanhamento do próprio escopo.
+- solicitante: perfil externo, sem acesso ao sistema SIGAC; utiliza somente a pasta física do servidor conforme autorização.
 
-Os nomes técnicos devem ser padronizados pelo backend. Termos legados como
+Somente administrador, gerente, auditor e patrocinador possuem acesso ao sistema SIGAC. Os nomes técnicos devem ser padronizados pelo backend. Termos legados como
 `admin`, `administrator`, `manager`, `sponsor`, `viewer` e `requester` podem
 ser normalizados somente para compatibilidade, sem criar perfis adicionais.
 
-A fonte oficial dos papéis deverá ser o CAV4, por meio de roles, grupos ou
-atributos corporativos. O SIGAC poderá manter dados locais de apoio, mas o
-frontend não poderá definir o papel do usuário.
+A fonte oficial do perfil funcional do SIGAC é o cadastro local no PostgreSQL Aurora, relacionado ao usuário pelo e-mail corporativo autenticado. O CAV4 fornece identidade, e-mail e dados corporativos; seus grupos e claims podem complementar a identificação, mas não substituem o perfil local. O frontend nunca define o papel do usuário.
 
 PONTO PARA VALIDAÇÃO DO GESTOR:
 
@@ -174,10 +172,11 @@ Pode, conforme os endpoints efetivamente disponibilizados:
 - visualizar todos os projetos e pastas autorizadas;
 - consultar usuários, grupos, papéis e permissões;
 - administrar cadastros e configurações do SIGAC;
-- administrar membros e vínculos de projeto;
-- consultar logs e auditoria;
-- consultar relatórios autorizados;
-- aprovar ou revogar solicitações, se esse fluxo estiver habilitado.
+- visualizar projetos e vínculos autorizados;
+  - consultar logs e auditoria;
+  - consultar relatórios autorizados.
+
+O administrador não inclui usuários nas permissões de pastas nem revoga acessos físicos no servidor. Essas informações são somente consultivas nesta fase.
 
 O administrador não recebe autorização para criar pastas ou manipular
 arquivos, pois essas funções não fazem parte da primeira fase.
@@ -189,10 +188,10 @@ Pode:
 - visualizar projetos dentro do próprio escopo;
 - consultar pastas vinculadas aos projetos autorizados;
 - visualizar usuários, grupos e níveis de acesso do escopo;
-- administrar membros ou solicitações quando autorizado pelo projeto;
-- consultar relatórios do próprio escopo, se habilitado.
+- visualizar membros, grupos e níveis de acesso das pastas no próprio escopo;
+  - consultar relatórios do próprio escopo, se habilitado.
 
-Não pode administrar configurações globais nem usuários fora do escopo.
+Não pode incluir usuários, revogar acessos físicos, administrar configurações globais nem consultar usuários fora do escopo.
 
 5.3. Patrocinador
 
@@ -217,15 +216,7 @@ Não pode alterar projetos, usuários, membros, permissões ou configurações.
 
 5.5. Solicitante
 
-Pode:
-
-- consultar os projetos e pastas para os quais possui autorização;
-- visualizar o próprio escopo de acesso;
-- acompanhar solicitações próprias, se o fluxo de solicitações estiver
-  habilitado.
-
-Não pode consultar o universo global nem alterar configurações, auditoria,
-usuários ou permissões.
+O solicitante não possui acesso ao sistema SIGAC. Seu acesso é exclusivamente à pasta física do servidor, conforme as permissões administradas fora do SIGAC. O sistema pode exibir o solicitante nos mapas e relatórios de acesso, mas não oferece sessão, menus ou funcionalidades para esse perfil.
 
 ======================================================================
 6. MENUS E AUTORIZAÇÃO

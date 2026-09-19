@@ -29,7 +29,7 @@
 
 ## 1. Visão geral
 
-O SIGAC controla o acesso a projetos, arquivos científicos, membros, solicitações e registros de auditoria. Arquivos e pastas são consultados em modo somente leitura; criação, edição, exclusão e compartilhamento de arquivos não fazem parte do contrato atual.
+O SIGAC controla projetos, perfis, relatórios, auditoria e a consulta de pastas e permissões do armazenamento científico. As pastas são consultadas em modo somente leitura; o sistema não cria pastas, não manipula arquivos e não altera permissões físicas no servidor na primeira fase.
 
 ### Responsabilidade de cada camada
 
@@ -156,7 +156,7 @@ pnpm dev
 
 ## 3. PostgreSQL passo a passo
 
-O SiGAC utiliza PostgreSQL como banco de dados relacional da aplicação. O banco concentra usuários, perfis, projetos, arquivos, vínculos de acesso, solicitações e registros de auditoria, enquanto o backend FastAPI centraliza as regras de negócio e o acesso aos dados.
+O SIGAC utiliza PostgreSQL Aurora externo como banco relacional da aplicação. O banco concentra usuários, perfis, módulos, permissões por perfil, projetos, vínculos, pastas consultivas, relatórios e registros de auditoria; o backend FastAPI centraliza as regras de negócio e o acesso aos dados.
 
 ### Configuração pelo `.env`
 
