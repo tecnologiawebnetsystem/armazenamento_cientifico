@@ -40,9 +40,19 @@ export function useLogin(nextPath = "/dashboard") {
       })
       if (!response.ok) {
         const body = await response.json().catch(() => null)
-        throw new Error(body?.detail ?? "Não foi possível entrar com este e-mail")
+        const detail = typeof body?.detail === "string" ? body.detail : body?.detail?.message
+        throw new Error(detail ?? "Não foi possível entrar com este e-mail")
       }
-      window.location.assign(nextPath)
+
+      const sessionResponse = await fetch("/api/auth/session", {
+        credentials: "include",
+        cache: "no-store",
+      })
+      if (!sessionResponse.ok) {
+        throw new Error("Login concluído, mas a sessão não foi reconhecida. Verifique o cookie e reinicie o backend.")
+      }
+
+      window.location.replace(nextPath)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Falha no login por e-mail")
       setLoading(null)
