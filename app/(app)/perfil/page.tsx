@@ -18,6 +18,7 @@ export default async function ProfilePage() {
               <div><p className="text-muted-foreground">Nome</p><p className="font-medium">{user.nome || "Não informado"}</p></div>
               <div className="flex items-start gap-3"><MailIcon className="mt-0.5 size-4 text-muted-foreground" /><div><p className="text-muted-foreground">E-mail corporativo</p><p className="font-medium break-all">{user.email}</p></div></div>
               <div><p className="text-muted-foreground">Cargo / área</p><p className="font-medium">{[user.cargo, user.area].filter(Boolean).join(" · ") || "Não informado"}</p></div>
+              <div><p className="text-muted-foreground">Último acesso</p><p className="font-medium">{user.ultimoLogin ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(user.ultimoLogin)) : "Não registrado"}</p></div>
             </CardContent>
           </Card>
           <Card>
@@ -25,14 +26,20 @@ export default async function ProfilePage() {
             <CardContent className="grid gap-4 text-sm">
               <div><p className="text-muted-foreground">Perfil local</p><p className="font-medium">{user.perfilNome || user.role || "Não configurado"}</p></div>
               <div><p className="text-muted-foreground">Permissões ativas</p><p className="font-medium">{user.permissions?.length ?? 0}</p></div>
-              <div><p className="text-muted-foreground">Origem da autorização</p><p className="font-medium">Banco de dados SIGAC</p></div>
+              <div><p className="text-muted-foreground">Identificador do usuário</p><p className="break-all font-medium">{user.id}</p></div>
             </CardContent>
           </Card>
-          <Card className="md:col-span-2">
-            <CardHeader><CardTitle className="flex items-center gap-2"><KeyRoundIcon className="size-5 text-primary" /> Chave de identidade CAV4</CardTitle></CardHeader>
+          <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2"><KeyRoundIcon className="size-5 text-primary" /> Identidade da sessão</CardTitle></CardHeader>
+            <CardContent className="grid gap-4 text-sm">
+              <div><p className="text-muted-foreground">Cadastro criado em</p><p className="font-medium">{new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(new Date(user.criadoEm))}</p></div>
+              <div><p className="text-muted-foreground">Identidade corporativa</p><p className="font-medium">{user.roles?.length ? user.roles.join(" · ") : "Não informado"}</p></div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2"><ShieldCheckIcon className="size-5 text-primary" /> Permissões efetivas</CardTitle></CardHeader>
             <CardContent>
-              <p className="mb-2 text-sm text-muted-foreground">Identificador retornado pelo CAV4 para esta sessão. O token de acesso nunca é exibido.</p>
-              <code className="block overflow-x-auto rounded-lg border bg-muted/50 p-3 text-sm">{user.chaveCav4 || "Não disponível nesta sessão"}</code>
+              {user.permissions?.length ? <ul className="grid gap-2 text-sm sm:grid-cols-2">{user.permissions.map((permission) => <li key={permission} className="rounded-lg bg-muted/50 px-3 py-2 font-medium">{permission}</li>)}</ul> : <p className="text-sm text-muted-foreground">Nenhuma permissão registrada para esta sessão.</p>}
             </CardContent>
           </Card>
         </div>

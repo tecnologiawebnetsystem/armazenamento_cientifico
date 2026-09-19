@@ -50,11 +50,11 @@ class PlatformRepository:
         return await self.rows("select id, name as nome, email, job_title as cargo, area, avatar_url as \"avatarUrl\", last_login_at as \"ultimoLogin\", role, profile_id as \"perfilId\", created_at as \"criadoEm\" from users order by name")
 
     async def folders(self, project_id: str) -> list[dict[str, Any]]:
-        return await self.rows("select id, project_id as \"projectId\", parent_id as \"parentId\", 'pasta' as tipo, name as nome, size as tamanho, mime_type as \"mimeType\", created_by as \"criadoPor\", created_at as \"criadoEm\", updated_at as \"atualizadoEm\" from folders where project_id = :project_id order by name", {"project_id": project_id})
+        return await self.rows("select id, project_id as \"projectId\", parent_id as \"parentId\", kind as tipo, name as nome, size_bytes as tamanho, mime_type as \"mimeType\", created_by as \"criadoPor\", created_at as \"criadoEm\", updated_at as \"atualizadoEm\" from folders where project_id = :project_id order by name", {"project_id": project_id})
 
     async def dashboard(self) -> dict[str, Any]:
         projects = await self.rows(f"select id, name as nome, code as codigo, responsible_area as \"areaResponsavel\", status, description as descricao, created_at as \"criadoEm\", updated_at as \"atualizadoEm\" from {self.schema}.projects order by updated_at desc")
-        counts = await self.one(f"select (select count(*) from {self.schema}.project_members) as membros, (select count(*) from {self.schema}.folders) as mapas, (select count(*) from {self.schema}.access_requests where status = 'pendente') as pendencias, (select coalesce(sum(size), 0) from {self.schema}.folders) as armazenamento")
+        counts = await self.one(f"select (select count(*) from {self.schema}.project_members) as membros, (select count(*) from {self.schema}.folders) as mapas, (select count(*) from {self.schema}.access_requests where status = 'pendente') as pendencias, (select coalesce(sum(size_bytes), 0) from {self.schema}.folders) as armazenamento")
         activity = await self.rows(f"select id, user_id as \"userId\", action as acao, entity as entidade, entity_id as \"entidadeId\", details as detalhes, created_at as \"criadoEm\", result as resultado, project_id as \"projetoId\" from {self.schema}.activity_logs order by created_at desc limit 10")
         return {"projects": projects, "totalMembros": counts["membros"], "totalMapas": counts["mapas"], "armazenamentoMb": counts["armazenamento"], "pendencias": counts["pendencias"], "activity": activity, "source": "database", "consultedAt": datetime.now(UTC).isoformat()}
 

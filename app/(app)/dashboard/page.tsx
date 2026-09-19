@@ -24,5 +24,5 @@ export default function DashboardPage() {
     return <PageLayout><PageHeader title="Dashboard" description="Visão executiva dos projetos e acessos autorizados." /><PageError title="Não foi possível consultar o dashboard" message="Verifique a sessão e a disponibilidade da API." /></PageLayout>
   }
 
-  return <ExecutiveDashboard role={user?.role ?? "auditor"} projects={data.projects} totalMembros={data.totalMembros} totalMapas={data.totalMapas} armazenamentoMb={data.armazenamentoMb} pendencias={data.pendencias} />
+  return <ExecutiveDashboard role={user?.role ?? "auditor"} projects={data.projects} totalMembros={data.totalMembros} totalMapas={data.totalMapas} armazenamentoMb={data.armazenamentoMb} pendencias={data.pendencias} activity={data.activity} consultedAt={data.consultedAt} />
 }
