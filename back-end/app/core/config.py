@@ -127,9 +127,21 @@ class Settings(BaseModel):
         if self.database_url and not self.database_url.startswith(("postgresql://", "postgres://", "postgresql+asyncpg://")):
             raise ValueError("DATABASE_URL/RDS_AURORA_POSTGRES_URL deve usar o esquema PostgreSQL/Aurora")
         if not self.database_url and not self.temporary_cav4_session:
-            raise ValueError("DATABASE_URL/POSTGRES_URL ou RDS_AURORA_POSTGRES_URL/host/username/password/database são obrigatórias")
+            connection_vars = (
+                "DATABASE_URL/POSTGRES_URL"
+                " ou RDS_AURORA_POSTGRES_URL"
+                " ou RDS_AURORA_POSTGRES_HOST + RDS_AURORA_POSTGRES_USERNAME"
+                " + RDS_AURORA_POSTGRES_PASSWORD + RDS_AURORA_POSTGRES_DATABASE"
+            )
+            raise ValueError(
+                f"Configuração PostgreSQL ausente. Defina {connection_vars} no arquivo .env "
+                "do diretório back-end (copie .env.example para .env e preencha os valores)."
+            )
         if not self.db_schema:
-            raise ValueError("DB_SCHEMA é obrigatório e deve ser definido no ambiente")
+            raise ValueError(
+                "DB_SCHEMA é obrigatório. Defina o schema no arquivo .env; "
+                "não há schema fixo no código."
+            )
         if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", self.db_schema):
             raise ValueError("DB_SCHEMA deve conter apenas um identificador PostgreSQL válido")
         if self.db_min_size < 1 or self.db_max_size < self.db_min_size:
