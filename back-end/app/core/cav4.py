@@ -4,6 +4,7 @@ import json
 import logging
 import secrets
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from time import perf_counter
 from typing import Any, Protocol
@@ -287,6 +288,7 @@ class CAV4OIDCProvider:
             raise CAV4AuthenticationError(f"Erro ao consultar CAV4: {exc}") from exc
 
 
+@lru_cache(maxsize=1)
 def get_cav4_provider() -> CAV4Provider:
     """Retorna provider CAV4 OIDC se habilitado, senão placeholder."""
     if settings.cav4_enabled:
