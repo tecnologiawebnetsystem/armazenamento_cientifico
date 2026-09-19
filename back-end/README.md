@@ -105,10 +105,10 @@ Para execução em container:
 
 O único banco suportado é **PostgreSQL**, incluindo Amazon Aurora PostgreSQL. A API não cria schema no startup, não usa SQLite e não possui fallback local. O schema é criado e alterado exclusivamente pelo Alembic.
 
-A conexão pode ser informada por `DATABASE_URL` ou pelo conjunto `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER` e `PGPASSWORD` (ou pelos nomes equivalentes `RDS_AURORA_POSTGRES_*`). Para Aurora com autenticação IAM, use a URL/credenciais injetadas pelo ambiente de execução e TLS obrigatório.
+A conexão deve ser informada por `RDS_AURORA_POSTGRES_URL` ou pelo conjunto `RDS_AURORA_POSTGRES_HOST`, `RDS_AURORA_POSTGRES_USERNAME` e `RDS_AURORA_POSTGRES_PASSWORD`. Para Aurora com autenticação IAM, use a URL/credenciais injetadas pelo ambiente de execução e TLS obrigatório.
 
 ```dotenv
-DATABASE_URL=postgresql+asyncpg://usuario:senha@host:5432/sigac
+RDS_AURORA_POSTGRES_URL=postgresql+asyncpg://usuario:senha@host:5432/sigac
 DB_MIN_SIZE=1
 DB_MAX_SIZE=10
 DB_COMMAND_TIMEOUT=30
@@ -128,7 +128,7 @@ cp .env.example .env
 Configuração mínima recomendada para desenvolvimento conectado ao Aurora/PostgreSQL:
 
 ```dotenv
-DATABASE_URL=postgresql+asyncpg://usuario:senha@localhost:5432/sigac
+RDS_AURORA_POSTGRES_URL=postgresql+asyncpg://usuario:senha@localhost:5432/sigac
 DB_MIN_SIZE=1
 DB_MAX_SIZE=10
 DB_COMMAND_TIMEOUT=30

@@ -73,7 +73,7 @@ async def dispose_engine() -> None:
 async def get_session() -> AsyncIterator[AsyncSession]:
     configure_engine()
     if session_factory is None:
-        raise RuntimeError("DATABASE_URL não configurada ou banco indisponível")
+        raise RuntimeError("Configuração Aurora PostgreSQL não disponível ou banco indisponível")
     async with session_factory() as session:
         yield session
 
@@ -84,7 +84,7 @@ async def connect() -> None:
     logger = logging.getLogger(__name__)
     configure_engine()
     if engine is None:
-        raise RuntimeError("DATABASE_URL não configurada")
+        raise RuntimeError("Configuração Aurora PostgreSQL não disponível")
     logger.info("database_connect_start engine=postgresql pool_max=%s", settings.db_max_size)
     async with engine.connect() as connection:
         result = await connection.execute(text("SELECT current_database(), current_user, current_schema()"))

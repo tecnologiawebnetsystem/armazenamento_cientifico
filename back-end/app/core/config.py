@@ -12,26 +12,18 @@ load_dotenv()
 
 
 def _database_url() -> str:
-    direct_url = os.getenv("DATABASE_URL", "").strip()
-    if direct_url:
-        return direct_url
+    aurora_url = os.getenv("RDS_AURORA_POSTGRES_URL", "").strip()
+    if aurora_url:
+        return aurora_url if "://" in aurora_url else f"postgresql://{aurora_url}"
 
-    legacy_url = os.getenv("RDS_AURORA_POSTGRES_URL", "").strip()
-    if legacy_url:
-        return legacy_url if "://" in legacy_url else f"postgresql://{legacy_url}"
-
-    host = (os.getenv("PGHOST") or os.getenv("RDS_AURORA_POSTGRES_HOST") or "").strip()
-    database = (os.getenv("PGDATABASE") or os.getenv("RDS_AURORA_POSTGRES_DBNAME") or "").strip()
-    user = (os.getenv("PGUSER") or os.getenv("RDS_AURORA_POSTGRES_USERNAME") or "").strip()
-    password = (os.getenv("PGPASSWORD") or os.getenv("RDS_AURORA_POSTGRES_PASSWORD") or "").strip()
-    if host and database and user:
+    host = os.getenv("RDS_AURORA_POSTGRES_HOST", "").strip()
+    user = os.getenv("RDS_AURORA_POSTGRES_USERNAME", "").strip()
+    password = os.getenv("RDS_AURORA_POSTGRES_PASSWORD", "").strip()
+    if host and user and password:
         from urllib.parse import quote
 
-        port = os.getenv("PGPORT", "5432").strip()
-        credentials = quote(user, safe="")
-        if password:
-            credentials += f":{quote(password, safe='')}"
-        return f"postgresql://{credentials}@{host}:{port}/{database}"
+        credentials = f"{quote(user, safe='')}:{quote(password, safe='')}"
+        return f"postgresql://{credentials}@{host}:5432/armazenamento_cientifico"
     return ""
 
 
@@ -110,9 +102,9 @@ class Settings(BaseModel):
     @model_validator(mode="after")
     def validate_entra(self) -> "Settings":
         if self.database_url and not self.database_url.startswith(("postgresql://", "postgres://", "postgresql+asyncpg://")):
-            raise ValueError("DATABASE_URL deve usar o esquema PostgreSQL/Aurora")
+            raise ValueError("RDS_AURORA_POSTGRES_URL deve usar o esquema PostgreSQL/Aurora")
         if not self.database_url and not self.temporary_cav4_session:
-            raise ValueError("DATABASE_URL ou variáveis PG*/RDS_AURORA_POSTGRES_* são obrigatórias")
+            raise ValueError("RDS_AURORA_POSTGRES_URL ou RDS_AURORA_POSTGRES_HOST/USERNAME/PASSWORD são obrigatórias")
         if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", self.db_schema):
             raise ValueError("DB_SCHEMA deve conter apenas um identificador PostgreSQL válido")
         if self.db_min_size < 1 or self.db_max_size < self.db_min_size:

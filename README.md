@@ -164,7 +164,11 @@ Defina as variáveis no arquivo `back-end/.env` local, que não deve ser version
 
 ```env
 DATABASE_ENGINE=postgresql
-DATABASE_URL=postgresql://usuario:senha@host:5432/sigac?sslmode=require
+RDS_AURORA_POSTGRES_HOST=host
+RDS_AURORA_POSTGRES_USERNAME=usuario
+RDS_AURORA_POSTGRES_PASSWORD=senha
+RDS_AURORA_POSTGRES_URL=postgresql://usuario:senha@host:5432/sigac?sslmode=require
+DB_SCHEMA=public
 SEED_DATABASE=false
 CORS_ORIGINS=http://localhost:3000
 COOKIE_SECURE=false
@@ -586,7 +590,7 @@ alembic history
 alembic check
 ```
 
-Confira `DATABASE_ENGINE`, `DATABASE_URL`, permissões de escrita em `back-end/data/`, estado da migration e existência das tabelas. Faça backup antes de renomear ou remover dados e não edite uma migration já aplicada sem planejar a compatibilidade.
+Confira `DATABASE_ENGINE`, `RDS_AURORA_POSTGRES_URL` ou as variáveis `RDS_AURORA_POSTGRES_*`, permissões de escrita em `back-end/data/`, estado da migration e existência das tabelas. Faça backup antes de renomear ou remover dados e não edite uma migration já aplicada sem planejar a compatibilidade.
 
 ### Erro 401 ou 403
 

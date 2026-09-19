@@ -12,7 +12,11 @@ services:
       - .env
     environment:
       DATABASE_ENGINE: ${DATABASE_ENGINE:-postgresql}
-      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://armazenamento:armazenamento@postgres:5432/armazenamento_cientifico}
+      RDS_AURORA_POSTGRES_HOST: ${RDS_AURORA_POSTGRES_HOST:-postgres}
+      RDS_AURORA_POSTGRES_USERNAME: ${RDS_AURORA_POSTGRES_USERNAME:-armazenamento}
+      RDS_AURORA_POSTGRES_PASSWORD: ${RDS_AURORA_POSTGRES_PASSWORD:-armazenamento}
+      RDS_AURORA_POSTGRES_URL: ${RDS_AURORA_POSTGRES_URL:-postgresql+psycopg://armazenamento:armazenamento@postgres:5432/armazenamento_cientifico}
+      DB_SCHEMA: ${DB_SCHEMA:-public}
       PYTHONPATH: /app
     ports:
       - "8080:8080"
