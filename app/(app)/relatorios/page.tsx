@@ -34,7 +34,7 @@ export default function ReportsPage() {
   const filtered = useMemo(() => data?.projetos.filter((project) => {
     const text = `${project.nome} ${project.codigo} ${project.areaResponsavel}`.toLowerCase()
     return text.includes(query.toLowerCase()) && (status === "todos" || project.status === status) && (area === "todas" || project.areaResponsavel === area) && (!gestor || project.gestoresIds?.some((id) => id.toLowerCase().includes(gestor.toLowerCase())))
-  }).sort((a, b) => (sortAsc ? 1 : -1) * a.nome.localeCompare(b.nome, "pt-BR")) ?? [], [data, query, status, area, gestor, sortAsc])
+  }).sort((a, b) => (sortAsc ? -1 : 1) * a.nome.localeCompare(b.nome, "pt-BR")) ?? [], [data, query, status, area, gestor, sortAsc])
   const pageSize = 8
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize)
@@ -54,7 +54,7 @@ export default function ReportsPage() {
   return <PageLayout back>
     <PageHeader eyebrow="Inteligência do portfólio" title="Consultas e relatórios" description="Uma visão clara para explorar projetos autorizados, comparar indicadores e exportar recortes confiáveis." actions={<ExportButton onClick={() => setExportOpen(true)} disabled={!exportFields.length} />} />
     <PageSection label="Visão geral"><KpiCards items={cards} /></PageSection>
-    <Card className="overflow-hidden border-petrobras-blue/15 shadow-sm">
+    <Card className="sigac-surface overflow-hidden">
       <CardHeader className="border-b border-border/70 bg-gradient-to-r from-petrobras-green/8 via-background to-petrobras-yellow/10 pb-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-petrobras-green"><SlidersHorizontal className="size-4" />Painel de pesquisa</div><CardTitle>Explorar projetos</CardTitle><CardDescription className="mt-1">Use os filtros para montar uma visão operacional sob medida.</CardDescription></div><Badge variant="outline" className="w-fit bg-background/70">{filtered.length} resultados</Badge></div>
         <div className="grid gap-3 pt-2 md:grid-cols-2 lg:grid-cols-[minmax(220px,1.5fr)_repeat(3,minmax(150px,1fr))]">

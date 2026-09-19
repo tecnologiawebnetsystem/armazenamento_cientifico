@@ -10,10 +10,10 @@ type PageLayoutProps = {
 
 export function PageLayout({ children, className, back = false }: PageLayoutProps) {
   return (
-    <main className={cn("flex flex-col gap-6", className)}>
+    <div className={cn("flex flex-col gap-6", className)}>
       {back ? <BackButton /> : null}
       {children}
-    </main>
+    </div>
   )
 }
 
