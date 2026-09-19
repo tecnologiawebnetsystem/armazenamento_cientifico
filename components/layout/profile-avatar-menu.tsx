@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { ChevronDownIcon, LogOutIcon, MapPinIcon, UserRoundIcon } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -58,7 +59,16 @@ export function ProfileAvatarMenu({ user, onLogout }: { user: User; onLogout: ()
         </div>
 
         <DropdownMenuSeparator className="m-0" />
-        <div className="p-2"><DropdownMenuItem onClick={handleLogout} variant="destructive" className="h-12 cursor-pointer gap-3 rounded-xl px-4 text-sm font-semibold"><LogOutIcon />Sair</DropdownMenuItem></div>
+        <div className="p-2">
+          <DropdownMenuItem render={<Link href="/perfil" />} className="h-12 cursor-pointer gap-3 rounded-xl px-4 text-sm font-semibold">
+            <UserRoundIcon />
+            Meu Perfil
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout} variant="destructive" className="h-12 cursor-pointer gap-3 rounded-xl px-4 text-sm font-semibold">
+            <LogOutIcon />
+            Sair
+          </DropdownMenuItem>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   )
