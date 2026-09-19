@@ -64,6 +64,7 @@ async def email_login(payload: EmailLoginRequest):
     return response
 
 
+@email_router.get("/session", include_in_schema=True)
 @router.get("/session", include_in_schema=True)
 async def cav4_session(request: Request):
     """Retorna a identidade autenticada e suas permissões efetivas."""
@@ -82,6 +83,7 @@ async def cav4_session(request: Request):
     return {"user": dict(user)}
 
 
+@email_router.post("/logout", status_code=204)
 @router.post("/logout", status_code=204)
 async def cav4_logout(request: Request):
     session_id = request.cookies.get(settings.cookie_name)

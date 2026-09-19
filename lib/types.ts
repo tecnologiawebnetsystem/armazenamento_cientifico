@@ -116,6 +116,33 @@ export interface ResponsibleArea {
   proximoCodigo?: string
 }
 
+export interface PlatformMenu {
+  id: string
+  nome: string
+  rota: string
+  icone: string
+  ordem: number
+  parent_id?: string | null
+}
+
+export interface DashboardCardConfig {
+  id: string
+  key: string
+  titulo: string
+  descricao: string
+  metrica: string
+  rota: string
+  ordem: number
+}
+
+export interface PlatformContext {
+  user: { id: string; email: string; nome: string; perfil_id: string; perfil_nome: string } | null
+  permissions: string[]
+  modules: Array<{ id: string; nome: string; rota: string; icone: string; ordem: number }>
+  menus: PlatformMenu[]
+  dashboardCards: DashboardCardConfig[]
+}
+
 export interface PlatformCatalogs {
   areas: ResponsibleArea[]
   perfis: Array<{ id: string; nome: string; descricao?: string }>

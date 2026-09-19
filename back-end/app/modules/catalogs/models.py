@@ -89,6 +89,27 @@ class ReportType(Base):
     ativo: Mapped[bool] = mapped_column("active", Boolean, default=True, nullable=False)
 
 
+class MenuPermission(Base):
+    __tablename__ = "menu_permissions"
+    menu_id: Mapped[str] = mapped_column("menu_id", ForeignKey("menus.id", ondelete="CASCADE"), primary_key=True)
+    permissao_id: Mapped[str] = mapped_column("permission_id", ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True)
+    permitido: Mapped[bool] = mapped_column("allowed", Boolean, default=True, nullable=False)
+
+
+class DashboardCard(Base):
+    __tablename__ = "dashboard_cards"
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    modulo_id: Mapped[str | None] = mapped_column("module_id", ForeignKey("modules.id", ondelete="SET NULL"), nullable=True)
+    chave: Mapped[str] = mapped_column("key", String(80), unique=True, nullable=False)
+    titulo: Mapped[str] = mapped_column("title", String(140), nullable=False)
+    descricao: Mapped[str] = mapped_column("description", Text, default="", nullable=False)
+    metrica: Mapped[str] = mapped_column("metric_key", String(80), nullable=False)
+    rota: Mapped[str] = mapped_column("route", String(180), default="", nullable=False)
+    perfis: Mapped[str] = mapped_column("profile_ids", Text, default="", nullable=False)
+    ordem: Mapped[int] = mapped_column("display_order", Integer, default=0, nullable=False)
+    ativo: Mapped[bool] = mapped_column("active", Boolean, default=True, nullable=False)
+
+
 class MenuItem(Base):
     __tablename__ = "menus"
     id: Mapped[str] = mapped_column(String(80), primary_key=True)
