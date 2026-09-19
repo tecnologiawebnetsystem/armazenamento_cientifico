@@ -1,17 +1,11 @@
 import Link from "next/link"
-import {
-  DatabaseIcon,
-  FolderKanbanIcon,
-  GaugeIcon,
-  MapIcon,
-  UsersIcon,
-  ArrowRightIcon,
-} from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ArrowRightIcon, DatabaseIcon, FolderKanbanIcon, MapIcon, UsersIcon } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import type { Project } from "@/lib/types"
+import type { Project, Role } from "@/lib/types"
 
 interface Props {
+  role: Role
   projects: Project[]
   totalMembros: number
   totalMapas: number
@@ -23,103 +17,59 @@ function formatStorage(mb: number) {
   return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${Math.round(mb)} MB`
 }
 
-export function ExecutiveDashboard({ projects, totalMembros, totalMapas, armazenamentoMb, pendencias }: Props) {
-  const ativos = projects.filter((project) => project.status === "ativo").length
-  const concluidos = projects.filter((project) => project.status === "concluido").length
-  const suspensos = projects.filter((project) => project.status === "suspenso").length
-  const total = Math.max(projects.length, 1)
+const profileView: Record<Role, { label: string; description: string; focus: string }> = {
+  admin: { label: "Governança da plataforma", description: "Visão essencial do ambiente e do portfólio sob administração.", focus: "Controle geral" },
+  gerente: { label: "Operação dos projetos", description: "Acompanhe os projetos e acessos que precisam da sua atenção.", focus: "Acompanhamento" },
+  patrocinador: { label: "Acompanhamento executivo", description: "Consulte o andamento e o alcance dos projetos patrocinados.", focus: "Visão executiva" },
+  auditor: { label: "Conformidade e rastreabilidade", description: "Consulte o escopo auditável e os mapas de acesso registrados.", focus: "Conformidade" },
+  solicitante: { label: "Acesso ao repositório", description: "Consulte as informações disponíveis para o seu escopo.", focus: "Consulta" },
+}
 
-  const areas = Array.from(new Set(projects.map((project) => project.areaResponsavel).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR"))
+export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, armazenamentoMb, pendencias }: Props) {
+  const view = profileView[role]
+  const activeProjects = projects.filter((project) => project.status === "ativo").length
+  const attention = projects.filter((project) => project.status === "suspenso").length
+  const featuredProjects = projects.filter((project) => project.status === "ativo").slice(0, 3)
+
+  const indicators = [
+    { label: "Projetos ativos", value: activeProjects, icon: FolderKanbanIcon, href: "/projetos" },
+    { label: role === "auditor" ? "Mapas de acesso" : "Pessoas no escopo", value: role === "auditor" ? totalMapas : totalMembros, icon: role === "auditor" ? MapIcon : UsersIcon, href: role === "auditor" ? "/pesquisas" : "/projetos" },
+    { label: "Armazenamento", value: formatStorage(armazenamentoMb), icon: DatabaseIcon, href: "/projetos" },
+  ]
 
   return (
-    <div className="sw-motion flex flex-col gap-7">
-      <header className="sigac-grid relative flex flex-col gap-5 overflow-hidden rounded-2xl border border-petrobras-green/30 bg-card p-5 shadow-lg shadow-petrobras-blue/8 ring-1 ring-petrobras-green/20 sigac-surface sm:flex-row sm:items-end sm:justify-between sm:p-7">
-        <div className="flex flex-col gap-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">SIGAC · visão executiva</p>
-          <h1 className="font-heading text-3xl font-semibold tracking-tight text-balance">Portfólio científico em foco</h1>
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">Acompanhe projetos, acessos e capacidade de armazenamento em um único panorama operacional.</p>
-        </div>
+    <div className="sw-motion flex flex-col gap-6">
+      <header className="sigac-grid flex flex-col gap-2 rounded-2xl border border-petrobras-green/30 bg-card p-6 shadow-lg shadow-petrobras-blue/8 sigac-surface sm:p-7">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">SIGAC · {view.focus}</p>
+        <h1 className="font-heading text-3xl font-semibold tracking-tight text-balance">{view.label}</h1>
+        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">{view.description}</p>
       </header>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {[
-          { label: "Projetos no escopo", value: projects.length, icon: FolderKanbanIcon, note: `${ativos} em operação` },
-          { label: "Mapas e conjuntos", value: totalMapas, icon: MapIcon, note: "acesso autorizado" },
-          { label: "Armazenamento", value: formatStorage(armazenamentoMb), icon: DatabaseIcon, note: "uso consolidado" },
-          { label: "Membros envolvidos", value: totalMembros, icon: UsersIcon, note: pendencias ? `${pendencias} pendência(s)` : "sem pendências" },
-        ].map((item, index) => (
-          <Card
-            key={item.label}
-            className={`sigac-surface border-0 shadow-md transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${[
-              "!bg-card ring-petrobras-green/30",
-              "!bg-card ring-petrobras-blue/30",
-              "!bg-petrobras-teal/10 ring-petrobras-teal/30",
-              "!bg-petrobras-yellow/15 ring-petrobras-yellow/40",
-            ][index]}`}
-          >
-            <CardContent className="flex min-h-32 flex-col justify-between gap-4 p-4 sm:p-5">
-              <div className="flex items-center justify-between gap-2">
-                <span className={`flex size-9 items-center justify-center rounded-lg shadow-sm ring-1 ring-inset ${[
-                  "bg-petrobras-green/15 text-petrobras-green ring-petrobras-green/20",
-                  "bg-petrobras-blue/15 text-petrobras-blue ring-petrobras-blue/20",
-                  "bg-petrobras-teal/15 text-petrobras-teal ring-petrobras-teal/20",
-                  "bg-petrobras-yellow/25 text-accent-foreground ring-petrobras-yellow/30",
-                ][index]}`}><item.icon className="size-5" /></span>
-                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Portfólio</span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <strong className="font-heading text-2xl tracking-tight sm:text-3xl">{item.value}</strong>
-                <span className="truncate text-xs text-muted-foreground">{item.label} · {item.note}</span>
-              </div>
-            </CardContent>
-          </Card>
+      <section aria-label="Indicadores essenciais" className="grid gap-3 sm:grid-cols-3">
+        {indicators.map((item) => (
+          <Link key={item.label} href={item.href} className="group">
+            <Card className="sigac-surface h-full border-0 ring-1 ring-border/70 transition-all hover:-translate-y-0.5 hover:ring-petrobras-green/50">
+              <CardContent className="flex items-center gap-4 p-5">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-petrobras-green/12 text-petrobras-green ring-1 ring-inset ring-petrobras-green/20"><item.icon className="size-5" /></span>
+                <span className="min-w-0 flex-1"><strong className="block font-heading text-2xl tracking-tight">{item.value}</strong><span className="text-xs text-muted-foreground">{item.label}</span></span>
+                <ArrowRightIcon className="size-4 text-muted-foreground transition-transform group-hover:translate-x-1" />
+              </CardContent>
+            </Card>
+          </Link>
         ))}
-      </div>
+      </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <section className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
         <Card className="sigac-surface border-0 ring-1 ring-border/70">
-          <CardHeader className="border-b bg-muted/20 pb-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex flex-col gap-1"><CardTitle>Radar do portfólio</CardTitle><p className="text-sm text-muted-foreground">Distribuição atual dos projetos visíveis para você.</p></div>
-              <GaugeIcon className="size-5 text-primary" />
-            </div>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-6 p-5">
-            <div className="flex h-3 overflow-hidden rounded-full bg-muted" aria-label={`${ativos} projetos ativos de ${projects.length}`}>
-              <span className="bg-chart-2" style={{ width: `${(ativos / total) * 100}%` }} />
-              <span className="bg-chart-4" style={{ width: `${(concluidos / total) * 100}%` }} />
-              <span className="bg-chart-5" style={{ width: `${(suspensos / total) * 100}%` }} />
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              {[{ label: "Em operação", value: ativos, tone: "bg-chart-2" }, { label: "Concluídos", value: concluidos, tone: "bg-chart-4" }, { label: "Em atenção", value: suspensos, tone: "bg-chart-5" }].map((item) => <div key={item.label} className="flex flex-col gap-2"><span className="flex items-center gap-2 text-xs text-muted-foreground"><i className={`size-2 rounded-full ${item.tone}`} />{item.label}</span><strong className="font-heading text-2xl">{item.value}</strong></div>)}
-            </div>
-            <div className="flex flex-col gap-2">
-              {projects.slice(0, 3).map((project) => <Link key={project.id} href={`/projetos/${project.id}`} className="flex items-center justify-between gap-4 rounded-lg border border-border/70 px-3 py-3 transition-colors hover:bg-muted/50"><span className="min-w-0 truncate text-sm font-medium">{project.nome}</span><Badge variant="outline">{project.status}</Badge></Link>)}
-            </div>
+          <CardContent className="flex flex-col gap-4 p-5 sm:p-6">
+            <div className="flex items-start justify-between gap-4"><div><h2 className="font-heading text-lg font-semibold">Projetos em destaque</h2><p className="mt-1 text-sm text-muted-foreground">Acesso rápido ao que está em operação.</p></div><FolderKanbanIcon className="size-5 text-primary" /></div>
+            {featuredProjects.length ? <div className="flex flex-col gap-2">{featuredProjects.map((project) => <Link key={project.id} href={`/projetos/${project.id}`} className="flex items-center justify-between gap-4 rounded-lg border border-border/70 px-3 py-3 transition-colors hover:bg-muted/50"><span className="min-w-0 truncate text-sm font-medium">{project.nome}</span><Badge variant="outline">Ativo</Badge></Link>)}</div> : <p className="rounded-lg bg-muted/40 p-4 text-sm text-muted-foreground">Nenhum projeto ativo no seu escopo.</p>}
           </CardContent>
         </Card>
-
         <Card className="sigac-surface border-0 ring-1 ring-border/70">
-          <CardHeader className="border-b bg-muted/20 pb-4"><CardTitle>Distribuição por área</CardTitle><p className="text-sm text-muted-foreground">Onde o portfólio está concentrado.</p></CardHeader>
-          <CardContent className="flex flex-col gap-4 p-5">
-            <div className="grid gap-3 sm:grid-cols-2">
-              {areas.map((area, index) => {
-                const areaProjects = projects.filter((project) => project.areaResponsavel === area)
-                const areaActive = areaProjects.filter((project) => project.status === "ativo").length
-                const areaStorage = areaProjects.reduce((sum, project) => sum + (project.armazenamentoUsadoMb ?? 0), 0)
-                const color = index % 3 === 0 ? "from-petrobras-green/20 to-petrobras-green/5 text-petrobras-green" : index % 3 === 1 ? "from-petrobras-blue/20 to-petrobras-blue/5 text-petrobras-blue" : "from-petrobras-yellow/30 to-petrobras-yellow/10 text-accent-foreground"
-                return <Link key={area} href={`/projetos?area=${encodeURIComponent(area)}`} className="group flex items-center gap-3 rounded-xl border border-border/70 bg-gradient-to-br p-3 shadow-sm transition-all hover:-translate-y-1 hover:border-petrobras-green/40 hover:shadow-lg">
-                  <span className={`flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br font-heading text-sm font-bold ${color}`}>{area.slice(0, 2).toUpperCase()}</span>
-                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{area}</span><span className="text-xs text-muted-foreground">{areaActive} ativos · {areaProjects.length} projetos · {formatStorage(areaStorage)}</span></span>
-                  <ArrowRightIcon className="size-4 text-petrobras-green opacity-60 transition-transform group-hover:translate-x-1" />
-                </Link>
-              })}
-            </div>
-            {!areas.length && <p className="text-sm text-muted-foreground">Nenhuma área disponível no seu escopo.</p>}
-          </CardContent>
+          <CardContent className="flex flex-col gap-4 p-5 sm:p-6"><div><h2 className="font-heading text-lg font-semibold">Próxima atenção</h2><p className="mt-1 text-sm text-muted-foreground">Somente o que pode exigir uma ação.</p></div><div className="flex flex-col gap-3"><div className="flex items-center justify-between rounded-lg bg-muted/40 p-3"><span className="text-sm">Pendências de acesso</span><strong className="font-heading text-xl">{pendencias}</strong></div><div className="flex items-center justify-between rounded-lg bg-muted/40 p-3"><span className="text-sm">Projetos suspensos</span><strong className="font-heading text-xl">{attention}</strong></div></div></CardContent>
         </Card>
-      </div>
-
+      </section>
     </div>
   )
 }
