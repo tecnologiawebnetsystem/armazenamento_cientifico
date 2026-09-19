@@ -1,4 +1,5 @@
 import base64
+import binascii
 import hashlib
 import json
 import logging
@@ -79,7 +80,7 @@ def decode_state_nonce(state: str) -> str:
         if not isinstance(nonce, str) or not nonce:
             raise ValueError("nonce ausente")
         return nonce
-    except (ValueError, KeyError, TypeError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+    except (ValueError, KeyError, TypeError, UnicodeDecodeError, binascii.Error, json.JSONDecodeError) as exc:
         raise CAV4AuthenticationError("State CAV4 inválido") from exc
 
 
@@ -261,14 +262,24 @@ class CAV4OIDCProvider:
             logger.error(f"[CAV4] Erro ao validar JWT: {e}")
             raise CAV4AuthenticationError(f"Erro ao validar token: {e}") from e
 
+        access_token = token_data.get("access_token")
+        email = claims.get("email") or claims.get("preferred_username") or claims.get("upn") or ""
+        display_name = claims.get("name")
+        if not email and access_token and settings.cav4_userinfo_url:
+            userinfo = await self.get_user_data(access_token=access_token, endpoint=settings.cav4_userinfo_url)
+            if isinstance(userinfo, dict):
+                email = userinfo.get("email") or userinfo.get("preferred_username") or userinfo.get("upn") or ""
+                display_name = display_name or userinfo.get("name")
+                claims = {**claims, **userinfo}
+
         return CAV4Identity(
             subject=claims.get("sub", ""),
-            email=claims.get("email", ""),
-            display_name=claims.get("name"),
+            email=email,
+            display_name=display_name,
             roles=_claim_values(claims, "roles", "groups", "role", "group", "information-values"),
             permissions=_claim_values(claims, "permissions", "scp", "scope"),
             raw_claims=claims,
-            access_token=token_data.get("access_token"),
+            access_token=access_token,
         )
 
     async def get_user_data(self, *, access_token: str, endpoint: str) -> Any:
