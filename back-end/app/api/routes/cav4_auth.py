@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 
 from app.api.dependencies import get_current_user
 from app.core.cav4 import CAV4AuthenticationError, decode_state_nonce, get_cav4_provider
@@ -23,6 +23,42 @@ email_router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 class EmailLoginRequest(BaseModel):
     email: EmailStr
+
+
+@email_router.get("/health/database", tags=["Diagnostics"])
+async def database_health():
+    """Diagnóstico sanitizado da conexão e das tabelas essenciais."""
+    try:
+        async for database in get_session():
+            result = await database.execute(
+                text("select current_database(), current_user, current_schema(), to_regclass('public.users')")
+            )
+            database_name, database_user, schema_name, users_table = result.one()
+            if users_table is None:
+                return {
+                    "ok": False,
+                    "code": "SCHEMA_NOT_INITIALIZED",
+                    "database": database_name,
+                    "schema": schema_name,
+                    "users_table": False,
+                }
+            return {
+                "ok": True,
+                "database": database_name,
+                "user": database_user,
+                "schema": schema_name,
+                "users_table": True,
+            }
+    except SQLAlchemyError as exc:
+        error_id = uuid4().hex[:12]
+        original = exc.orig if isinstance(exc, DBAPIError) else exc
+        logger.exception(
+            "database_health_failed error_id=%s db_error_type=%s db_error=%s",
+            error_id,
+            type(original).__name__,
+            str(original).splitlines()[0][:240],
+        )
+        return {"ok": False, "code": "DATABASE_UNAVAILABLE", "error_id": error_id}
 
 
 @email_router.post("/login")
@@ -55,8 +91,18 @@ async def email_login(payload: EmailLoginRequest):
     except HTTPException:
         raise
     except SQLAlchemyError as exc:
-        logger.exception("email_login_failed reason=database_unavailable")
-        raise HTTPException(status_code=503, detail="Banco de dados indisponível") from exc
+        error_id = uuid4().hex[:12]
+        original = exc.orig if isinstance(exc, DBAPIError) else exc
+        logger.exception(
+            "email_login_failed reason=database_unavailable error_id=%s db_error_type=%s db_error=%s",
+            error_id,
+            type(original).__name__,
+            str(original).splitlines()[0][:240],
+        )
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "DATABASE_UNAVAILABLE", "error_id": error_id, "message": "Banco de dados indisponível"},
+        ) from exc
 
     response = Response(content='{"ok":true}', media_type="application/json")
     response.set_cookie(settings.cookie_name, session_id, httponly=True, secure=settings.cookie_secure, samesite="lax", max_age=settings.session_hours * 3600)
