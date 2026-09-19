@@ -46,7 +46,7 @@ export const navGroups: NavGroup[] = [
         ],
       },
       {
-        title: "Consulta de logs",
+        title: "Logs e Auditoria",
         url: "/logs",
         icon: ClipboardListIcon,
         roles: ["admin", "auditor"],

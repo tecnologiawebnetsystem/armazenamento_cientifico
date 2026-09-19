@@ -33,14 +33,20 @@ export function AppSidebar() {
     shield: ShieldCheckIcon,
     chart: BarChart3Icon,
   }
-  const databaseItems: NavItem[] = (platformContext?.menus ?? []).map((menu) => ({
-    title: menu.nome,
-    url: menu.rota,
-    icon: iconMap[menu.icone] ?? FolderKanbanIcon,
-  }))
-  const groups = databaseItems.length
-    ? [{ label: "Sistema", items: databaseItems }]
-    : filterNavForRole(navGroups, "auditor", platformContext?.permissions ?? [])
+  const databaseItems: NavItem[] = (platformContext?.menus ?? [])
+    .filter((menu) => !/usu[aá]rios?/i.test(menu.nome) && !/\/usuarios?/i.test(menu.rota))
+    .map((menu) => ({
+      title: menu.nome,
+      url: menu.rota,
+      icon: iconMap[menu.icone] ?? FolderKanbanIcon,
+    }))
+  const staticItems = filterNavForRole(navGroups, "admin", platformContext?.permissions ?? [])
+    .flatMap((group) => group.items)
+    .filter((item) => item.url === "/logs")
+  const mergedItems = [...databaseItems, ...staticItems.filter((item) => !databaseItems.some((existing) => existing.url === item.url))]
+  const groups = mergedItems.length
+    ? [{ label: "Sistema", items: mergedItems }]
+    : filterNavForRole(navGroups, "admin", platformContext?.permissions ?? [])
   const filteredGroups = groups.map((group) => ({ ...group, items: group.items.filter((item) => item.title.toLowerCase().includes(search.toLowerCase())) })).filter((group) => group.items.length)
 
   return (
