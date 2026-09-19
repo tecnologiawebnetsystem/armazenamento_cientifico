@@ -20,14 +20,32 @@ def _database_url() -> str:
     if aurora_url:
         return aurora_url if "://" in aurora_url else f"postgresql://{aurora_url}"
 
-    host = os.getenv("RDS_AURORA_POSTGRES_HOST", "").strip()
-    user = os.getenv("RDS_AURORA_POSTGRES_USERNAME", "").strip()
-    password = os.getenv("RDS_AURORA_POSTGRES_PASSWORD", "").strip()
+    host = (
+        os.getenv("RDS_AURORA_POSTGRES_HOST", "").strip()
+        or os.getenv("POSTGRES_HOST", "").strip()
+        or os.getenv("PGHOST", "").strip()
+    )
+    user = (
+        os.getenv("RDS_AURORA_POSTGRES_USERNAME", "").strip()
+        or os.getenv("POSTGRES_USER", "").strip()
+        or os.getenv("PGUSER", "").strip()
+    )
+    password = (
+        os.getenv("RDS_AURORA_POSTGRES_PASSWORD", "").strip()
+        or os.getenv("POSTGRES_PASSWORD", "").strip()
+        or os.getenv("PGPASSWORD", "").strip()
+    )
     if host and user and password:
         from urllib.parse import quote
 
+        database = (
+            os.getenv("RDS_AURORA_POSTGRES_DATABASE", "").strip()
+            or os.getenv("POSTGRES_DATABASE", "").strip()
+            or os.getenv("PGDATABASE", "").strip()
+            or "a25034d"
+        )
         credentials = f"{quote(user, safe='')}:{quote(password, safe='')}"
-        return f"postgresql://{credentials}@{host}:5432/armazenamento_cientifico"
+        return f"postgresql://{credentials}@{host}:5432/{quote(database, safe='')}"
     return ""
 
 
