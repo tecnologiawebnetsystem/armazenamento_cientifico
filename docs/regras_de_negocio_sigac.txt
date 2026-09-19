@@ -387,7 +387,7 @@ esse for o procedimento operacional escolhido.
 Regras:
 
 - não usar SQLite como banco definitivo;
-- usar `DATABASE_URL` ou variáveis equivalentes de forma consistente;
+- usar `RDS_AURORA_POSTGRES_URL` ou as variáveis `RDS_AURORA_POSTGRES_HOST`, `RDS_AURORA_POSTGRES_USERNAME` e `RDS_AURORA_POSTGRES_PASSWORD` de forma consistente;
 - configurar `DB_SCHEMA` explicitamente;
 - não criar tabelas silenciosamente no startup;
 - aplicar migrations antes de iniciar a operação definitiva;

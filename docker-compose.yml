@@ -28,7 +28,11 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_ENGINE: postgresql
-      DATABASE_URL: postgresql+asyncpg://armazenamento:armazenamento@postgres:5432/armazenamento_cientifico
+      RDS_AURORA_POSTGRES_HOST: postgres
+      RDS_AURORA_POSTGRES_USERNAME: armazenamento
+      RDS_AURORA_POSTGRES_PASSWORD: armazenamento
+      RDS_AURORA_POSTGRES_URL: postgresql+asyncpg://armazenamento:armazenamento@postgres:5432/armazenamento_cientifico
+      DB_SCHEMA: public
       PYTHONPATH: /app
       SEED_DATABASE: ${SEED_DATABASE:-false}
     depends_on:

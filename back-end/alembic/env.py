@@ -25,14 +25,14 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 
-DATABASE_URL = settings.database_url
-ASYNC_DATABASE_URL = _async_database_url(DATABASE_URL)
+AURORA_CONNECTION_URL = settings.database_url
+ASYNC_DATABASE_URL = _async_database_url(AURORA_CONNECTION_URL)
 config.set_main_option("sqlalchemy.url", ASYNC_DATABASE_URL.replace("%", "%%"))
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    url = DATABASE_URL
+    url = AURORA_CONNECTION_URL
     context.configure(
         url=url,
         target_metadata=target_metadata,

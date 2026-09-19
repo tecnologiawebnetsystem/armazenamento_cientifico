@@ -18,7 +18,7 @@ async def health_ready():
     try:
         db_session.configure_engine()
         if db_session.engine is None:
-            raise RuntimeError("DATABASE_URL não configurada")
+            raise RuntimeError("Configuração Aurora PostgreSQL não disponível")
         async with db_session.engine.connect() as connection:
             await connection.execute(text("SELECT 1"))
             revision = await connection.scalar(text("SELECT version_num FROM alembic_version LIMIT 1"))

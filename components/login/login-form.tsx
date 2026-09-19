@@ -65,13 +65,13 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
                   <input id="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seu.email@empresa.com" className="h-11 rounded-md border border-input bg-background px-3 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring" disabled={loading !== null} />
                   <Button type="submit" size="lg" disabled={loading !== null}>
                     <MailIcon data-icon="inline-start" />
-                    {loading === "email" ? "Entrando..." : "Entrar pelo e-mail"}
+                    {loading === "email" ? "Entrando..." : "Login"}
                   </Button>
                 </form>
                 <div className="mx-auto flex w-full max-w-[18rem] items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />ou<span className="h-px flex-1 bg-border" /></div>
                 <Button type="button" size="lg" variant="outline" onClick={corporateLogin} disabled={loading !== null} className="mx-auto w-full max-w-[18rem] border-[#063f58] bg-gradient-to-r from-[#063f58] to-[#fdbb30] text-white shadow-md shadow-[#063f58]/30 transition-all hover:-translate-y-0.5 hover:from-[#042d40] hover:to-[#e8aa19] hover:shadow-lg hover:shadow-[#063f58]/40">
                   <Building2Icon data-icon="inline-start" />
-                  {loading === "corporate" ? "Conectando..." : "Login corporativo CAV4"}
+                  {loading === "corporate" ? "Conectando..." : "Login corporativo"}
                 </Button>
                 <p className="pt-1 text-xs text-muted-foreground">© 2026 Petrobras. Todos os direitos reservados.</p>
               </div>
