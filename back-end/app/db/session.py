@@ -36,19 +36,17 @@ def configure_engine() -> None:
     if engine is not None or not settings.database_url:
         return
     ssl_context: ssl.SSLContext | bool
-    if settings.db_ssl_verify:
-        if settings.db_ssl_ca_file:
-            if not Path(settings.db_ssl_ca_file).is_file():
-                raise RuntimeError("DB_SSL_CA_FILE aponta para um arquivo inexistente")
-            ssl_context = ssl.create_default_context(cafile=settings.db_ssl_ca_file)
-        else:
-            # O ambiente não possui uma CA local. O TLS continua ativo,
-            # mas a verificação do certificado fica desabilitada explicitamente.
-            ssl_context = ssl.create_default_context()
+    # Aurora exige TLS neste ambiente. `DB_SSL_VERIFY=false` desativa apenas
+    # a validação do certificado; não desativa a criptografia da conexão.
+    if settings.db_ssl_verify and settings.db_ssl_ca_file:
+        if not Path(settings.db_ssl_ca_file).is_file():
+            raise RuntimeError("DB_SSL_CA_FILE aponta para um arquivo inexistente")
+        ssl_context = ssl.create_default_context(cafile=settings.db_ssl_ca_file)
+    else:
+        ssl_context = ssl.create_default_context()
+        if not settings.db_ssl_verify:
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
-    else:
-        ssl_context = False
 
     engine_options = {
         "echo": False,
