@@ -13,11 +13,11 @@ import { getActivityLogs } from "@/lib/api-client"
 import type { ActivityLog } from "@/lib/types"
 
 const fetcher = () => getActivityLogs({ page: 1, limit: 100 })
-type LogWithUser = ActivityLog & { user?: { nome?: string; email?: string } | null }
+type LogWithUser = ActivityLog & { userName?: string | null; userEmail?: string | null }
 
 function downloadCsv(logs: LogWithUser[]) {
   const headers = ["data", "usuario", "acao", "entidade", "identificador", "resultado", "detalhes"]
-  const rows = logs.map((log) => [log.criadoEm, log.user?.nome ?? "Usuário do sistema", log.acao, log.entidade, log.entidadeId ?? "", log.resultado ?? "sucesso", log.detalhes ?? ""])
+  const rows = logs.map((log) => [log.criadoEm, log.userName ?? "Usuário não identificado", log.acao, log.entidade, log.entidadeId ?? "", log.resultado ?? "sucesso", log.detalhes ?? ""])
   const csv = [headers, ...rows].map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n")
   const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" })
   const link = document.createElement("a")
@@ -34,7 +34,7 @@ export default function LogsPage() {
   const allLogs = useMemo(() => (data?.logs ?? []) as LogWithUser[], [data?.logs])
   const actions = useMemo(() => Array.from(new Set(allLogs.map((log) => log.acao))), [allLogs])
   const logs = useMemo(() => allLogs.filter((log) => {
-    const text = `${log.acao} ${log.entidade} ${log.entidadeId ?? ""} ${log.user?.nome ?? ""} ${log.user?.email ?? ""}`.toLowerCase()
+    const text = `${log.acao} ${log.entidade} ${log.entidadeId ?? ""} ${log.userName ?? ""} ${log.userEmail ?? ""}`.toLowerCase()
     return text.includes(query.toLowerCase()) && (action === "todos" || log.acao === action)
   }), [allLogs, query, action])
   const users = new Set(allLogs.map((log) => log.userId)).size
@@ -62,7 +62,7 @@ export default function LogsPage() {
         </div>
         <div className="flex gap-2"><Button variant="outline" onClick={() => void mutate()}><RefreshCwIcon data-icon="inline-start" />Atualizar</Button><Button onClick={() => downloadCsv(logs)} disabled={!logs.length}><DownloadIcon data-icon="inline-start" />Exportar CSV</Button></div>
       </div>
-      <div className="relative mt-7 flex flex-wrap gap-x-8 gap-y-3 border-t border-border/70 pt-4 text-xs text-muted-foreground"><span>ÚLTIMA CAPTURA <strong className="ml-1 font-mono text-foreground">{latest ? new Date(latest).toLocaleString("pt-BR") : "—"}</strong></span><span>FONTE <strong className="ml-1 font-mono text-foreground">SIGAC / AUDIT STREAM</strong></span><span className="flex items-center gap-1 text-primary"><span className="size-1.5 rounded-full bg-primary" /> MONITORAMENTO ATIVO</span></div>
+      <div className="relative mt-7 flex flex-wrap gap-x-8 gap-y-3 border-t border-border/70 pt-4 text-xs text-muted-foreground"><span>ÚLTIMA CAPTURA <strong className="ml-1 font-mono text-foreground">{latest ? new Date(latest).toLocaleString("pt-BR") : "—"}</strong></span><span>FONTE <strong className="ml-1 font-mono text-foreground">Banco de dados</strong></span><span className="flex items-center gap-1 text-primary"><span className="size-1.5 rounded-full bg-primary" /> Dados atualizados</span></div>
     </section>
 
     <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -71,7 +71,7 @@ export default function LogsPage() {
 
     <Card className="overflow-hidden py-0">
       <CardHeader className="gap-4 border-b bg-muted/20 px-5 py-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><CardTitle className="flex items-center gap-2"><span className="size-2 rounded-full bg-primary" />Fluxo de eventos</CardTitle><p className="mt-1 text-sm text-muted-foreground">{logs.length} registros no recorte atual · até 100 eventos recentes</p></div><Button variant="ghost" size="sm" onClick={() => { setQuery(""); setAction("todos") }} disabled={!query && action === "todos"}><FilterIcon data-icon="inline-start" />Limpar filtros</Button></div><div className="flex flex-col gap-3 md:flex-row"><div className="relative flex-1"><SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" aria-label="Buscar nos logs" placeholder="Buscar usuário, ação, entidade ou identificador" value={query} onChange={(event) => setQuery(event.target.value)} /></div><select aria-label="Filtrar ação" className="h-9 rounded-md border border-input bg-background px-3 text-sm" value={action} onChange={(event) => setAction(event.target.value)}><option value="todos">Todas as ações</option>{actions.map((item) => <option key={item} value={item}>{item}</option>)}</select></div></CardHeader>
-      <CardContent className="p-0"><div className="hidden grid-cols-[1.4fr_1.1fr_1fr_0.8fr_1.2fr] gap-4 border-b bg-muted/10 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground md:grid"><span>Evento / entidade</span><span>Usuário</span><span>Identificador</span><span>Resultado</span><span className="text-right">Data e hora</span></div><div className="divide-y">{logs.length ? logs.map((log) => <div className="grid gap-3 px-5 py-4 transition-colors hover:bg-primary/[0.03] md:grid-cols-[1.4fr_1.1fr_1fr_0.8fr_1.2fr] md:items-center md:gap-4" key={log.id}><div><p className="font-medium">{log.acao}</p><p className="mt-1 text-xs text-muted-foreground">{log.entidade}{log.entidadeId ? ` · ${log.entidadeId}` : ""}</p></div><div className="flex items-center gap-2 text-sm"><span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{(log.user?.nome ?? "S").charAt(0).toUpperCase()}</span><span className="truncate">{log.user?.nome ?? "Usuário do sistema"}</span></div><span className="font-mono text-xs text-muted-foreground">{log.entidadeId || "—"}</span><Badge variant={log.resultado === "erro" ? "destructive" : "secondary"} className="w-fit">{log.resultado ?? "sucesso"}</Badge><time className="text-sm text-muted-foreground md:text-right" dateTime={log.criadoEm}>{new Date(log.criadoEm).toLocaleString("pt-BR")}</time></div>) : <div className="p-12 text-center text-muted-foreground">Nenhum evento encontrado para os filtros informados.</div>}</div></CardContent>
+      <CardContent className="p-0"><div className="hidden grid-cols-[1.4fr_1.1fr_1fr_0.8fr_1.2fr] gap-4 border-b bg-muted/10 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground md:grid"><span>Evento / entidade</span><span>Usuário</span><span>Identificador</span><span>Resultado</span><span className="text-right">Data e hora</span></div><div className="divide-y">{logs.length ? logs.map((log) => <div className="grid gap-3 px-5 py-4 transition-colors hover:bg-primary/[0.03] md:grid-cols-[1.4fr_1.1fr_1fr_0.8fr_1.2fr] md:items-center md:gap-4" key={log.id}><div><p className="font-medium">{log.acao}</p><p className="mt-1 text-xs text-muted-foreground">{log.entidade}{log.entidadeId ? ` · ${log.entidadeId}` : ""}</p></div><div className="flex items-center gap-2 text-sm"><span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{(log.userName ?? "?").charAt(0).toUpperCase()}</span><span className="truncate">{log.userName ?? "Usuário não identificado"}</span></div><span className="font-mono text-xs text-muted-foreground">{log.entidadeId || "—"}</span><Badge variant={log.resultado === "erro" ? "destructive" : "secondary"} className="w-fit">{log.resultado ?? "sucesso"}</Badge><time className="text-sm text-muted-foreground md:text-right" dateTime={log.criadoEm}>{new Date(log.criadoEm).toLocaleString("pt-BR")}</time></div>) : <div className="p-12 text-center text-muted-foreground">Nenhum evento encontrado para os filtros informados.</div>}</div></CardContent>
     </Card>
   </main>
 }

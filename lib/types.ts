@@ -184,6 +184,8 @@ export type ActivityAction =
 export interface ActivityLog {
   id: string
   userId: string
+  userName?: string | null
+  userEmail?: string | null
   acao: ActivityAction
   entidade: string
   entidadeId: string
