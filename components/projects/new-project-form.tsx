@@ -66,7 +66,7 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
     } finally { setIsSubmitting(false) }
   }
 
-  return <form onSubmit={handleSubmit} className="mx-auto w-full max-w-5xl"><Card className="overflow-hidden border-petrobras-blue/20 shadow-lg shadow-petrobras-blue/5">
+  return <form onSubmit={handleSubmit} className="mx-auto w-full max-w-5xl"><Card className="sigac-surface overflow-hidden">
     <CardHeader className="border-b border-petrobras-green/15 bg-gradient-to-r from-petrobras-blue/10 via-background to-petrobras-yellow/10 px-6 py-7 sm:px-8"><div className="flex items-start gap-4"><div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-petrobras-blue text-primary-foreground shadow-md"><ClipboardListIcon className="size-6" aria-hidden="true" /></div><div><CardTitle className="text-2xl tracking-tight">Novo projeto</CardTitle><CardDescription className="mt-1">Cadastre um projeto científico com governança, acesso e armazenamento organizados.</CardDescription></div></div></CardHeader>
     <CardContent><FieldGroup>
       <Field><FieldLabel htmlFor="nome">Nome do projeto</FieldLabel><Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Caracterização de Reservatórios" /></Field>

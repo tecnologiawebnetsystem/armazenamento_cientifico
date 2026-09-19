@@ -200,7 +200,14 @@
 
 @layer utilities {
   .sigac-surface {
+    border: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
+    background: color-mix(in oklch, var(--card) 96%, transparent);
     box-shadow: 0 18px 45px color-mix(in oklch, var(--foreground) 7%, transparent), 0 2px 8px color-mix(in oklch, var(--foreground) 4%, transparent);
+  }
+
+  .sigac-section-header {
+    border-bottom: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
+    background: linear-gradient(90deg, color-mix(in oklch, var(--petrobras-green) 7%, var(--background)), var(--background) 58%, color-mix(in oklch, var(--petrobras-yellow) 8%, var(--background)));
   }
 
   .sigac-grid {

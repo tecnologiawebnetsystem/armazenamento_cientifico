@@ -19,11 +19,8 @@ type Props = {
   onConfirm: (fields: string[], formats: ExportFormat[]) => void
 }
 
-// Ajuste visual rápido da modal: teste estes dois valores aos poucos.
-// Largura: max-w-4xl, max-w-5xl, max-w-6xl ou max-w-7xl.
-export const EXPORT_DIALOG_WIDTH_CLASS = "sm:max-w-[700px]"
-// Altura: use min-h-[70vh] max-h-[92vh] e ajuste os percentuais conforme necessário.
-export const EXPORT_DIALOG_HEIGHT_CLASS = "min-h-[78vh] max-h-[94vh]"
+export const EXPORT_DIALOG_WIDTH_CLASS = "sm:max-w-3xl"
+export const EXPORT_DIALOG_HEIGHT_CLASS = "max-h-[min(90vh,44rem)]"
 
 const formats: { key: ExportFormat; label: string; description: string; icon: typeof FileTextIcon }[] = [
   { key: "csv", label: "CSV", description: "Para planilhas e análises", icon: FileSpreadsheetIcon },
@@ -39,8 +36,8 @@ export function ExportFieldsDialog({ open, onOpenChange, title, fields, defaultF
   const confirm = () => { if (selectedFields.length && selectedFormats.length) { onConfirm(selectedFields, selectedFormats); onOpenChange(false) } }
 
   return <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className={`${EXPORT_DIALOG_HEIGHT_CLASS} flex w-[calc(100%-1rem)] ${EXPORT_DIALOG_WIDTH_CLASS} flex-col overflow-hidden border-petrobras-blue/15 bg-gradient-to-br from-background via-background to-petrobras-green/5 p-4 shadow-[0_24px_80px_-32px_rgba(0,88,140,0.5)] sm:w-[min(96vw,80rem)] sm:p-8`}>
-      <DialogHeader className="rounded-xl border border-petrobras-yellow/30 bg-gradient-to-r from-petrobras-green via-petrobras-teal to-petrobras-blue px-5 py-4 text-primary-foreground shadow-lg shadow-petrobras-blue/20">
+    <DialogContent className={`${EXPORT_DIALOG_HEIGHT_CLASS} flex w-[calc(100%-1rem)] ${EXPORT_DIALOG_WIDTH_CLASS} flex-col overflow-hidden border-border bg-card p-4 shadow-xl sm:w-[min(96vw,48rem)] sm:p-6`}>
+      <DialogHeader className="rounded-xl bg-primary px-5 py-4 text-primary-foreground shadow-md">
         <DialogTitle className="flex items-center gap-2 text-xl text-primary-foreground"><DownloadIcon data-icon="inline-start" />Configurar exportação</DialogTitle>
         <DialogDescription className="text-primary-foreground/85">Escolha os formatos e os campos do {title} que serão gerados.</DialogDescription>
       </DialogHeader>
@@ -86,5 +83,5 @@ export function ExportFieldsDialog({ open, onOpenChange, title, fields, defaultF
 }
 
 export function ExportButton({ onClick, disabled = false }: { onClick: () => void; disabled?: boolean }) {
-  return <Button onClick={onClick} disabled={disabled} className="bg-gradient-to-r from-petrobras-green via-petrobras-teal to-petrobras-blue text-primary-foreground shadow-sm hover:opacity-90"><DownloadIcon data-icon="inline-start" />Exportar</Button>
+  return <Button onClick={onClick} disabled={disabled} className="bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"><DownloadIcon data-icon="inline-start" />Exportar</Button>
 }

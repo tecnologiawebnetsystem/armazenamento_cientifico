@@ -4,10 +4,13 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
+
 
 class PlatformRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
+        self.schema = f'"{settings.db_schema}"'
 
     async def rows(self, sql: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
         result = await self.session.execute(text(sql), params or {})
@@ -50,9 +53,9 @@ class PlatformRepository:
         return await self.rows("select id, project_id as \"projectId\", parent_id as \"parentId\", 'pasta' as tipo, name as nome, size as tamanho, mime_type as \"mimeType\", created_by as \"criadoPor\", created_at as \"criadoEm\", updated_at as \"atualizadoEm\" from folders where project_id = :project_id order by name", {"project_id": project_id})
 
     async def dashboard(self) -> dict[str, Any]:
-        projects = await self.rows("select id, name as nome, code as codigo, responsible_area as \"areaResponsavel\", status, description as descricao, created_at as \"criadoEm\", updated_at as \"atualizadoEm\" from projects order by updated_at desc")
-        counts = await self.one("select (select count(*) from project_members) as membros, (select count(*) from folders) as mapas, (select count(*) from access_requests where status = 'pendente') as pendencias, (select coalesce(sum(size), 0) from folders) as armazenamento")
-        activity = await self.rows("select id, user_id as \"userId\", action as acao, entity as entidade, entity_id as \"entidadeId\", details as detalhes, created_at as \"criadoEm\", result as resultado, project_id as \"projetoId\" from activity_logs order by created_at desc limit 10")
+        projects = await self.rows(f"select id, name as nome, code as codigo, responsible_area as \"areaResponsavel\", status, description as descricao, created_at as \"criadoEm\", updated_at as \"atualizadoEm\" from {self.schema}.projects order by updated_at desc")
+        counts = await self.one(f"select (select count(*) from {self.schema}.project_members) as membros, (select count(*) from {self.schema}.folders) as mapas, (select count(*) from {self.schema}.access_requests where status = 'pendente') as pendencias, (select coalesce(sum(size), 0) from {self.schema}.folders) as armazenamento")
+        activity = await self.rows(f"select id, user_id as \"userId\", action as acao, entity as entidade, entity_id as \"entidadeId\", details as detalhes, created_at as \"criadoEm\", result as resultado, project_id as \"projetoId\" from {self.schema}.activity_logs order by created_at desc limit 10")
         return {"projects": projects, "totalMembros": counts["membros"], "totalMapas": counts["mapas"], "armazenamentoMb": counts["armazenamento"], "pendencias": counts["pendencias"], "activity": activity, "source": "database", "consultedAt": datetime.now(UTC).isoformat()}
 
     async def access_requests(self) -> list[dict[str, Any]]:
