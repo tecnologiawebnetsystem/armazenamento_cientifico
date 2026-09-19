@@ -9,15 +9,15 @@ export default async function LoginPage() {
   if (user) redirect("/dashboard")
 
   return (
-    <div className="light relative grid min-h-svh overflow-hidden bg-[linear-gradient(112deg,#063f58_0%,#075b70_30%,#008f5a_66%,#006b3f_100%)] text-foreground lg:grid-cols-[1.1fr_1fr]">
+    <div className="light relative grid min-h-svh overflow-hidden bg-[linear-gradient(112deg,#063f58_0%,#075b70_24%,#087d69_48%,#008f5a_70%,#006b3f_100%)] text-foreground lg:grid-cols-[1.1fr_1fr]">
+      <Image
+        src="/images/login-hero.png"
+        alt=""
+        fill
+        priority
+        className="pointer-events-none object-cover opacity-[0.06] mix-blend-screen"
+      />
       <div className="relative hidden flex-col justify-between overflow-hidden p-10 lg:flex">
-        <Image
-          src="/images/login-hero.png"
-          alt=""
-          fill
-          priority
-          className="object-cover opacity-[0.08] mix-blend-screen"
-        />
         {/* Camadas de cor da marca: verde profundo + brilho verde/amarelo */}
         <div className="absolute -top-32 -left-24 size-96 rounded-full bg-petrobras-blue/35 blur-3xl" />
         <div className="absolute inset-0 opacity-[0.12] [background-image:linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.18)_1px,transparent_1px)] [background-size:32px_32px]" />
