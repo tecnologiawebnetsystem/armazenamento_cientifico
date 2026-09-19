@@ -18,15 +18,30 @@ import {
   SidebarRail,
   SidebarSeparator,
 } from "@/components/ui/sidebar"
-import { useSession } from "@/hooks/use-session"
-import { filterNavForRole, navGroups } from "@/lib/nav-config"
+import { usePlatformContext } from "@/hooks/use-platform-context"
+import { filterNavForRole, navGroups, type NavItem } from "@/lib/nav-config"
+import { FolderKanbanIcon, LayoutDashboardIcon, ShieldCheckIcon, BarChart3Icon, type LucideIcon } from "lucide-react"
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { user } = useSession()
+  const { data: platformContext } = usePlatformContext()
   const [search] = useState("")
 
-  const groups = user ? filterNavForRole(navGroups, user.role, user.permissions ?? []).map((group) => ({ ...group, items: group.items.filter((item) => item.title.toLowerCase().includes(search.toLowerCase())) })).filter((group) => group.items.length) : []
+  const iconMap: Record<string, LucideIcon> = {
+    dashboard: LayoutDashboardIcon,
+    folder: FolderKanbanIcon,
+    shield: ShieldCheckIcon,
+    chart: BarChart3Icon,
+  }
+  const databaseItems: NavItem[] = (platformContext?.menus ?? []).map((menu) => ({
+    title: menu.nome,
+    url: menu.rota,
+    icon: iconMap[menu.icone] ?? FolderKanbanIcon,
+  }))
+  const groups = databaseItems.length
+    ? [{ label: "Sistema", items: databaseItems }]
+    : filterNavForRole(navGroups, "auditor", platformContext?.permissions ?? [])
+  const filteredGroups = groups.map((group) => ({ ...group, items: group.items.filter((item) => item.title.toLowerCase().includes(search.toLowerCase())) })).filter((group) => group.items.length)
 
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border/70 bg-sidebar shadow-2xl shadow-sidebar/25 transition-[width] duration-200 md:flex">
@@ -59,7 +74,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="gap-1 px-1 py-2">
-        {groups.map((group) => (
+        {filteredGroups.map((group) => (
           <SidebarGroup key={group.label} className="border-b border-sidebar-border/40 px-2 py-3 last:border-b-0">
             <SidebarGroupLabel className="h-8 px-2 text-[10px] font-semibold tracking-[0.16em] text-sidebar-primary/80 uppercase group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
               {group.label}

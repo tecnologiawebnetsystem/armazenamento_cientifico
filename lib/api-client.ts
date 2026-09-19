@@ -12,6 +12,7 @@ import type {
   SessionUser,
   User,
   PlatformCatalogs,
+  PlatformContext,
 } from "@/lib/types"
 
 /**
@@ -124,6 +125,10 @@ export function logout() {
 
 export function getSession() {
   return request<{ user: SessionUser | null }>("/api/auth/cav4/session")
+}
+
+export function getPlatformContext() {
+  return request<PlatformContext>("/api/platform/context")
 }
 
 /* ------------------------------- Catálogos -------------------------------- */

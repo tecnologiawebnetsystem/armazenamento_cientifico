@@ -22,6 +22,16 @@ class PlatformRepository:
         await self.session.execute(text(sql), params or {})
         await self.session.commit()
 
+    async def context(self, user_id: str) -> dict[str, Any]:
+        user = await self.one("select u.id, u.email, u.name as nome, u.profile_id as perfil_id, p.name as perfil_nome from users u left join profiles p on p.id = u.profile_id where u.id = :user_id", {"user_id": user_id})
+        if not user or not user.get("perfil_id"):
+            return {"user": user, "permissions": [], "modules": [], "menus": [], "dashboardCards": []}
+        permissions = await self.rows("select pp.permission_id as id from profile_permissions pp join permissions p on p.id = pp.permission_id where pp.profile_id = :profile_id and pp.allowed = true and p.active = true", {"profile_id": user["perfil_id"]})
+        modules = await self.rows("select m.id, m.name as nome, m.route as rota, m.icon as icone, m.display_order as ordem from profile_modules pm join modules m on m.id = pm.module_id where pm.profile_id = :profile_id and pm.can_view = true and m.active = true order by m.display_order, m.name", {"profile_id": user["perfil_id"]})
+        menus = await self.rows("select distinct mi.id, mi.name as nome, mi.route as rota, mi.icon as icone, mi.display_order as ordem, mi.parent_id as parent_id from menus mi left join menu_permissions mp on mp.menu_id = mi.id where mi.active = true and (mp.permission_id is null or (mp.allowed = true and mp.permission_id in (select pp.permission_id from profile_permissions pp where pp.profile_id = :profile_id and pp.allowed = true))) order by mi.display_order, mi.name", {"profile_id": user["perfil_id"]})
+        cards = await self.rows("select id, key, title as titulo, description as descricao, metric_key as metrica, route as rota, display_order as ordem from dashboard_cards where active = true and (profile_ids = '' or position(',' || :profile_id || ',' in ',' || replace(profile_ids, ' ', '') || ',') > 0) order by display_order, title", {"profile_id": user["perfil_id"]})
+        return {"user": user, "permissions": [row["id"] for row in permissions], "modules": modules, "menus": menus, "dashboardCards": cards}
+
     async def catalogs(self) -> dict[str, list[dict[str, Any]]]:
         return {
             "areas": await self.rows("select id, name as nome, prefix as prefixo, next_number from responsible_areas where active = true order by name"),

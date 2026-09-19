@@ -13,7 +13,9 @@ from app.db.base import Base
 from app.modules.audit.models import ActivityLog
 from app.modules.catalogs.area_model import ResponsibleArea
 from app.modules.catalogs.models import (
+    DashboardCard,
     MenuItem,
+    MenuPermission,
     Module,
     Permission,
     ProfileModule,
@@ -46,7 +48,7 @@ class AccessRequest(Base):
     created_at: Mapped[datetime] = mapped_column(nullable=False)
 
 __all__ = [
-    "AccessRequest", "ActivityLog", "Folder", "MenuItem", "Module", "Perfil",
+    "AccessRequest", "ActivityLog", "DashboardCard", "Folder", "MenuItem", "MenuPermission", "Module", "Perfil",
     "Permission", "ProfileModule", "ProfilePermission",
     "Project", "ProjectMember", "ProjectStatusCatalog", "ProjectType",
     "ReportField", "ReportType", "ResponsibleArea", "SystemSetting", "User",
@@ -54,7 +56,7 @@ __all__ = [
 
 # Evita que linters removam os imports que registram as classes no metadata.
 _ORM_MODELS = (
-    AccessRequest, ActivityLog, Folder, MenuItem, Module, Perfil, Permission,
+    AccessRequest, ActivityLog, DashboardCard, Folder, MenuItem, MenuPermission, Module, Perfil, Permission,
     ProfileModule, ProfilePermission, Project, ProjectMember,
     ProjectStatusCatalog, ProjectType, ReportField, ReportType, ResponsibleArea,
     SystemSetting, User,

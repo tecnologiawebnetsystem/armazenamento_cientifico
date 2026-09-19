@@ -9,6 +9,9 @@ class PlatformService:
     def __init__(self, repository: PlatformRepository):
         self.repository = repository
 
+    async def context(self, user_id: str) -> dict[str, Any]:
+        return await self.repository.context(user_id)
+
     async def catalogs(self) -> dict[str, list[dict[str, Any]]]:
         return await self.repository.catalogs()
 
