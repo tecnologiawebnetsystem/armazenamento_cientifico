@@ -22,7 +22,7 @@
 - [14. Branches, commits e PRs](#14-branches-commits-e-prs)
 - [15. Troubleshooting](#15-troubleshooting)
 - [16. Deploy](#16-deploy)
-- [18. Integração corporativa CAV4 e Entra ID](#18-integração-corporativa-cav4-e-entra-id)
+- [18. Integração corporativa CAV4](#18-integração-corporativa-cav4)
 - [17. Operação dos containers e cronograma](#17-operação-dos-containers-e-cronograma)
 
 ---
@@ -384,7 +384,7 @@ A API REST do SiGAC é fornecida pelo FastAPI em `back-end/`. O contrato publica
 |---|---|---|
 | Health | `GET /health`, `/health/live`, `/health/ready`, `/health/database` | Disponibilidade da aplicação e do banco. |
 | Autenticação | `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/session` | Login local, encerramento e consulta da sessão. |
-| Login corporativo | `GET /api/auth/cav4/start`, `GET /api/auth/cav4/callback` | Fluxo corporativo CAV4/OIDC. |
+| Login corporativo | `GET /api/auth/cav4/start`, `GET /api/auth/cav4/callback` | Autenticação CAV4/OIDC; o SIGAC localiza o usuário pelo e-mail. |
 | Catálogos e diretório | `GET /api/catalogos`, `/api/users`, `/api/perfis`, `/api/permissions` | Dados auxiliares para telas e autorização. |
 | Projetos | `GET/POST /api/projects`, `GET/PATCH/DELETE /api/projects/{id}` | CRUD, áreas, mapa de acesso e membros. |
 | Pastas | `GET /api/folders` | Consulta somente leitura das pastas do projeto. |
@@ -436,7 +436,7 @@ A proteção principal ocorre no backend por `get_current_user`, que lê o cooki
 
 ### Login corporativo
 
-O botão corporativo inicia `GET /api/auth/cav4/start`. O backend conduz o fluxo OAuth 2.0/OpenID Connect, valida `state`, troca o código no provedor CAV4 e cria a mesma sessão HttpOnly após identificar o usuário. Segredos e configurações ficam somente no backend (`CAV4_*`); nunca use valores `NEXT_PUBLIC_*` para credenciais.
+O botão corporativo inicia `GET /api/auth/cav4/start`. O backend conduz o fluxo OAuth 2.0/OpenID Connect, valida `state`, troca o código no CAV4, extrai o e-mail e procura o usuário em `users`. Depois carrega `profiles`, `modules`, `menus`, `dashboard_cards`, `permissions`, `profile_modules`, `profile_permissions` e `menu_permissions`, cria a sessão HttpOnly e libera a dashboard. Segredos ficam somente no backend; a POC `cav4-integracao/` é apenas referência e não participa do runtime.
 
 ### Autorização
 
@@ -628,9 +628,9 @@ SQLite é adequado para desenvolvimento local, mas não deve ser usado como banc
 
 ---
 
-## 18. Integração corporativa CAV4 e Entra ID
+## 18. Integração corporativa CAV4
 
-O SIGAC possui login local funcional e mantém a integração corporativa como uma etapa dependente do contrato oficial dos sistemas CAV4 e Microsoft Entra ID. Login local não é SSO e não deve ser descrito como autenticação corporativa ou mockada.
+O SIGAC usa o CAV4 para login corporativo. O fluxo corporativo não usa InterID nem Entra ID diretamente. O CAV4 autentica o usuário; o SIGAC localiza o e-mail na tabela `users` e aplica o perfil, módulos, menus e permissões parametrizados no banco local.
 
 ### Fluxo corporativo esperado
 
