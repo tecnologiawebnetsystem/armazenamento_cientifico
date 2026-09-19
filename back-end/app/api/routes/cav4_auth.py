@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import UTC, datetime, timedelta
 from secrets import compare_digest
 from uuid import uuid4
@@ -30,8 +31,13 @@ async def database_health():
     """Diagnóstico sanitizado da conexão e das tabelas essenciais."""
     try:
         async for database in get_session():
+            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", settings.db_schema):
+                raise RuntimeError("DB_SCHEMA inválido")
             result = await database.execute(
-                text("select current_database(), current_user, current_schema(), to_regclass('public.users')")
+                text(
+                    f"select current_database(), current_user, current_schema(), "
+                    f"to_regclass('{settings.db_schema}.users')"
+                )
             )
             database_name, database_user, schema_name, users_table = result.one()
             if users_table is None:

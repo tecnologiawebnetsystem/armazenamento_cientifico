@@ -76,7 +76,7 @@ class Settings(BaseModel):
     db_command_timeout: int = int(os.getenv("DB_COMMAND_TIMEOUT", "30"))
     db_ssl_verify: bool = os.getenv("DB_SSL_VERIFY", "true").lower() == "true"
     db_ssl_ca_file: str = os.getenv("DB_SSL_CA_FILE", "").strip()
-    db_schema: str = os.getenv("DB_SCHEMA", "public").strip()
+    db_schema: str = os.getenv("DB_SCHEMA", "a25034d").strip()
     api_prefix: str = os.getenv("API_PREFIX", "/api")
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
     environment: str = os.getenv("ENVIRONMENT", "development")
