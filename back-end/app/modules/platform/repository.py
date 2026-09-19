@@ -65,6 +65,6 @@ class PlatformRepository:
         return await self.rows("select key as chave, value as valor from system_settings where active = true")
 
     async def activity_logs(self, page: int, limit: int) -> tuple[list[dict[str, Any]], int]:
-        rows = await self.rows("select id, user_id as \"userId\", action as acao, entity as entidade, entity_id as \"entidadeId\", details as detalhes, created_at as \"criadoEm\", result as resultado, project_id as \"projetoId\" from activity_logs order by created_at desc limit :limit offset :offset", {"limit": limit, "offset": (page - 1) * limit})
-        count = await self.one("select count(*) as total from activity_logs")
+        rows = await self.rows(f"select al.id, al.user_id as \"userId\", u.name as \"userName\", u.email as \"userEmail\", al.action as acao, al.entity as entidade, al.entity_id as \"entidadeId\", al.details as detalhes, al.created_at as \"criadoEm\", al.result as resultado, al.project_id as \"projetoId\" from {self.schema}.activity_logs al left join {self.schema}.users u on u.id = al.user_id order by al.created_at desc limit :limit offset :offset", {"limit": limit, "offset": (page - 1) * limit})
+        count = await self.one(f"select count(*) as total from {self.schema}.activity_logs")
         return rows, int(count["total"])
