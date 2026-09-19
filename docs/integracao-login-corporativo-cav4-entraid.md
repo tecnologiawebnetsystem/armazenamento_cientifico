@@ -4,7 +4,7 @@
 
 ## 1. Resumo executivo
 
-O backend do SIGAC possui atualmente um ponto de entrada reservado para o login corporativo **CAV4**, mas a integração permanece desativada até a disponibilização e validação do contrato técnico oficial. O Microsoft Entra ID aparece neste documento somente como referência de identidade corporativa e não deve ser tratado como fluxo implementado enquanto não existirem rotas, configuração e testes correspondentes no sistema.
+O backend do SIGAC possui o fluxo corporativo **CAV4** condicionado à configuração oficial do provedor. A integração só é acionada após o clique no botão de login corporativo; a página pública de login não executa sondagem, consulta de sessão ou conexão externa ao ser aberta. O Microsoft Entra ID aparece neste documento somente como referência de identidade corporativa e não deve ser tratado como fluxo implementado enquanto não existirem rotas, configuração e testes correspondentes no sistema.
 
 Não inventar endpoints, chaves, claims ou formato de token. Quando o contrato estiver disponível, o backend deverá validar a identidade, localizar o usuário nas tabelas `users` e `profiles`, aplicar as regras de `modules`, `permissions`, `profile_modules` e `profile_permissions`, registrar a sessão em `sessions` e auditar o evento em `activity_logs`.
 

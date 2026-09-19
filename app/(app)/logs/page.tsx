@@ -31,7 +31,7 @@ export default function LogsPage() {
   const { data, error, isLoading, mutate } = useSWR("/api/activity-logs?limit=100", fetcher)
   const [query, setQuery] = useState("")
   const [action, setAction] = useState("todos")
-  const allLogs = (data?.logs ?? []) as LogWithUser[]
+  const allLogs = useMemo(() => (data?.logs ?? []) as LogWithUser[], [data?.logs])
   const actions = useMemo(() => Array.from(new Set(allLogs.map((log) => log.acao))), [allLogs])
   const logs = useMemo(() => allLogs.filter((log) => {
     const text = `${log.acao} ${log.entidade} ${log.entidadeId ?? ""} ${log.user?.nome ?? ""} ${log.user?.email ?? ""}`.toLowerCase()

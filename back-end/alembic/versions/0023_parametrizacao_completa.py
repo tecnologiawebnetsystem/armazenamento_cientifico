@@ -1,6 +1,7 @@
 """Add data-driven menu permissions and dashboard cards."""
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 revision = "0023_parametrizacao_completa"
 down_revision = "0022_remove_permission_matrix"

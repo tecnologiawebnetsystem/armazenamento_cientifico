@@ -12,7 +12,11 @@ load_dotenv()
 
 
 def _database_url() -> str:
-    aurora_url = os.getenv("RDS_AURORA_POSTGRES_URL", "").strip()
+    aurora_url = (
+        os.getenv("RDS_AURORA_POSTGRES_URL", "").strip()
+        or os.getenv("DATABASE_URL", "").strip()
+        or os.getenv("POSTGRES_URL", "").strip()
+    )
     if aurora_url:
         return aurora_url if "://" in aurora_url else f"postgresql://{aurora_url}"
 
@@ -102,9 +106,9 @@ class Settings(BaseModel):
     @model_validator(mode="after")
     def validate_entra(self) -> "Settings":
         if self.database_url and not self.database_url.startswith(("postgresql://", "postgres://", "postgresql+asyncpg://")):
-            raise ValueError("RDS_AURORA_POSTGRES_URL deve usar o esquema PostgreSQL/Aurora")
+            raise ValueError("DATABASE_URL/RDS_AURORA_POSTGRES_URL deve usar o esquema PostgreSQL/Aurora")
         if not self.database_url and not self.temporary_cav4_session:
-            raise ValueError("RDS_AURORA_POSTGRES_URL ou RDS_AURORA_POSTGRES_HOST/USERNAME/PASSWORD são obrigatórias")
+            raise ValueError("DATABASE_URL/POSTGRES_URL ou RDS_AURORA_POSTGRES_URL/host/username/password são obrigatórias")
         if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", self.db_schema):
             raise ValueError("DB_SCHEMA deve conter apenas um identificador PostgreSQL válido")
         if self.db_min_size < 1 or self.db_max_size < self.db_min_size:

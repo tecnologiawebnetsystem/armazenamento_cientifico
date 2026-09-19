@@ -160,14 +160,13 @@ O SIGAC utiliza PostgreSQL Aurora externo como banco relacional da aplicação. 
 
 ### Configuração pelo `.env`
 
-Defina as variáveis no arquivo `back-end/.env` local, que não deve ser versionado:
+Defina as variáveis no arquivo `back-end/.env` local, que não deve ser versionado. O backend aceita `DATABASE_URL`/`POSTGRES_URL` para PostgreSQL/Neon e `RDS_AURORA_POSTGRES_URL` para Aurora:
 
 ```env
 DATABASE_ENGINE=postgresql
-RDS_AURORA_POSTGRES_HOST=host
-RDS_AURORA_POSTGRES_USERNAME=usuario
-RDS_AURORA_POSTGRES_PASSWORD=senha
-RDS_AURORA_POSTGRES_URL=postgresql://usuario:senha@host:5432/sigac?sslmode=require
+DATABASE_URL=postgresql+asyncpg://usuario:senha@host:5432/sigac?ssl=require
+# Alternativa Aurora:
+# RDS_AURORA_POSTGRES_URL=postgresql+asyncpg://usuario:senha@host:5432/sigac?ssl=require
 DB_SCHEMA=public
 SEED_DATABASE=false
 CORS_ORIGINS=http://localhost:3000
