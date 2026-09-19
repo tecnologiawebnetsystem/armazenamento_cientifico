@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/sidebar"
 import { usePlatformContext } from "@/hooks/use-platform-context"
 import { filterNavForRole, navGroups, type NavItem } from "@/lib/nav-config"
-import { FolderKanbanIcon, LayoutDashboardIcon, ShieldCheckIcon, BarChart3Icon, type LucideIcon } from "lucide-react"
+import { ClipboardListIcon, FlaskConicalIcon, FolderKanbanIcon, LayoutDashboardIcon, ShieldCheckIcon, BarChart3Icon, type LucideIcon } from "lucide-react"
 
 export function AppSidebar() {
   const pathname = usePathname()
@@ -40,10 +40,12 @@ export function AppSidebar() {
       url: menu.rota,
       icon: iconMap[menu.icone] ?? FolderKanbanIcon,
     }))
-  const staticItems = filterNavForRole(navGroups, "admin", platformContext?.permissions ?? [])
-    .flatMap((group) => group.items)
-    .filter((item) => item.url === "/logs")
-  const mergedItems = [...databaseItems, ...staticItems.filter((item) => !databaseItems.some((existing) => existing.url === item.url))]
+  const requiredItems: NavItem[] = [
+    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboardIcon },
+    { title: "Logs e Auditoria", url: "/logs", icon: ClipboardListIcon },
+    { title: "Pesquisa", url: "/pesquisas", icon: FlaskConicalIcon },
+  ]
+  const mergedItems = [...requiredItems, ...databaseItems.filter((item) => !requiredItems.some((required) => required.url === item.url))]
   const groups = mergedItems.length
     ? [{ label: "Sistema", items: mergedItems }]
     : filterNavForRole(navGroups, "admin", platformContext?.permissions ?? [])
