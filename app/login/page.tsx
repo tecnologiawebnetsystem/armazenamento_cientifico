@@ -1,7 +1,7 @@
 import Image from "next/image"
 import { redirect } from "next/navigation"
 import { LoginForm } from "@/components/login/login-form"
-import { LogoMark } from "@/components/brand/logo-mark"
+import { LogoFull } from "@/components/brand/logo-mark"
 import { getBackendSession } from "@/lib/session"
 
 export default async function LoginPage() {
@@ -27,7 +27,7 @@ export default async function LoginPage() {
         <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-petrobras-yellow via-petrobras-yellow to-petrobras-green" />
 
         <div className="relative z-10 flex items-center gap-3 text-sidebar-foreground">
-          <LogoMark className="size-10" />
+          <LogoFull className="h-11 w-52" />
           <div className="flex flex-col leading-tight">
             <span className="font-semibold tracking-tight">SIGAC</span>
             <span className="text-[10px] text-white">Sistema de Gestão de Acesso ao Armazenamento Científico</span>
@@ -71,7 +71,7 @@ export default async function LoginPage() {
 
         <div className="w-full max-w-md">
           <div className="mb-8 flex flex-col items-center gap-2 text-center lg:hidden">
-            <LogoMark className="size-10" />
+            <LogoFull className="h-11 w-52" />
             <span className="font-semibold tracking-tight">SIGAC</span>
             <span className="text-[10px] text-white">Sistema de Gestão de Acesso ao Armazenamento Científico</span>
           </div>
