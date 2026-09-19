@@ -46,7 +46,6 @@ TABLE_USAGE = {
     "folders": ("Pastas do projeto, somente leitura", "components/projects/project-file-explorer.tsx; app/(app)/projetos/[id]/page.tsx", "GET /api/folders?projectId={id}"),
     "access_requests": ("Solicitações de acesso", "components/administracao/access-requests-queue.tsx; app/(app)/projetos/[id]/page.tsx", "GET/POST /api/access-requests; PATCH /api/access-requests/{id}"),
     "activity_logs": ("Auditoria das operações", "app/(app)/logs/page.tsx; hooks/use-activity-logs.ts", "GET /api/activity-logs"),
-    "permission_matrix": ("Matriz consolidada de permissões", "hooks/use-permissions.ts; componentes de administração", "GET/PUT /api/permissions"),
 }
 
 

@@ -6,7 +6,7 @@
 
 ## 1. Decisão arquitetural principal
 
-O SIGAC adota arquitetura web corporativa em camadas, modular por domínio, com Next.js no frontend e FastAPI no backend. O CAV4 é a autoridade de autenticação e identidade. Nesta fase, o Aurora PostgreSQL é a autoridade do SIGAC para perfil, permissões, menu e autorização das operações.
+O SIGAC adota arquitetura web corporativa em camadas, modular por domínio, com Next.js no frontend e FastAPI no backend. O CAV4 é a autoridade de autenticação e identidade corporativa. Nesta fase, o PostgreSQL Aurora externo é a autoridade do SIGAC para perfil, permissões, menu e autorização das operações.
 
 A regra central é:
 
@@ -79,7 +79,7 @@ Não inclui criação, renomeação ou exclusão de pastas; upload, download, ed
 
 O Aurora utiliza PostgreSQL, UUIDs, foreign keys, índices e migrations versionadas. O schema físico deve ser criado por Alembic ou pelo script SQL aprovado pelo DBA. O usuário da aplicação deve ter apenas os grants necessários.
 
-Entidades principais: `users`, `profiles`, `projects`, `project_members`, `folders`, `access_requests`, `activity_logs` e catálogos.
+Entidades principais: `users`, `profiles`, `modules`, `permissions`, `profile_permissions`, `profile_modules`, `projects`, `project_members`, `folders`, `access_requests`, `activity_logs` e catálogos. A tabela `permission_matrix` não faz parte do modelo vigente.
 
 ## 8. Segurança e operação
 
