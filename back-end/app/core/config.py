@@ -42,8 +42,9 @@ def _database_url() -> str:
             os.getenv("RDS_AURORA_POSTGRES_DATABASE", "").strip()
             or os.getenv("POSTGRES_DATABASE", "").strip()
             or os.getenv("PGDATABASE", "").strip()
-            or "a25034d"
         )
+        if not database:
+            return ""
         credentials = f"{quote(user, safe='')}:{quote(password, safe='')}"
         return f"postgresql://{credentials}@{host}:5432/{quote(database, safe='')}"
     return ""
@@ -76,7 +77,7 @@ class Settings(BaseModel):
     db_command_timeout: int = int(os.getenv("DB_COMMAND_TIMEOUT", "30"))
     db_ssl_verify: bool = os.getenv("DB_SSL_VERIFY", "true").lower() == "true"
     db_ssl_ca_file: str = os.getenv("DB_SSL_CA_FILE", "").strip()
-    db_schema: str = os.getenv("DB_SCHEMA", "a25034").strip()
+    db_schema: str = os.getenv("DB_SCHEMA", "").strip()
     api_prefix: str = os.getenv("API_PREFIX", "/api")
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
     environment: str = os.getenv("ENVIRONMENT", "development")
@@ -126,7 +127,9 @@ class Settings(BaseModel):
         if self.database_url and not self.database_url.startswith(("postgresql://", "postgres://", "postgresql+asyncpg://")):
             raise ValueError("DATABASE_URL/RDS_AURORA_POSTGRES_URL deve usar o esquema PostgreSQL/Aurora")
         if not self.database_url and not self.temporary_cav4_session:
-            raise ValueError("DATABASE_URL/POSTGRES_URL ou RDS_AURORA_POSTGRES_URL/host/username/password são obrigatórias")
+            raise ValueError("DATABASE_URL/POSTGRES_URL ou RDS_AURORA_POSTGRES_URL/host/username/password/database são obrigatórias")
+        if not self.db_schema:
+            raise ValueError("DB_SCHEMA é obrigatório e deve ser definido no ambiente")
         if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", self.db_schema):
             raise ValueError("DB_SCHEMA deve conter apenas um identificador PostgreSQL válido")
         if self.db_min_size < 1 or self.db_max_size < self.db_min_size:

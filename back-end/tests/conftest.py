@@ -11,3 +11,4 @@ os.environ.setdefault(
 )
 os.environ.setdefault("ENVIRONMENT", "test")
 os.environ.setdefault("EXPOSE_API_DOCS", "true")
+os.environ.setdefault("DB_SCHEMA", "sigac_test")

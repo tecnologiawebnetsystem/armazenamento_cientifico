@@ -26,13 +26,18 @@ class EmailLoginRequest(BaseModel):
     email: EmailStr
 
 
+def _schema_name() -> str:
+    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", settings.db_schema):
+        raise RuntimeError("DB_SCHEMA inválido ou ausente")
+    return f'"{settings.db_schema}"'
+
+
 @email_router.get("/health/database", tags=["Diagnostics"])
 async def database_health():
     """Diagnóstico sanitizado da conexão e das tabelas essenciais."""
     try:
         async for database in get_session():
-            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", settings.db_schema):
-                raise RuntimeError("DB_SCHEMA inválido")
+            _schema_name()
             result = await database.execute(
                 text(
                     f"select current_database(), current_user, current_schema(), "
@@ -77,9 +82,10 @@ async def email_login(payload: EmailLoginRequest):
     session_id = str(uuid4())
     expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours)
     try:
+        schema = _schema_name()
         async for database in get_session():
             result = await database.execute(
-                text("select id, profile_id from users where lower(email)=:email"),
+                text(f"select id, profile_id from {schema}.users where lower(email)=:email"),
                 {"email": email},
             )
             user = result.mappings().first()
@@ -87,10 +93,10 @@ async def email_login(payload: EmailLoginRequest):
                 raise HTTPException(status_code=401, detail="E-mail não cadastrado na plataforma")
             if not user.get("profile_id"):
                 raise HTTPException(status_code=403, detail="Usuário sem perfil SIGAC configurado")
-            await database.execute(text("update users set last_login_at=now() where id=:user_id"), {"user_id": user["id"]})
-            await database.execute(text("delete from sessions where user_id=:user_id"), {"user_id": user["id"]})
+            await database.execute(text(f"update {schema}.users set last_login_at=now() where id=:user_id"), {"user_id": user["id"]})
+            await database.execute(text(f"delete from {schema}.sessions where user_id=:user_id"), {"user_id": user["id"]})
             await database.execute(
-                text("insert into sessions(id,user_id,expires_at,cav4_subject) values(:id,:user_id,:expires_at,:subject)"),
+                text(f"insert into {schema}.sessions(id,user_id,expires_at,cav4_subject) values(:id,:user_id,:expires_at,:subject)"),
                 {"id": session_id, "user_id": user["id"], "expires_at": expires_at, "subject": f"email:{email}"},
             )
             await database.commit()
@@ -156,8 +162,9 @@ async def cav4_logout(request: Request):
         if settings.temporary_cav4_session:
             delete_session(session_id)
         else:
+            schema = _schema_name()
             async for database in get_session():
-                await database.execute(text("delete from sessions where id=:session_id"), {"session_id": session_id})
+                await database.execute(text(f"delete from {schema}.sessions where id=:session_id"), {"session_id": session_id})
                 await database.commit()
         logger.info("cav4_logout session_revoked=true backend=%s", "memory" if settings.temporary_cav4_session else "database")
     response = Response(status_code=204)
@@ -226,9 +233,10 @@ async def cav4_callback(request: Request, code: str, state: str):
     session_id = str(uuid4())
     expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours)
     try:
+        schema = _schema_name()
         async for database in get_session():
             user_result = await database.execute(
-                text("select id, profile_id from users where lower(email)=lower(:email)"),
+                text(f"select id, profile_id from {schema}.users where lower(email)=lower(:email)"),
                 {"email": identity.email},
             )
             user = user_result.mappings().first()
@@ -242,10 +250,10 @@ async def cav4_callback(request: Request, code: str, state: str):
                 raise HTTPException(status_code=403, detail="Usuário corporativo não cadastrado na plataforma")
             if not user.get("profile_id"):
                 raise HTTPException(status_code=403, detail="Usuário autenticado sem perfil SIGAC configurado no banco de dados")
-            await database.execute(text("update users set last_login_at=now() where id=:user_id"), {"user_id": user["id"]})
-            await database.execute(text("delete from sessions where user_id=:user_id"), {"user_id": user["id"]})
+            await database.execute(text(f"update {schema}.users set last_login_at=now() where id=:user_id"), {"user_id": user["id"]})
+            await database.execute(text(f"delete from {schema}.sessions where user_id=:user_id"), {"user_id": user["id"]})
             await database.execute(
-                text("insert into sessions(id,user_id,expires_at,cav4_subject) values(:id,:user_id,:expires_at,:cav4_subject)"),
+                text(f"insert into {schema}.sessions(id,user_id,expires_at,cav4_subject) values(:id,:user_id,:expires_at,:cav4_subject)"),
                 {"id": session_id, "user_id": user["id"], "expires_at": expires_at, "cav4_subject": identity.subject or identity.email},
             )
             await database.commit()
