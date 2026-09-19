@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/sidebar"
 import { usePlatformContext } from "@/hooks/use-platform-context"
 import { filterNavForRole, navGroups, type NavItem } from "@/lib/nav-config"
-import { FolderKanbanIcon, LayoutDashboardIcon, ShieldCheckIcon, BarChart3Icon, type LucideIcon } from "lucide-react"
+import { ClipboardListIcon, FlaskConicalIcon, FolderKanbanIcon, LayoutDashboardIcon, ShieldCheckIcon, BarChart3Icon, type LucideIcon } from "lucide-react"
 
 export function AppSidebar() {
   const pathname = usePathname()
@@ -33,14 +33,24 @@ export function AppSidebar() {
     shield: ShieldCheckIcon,
     chart: BarChart3Icon,
   }
-  const databaseItems: NavItem[] = (platformContext?.menus ?? []).map((menu) => ({
-    title: menu.nome,
-    url: menu.rota,
-    icon: iconMap[menu.icone] ?? FolderKanbanIcon,
-  }))
-  const groups = databaseItems.length
-    ? [{ label: "Sistema", items: databaseItems }]
-    : filterNavForRole(navGroups, "auditor", platformContext?.permissions ?? [])
+  const databaseItems: NavItem[] = (platformContext?.menus ?? [])
+    .filter((menu) => !/usu[aá]rios?|perfil/i.test(menu.nome) && !/\/usuarios?|\/perfil/i.test(menu.rota))
+    .map((menu) => ({
+      title: menu.nome,
+      url: menu.rota,
+      icon: iconMap[menu.icone] ?? FolderKanbanIcon,
+    }))
+  const requiredItems: NavItem[] = [
+    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboardIcon },
+    { title: "Projetos", url: "/projetos", icon: FolderKanbanIcon },
+    { title: "Pesquisa", url: "/pesquisas", icon: FlaskConicalIcon },
+    { title: "Relatórios", url: "/relatorios", icon: BarChart3Icon },
+    { title: "Logs e Auditoria", url: "/logs", icon: ClipboardListIcon },
+  ]
+  const mergedItems = [...requiredItems, ...databaseItems.filter((item) => !requiredItems.some((required) => required.url === item.url))]
+  const groups = mergedItems.length
+    ? [{ label: "Sistema", items: mergedItems }]
+    : filterNavForRole(navGroups, "admin", platformContext?.permissions ?? [])
   const filteredGroups = groups.map((group) => ({ ...group, items: group.items.filter((item) => item.title.toLowerCase().includes(search.toLowerCase())) })).filter((group) => group.items.length)
 
   return (
