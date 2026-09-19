@@ -38,7 +38,7 @@ async def get_current_user(request: Request):
                     f"left join {schema}.profile_permissions pp on pp.profile_id=p.id "
                     f"left join {schema}.permissions perm on perm.id=pp.permission_id "
                     f"where s.id=:session_id and s.expires_at > now() "
-                    f"group by u.id, p.id, p.name"
+                    f"group by u.id, s.cav4_subject, p.id, p.name"
                 ),
                 {"session_id": session_id},
             )
