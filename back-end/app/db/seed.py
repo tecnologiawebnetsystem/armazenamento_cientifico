@@ -194,8 +194,6 @@ async def initialize_database(engine) -> None:
                     session.add(ProjectMember(project_id=project.id, user_id=member.id, role=papel, created_at=now))
         await session.flush()
 
-        await session.execute(text("INSERT INTO permission_matrix(id, matrix) VALUES (1, :matrix) ON CONFLICT(id) DO NOTHING"), {"matrix": '{"admin":["*"],"auditor":["read"],"gerente":["read","write"]}'})
-
         await session.commit()
 
 __all__ = ["initialize_database"]

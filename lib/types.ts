@@ -106,19 +106,6 @@ export interface AccessRequest {
   analisadoPor?: string
 }
 
-/** Matriz de alçadas: o que cada papel pode fazer por padrão na plataforma. */
-export interface PermissionMatrixEntry {
-  papel: Role
-  verProjetos: boolean
-  criarProjetos: boolean
-  editarProjeto: boolean
-  excluirProjeto: boolean
-  gerenciarMembros: boolean
-  uploadArquivos: boolean
-  excluirArquivos: boolean
-  aprovarSolicitacoes: boolean
-}
-
 export type SessionUser = User
 
 export interface ResponsibleArea {

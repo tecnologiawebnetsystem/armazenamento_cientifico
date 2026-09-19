@@ -66,19 +66,6 @@ async def update_access_request(request_id: str, payload: dict, service: Service
     return await service.update_access_request(request_id, payload["status"], user["id"])
 
 
-@router.get("/permissions")
-async def permissions(service: Service, _: CurrentUser):
-    return await service.permission_matrix()
-
-
-@router.put("/permissions")
-async def update_permissions(payload: dict, service: Service, _: CurrentUser):
-    logger.info("platform_permissions_update")
-    for entry in payload.get("matrix", []):
-        await service.repository.execute("update permission_matrix set can_view_projects = :verProjetos, can_create_projects = :criarProjetos, can_edit_projects = :editarProjeto, can_delete_projects = :excluirProjeto, can_manage_members = :gerenciarMembros, can_upload_files = :uploadArquivos, can_delete_files = :excluirArquivos, can_approve_requests = :aprovarSolicitacoes where role = :papel", {**entry, "papel": entry.get("papel") or entry.get("role")})
-    return await service.permission_matrix()
-
-
 @router.get("/settings")
 async def settings(service: Service, _: CurrentUser):
     return await service.settings()

@@ -1,4 +1,4 @@
-import type { PermissionMatrixEntry, Role } from "@/lib/types"
+import type { Role } from "@/lib/types"
 
 /**
  * Modelo de permissões em dois níveis:
@@ -45,10 +45,6 @@ export function normalizeRole(role: Role | string | null | undefined): keyof typ
   }
   const value = String(role ?? "solicitante").toLowerCase()
   return aliases[value] ?? (value in roleCapabilities ? value as keyof typeof roleCapabilities : "solicitante")
-}
-
-export function getRolePermissions(role: Role, matrix: PermissionMatrixEntry[]) {
-  return matrix.find((m) => m.papel === normalizeRole(role)) ?? matrix[matrix.length - 1]
 }
 
 export function roleLabel(role: Role | string | null | undefined) {

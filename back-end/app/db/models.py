@@ -6,7 +6,7 @@ Importar este módulo garante que todos os modelos estejam registrados em
 
 from datetime import datetime
 
-from sqlalchemy import JSON, ForeignKey, String
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -44,25 +44,10 @@ class AccessRequest(Base):
     updated_at: Mapped[datetime] = mapped_column(nullable=False)
     analyzed_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(nullable=False)
-class PermissionMatrix(Base):
-    __tablename__ = "permission_matrix"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    matrix: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
-    role: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
-    can_view_projects: Mapped[bool] = mapped_column(default=True, nullable=False)
-    can_create_projects: Mapped[bool] = mapped_column(default=False, nullable=False)
-    can_edit_projects: Mapped[bool] = mapped_column(default=False, nullable=False)
-    can_delete_projects: Mapped[bool] = mapped_column(default=False, nullable=False)
-    can_manage_members: Mapped[bool] = mapped_column(default=False, nullable=False)
-    can_upload_files: Mapped[bool] = mapped_column(default=False, nullable=False)
-    can_delete_files: Mapped[bool] = mapped_column(default=False, nullable=False)
-    can_approve_requests: Mapped[bool] = mapped_column(default=False, nullable=False)
-
-
 
 __all__ = [
     "AccessRequest", "ActivityLog", "Folder", "MenuItem", "Module", "Perfil",
-    "Permission", "PermissionMatrix", "ProfileModule", "ProfilePermission",
+    "Permission", "ProfileModule", "ProfilePermission",
     "Project", "ProjectMember", "ProjectStatusCatalog", "ProjectType",
     "ReportField", "ReportType", "ResponsibleArea", "SystemSetting", "User",
 ]
@@ -70,7 +55,7 @@ __all__ = [
 # Evita que linters removam os imports que registram as classes no metadata.
 _ORM_MODELS = (
     AccessRequest, ActivityLog, Folder, MenuItem, Module, Perfil, Permission,
-    PermissionMatrix, ProfileModule, ProfilePermission, Project, ProjectMember,
+    ProfileModule, ProfilePermission, Project, ProjectMember,
     ProjectStatusCatalog, ProjectType, ReportField, ReportType, ResponsibleArea,
     SystemSetting, User,
 )

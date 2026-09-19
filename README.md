@@ -321,7 +321,7 @@ A lista abaixo apresenta somente as tabelas utilizadas pelo SiGAC, com seus camp
 | `folders` | `id*`, `project_id`, `parent_id`, `kind='pasta'`, `name`, `size_bytes`, `mime_type`, `created_by`, `last_viewed_at`, `created_at`, `updated_at` | `id` | `project_id -> projects.id`; `parent_id -> folders.id`; `created_by -> users.id` (consulta somente leitura) |
 | `access_requests` | `id*`, `project_id`, `requester_id`, `status`, `created_at` | `id` | `project_id -> projects.id`; `requester_id -> users.id` |
 | `activity_logs` | `id*`, `user_id`, `action`, `entity`, `entity_id`, `details`, `created_at` | `id` | `user_id -> users.id` |
-| `permission_matrix` | `id*`, `matrix` | `id` | — |
+
 
 ### Uso por tabela no sistema
 
@@ -329,7 +329,7 @@ A tabela abaixo relaciona cada tabela ao uso funcional identificado no código a
 
 | Tabela | Finalidade | Página/componente frontend | Arquivo frontend | Endpoints backend |
 |---|---|---|---|---|
-| `profiles` | Perfis dos usuários e autorização | Login, área protegida e administração | `app/login/page.tsx`; `app/(app)/layout.tsx`; `hooks/use-permissions.ts` | `GET /api/auth/session`; `GET /api/permissions`; `PUT /api/permissions` |
+| `profiles` | Perfis dos usuários e autorização | Login, área protegida e administração | `app/login/page.tsx`; `app/(app)/layout.tsx`; `hooks/use-permissions.ts` | `GET /api/auth/session` |
 | `users` | Usuários, login, diretório e vínculos | Login, projetos, solicitações e logs | `app/login/page.tsx`; `app/(app)/projetos/`; `components/administracao/access-requests-queue.tsx`; `app/(app)/logs/page.tsx` | `POST /api/auth/login`; `GET /api/auth/session`; `GET /api/users`; `GET /api/projects/{id}/members`; `GET /api/access-requests`; `GET /api/activity-logs` |
 | `modules` | Módulos disponíveis e controle de navegação | Layout e navegação protegida | `app/(app)/layout.tsx`; `components/layout/app-sidebar.tsx`; `lib/nav-config.ts` | `GET /api/auth/session`; `GET /api/permissions` |
 | `permissions` | Capacidades concedidas por módulo | Administração de permissões | `hooks/use-permissions.ts`; componentes de administração | `GET /api/permissions`; `PUT /api/permissions` |
@@ -347,7 +347,7 @@ A tabela abaixo relaciona cada tabela ao uso funcional identificado no código a
 | `folders` | Pastas e estrutura de arquivos somente leitura | Explorador de arquivos do projeto | `components/projects/project-file-explorer.tsx`; `app/(app)/projetos/[id]/page.tsx` | `GET /api/folders?projectId={id}` |
 | `access_requests` | Solicitações de acesso a projetos | Fila administrativa e solicitação de acesso | `components/administracao/access-requests-queue.tsx`; `app/(app)/projetos/[id]/page.tsx` | `GET/POST /api/access-requests`; `PATCH /api/access-requests/{id}` |
 | `activity_logs` | Auditoria das operações do sistema | Tela de logs | `app/(app)/logs/page.tsx`; `hooks/use-activity-logs.ts` | `GET /api/activity-logs` |
-| `permission_matrix` | Matriz consolidada de permissões | Administração de permissões | `hooks/use-permissions.ts`; componentes de administração | `GET /api/permissions`; `PUT /api/permissions` |
+
 
 ---
 
@@ -550,7 +550,7 @@ feat(api): STS0233556 criar endpoint de exportacao
 fix(auth): STS0233556 corrigir expiracao da sessao
 ```
 
-Não misture refatoração, correção não relacionada e alteração funcional no mesmo commit. A mensagem deve explicar a intenção, não apenas o arquivo alterado.
+Não misture refatoração, correção não relacionada e alteraç��o funcional no mesmo commit. A mensagem deve explicar a intenção, não apenas o arquivo alterado.
 
 ### Pull Request
 
