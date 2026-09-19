@@ -4,10 +4,10 @@ import { use } from "react"
 import { useRouter } from "next/navigation"
 import { ProjectStatusBadge } from "@/components/projects/project-status-badge"
 import { ProjectDetailTabs } from "@/components/projects/project-detail-tabs"
-import { BackButton } from "@/components/navigation/back-button"
 import { PetrobrasLoading } from "@/components/petrobras-loading"
 import { useProject } from "@/hooks/use-project"
 import { useSession } from "@/hooks/use-session"
+import { PageHeader, PageLayout } from "@/components/shared/page-layout"
 
 export default function ProjetoDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -26,17 +26,14 @@ export default function ProjetoDetalhePage({ params }: { params: Promise<{ id: s
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <BackButton />
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-xs text-muted-foreground">{project.codigo ?? project.id}</span>
-          <ProjectStatusBadge status={project.status} />
-        </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-balance">{project.nome}</h1>
-        <p className="text-sm text-muted-foreground">{project.areaResponsavel}</p>
-      </div>
+    <PageLayout>
+      <PageHeader
+        eyebrow={project.codigo ?? project.id}
+        title={project.nome}
+        description={project.areaResponsavel}
+        actions={<ProjectStatusBadge status={project.status} />}
+      />
       <ProjectDetailTabs projectId={id} initialProject={project} canManageMembers={false} />
-    </div>
+    </PageLayout>
   )
 }
