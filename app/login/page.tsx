@@ -9,8 +9,8 @@ export default async function LoginPage() {
   if (user) redirect("/dashboard")
 
   return (
-    <div className="light grid min-h-svh bg-background text-foreground lg:grid-cols-[1.1fr_1fr]">
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-10 shadow-2xl shadow-petrobras-blue/20 lg:flex">
+    <div className="light relative grid min-h-svh overflow-hidden bg-[linear-gradient(112deg,#063f58_0%,#075b70_30%,#008f5a_66%,#006b3f_100%)] text-foreground lg:grid-cols-[1.1fr_1fr]">
+      <div className="relative hidden flex-col justify-between overflow-hidden p-10 lg:flex">
         <Image
           src="/images/login-hero.png"
           alt=""
@@ -19,7 +19,6 @@ export default async function LoginPage() {
           className="object-cover opacity-[0.08] mix-blend-screen"
         />
         {/* Camadas de cor da marca: verde profundo + brilho verde/amarelo */}
-        <div className="absolute inset-0 bg-[linear-gradient(120deg,#063f58_0%,#075b70_42%,#008f5a_76%,#12a85b_100%)]" />
         <div className="absolute -top-32 -left-24 size-96 rounded-full bg-petrobras-blue/35 blur-3xl" />
         <div className="absolute inset-0 opacity-[0.12] [background-image:linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.18)_1px,transparent_1px)] [background-size:32px_32px]" />
         <div className="absolute -bottom-24 -right-16 size-80 rounded-full bg-petrobras-green/35 blur-3xl" />
@@ -66,7 +65,7 @@ export default async function LoginPage() {
         </div>
       </div>
 
-      <div className="relative flex items-center justify-center overflow-hidden bg-[#006b3f] p-4 sm:p-8 lg:p-12">
+      <div className="relative flex items-center justify-center overflow-hidden p-4 sm:p-8 lg:p-12">
         <div className="pointer-events-none absolute -right-20 -top-24 size-72 rounded-full border-[28px] border-petrobras-yellow/20" />
         <div className="pointer-events-none absolute -bottom-28 -left-24 size-80 rounded-full border-[34px] border-petrobras-green/35" />
         <div className="absolute inset-x-0 bottom-0 h-2 bg-petrobras-yellow" />
