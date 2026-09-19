@@ -69,16 +69,16 @@ async def get_current_user(request: Request):
         "role": canonical_role(database_role),
         "roles": list(user.get("roles") or []),
         "permissions": effective_permissions,
-        "nome": user.get("name"),
-        "cargo": user.get("job_title"),
+        "nome": user.get("name") or user.get("display_name"),
+        "cargo": user.get("job_title") or user.get("cargo"),
         "area": user.get("area"),
         "avatarUrl": user.get("avatar_url"),
         "ultimoLogin": user.get("last_login_at"),
         "perfilId": user.get("profile_id"),
-        "perfilNome": user.get("profile_name"),
-        "chaveCav4": user.get("cav4_subject"),
+        "perfilNome": user.get("profile_name") or database_role,
+        "chaveCav4": user.get("cav4_subject") or user.get("subject"),
         "criadoEm": user.get("created_at"),
-        "groups": [],
+        "groups": list(user.get("groups") or []),
     }
 
 

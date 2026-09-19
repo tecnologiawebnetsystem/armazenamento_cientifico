@@ -290,7 +290,7 @@ O back-end utiliza uma arquitetura modular por domínio, com separação em cama
 - **Application Services:** casos de uso e orquestração das transações.
 - **Repositories:** persistência encapsulada atrás de interfaces estáveis.
 - **Domain modules:** regras específicas de projetos, arquivos, auditoria e identidade.
-- **Adapters:** PostgreSQL/Aurora, Entra ID, CAV4 e integrações externas.
+- **Adapters:** PostgreSQL/Aurora, CAV4 (somente autenticação) e integrações externas.
 - **Core:** configuração, segurança, autorização, logging e exceções.
 - **Alembic:** única fonte versionada para evolução estrutural do banco.
 
@@ -308,7 +308,7 @@ Route/Controller -> Application Service -> Repository -> SQLAlchemy -> Database
 3. Integrações externas são acessadas por ports/adapters.
 4. Toda alteração de banco exige migration Alembic.
 5. PostgreSQL/Aurora é o único banco suportado.
-6. Logs de conexão, Alembic e CAV4 nunca exibem segredos, tokens ou senhas.
+6. Logs de conexão, Alembic e CAV4 nunca exibem segredos, tokens, cookies ou dados sensíveis.
 
 > Estado atual: a conexão real e `alembic check` dependem de um Aurora PostgreSQL configurado no ambiente; sem essa configuração, a aplicação falha explicitamente em vez de usar armazenamento local.
 

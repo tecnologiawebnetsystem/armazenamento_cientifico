@@ -15,7 +15,7 @@ A POC `cav4-integracao` não possui um arquivo `.env.example`. A referência del
 - `CA_SSL_CERT_FILE`
 - credenciais opcionais do Microsoft Graph, usadas apenas pela POC para consultas ao Graph
 
-O SIGAC atual usa o mesmo núcleo de autenticação CAV4. Depois do callback, o backend valida a identidade, extrai o e-mail e consulta o usuário, perfil e permissões nas tabelas do SIGAC. O CAV4 não deve fornecer as permissões funcionais do sistema.
+O SIGAC usa o CAV4 exclusivamente para autenticação. Depois do callback, o backend valida a identidade, extrai o e-mail e consulta `users`, `profiles`, `modules`, `menus`, `dashboard_cards`, `permissions`, `profile_modules`, `profile_permissions` e `menu_permissions`. O CAV4 não fornece permissões funcionais. A POC é somente referência e não deve ser alterada.
 
 ## Arquivos de configuração
 

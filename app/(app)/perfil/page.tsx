@@ -33,7 +33,8 @@ export default async function ProfilePage() {
             <CardHeader><CardTitle className="flex items-center gap-2"><KeyRoundIcon className="size-5 text-primary" /> Identidade da sessão</CardTitle></CardHeader>
             <CardContent className="grid gap-4 text-sm">
               <div><p className="text-muted-foreground">Cadastro criado em</p><p className="font-medium">{new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(new Date(user.criadoEm))}</p></div>
-              <div><p className="text-muted-foreground">Identidade corporativa</p><p className="font-medium">{user.roles?.length ? user.roles.join(" · ") : "Não informado"}</p></div>
+              <div><p className="text-muted-foreground">Chave CAV4</p><p className="break-all font-medium">{user.chaveCav4 || "Não informada"}</p></div>
+              <div><p className="text-muted-foreground">Informações retornadas pelo CAV4</p><p className="font-medium">{user.roles?.length ? user.roles.join(" · ") : "Identidade confirmada pelo login corporativo"}</p></div>
             </CardContent>
           </Card>
           <Card>
