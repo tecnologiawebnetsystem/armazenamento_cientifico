@@ -12,8 +12,9 @@ from sqlalchemy.ext.asyncio import (
 from app.core.config import settings
 
 
-def _async_database_url() -> str:
+def _async_database_url() -> tuple[str, dict[str, object]]:
     url = settings.database_url
+    connect_args: dict[str, object] = {}
     if settings.database_engine == "sqlite" and url.startswith("sqlite://"):
         url = url.replace("sqlite://", "sqlite+aiosqlite://", 1)
     if settings.database_engine == "sqlite" and url.startswith("sqlite+aiosqlite:///"):
@@ -32,9 +33,15 @@ def _async_database_url() -> str:
         url = url.replace("postgres://", "postgresql+asyncpg://", 1)
     parts = urlsplit(url)
     if parts.query:
-        query = [(key, value) for key, value in parse_qsl(parts.query) if key not in {"channel_binding", "sslmode"}]
-        url = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
-    return url
+        query_items = dict(parse_qsl(parts.query))
+        sslmode = query_items.pop("sslmode", "").lower()
+        query_items.pop("channel_binding", None)
+        if settings.database_engine != "sqlite" and sslmode in {"require", "verify-ca", "verify-full"}:
+            # asyncpg recebe a exigência de TLS via connect_args; sslmode é
+            # uma opção do libpq e não deve permanecer na URL do dialeto.
+            connect_args["ssl"] = True
+        url = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query_items), parts.fragment))
+    return url, connect_args
 
 
 engine: AsyncEngine | None = None
@@ -53,7 +60,10 @@ def configure_engine() -> None:
             max_overflow=0,
             pool_timeout=settings.db_command_timeout,
         )
-    engine = create_async_engine(_async_database_url(), **engine_options)
+    database_url, connect_args = _async_database_url()
+    if connect_args:
+        engine_options["connect_args"] = connect_args
+    engine = create_async_engine(database_url, **engine_options)
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
 
