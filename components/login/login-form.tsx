@@ -59,7 +59,6 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
               )}
 
               <div className="flex flex-col gap-3 text-center">
-                <p className="text-sm leading-6 text-muted-foreground">Use o acesso corporativo para validar sua identidade e carregar seus dados. As permissões são definidas pelo banco SIGAC.</p>
                 <form onSubmit={(event) => { event.preventDefault(); void emailLogin(email) }} className="mx-auto flex w-full max-w-[18rem] flex-col gap-2 text-left">
                   <label htmlFor="email" className="text-sm font-medium text-foreground">E-mail</label>
                   <input id="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seu.email@empresa.com" className="h-11 rounded-md border border-input bg-background px-3 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring" disabled={loading !== null} />

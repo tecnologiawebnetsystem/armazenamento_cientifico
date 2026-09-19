@@ -12,7 +12,7 @@ export default function LoginPage() {
         priority
         className="pointer-events-none object-cover opacity-[0.06] mix-blend-screen"
       />
-      <div className="relative hidden flex-col justify-between overflow-hidden p-10 lg:flex">
+      <div className="relative hidden flex-col justify-between overflow-hidden p-8 lg:flex lg:pr-4">
         {/* Camadas de cor da marca: verde profundo + brilho verde/amarelo */}
         <div className="absolute -top-32 -left-24 size-96 rounded-full bg-petrobras-blue/35 blur-3xl" />
         <div className="absolute inset-0 opacity-[0.12] [background-image:linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.18)_1px,transparent_1px)] [background-size:32px_32px]" />
@@ -29,7 +29,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="relative z-10 max-w-md space-y-6 rounded-2xl border border-white/20 bg-[#063f58]/25 p-6 shadow-2xl shadow-[#063f58]/20 backdrop-blur-md">
+        <div className="relative z-10 w-full max-w-lg -translate-y-6 space-y-7 rounded-2xl border border-white/20 bg-[#063f58]/25 p-8 shadow-2xl shadow-[#063f58]/20 backdrop-blur-md">
           <span className="inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
             <span className="size-1.5 rounded-full bg-accent" />
             Plataforma corporativa
