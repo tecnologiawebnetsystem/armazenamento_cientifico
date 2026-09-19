@@ -117,7 +117,7 @@ async def export_access_map(service: Service, _: CurrentUser, format: str = Quer
 @router.get("/reports")
 async def reports(service: Service, _: CurrentUser, status: str | None = None, area: str | None = None, gestorId: str | None = None):
     filters = {"status": status or "todos", "area": area, "gestorId": gestorId}
-    rows = await service.repository.rows("select p.id, p.name as nome, p.code as codigo, p.responsible_area as \"areaResponsavel\", p.status, p.description as descricao, p.created_at as \"criadoEm\", p.updated_at as \"atualizadoEm\", 0 as \"totalMapas\", 0 as \"totalMembros\" from projects p where (:status is null or p.status = :status) and (:area is null or p.responsible_area = :area) order by p.name", {"status": status, "area": area})
+    rows = await service.repository.rows("select p.id, p.name as nome, p.code as codigo, p.responsible_area as \"areaResponsavel\", p.status, p.description as descricao, p.created_at as \"criadoEm\", p.updated_at as \"atualizadoEm\", 0 as \"totalMapas\", 0 as \"totalMembros\" from projects p where (cast(:status as text) is null or p.status = cast(:status as text)) and (cast(:area as text) is null or p.responsible_area = cast(:area as text)) order by p.name", {"status": status, "area": area})
     by_status = await service.repository.rows("select status, count(*) as total from projects group by status")
     return {"filtros": filters, "indicadores": {"totalProjetos": len(rows), "ativos": sum(r["status"] in ("ativo", "em_andamento") for r in rows), "suspensos": sum(r["status"] == "suspenso" for r in rows), "concluidos": sum(r["status"] == "concluido" for r in rows), "armazenamentoUsadoMb": 0, "totalMembros": 0, "totalMapas": 0}, "porArea": [], "porStatus": by_status, "projetos": rows}
 
