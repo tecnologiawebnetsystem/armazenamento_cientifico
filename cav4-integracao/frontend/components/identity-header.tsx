@@ -1,7 +1,7 @@
 'use client'
 
 import { User, Mail, IdCard } from 'lucide-react'
-import type { CallbackPayload, NormalizedEndpoint } from '@/lib/types'
+import type { CallbackPayload, NormalizedEndpoint } from '../lib/types'
 
 interface Props {
   payload: CallbackPayload

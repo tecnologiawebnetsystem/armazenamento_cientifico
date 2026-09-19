@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Check, Copy, CheckCircle2, XCircle, Server, Cloud } from 'lucide-react'
-import type { NormalizedEndpoint } from '@/lib/types'
+import type { NormalizedEndpoint } from '../lib/types'
 import { JsonView } from './json-view'
 
 interface Props {

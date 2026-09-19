@@ -1,7 +1,7 @@
 'use client'
 
 import { CheckCircle2, XCircle, Server, Cloud } from 'lucide-react'
-import type { Fonte, NormalizedEndpoint } from '@/lib/types'
+import type { Fonte, NormalizedEndpoint } from '../lib/types'
 
 interface Props {
   endpoints: NormalizedEndpoint[]
