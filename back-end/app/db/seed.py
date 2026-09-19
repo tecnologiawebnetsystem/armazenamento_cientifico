@@ -1,8 +1,6 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import text
-
 from app.modules.catalogs.area_model import ResponsibleArea
 from app.modules.catalogs.models import (
     MenuItem,

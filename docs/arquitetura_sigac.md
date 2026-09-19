@@ -1,6 +1,6 @@
 # SIGAC — Arquitetura da Solução
 
-**Versão:** 2.1  
+**Versão:** 2.2
 **Status:** baseline técnico para validação do gestor e arquitetura  
 **Escopo:** primeira fase do Sistema de Gestão de Acesso ao Armazenamento Científico
 
@@ -55,7 +55,9 @@ O frontend melhora a experiência e esconde ações indisponíveis, mas nunca co
 
 ### 5.1 Sessão existente
 
-Ao entrar no sistema, o backend valida se há sessão SIGAC válida. Havendo sessão, recupera o usuário e o perfil do banco e redireciona para `/dashboard`. Sem sessão válida, conduz o usuário ao login corporativo CAV4.
+A página pública `/login` não consulta sessão, banco ou provedor externo durante a abertura. A sessão só é consultada ao acessar uma rota protegida ou após uma ação de autenticação. Havendo sessão válida, o backend recupera o usuário e o perfil do banco; sem sessão, a área protegida redireciona para `/login`.
+
+O login manual consulta o banco apenas após o envio do e-mail. O login corporativo inicia o CAV4 apenas após o clique no botão correspondente.
 
 ### 5.2 Login corporativo
 
@@ -104,8 +106,9 @@ Entidades principais: `users`, `profiles`, `modules`, `permissions`, `profile_pe
 
 ## 10. Critérios de aceite
 
-- Usuário com sessão CAV4 válida não repete login.
-- Usuário sem sessão é encaminhado ao CAV4.
+- A abertura de `/login` não executa chamadas ao banco, CAV4 ou CAV4/KV-4.
+- Usuário com sessão válida não repete login ao acessar a área protegida.
+- Usuário sem sessão é encaminhado para `/login` e só inicia um provedor após clicar.
 - Usuário sem papel reconhecido não entra no SIGAC.
 - Menus refletem o papel efetivo, sem substituir guards da API.
 - Rotas e endpoints existentes permanecem compatíveis.
