@@ -12,7 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.api.dependencies import get_current_user
 from app.core.cav4 import CAV4AuthenticationError, decode_state_nonce, get_cav4_provider
 from app.core.config import settings
-from app.core.temporary_sessions import create_session, delete_session
+from app.core.temporary_sessions import delete_session
 from app.db.session import get_session
 
 logger = logging.getLogger(__name__)
@@ -150,43 +150,43 @@ async def cav4_callback(request: Request, code: str, state: str):
         identity = await get_cav4_provider().exchange_callback(code=code, state=state)
     except CAV4AuthenticationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    if not identity.subject or not identity.email:
-        raise HTTPException(status_code=401, detail="Claims obrigatórias ausentes no token CAV4")
-    if settings.temporary_cav4_session:
-        session_id, expires_at = create_session(identity)
-    else:
-        session_id = str(uuid4())
-        expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours)
-        try:
-            async for database in get_session():
-                user_result = await database.execute(
-                    text("select id, profile_id from users where lower(email)=lower(:email)"),
-                    {"email": identity.email},
-                )
-                user = user_result.mappings().first()
-                logger.info(
-                    "cav4_user_lookup email=%s found=%s user_id=%s profile_id=%s",
-                    identity.email,
-                    bool(user),
-                    user.get("id") if user else None,
-                    user.get("profile_id") if user else None,
-                )
-                if not user:
-                    raise HTTPException(status_code=403, detail="Usuário CAV4 não cadastrado na plataforma")
-                if not user.get("profile_id"):
-                    raise HTTPException(status_code=403, detail="Usuário autenticado sem perfil SIGAC configurado no banco de dados")
-                await database.execute(text("update users set last_login_at=now() where id=:user_id"), {"user_id": user["id"]})
-                await database.execute(text("delete from sessions where user_id=:user_id"), {"user_id": user["id"]})
-                await database.execute(
-                    text("insert into sessions(id,user_id,expires_at,cav4_subject) values(:id,:user_id,:expires_at,:cav4_subject)"),
-                    {"id": session_id, "user_id": user["id"], "expires_at": expires_at.replace(tzinfo=None), "cav4_subject": identity.subject},
-                )
-                await database.commit()
-        except HTTPException:
-            raise
-        except SQLAlchemyError as exc:
-            logger.exception("cav4_authentication_failed reason=database_unavailable")
-            raise HTTPException(status_code=503, detail="Banco de dados indisponível para concluir o login") from exc
+    # O provedor corporativo só confirma a identidade. Perfil, permissões e
+    # menus são sempre resolvidos pelo Aurora a partir do e-mail; nunca usamos
+    # papéis ou grupos fornecidos pelo K4/KV-4.
+    if not identity.email:
+        raise HTTPException(status_code=401, detail="E-mail ausente na autenticação corporativa")
+
+    session_id = str(uuid4())
+    expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours)
+    try:
+        async for database in get_session():
+            user_result = await database.execute(
+                text("select id, profile_id from users where lower(email)=lower(:email)"),
+                {"email": identity.email},
+            )
+            user = user_result.mappings().first()
+            logger.info(
+                "cav4_user_lookup email=%s found=%s user_id=%s",
+                identity.email,
+                bool(user),
+                user.get("id") if user else None,
+            )
+            if not user:
+                raise HTTPException(status_code=403, detail="Usuário corporativo não cadastrado na plataforma")
+            if not user.get("profile_id"):
+                raise HTTPException(status_code=403, detail="Usuário autenticado sem perfil SIGAC configurado no banco de dados")
+            await database.execute(text("update users set last_login_at=now() where id=:user_id"), {"user_id": user["id"]})
+            await database.execute(text("delete from sessions where user_id=:user_id"), {"user_id": user["id"]})
+            await database.execute(
+                text("insert into sessions(id,user_id,expires_at,cav4_subject) values(:id,:user_id,:expires_at,:cav4_subject)"),
+                {"id": session_id, "user_id": user["id"], "expires_at": expires_at, "cav4_subject": identity.subject or identity.email},
+            )
+            await database.commit()
+    except HTTPException:
+        raise
+    except SQLAlchemyError as exc:
+        logger.exception("cav4_authentication_failed reason=database_unavailable")
+        raise HTTPException(status_code=503, detail="Banco de dados indisponível para concluir o login") from exc
     safe_next = next_path if next_path.startswith("/") and not next_path.startswith("//") else "/dashboard"
     redirect_url = f"{settings.frontend_url}{safe_next}"
     logger.info(
