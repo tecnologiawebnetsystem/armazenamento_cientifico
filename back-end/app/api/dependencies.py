@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Annotated
 
 logger = logging.getLogger(__name__)
@@ -24,17 +25,20 @@ async def get_current_user(request: Request):
     if settings.temporary_cav4_session:
         user = get_session_user(session_id)
     else:
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", settings.db_schema):
+            raise HTTPException(status_code=500, detail="DB_SCHEMA inválido")
+        schema = f'"{settings.db_schema}"'
         async for database in get_session():
             user_result = await database.execute(
                 text(
-                    "select u.*, s.cav4_subject, p.id as profile_id, p.name as profile_name, "
-                    "coalesce(array_agg(distinct perm.id) filter (where pp.allowed = true and perm.active = true), '{}') as db_permissions "
-                    "from sessions s join users u on u.id=s.user_id "
-                    "left join profiles p on p.id=u.profile_id "
-                    "left join profile_permissions pp on pp.profile_id=p.id "
-                    "left join permissions perm on perm.id=pp.permission_id "
-                    "where s.id=:session_id and s.expires_at > now() "
-                    "group by u.id, p.id, p.name"
+                    f"select u.*, s.cav4_subject, p.id as profile_id, p.name as profile_name, "
+                    f"coalesce(array_agg(distinct perm.id) filter (where pp.allowed = true and perm.active = true), '{{}}') as db_permissions "
+                    f"from {schema}.sessions s join {schema}.users u on u.id=s.user_id "
+                    f"left join {schema}.profiles p on p.id=u.profile_id "
+                    f"left join {schema}.profile_permissions pp on pp.profile_id=p.id "
+                    f"left join {schema}.permissions perm on perm.id=pp.permission_id "
+                    f"where s.id=:session_id and s.expires_at > now() "
+                    f"group by u.id, p.id, p.name"
                 ),
                 {"session_id": session_id},
             )
