@@ -9,8 +9,8 @@ export default async function LoginPage() {
   if (user) redirect("/dashboard")
 
   return (
-    <div className="light grid min-h-svh bg-background text-foreground lg:grid-cols-[1.1fr_1fr]">
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-10 shadow-2xl shadow-petrobras-blue/20 lg:flex">
+    <div className="light relative grid min-h-svh overflow-hidden bg-[linear-gradient(112deg,#063f58_0%,#075b70_30%,#008f5a_66%,#006b3f_100%)] text-foreground lg:grid-cols-[1.1fr_1fr]">
+      <div className="relative hidden flex-col justify-between overflow-hidden p-10 lg:flex">
         <Image
           src="/images/login-hero.png"
           alt=""
@@ -19,7 +19,6 @@ export default async function LoginPage() {
           className="object-cover opacity-[0.08] mix-blend-screen"
         />
         {/* Camadas de cor da marca: verde profundo + brilho verde/amarelo */}
-        <div className="absolute inset-0 bg-[linear-gradient(120deg,#063f58_0%,#075b70_42%,#008f5a_76%,#12a85b_100%)]" />
         <div className="absolute -top-32 -left-24 size-96 rounded-full bg-petrobras-blue/35 blur-3xl" />
         <div className="absolute inset-0 opacity-[0.12] [background-image:linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.18)_1px,transparent_1px)] [background-size:32px_32px]" />
         <div className="absolute -bottom-24 -right-16 size-80 rounded-full bg-petrobras-green/35 blur-3xl" />
@@ -66,21 +65,23 @@ export default async function LoginPage() {
         </div>
       </div>
 
-      <div className="relative flex items-center justify-center bg-[#fbfcfd] p-6 sm:p-10 lg:p-14">
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-petrobras-blue via-petrobras-green to-petrobras-yellow lg:hidden" />
+      <div className="relative flex items-center justify-center overflow-hidden p-4 sm:p-8 lg:p-12">
+        <div className="pointer-events-none absolute -right-20 -top-24 size-72 rounded-full border-[28px] border-petrobras-yellow/20" />
+        <div className="pointer-events-none absolute -bottom-28 -left-24 size-80 rounded-full border-[34px] border-petrobras-green/35" />
+        <div className="absolute inset-x-0 bottom-0 h-2 bg-petrobras-yellow" />
 
-        <div className="w-full max-w-md">
-          <div className="mb-8 flex flex-col items-center gap-2 text-center lg:hidden">
+        <div className="relative w-full max-w-md">
+          <div className="mb-6 flex flex-col items-center gap-2 text-center lg:hidden">
             <LogoFull className="h-11 w-52" />
-            <span className="font-semibold tracking-tight">SIGAC</span>
-            <span className="text-[10px] text-white">Sistema de Gestão de Acesso ao Armazenamento Científico</span>
+            <span className="font-semibold tracking-tight text-white">SIGAC</span>
+            <span className="text-[10px] text-white/75">Sistema de Gestão de Acesso ao Armazenamento Científico</span>
           </div>
 
-          <div className="mb-6 hidden flex-col gap-2 lg:flex">
-            <span className="h-1 w-12 rounded-full bg-petrobras-yellow" />
-            <h1 className="text-3xl font-semibold tracking-tight text-[#09263d]">Acesse sua conta</h1>
-            <p className="text-sm text-muted-foreground">
-              Use o acesso corporativo Petrobras para entrar na plataforma com seus papéis e permissões.
+          <div className="mb-6 flex flex-col gap-2 text-center lg:text-left">
+            <span className="mx-auto h-1 w-12 rounded-full bg-petrobras-yellow lg:mx-0" />
+            <h1 className="text-3xl font-semibold tracking-tight text-white">Acesse sua conta</h1>
+            <p className="text-sm leading-6 text-white/75">
+              Entre no SIGAC para consultar seus projetos, pesquisas e permissões.
             </p>
           </div>
 
