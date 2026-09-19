@@ -34,7 +34,7 @@ export function AppSidebar() {
     chart: BarChart3Icon,
   }
   const databaseItems: NavItem[] = (platformContext?.menus ?? [])
-    .filter((menu) => !/usu[aá]rios?/i.test(menu.nome) && !/\/usuarios?/i.test(menu.rota))
+    .filter((menu) => !/usu[aá]rios?|perfil/i.test(menu.nome) && !/\/usuarios?|\/perfil/i.test(menu.rota))
     .map((menu) => ({
       title: menu.nome,
       url: menu.rota,
@@ -42,8 +42,10 @@ export function AppSidebar() {
     }))
   const requiredItems: NavItem[] = [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboardIcon },
-    { title: "Logs e Auditoria", url: "/logs", icon: ClipboardListIcon },
+    { title: "Projetos", url: "/projetos", icon: FolderKanbanIcon },
     { title: "Pesquisa", url: "/pesquisas", icon: FlaskConicalIcon },
+    { title: "Relatórios", url: "/relatorios", icon: BarChart3Icon },
+    { title: "Logs e Auditoria", url: "/logs", icon: ClipboardListIcon },
   ]
   const mergedItems = [...requiredItems, ...databaseItems.filter((item) => !requiredItems.some((required) => required.url === item.url))]
   const groups = mergedItems.length
