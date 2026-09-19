@@ -23,6 +23,12 @@ export function useLogin(nextPath = "/dashboard") {
   }, [nextPath])
 
   const emailLogin = useCallback(async (email: string) => {
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!normalizedEmail) {
+      setError("Informe seu e-mail para continuar")
+      return
+    }
+
     setError(null)
     setLoading("email")
     try {
@@ -30,7 +36,7 @@ export function useLogin(nextPath = "/dashboard") {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: normalizedEmail }),
       })
       if (!response.ok) {
         const body = await response.json().catch(() => null)

@@ -120,11 +120,11 @@ export function login(email: string) {
 }
 
 export function logout() {
-  return request<void>("/api/auth/cav4/logout", { method: "POST" })
+  return request<void>("/api/auth/logout", { method: "POST" })
 }
 
 export function getSession() {
-  return request<{ user: SessionUser | null }>("/api/auth/cav4/session")
+  return request<{ user: SessionUser | null }>("/api/auth/session")
 }
 
 export function getPlatformContext() {
