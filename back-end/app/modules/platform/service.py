@@ -28,9 +28,6 @@ class PlatformService:
         values = await self.repository.settings()
         return {"settings": {row["chave"]: row["valor"] for row in values}}
 
-    async def permission_matrix(self) -> dict[str, list[dict[str, Any]]]:
-        return {"matrix": await self.repository.permission_matrix()}
-
     async def activity_logs(self, page: int, limit: int) -> dict[str, Any]:
         logs, total = await self.repository.activity_logs(page, limit)
         return {"logs": logs, "pagination": {"page": page, "limit": limit, "total": total, "totalPages": (total + limit - 1) // limit}}

@@ -79,7 +79,7 @@ Não inclui criação, renomeação ou exclusão de pastas; upload, download, ed
 
 O Aurora utiliza PostgreSQL, UUIDs, foreign keys, índices e migrations versionadas. O schema físico deve ser criado por Alembic ou pelo script SQL aprovado pelo DBA. O usuário da aplicação deve ter apenas os grants necessários.
 
-Entidades principais: `users`, `profiles`, `projects`, `project_members`, `folders`, `access_requests`, `activity_logs`, `permission_matrix` e catálogos.
+Entidades principais: `users`, `profiles`, `projects`, `project_members`, `folders`, `access_requests`, `activity_logs` e catálogos.
 
 ## 8. Segurança e operação
 

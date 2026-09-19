@@ -5,7 +5,6 @@ import type {
   ActivityLog,
   DashboardSummary,
   FileNode,
-  PermissionMatrixEntry,
   PlatformSettings,
   Project,
   ProjectMember,
@@ -268,19 +267,6 @@ export function updateAccessRequest(id: string, status: "aprovado" | "negado") {
   return request<{ request: AccessRequest }>(`/api/access-requests/${id}`, {
     method: "PATCH",
     body: JSON.stringify({ status }),
-  })
-}
-
-/* ------------------------------ Permissions ------------------------------- */
-
-export function getPermissionMatrix() {
-  return request<{ matrix: PermissionMatrixEntry[] }>("/api/permissions")
-}
-
-export function updatePermissionMatrix(matrix: PermissionMatrixEntry[]) {
-  return request<{ matrix: PermissionMatrixEntry[] }>("/api/permissions", {
-    method: "PUT",
-    body: JSON.stringify({ matrix }),
   })
 }
 

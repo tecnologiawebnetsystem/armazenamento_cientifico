@@ -51,9 +51,6 @@ class PlatformRepository:
     async def settings(self) -> list[dict[str, Any]]:
         return await self.rows("select key as chave, value as valor from system_settings where active = true")
 
-    async def permission_matrix(self) -> list[dict[str, Any]]:
-        return await self.rows("select role as papel, can_view_projects as \"verProjetos\", can_create_projects as \"criarProjetos\", can_edit_projects as \"editarProjeto\", can_delete_projects as \"excluirProjeto\", can_manage_members as \"gerenciarMembros\", can_upload_files as \"uploadArquivos\", can_delete_files as \"excluirArquivos\", can_approve_requests as \"aprovarSolicitacoes\" from permission_matrix order by role")
-
     async def activity_logs(self, page: int, limit: int) -> tuple[list[dict[str, Any]], int]:
         rows = await self.rows("select id, user_id as \"userId\", action as acao, entity as entidade, entity_id as \"entidadeId\", details as detalhes, created_at as \"criadoEm\", result as resultado, project_id as \"projetoId\" from activity_logs order by created_at desc limit :limit offset :offset", {"limit": limit, "offset": (page - 1) * limit})
         count = await self.one("select count(*) as total from activity_logs")

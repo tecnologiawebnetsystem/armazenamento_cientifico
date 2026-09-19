@@ -20,7 +20,8 @@ uv run uvicorn app.app:app --reload --port 8080
 - `/api/folders` — consulta somente leitura das pastas autorizadas pelo projeto.
 - `/api/dashboard/*` — indicadores.
 - `/api/reports/*` — relatórios e exportações.
-- `/api/permissions`, `/api/settings` — segurança e configuração.
+  - `/api/settings` — configurações da plataforma.
+
 - `/api/activity-logs/*` — auditoria.
 
 
