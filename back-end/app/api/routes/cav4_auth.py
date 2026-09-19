@@ -126,6 +126,19 @@ async def cav4_session(request: Request):
         if exc.status_code == 401:
             return {"user": None}
         raise
+    except SQLAlchemyError as exc:
+        error_id = uuid4().hex[:12]
+        original = exc.orig if isinstance(exc, DBAPIError) else exc
+        logger.exception(
+            "auth_session_failed error_id=%s db_error_type=%s db_error=%s",
+            error_id,
+            type(original).__name__,
+            str(original).splitlines()[0][:240],
+        )
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "SESSION_DATABASE_ERROR", "error_id": error_id, "message": "Não foi possível ler a sessão"},
+        ) from exc
     logger.info(
         "cav4_session_authenticated user_id=%s email=%s role=%s",
         user.get("id"),
