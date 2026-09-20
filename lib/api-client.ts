@@ -112,6 +112,10 @@ export async function downloadFile(path: string): Promise<Blob> {
 
 /* ---------------------------------- Auth --------------------------------- */
 
+export function login(email: string) {
+  return request<void>("/api/auth/login", { method: "POST", body: JSON.stringify({ email }) })
+}
+
 export function logout() {
   return request<void>("/api/auth/logout", { method: "POST" })
 }
