@@ -4,7 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT_ROOT / ".env")
@@ -15,7 +15,9 @@ def _database_url() -> str:
     aurora_url = (
         os.getenv("RDS_AURORA_POSTGRES_URL", "").strip()
         or os.getenv("DATABASE_URL", "").strip()
+        or os.getenv("DATABASE_URL_UNPOOLED", "").strip()
         or os.getenv("POSTGRES_URL", "").strip()
+        or os.getenv("POSTGRES_PRISMA_URL", "").strip()
     )
     if aurora_url:
         return aurora_url if "://" in aurora_url else f"postgresql://{aurora_url}"
@@ -27,6 +29,7 @@ def _database_url() -> str:
     )
     user = (
         os.getenv("RDS_AURORA_POSTGRES_USERNAME", "").strip()
+        or os.getenv("RDS_AURORA_POSTGRES_USER", "").strip()
         or os.getenv("POSTGRES_USER", "").strip()
         or os.getenv("PGUSER", "").strip()
     )
@@ -40,6 +43,7 @@ def _database_url() -> str:
 
         database = (
             os.getenv("RDS_AURORA_POSTGRES_DATABASE", "").strip()
+            or os.getenv("RDS_AURORA_POSTGRES_DB", "").strip()
             or os.getenv("POSTGRES_DATABASE", "").strip()
             or os.getenv("PGDATABASE", "").strip()
         )
@@ -54,13 +58,15 @@ class Settings(BaseModel):
     app_name: str = "SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico API"
     app_version: str = "3.1.0"
     database_engine: str = "postgresql"
-    database_url: str = _database_url()
-    cors_origins: list[str] = [
-        x.strip()
-        for x in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
-        if x.strip()
-    ]
-    frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+    database_url: str = Field(default_factory=_database_url)
+    cors_origins: list[str] = Field(
+        default_factory=lambda: [
+            x.strip()
+            for x in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+            if x.strip()
+        ]
+    )
+    frontend_url: str = Field(default_factory=lambda: os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/"))
     cookie_name: str = os.getenv("COOKIE_NAME", "wayon_session_id")
     cookie_secure: bool = os.getenv(
         "COOKIE_SECURE",
