@@ -1,5 +1,11 @@
 # Manual rápido de desenvolvimento — Front-end
 
+## Arquitetura em resumo
+
+O front-end utiliza uma arquitetura de componentes, organizada por páginas e domínios. A página define a composição da rota, os componentes cuidam da interface, os hooks concentram estado e dados, e o cliente HTTP centraliza a comunicação com o back-end. O SWR mantém os dados em cache e revalida as informações quando necessário.
+
+Em termos práticos, novas funcionalidades devem seguir o fluxo **Page → Component → Hook/SWR → API Client → Back-end**, mantendo a apresentação no front-end e as regras de negócio e autorização no servidor.
+
 ## Estado atual
 
 O frontend utiliza Next.js App Router, TypeScript, Tailwind/shadcn, SWR para dados compartilhados e um cliente HTTP único em `lib/api-client.ts`.

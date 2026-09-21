@@ -1,5 +1,11 @@
 # Manual rápido de desenvolvimento — Back-end
 
+## Arquitetura em resumo
+
+O back-end utiliza uma arquitetura em camadas, organizada por domínio. Cada camada tem uma responsabilidade clara: a rota recebe a requisição HTTP, o service executa o caso de uso e as regras de negócio, o repository acessa o banco e o SQLAlchemy faz a persistência. Essa separação reduz acoplamento, facilita testes e permite alterar a forma de persistência sem espalhar detalhes do banco pela aplicação.
+
+Em termos práticos, novas funcionalidades devem seguir o fluxo **Route/Controller → Service → Repository → Banco**, mantendo autenticação, autorização e regras de negócio no servidor.
+
 ## Estado atual
 
 O back-end utiliza FastAPI, SQLAlchemy assíncrono, PostgreSQL/Aurora PostgreSQL, Pydantic, Alembic e uma arquitetura modular por domínio.
