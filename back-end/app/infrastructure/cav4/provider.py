@@ -57,20 +57,28 @@ class UnconfiguredCAV4Provider:
 
 def _claim_values(claims: dict[str, Any], *names: str) -> tuple[str, ...]:
     values: list[str] = []
+    wanted = {name.casefold() for name in names}
 
-    def collect(value: Any) -> None:
+    def collect(value: Any, key: str | None = None) -> None:
+        if key is not None and key.casefold() not in wanted:
+            if isinstance(value, dict):
+                for nested_key, nested_value in value.items():
+                    collect(nested_value, str(nested_key))
+            elif isinstance(value, (list, tuple, set)):
+                for item in value:
+                    collect(item)
+            return
         if isinstance(value, str):
             values.extend(part.strip() for part in value.replace(",", " ").split() if part.strip())
         elif isinstance(value, (list, tuple, set)):
             for item in value:
                 collect(item)
         elif isinstance(value, dict):
-            for key in names:
-                if key in value:
-                    collect(value[key])
+            for nested_key, nested_value in value.items():
+                collect(nested_value, str(nested_key))
 
-    for name in names:
-        collect(claims.get(name))
+    for key, value in claims.items():
+        collect(value, str(key))
     return tuple(dict.fromkeys(values))
 
 
@@ -299,9 +307,23 @@ class CAV4OIDCProvider:
                 raise CAV4AuthenticationError("Login do usuário não encontrado para consultar os papéis do CAV4")
             roles_endpoint = settings.cav4_resources_url.replace("{userLogin}", quote(str(user_login), safe=""))
             resources = await self.get_user_data(access_token=access_token, endpoint=roles_endpoint)
-            if isinstance(resources, dict):
-                claims = {**claims, **resources}
-                logger.info("[CAV4] Papéis do usuário consultados endpoint=%s", roles_endpoint)
+            if isinstance(resources, (dict, list)):
+                resource_roles = _claim_values(
+                    resources if isinstance(resources, dict) else {"content": resources},
+                    "roles",
+                    "role",
+                    "profile",
+                    "profile_id",
+                    "profileId",
+                    "content",
+                    "items",
+                    "data",
+                    "code",
+                    "id",
+                    "name",
+                )
+                claims = {**claims, "cav4_resource_roles": resource_roles}
+                logger.info("[CAV4] Papéis do usuário consultados endpoint=%s quantidade=%s", roles_endpoint, len(resource_roles))
 
         roles = _claim_values(
             claims,
@@ -319,6 +341,7 @@ class CAV4OIDCProvider:
             "resource_code",
             "resourceCode",
             "code",
+            "cav4_resource_roles",
         )
         logger.info("[CAV4] Claims de autorização encontrados chaves=%s quantidade_papeis=%s", sorted(claims.keys()), len(roles))
 
