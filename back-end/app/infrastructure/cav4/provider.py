@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 import secrets
+import ssl
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -13,6 +14,7 @@ from urllib.parse import urlencode
 
 import httpx
 import jwt
+import truststore
 from jwt import InvalidTokenError
 
 from app.core.config import settings
@@ -85,16 +87,27 @@ def decode_state_nonce(state: str) -> str:
 
 
 def _build_httpx_client() -> httpx.AsyncClient:
-    """Cria cliente HTTP com certificados SSL configurados."""
-    ca_certs = None
-    if settings.ca_ssl_use_truststore and settings.ca_ssl_cert_file and Path(settings.ca_ssl_cert_file).is_file():
-        ca_certs = settings.ca_ssl_cert_file
+    """Cria cliente HTTP usando CA corporativa ou trust store do sistema."""
+    if not settings.ca_ssl_verify:
+        verify: bool | str = False
+        tls_source = "disabled"
+    elif settings.ca_ssl_cert_file:
+        ca_file = Path(settings.ca_ssl_cert_file)
+        if not ca_file.is_file():
+            raise CAV4AuthenticationError(f"CA_SSL_CERT_FILE não encontrado: {ca_file}")
+        verify = str(ca_file)
+        tls_source = "ca_file"
     elif settings.ca_ssl_use_truststore:
-        ca_certs = True
-    verify = ca_certs if settings.ca_ssl_verify else False
+        verify = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        tls_source = "system_truststore"
+    else:
+        verify = True
+        tls_source = "certifi"
+
     logger.info(
-        "[CAV4] TLS configurado verify=%s truststore=%s ca_file_configured=%s",
+        "[CAV4] TLS configurado verify=%s source=%s truststore=%s ca_file_configured=%s",
         settings.ca_ssl_verify,
+        tls_source,
         settings.ca_ssl_use_truststore,
         bool(settings.ca_ssl_cert_file),
     )
