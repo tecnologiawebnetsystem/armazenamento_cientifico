@@ -57,12 +57,20 @@ class UnconfiguredCAV4Provider:
 
 def _claim_values(claims: dict[str, Any], *names: str) -> tuple[str, ...]:
     values: list[str] = []
-    for name in names:
-        value = claims.get(name)
+
+    def collect(value: Any) -> None:
         if isinstance(value, str):
             values.extend(part.strip() for part in value.replace(",", " ").split() if part.strip())
-        elif isinstance(value, list):
-            values.extend(str(item).strip() for item in value if str(item).strip())
+        elif isinstance(value, (list, tuple, set)):
+            for item in value:
+                collect(item)
+        elif isinstance(value, dict):
+            for key in names:
+                if key in value:
+                    collect(value[key])
+
+    for name in names:
+        collect(claims.get(name))
     return tuple(dict.fromkeys(values))
 
 
@@ -278,18 +286,32 @@ class CAV4OIDCProvider:
         access_token = token_data.get("access_token")
         email = claims.get("email") or claims.get("preferred_username") or claims.get("upn") or ""
         display_name = claims.get("name")
-        if not email and access_token and settings.cav4_userinfo_url:
+        if access_token and settings.cav4_userinfo_url:
             userinfo = await self.get_user_data(access_token=access_token, endpoint=settings.cav4_userinfo_url)
             if isinstance(userinfo, dict):
-                email = userinfo.get("email") or userinfo.get("preferred_username") or userinfo.get("upn") or ""
+                email = email or userinfo.get("email") or userinfo.get("preferred_username") or userinfo.get("upn") or ""
                 display_name = display_name or userinfo.get("name")
                 claims = {**claims, **userinfo}
+
+        roles = _claim_values(
+            claims,
+            "roles",
+            "role",
+            "groups",
+            "group",
+            "profile",
+            "profile_id",
+            "profileId",
+            "information-values",
+            "information_values",
+        )
+        logger.info("[CAV4] Claims de autorização encontrados chaves=%s quantidade_papeis=%s", sorted(claims.keys()), len(roles))
 
         return CAV4Identity(
             subject=claims.get("sub", ""),
             email=email,
             display_name=display_name,
-            roles=_claim_values(claims, "roles", "groups", "role", "group", "information-values"),
+            roles=roles,
             permissions=_claim_values(claims, "permissions", "scp", "scope"),
             raw_claims=claims,
             access_token=access_token,
