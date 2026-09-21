@@ -22,6 +22,21 @@ def upgrade() -> None:
     from app.db.base import Base
 
     bind = op.get_bind()
+    expected_tables = {
+        "access_requests", "activity_logs", "dashboard_cards", "folders",
+        "menu_permissions", "menus", "modules", "permissions", "profile_modules",
+        "profile_permissions", "profiles", "project_members", "project_statuses",
+        "project_types", "projects", "report_fields", "report_types",
+        "responsible_areas", "system_settings", "users",
+    }
+    registered_tables = set(Base.metadata.tables)
+    missing_tables = expected_tables - registered_tables
+    if missing_tables:
+        raise RuntimeError(
+            "Modelos não registrados na baseline: " + ", ".join(sorted(missing_tables))
+        )
+
+    # Uma única chamada cria todas as tabelas registradas no metadata ORM.
     Base.metadata.create_all(bind=bind, checkfirst=True)
 
     # Perfis oficiais da produção; perfis legados não fazem parte da baseline.

@@ -22,8 +22,8 @@ from app.db.session import connect, disconnect
 configure_logging(settings.log_level)
 from app.modules.files.module import router as folders_router
 from app.modules.platform.controller import router as platform_router
-from app.modules.reports.controller import router as reports_router
 from app.modules.projects.module import router as projects_router
+from app.modules.reports.controller import router as reports_router
 
 logger = logging.getLogger(__name__)
 

@@ -10,10 +10,10 @@ from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 
 from app.api.dependencies import get_current_user
-from app.infrastructure.cav4 import CAV4AuthenticationError, decode_state_nonce, get_cav4_provider
 from app.core.config import settings
 from app.core.temporary_sessions import delete_session
 from app.db.session import get_session
+from app.infrastructure.cav4 import CAV4AuthenticationError, decode_state_nonce, get_cav4_provider
 from app.modules.auth.repository import AuthRepository
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,6 @@ async def email_login(request: Request):
     email = str(payload.get("email", "")).strip().lower()
     if not email:
         raise HTTPException(status_code=422, detail="Informe um e-mail válido")
-    schema = _schema_name()
     session_id = str(uuid4())
     expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours)
     async for database in get_session():
