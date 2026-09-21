@@ -36,7 +36,7 @@ O arquivo `back-end/.env.example` foi reduzido ao conjunto usado pelo runtime at
 
 `ENVIRONMENT`, `FRONTEND_URL`, `CORS_ORIGINS`, `COOKIE_NAME`, `COOKIE_SECURE`, `SESSION_HOURS`, `API_PREFIX` e `PORT` controlam URLs, cookies, sessão e exposição HTTP. `LOG_LEVEL`, `LOG_FORMAT`, `EXPOSE_API_DOCS`, `SECURITY_HEADERS_ENABLED` e `AUDIT_RETENTION_DAYS` controlam operação e segurança.
 
-`EMAIL_LOGIN_ENABLED` deve permanecer `false` quando o CAV4 for o único método de login. `TEMPORARY_CAV4_SESSION` deve permanecer `false` fora de testes locais sem banco.
+`EMAIL_LOGIN_ENABLED` habilita o formulário de login por e-mail/senha (`POST /api/auth/login`) usado pela tela "Entrar com e-mail"; padrão `true` fora de produção e `false` em produção quando o CAV4 for o único método. A autenticação por e-mail continua resolvendo perfil, permissões e menus a partir do banco de dados. `TEMPORARY_CAV4_SESSION` deve permanecer `false` fora de testes locais sem banco.
 
 ### CAV4
 

@@ -4,7 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, model_validator
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT_ROOT / ".env")
@@ -88,14 +88,6 @@ class Settings(BaseModel):
     security_headers_enabled: bool = os.getenv("SECURITY_HEADERS_ENABLED", "true").lower() == "true"
     cookie_domain: str | None = os.getenv("COOKIE_DOMAIN") or None
     audit_retention_days: int = int(os.getenv("AUDIT_RETENTION_DAYS", "365"))
-    entra_enabled: bool = os.getenv("ENTRA_ENABLED", "false").lower() == "true"
-    entra_tenant_id: str = os.getenv("ENTRA_TENANT_ID", "")
-    entra_client_id: str = os.getenv("ENTRA_CLIENT_ID", "")
-    entra_client_secret: str = os.getenv("ENTRA_CLIENT_SECRET", "")
-    entra_redirect_uri: str = os.getenv("ENTRA_REDIRECT_URI", "http://localhost:8080/api/auth/entra/callback")
-    entra_scopes: str = os.getenv("ENTRA_SCOPES", "openid profile email User.Read GroupMember.Read.All")
-    entra_groups: list[str] = Field(default_factory=lambda: _csv("ENTRA_GROUPS"))
-    entra_group_sync_enabled: bool = os.getenv("ENTRA_GROUP_SYNC_ENABLED", "true").lower() == "true"
     cav4_enabled: bool = os.getenv("CAV4_ENABLED", "false").lower() == "true"
     cav4_base_url: str = os.getenv("CA_API_BASE_URL") or os.getenv("CAV4_BASE_URL", "")
     oidc_discovery_url: str = os.getenv("OIDC_DISCOVERY_URL", "")
@@ -123,7 +115,7 @@ class Settings(BaseModel):
     cav4_jwks_url: str = os.getenv("CA_JWKS_URL", "")
 
     @model_validator(mode="after")
-    def validate_entra(self) -> "Settings":
+    def validate_settings(self) -> "Settings":
         if self.database_url and not self.database_url.startswith(("postgresql://", "postgres://", "postgresql+asyncpg://")):
             raise ValueError("DATABASE_URL/RDS_AURORA_POSTGRES_URL deve usar o esquema PostgreSQL/Aurora")
         if not self.database_url and not self.temporary_cav4_session:
@@ -153,16 +145,6 @@ class Settings(BaseModel):
                 raise ValueError("CORS_ORIGINS deve conter pelo menos uma origem")
         if any(origin == "*" for origin in self.cors_origins) and self.environment.lower() == "production":
             raise ValueError("CORS_ORIGINS não pode usar wildcard em produção")
-        required = {
-            "ENTRA_TENANT_ID": self.entra_tenant_id,
-            "ENTRA_CLIENT_ID": self.entra_client_id,
-            "ENTRA_CLIENT_SECRET": self.entra_client_secret,
-        }
-        if any(value.strip() for value in required.values()) and not all(value.strip() for value in required.values()):
-            missing = ", ".join(name for name, value in required.items() if not value.strip())
-            raise ValueError(f"Configuração Entra ID incompleta; faltando: {missing}")
-        if any(required.values()) and (not self.entra_redirect_uri.strip() or not self.entra_scopes.strip()):
-            raise ValueError("Configuração Entra ID incompleta; callback e escopos são obrigatórios")
         cav4_values = {
             "CA_CLIENT_ID": self.cav4_client_id, "CA_CLIENT_SECRET": self.cav4_client_secret,
             "CA_REDIRECT_URI": self.cav4_redirect_uri, "OIDC_DISCOVERY_URL": self.oidc_discovery_url,
@@ -179,10 +161,6 @@ class Settings(BaseModel):
             if self.ca_ssl_cert_file and not Path(self.ca_ssl_cert_file).is_file():
                 raise ValueError("CA_SSL_CERT_FILE aponta para um arquivo inexistente")
         return self
-
-
-def _csv(name: str) -> list[str]:
-    return [item.strip() for item in os.getenv(name, "").split(",") if item.strip()]
 
 
 @lru_cache
