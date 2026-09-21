@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
 import { LogoMark } from "@/components/brand/logo-mark"
 import {
   Sidebar,
@@ -19,39 +18,41 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { usePlatformContext } from "@/hooks/use-platform-context"
-import { filterNavForRole, navGroups, type NavItem } from "@/lib/nav-config"
 import { ClipboardListIcon, FlaskConicalIcon, FolderKanbanIcon, LayoutDashboardIcon, ShieldCheckIcon, BarChart3Icon, type LucideIcon } from "lucide-react"
+import type { NavGroup, NavItem } from "@/lib/nav-config"
+import type { PlatformMenu } from "@/lib/types"
+
+const iconMap: Record<string, LucideIcon> = {
+  dashboard: LayoutDashboardIcon,
+  folder: FolderKanbanIcon,
+  projetos: FolderKanbanIcon,
+  pesquisa: FlaskConicalIcon,
+  pesquisas: FlaskConicalIcon,
+  relatorio: BarChart3Icon,
+  relatorios: BarChart3Icon,
+  chart: BarChart3Icon,
+  auditoria: ClipboardListIcon,
+  logs: ClipboardListIcon,
+  shield: ShieldCheckIcon,
+}
+
+function getIcon(name: string): LucideIcon {
+  return iconMap[name.trim().toLowerCase()] ?? FolderKanbanIcon
+}
+
+function buildNavGroups(menus: PlatformMenu[]): NavGroup[] {
+  const items: NavItem[] = menus.map((menu) => ({
+    title: menu.nome,
+    url: menu.rota,
+    icon: getIcon(menu.icone),
+  }))
+  return items.length ? [{ label: "Sistema", items }] : []
+}
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { data: platformContext } = usePlatformContext()
-  const [search] = useState("")
-
-  const iconMap: Record<string, LucideIcon> = {
-    dashboard: LayoutDashboardIcon,
-    folder: FolderKanbanIcon,
-    shield: ShieldCheckIcon,
-    chart: BarChart3Icon,
-  }
-  const databaseItems: NavItem[] = (platformContext?.menus ?? [])
-    .filter((menu) => !/usu[aá]rios?|perfil/i.test(menu.nome) && !/\/usuarios?|\/perfil/i.test(menu.rota))
-    .map((menu) => ({
-      title: menu.nome,
-      url: menu.rota,
-      icon: iconMap[menu.icone] ?? FolderKanbanIcon,
-    }))
-  const requiredItems: NavItem[] = [
-    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboardIcon },
-    { title: "Projetos", url: "/projetos", icon: FolderKanbanIcon },
-    { title: "Pesquisa", url: "/pesquisas", icon: FlaskConicalIcon },
-    { title: "Relatórios", url: "/relatorios", icon: BarChart3Icon },
-    { title: "Logs e Auditoria", url: "/logs", icon: ClipboardListIcon },
-  ]
-  const mergedItems = [...requiredItems, ...databaseItems.filter((item) => !requiredItems.some((required) => required.url === item.url))]
-  const groups = mergedItems.length
-    ? [{ label: "Sistema", items: mergedItems }]
-    : filterNavForRole(navGroups, "admin", platformContext?.permissions ?? [])
-  const filteredGroups = groups.map((group) => ({ ...group, items: group.items.filter((item) => item.title.toLowerCase().includes(search.toLowerCase())) })).filter((group) => group.items.length)
+  const { menus } = usePlatformContext()
+  const groups = buildNavGroups(menus)
 
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border/70 bg-sidebar shadow-2xl shadow-sidebar/25 transition-[width] duration-200 md:flex">
@@ -65,18 +66,9 @@ export function AppSidebar() {
             </div>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
-              tooltip="SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico"
-              render={<Link href="/dashboard" />}
-            >
-              <div className="flex size-9 items-center justify-center rounded-xl bg-sidebar-primary/15 ring-1 ring-sidebar-primary/40 shadow-[0_0_20px_color-mix(in_oklch,var(--sidebar-primary)_18%,transparent)]">
-                <LogoMark className="size-5" />
-              </div>
-              <div className="flex min-w-0 flex-col gap-1 leading-none">
-                <span className="truncate text-sm font-semibold tracking-wide">SIGAC</span>
-                <span className="hidden truncate text-[10px] text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden">Gestão de acesso ao armazenamento científico</span>
-              </div>
+            <SidebarMenuButton size="lg" tooltip="SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico" render={<Link href="/dashboard" />}>
+              <div className="flex size-9 items-center justify-center rounded-xl bg-sidebar-primary/15 ring-1 ring-sidebar-primary/40 shadow-[0_0_20px_color-mix(in_oklch,var(--sidebar-primary)_18%,transparent)]"><LogoMark className="size-5" /></div>
+              <div className="flex min-w-0 flex-col gap-1 leading-none"><span className="truncate text-sm font-semibold tracking-wide">SIGAC</span><span className="hidden truncate text-[10px] text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden">Gestão de acesso ao armazenamento científico</span></div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -84,47 +76,20 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="gap-1 px-1 py-2">
-        {filteredGroups.map((group) => (
+        {groups.map((group) => (
           <SidebarGroup key={group.label} className="border-b border-sidebar-border/40 px-2 py-3 last:border-b-0">
-            <SidebarGroupLabel className="h-8 px-2 text-[10px] font-semibold tracking-[0.16em] text-sidebar-primary/80 uppercase group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-              {group.label}
-            </SidebarGroupLabel>
+            <SidebarGroupLabel className="h-8 px-2 text-[10px] font-semibold tracking-[0.16em] text-sidebar-primary/80 uppercase group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">{group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu className="gap-0.5">
                 {group.items.map((item) => {
-                  const isActive = pathname === item.url || pathname.startsWith(`${item.url}/`) || item.children?.some((child) => pathname === child.url || pathname.startsWith(`${child.url}/`))
+                  const isActive = pathname === item.url || pathname.startsWith(`${item.url}/`)
                   return (
                     <SidebarMenuItem key={item.url} className="relative">
-                      {isActive ? (
-                        <span aria-hidden className="absolute top-1/2 left-0 h-6 w-0.5 -translate-y-1/2 rounded-r-full bg-sidebar-primary shadow-[0_0_8px_color-mix(in_oklch,var(--sidebar-primary)_55%,transparent)] group-data-[collapsible=icon]:hidden" />
-                      ) : null}
-                      <SidebarMenuButton
-                        render={<Link href={item.url} />}
-                        isActive={isActive}
-                        tooltip={item.title}
-                        className="h-10 gap-3 rounded-lg px-3 text-[13px] font-medium text-sidebar-foreground/78 transition-all duration-200 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground data-active:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-foreground data-active:shadow-[inset_0_1px_0_0_var(--sidebar-border),0_4px_12px_color-mix(in_oklch,var(--sidebar)_24%,transparent)] [&_svg]:text-sidebar-foreground/60 data-active:[&_svg]:text-sidebar-primary"
-                      >
+                      {isActive ? <span aria-hidden className="absolute top-1/2 left-0 h-6 w-0.5 -translate-y-1/2 rounded-r-full bg-sidebar-primary shadow-[0_0_8px_color-mix(in_oklch,var(--sidebar-primary)_55%,transparent)] group-data-[collapsible=icon]:hidden" /> : null}
+                      <SidebarMenuButton render={<Link href={item.url} />} isActive={isActive} tooltip={item.title} className="h-10 gap-3 rounded-lg px-3 text-[13px] font-medium text-sidebar-foreground/78 transition-all duration-200 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground data-active:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-foreground data-active:shadow-[inset_0_1px_0_0_var(--sidebar-border),0_4px_12px_color-mix(in_oklch,var(--sidebar)_24%,transparent)] [&_svg]:text-sidebar-foreground/60 data-active:[&_svg]:text-sidebar-primary">
                         <item.icon />
                         <span className="truncate">{item.title}</span>
                       </SidebarMenuButton>
-                      {item.children?.length ? (
-                        <div className="ml-5 flex flex-col gap-0.5 border-l border-sidebar-border/60 py-1 pl-2 group-data-[collapsible=icon]:hidden">
-                          {item.children.map((child) => {
-                            const childIsActive = pathname === child.url || pathname.startsWith(`${child.url}/`)
-                            return (
-                              <Link
-                                key={child.url}
-                                href={child.url}
-                                aria-current={childIsActive ? "page" : undefined}
-                                className="flex min-h-8 items-center gap-2 rounded-md px-2 text-xs text-sidebar-foreground/65 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground aria-[current=page]:bg-sidebar-accent aria-[current=page]:font-semibold aria-[current=page]:text-sidebar-primary"
-                              >
-                                <child.icon aria-hidden="true" />
-                                <span className="truncate">{child.title}</span>
-                              </Link>
-                            )
-                          })}
-                        </div>
-                      ) : null}
                     </SidebarMenuItem>
                   )
                 })}
@@ -133,11 +98,7 @@ export function AppSidebar() {
           </SidebarGroup>
         ))}
       </SidebarContent>
-
-      <SidebarFooter className="p-0">
-        <SidebarSeparator className="mx-0" />
-      </SidebarFooter>
-
+      <SidebarFooter className="p-0"><SidebarSeparator className="mx-0" /></SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )
