@@ -8,7 +8,7 @@ export default async function NovoProjetoPage() {
   const user = await getBackendSession()
   if (!user) redirect("/login")
 
-  const canCreate = hasCapability(user.role, "create")
+  const canCreate = hasCapability(user.permissions, "create")
   if (!canCreate) redirect("/projetos")
 
   return (

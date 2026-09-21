@@ -4,14 +4,12 @@ import type { ComponentProps } from "react"
 import { Button } from "@/components/ui/button"
 import type { Capability } from "@/hooks/use-permissions"
 import { hasCapability } from "@/hooks/use-permissions"
-import type { Role } from "@/lib/types"
-
-interface ActionButtonProps extends Omit<ComponentProps<typeof Button>, "role"> {
-  role?: Role | string | null
+interface ActionButtonProps extends ComponentProps<typeof Button> {
+  permissions?: string[]
   capability: Capability
 }
 
-export function ActionButton({ role, capability, children, ...props }: ActionButtonProps) {
-  if (!hasCapability(role, capability)) return null
+export function ActionButton({ permissions, capability, children, ...props }: ActionButtonProps) {
+  if (!hasCapability(permissions, capability)) return null
   return <Button {...props}>{children}</Button>
 }

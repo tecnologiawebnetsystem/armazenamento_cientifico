@@ -40,7 +40,7 @@ export const API_CONFIG = {
   mode: "fastapi",
 } as const
 
-class ApiError extends Error {
+export class ApiError extends Error {
   status: number
   constructor(status: number, message: string) {
     super(message)
@@ -66,6 +66,10 @@ async function fetchRequest(url: string, init?: RequestInit): Promise<Response> 
 }
 
 type ApiErrorBody = { message?: string; detail?: string }
+
+export function isApiError(error: unknown, status?: number): error is ApiError {
+  return error instanceof ApiError && (status === undefined || error.status === status)
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const startedAt = performance.now()
@@ -301,4 +305,3 @@ export function getActivityLogs(params: ActivityLogQuery = {}) {
   }>(`/api/activity-logs${query}`)
 }
 
-export { ApiError }
