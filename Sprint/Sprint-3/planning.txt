@@ -19,6 +19,21 @@ back-end (endpoints protegidos). Em paralelo, deixar os ambientes DEV e HMG
 equalizados (CI/CD, Docker, variáveis, base de dados e conectividade CAV4)
 para não concentrar configuração de infraestrutura no fim do projeto.
 
+HISTÓRICO DE VERSÕES DO PLANNING
+--------------------------------------------------------------------------------
+v1 - 6 histórias (01..06), 2 de 5 pontos por trilha.
+v2 - 10 histórias (01..10): as histórias de 5 pontos foram QUEBRADAS para
+     separar melhor front x back e reduzir o tamanho por entrega. O total
+     permanece em 24 pontos e a capacidade por DEV permanece em 8.
+
+     Rastreabilidade v1 -> v2:
+       v1 STORY-01 (Back, 5) ....... v2 STORY-01 (3) + STORY-02 (2)
+       v1 STORY-02 (Front, 5) ...... v2 STORY-04 (3) + STORY-05 (2)
+       v1 STORY-06 (Back, 3) ....... v2 STORY-03 (3)
+       v1 STORY-04 (Front, 3) ...... v2 STORY-06 (3)
+       v1 STORY-03 (Banco, 3) ...... v2 STORY-07 (2) + STORY-08 (2)
+       v1 STORY-05 (DevOps, 5) ..... v2 STORY-09 (2) + STORY-10 (2)
+
 PERFIS / PERSONAS (RBAC) CONSIDERADOS
 --------------------------------------------------------------------------------
 - Administrador : acesso total, segurança, gestão de usuários e auditoria.
@@ -26,11 +41,47 @@ PERFIS / PERSONAS (RBAC) CONSIDERADOS
 - Patrocinador  : acompanhamento executivo (leitura de projetos e indicadores).
 - Auditor       : leitura de logs de auditoria e relatórios (somente consulta).
 
+DEFINITION OF DONE (DoD) - VÁLIDO PARA TODAS AS HISTÓRIAS
+--------------------------------------------------------------------------------
+  [ ] Código revisado e PR aprovado por outro DEV.
+  [ ] CI verde (lint, typecheck e testes) antes do merge.
+  [ ] Migração (quando houver) reversível e aplicada em DEV e HMG.
+  [ ] Nenhum segredo versionado no repositório.
+  [ ] Nada fixo/hardcoded em tela ou no servidor: perfil, permissões, menus,
+      rótulos e valores vêm do banco/API.
+  [ ] Refinamento técnico da história (Sprint-3/ajuda-tecnica) conferido.
+
+RISCOS E PREMISSAS
+--------------------------------------------------------------------------------
+  R1 - Conectividade/certificado TLS do CAV4 (CA_SSL_VERIFY / arquivo de CA).
+       Mitigação: STORY-10 configura TLS por ambiente; DEV pode usar CA interno.
+  R2 - Lista real de personas do CAV4 ainda não confirmada.
+       Mitigação: STORY-08 depende de alinhamento com o time do CAV4; definir
+       regra para persona sem mapeamento (perfil padrão OU bloqueio 403).
+  R3 - Recursos AWS-alvo (ECS/EC2/RDS) e limites indefinidos.
+       Mitigação: fechar com o time de infra no início da sprint (STORY-10).
+  P1 - O front nunca recebe access_token; apenas cookie de sessão HttpOnly.
+  P2 - A fonte única de RBAC é o banco (STORY-07/08), consumida por front e back.
+
+CAMINHO CRÍTICO / ORDEM DE EXECUÇÃO
+--------------------------------------------------------------------------------
+  Começar cedo (pré-requisitos):
+    STORY-10 (ambiente/TLS CAV4) ---> habilita teste ponta a ponta
+    STORY-07 -> STORY-08 (RBAC no banco) ---> fonte única de perfis/permissões
+
+  Fluxo sugerido:
+    STORY-10 ─┐
+              ├─> STORY-01 -> STORY-02 ─┬─> STORY-04 -> STORY-05
+    STORY-07 ─┤                         │
+      └STORY-08 ─> STORY-03 ────────────┴─> STORY-06
+    STORY-09 (Docker/CI) em paralelo, dá suporte ao DoD (CI verde).
+
 DISTRIBUIÇÃO SUGERIDA (8 pontos por DEV)
 --------------------------------------------------------------------------------
-  DEV 1 - Back-end .............. STORY-01 (5) + STORY-06 (3) = 8 pontos
-  DEV 2 - Front-end ............. STORY-02 (5) + STORY-04 (3) = 8 pontos
-  DEV 3 - Banco / DevOps-AWS .... STORY-05 (5) + STORY-03 (3) = 8 pontos
+  DEV 1 - Back-end .......... STORY-01 (3) + STORY-02 (2) + STORY-03 (3) = 8
+  DEV 2 - Front-end ......... STORY-04 (3) + STORY-05 (2) + STORY-06 (3) = 8
+  DEV 3 - Banco/DevOps-AWS .. STORY-07 (2) + STORY-08 (2) + STORY-09 (2)
+                              + STORY-10 (2) ............................ = 8
   ----------------------------------------------------------------------
   TOTAL ......................................................= 24 pontos
 
@@ -39,238 +90,295 @@ rebalancear as histórias entre os DEVs, desde que cada DEV permaneça com 8
 pontos e a soma total permaneça em 24.
 
 ====================================================================================
-  STORY-01  -  Login SSO integrado ao CAV4 (validação de token no back-end)
+  STORY-01  -  CAV4 OIDC: início do login, callback e validação de token (Back)
 ====================================================================================
 Trilha.....: Back-end
-Pontuação..: 5 (Fibonacci)
+Pontuação..: 3 (Fibonacci)
 Persona....: Todos os usuários corporativos
+Ajuda......: Sprint-3/ajuda-tecnica/STORY-01-ajuda-tecnica.txt
+Depende de.: STORY-10 (conectividade/TLS CAV4 para teste ponta a ponta)
+Habilita...: STORY-02
 
 TÍTULO DA STORY
-  Autenticação corporativa via CAV4 com validação de token e extração de
-  identidade do usuário.
+  Fluxo OIDC/SSO do CAV4 com validação de assinatura, issuer, audience e nonce.
 
 DESCRIÇÃO DA STORY
   Como usuário corporativo da Petrobras,
   quero autenticar no SIGAC utilizando o CAV4 (SSO),
-  para acessar a plataforma sem criar novas credenciais e com minha identidade
-  corporativa reconhecida automaticamente.
+  para acessar a plataforma sem criar novas credenciais.
 
-  A história cobre o fluxo OIDC/SSO completo: início do login, retorno de
-  callback, troca de código por token, validação de assinatura e claims, e a
-  extração do identificador do usuário (matrícula/e-mail). O identificador
-  extraído é o elo que amarra a sessão ao registro do usuário no banco.
+  Cobre o início do login (authorization URL com state/nonce), o callback
+  (troca de código por token) e a validação criptográfica do token: assinatura,
+  emissor (issuer), audiência (audience), expiração (exp) e nonce.
 
 CRITÉRIOS DE ACEITE
-  [ ] Endpoint de início de login redireciona corretamente para o CAV4
-      (authorization endpoint) com state/nonce válidos.
-  [ ] Callback recebe o código, troca por token e valida assinatura, emissor
-      (issuer), audiência (audience) e expiração do token.
-  [ ] O identificador do usuário (matrícula/e-mail) é extraído do token e
-      normalizado (lowercase/trim) antes de qualquer consulta.
-  [ ] Usuário sem cadastro correspondente no banco recebe resposta clara
-      (403) e NÃO gera sessão.
-  [ ] Erros de conectividade/TLS com o CAV4 retornam mensagem específica e são
-      registrados em log (ex.: falha de certificado, timeout, discovery).
-  [ ] Nenhum token de acesso é exposto ao front-end; apenas o cookie de sessão
-      HttpOnly é retornado.
+  [ ] Endpoint de início redireciona ao CAV4 com state e nonce válidos.
+  [ ] Callback troca o código por token e valida assinatura, issuer, audience,
+      expiração e nonce.
+  [ ] Erros de conectividade/TLS/discovery com o CAV4 retornam mensagem
+      específica e são registrados em log.
+  [ ] Nenhum access_token é exposto ao front-end.
   [ ] Fluxo testado em DEV apontando para o CAV4 de desenvolvimento.
 
-DEPENDÊNCIAS / NOTAS
-  - Depende da conectividade CAV4 equalizada (STORY-05) para teste ponta a ponta.
-  - Alinhar claims disponíveis no token com o time do CAV4.
-
 ====================================================================================
-  STORY-02  -  Guarda de rotas, sessão e logout no Front-end
+  STORY-02  -  Sessão HttpOnly, identidade do usuário e logout (Back)
 ====================================================================================
-Trilha.....: Front-end
-Pontuação..: 5 (Fibonacci)
+Trilha.....: Back-end
+Pontuação..: 2 (Fibonacci)
 Persona....: Todos os usuários autenticados
+Ajuda......: Sprint-3/ajuda-tecnica/STORY-02-ajuda-tecnica.txt
+Depende de.: STORY-01
+Habilita...: STORY-04, STORY-05
 
 TÍTULO DA STORY
-  Proteção de rotas, controle de expiração de sessão e logout funcional.
+  Extração/normalização da identidade, resolução do usuário e emissão de sessão.
+
+DESCRIÇÃO DA STORY
+  Como plataforma segura,
+  quero transformar a identidade do CAV4 em uma sessão do SIGAC,
+  para vincular o usuário autenticado ao seu registro no banco.
+
+  Cobre a extração do identificador (matrícula/e-mail), a normalização
+  (lowercase/trim) num único ponto, a busca do usuário no banco, a emissão do
+  cookie de sessão HttpOnly e o endpoint de logout.
+
+CRITÉRIOS DE ACEITE
+  [ ] Identificador extraído do token e normalizado antes de qualquer consulta.
+  [ ] Usuário sem cadastro correspondente recebe 403 e NÃO gera sessão.
+  [ ] Sessão emitida apenas via cookie HttpOnly.
+  [ ] Endpoint de sessão (GET) retorna o usuário atual; logout (POST) encerra
+      a sessão no back-end.
+  [ ] cav4_subject persistido na tabela de sessões.
+
+====================================================================================
+  STORY-03  -  Middleware de autorização por perfil no Back-end (RBAC + 403)
+====================================================================================
+Trilha.....: Back-end
+Pontuação..: 3 (Fibonacci)
+Persona....: Administrador, Gerente, Patrocinador, Auditor
+Ajuda......: Sprint-3/ajuda-tecnica/STORY-03-ajuda-tecnica.txt
+Depende de.: STORY-02, STORY-08
+Habilita...: STORY-06 (contraparte de servidor)
+
+TÍTULO DA STORY
+  Autorização por perfil nos endpoints com 401/403 distintos e testes unitários.
+
+DESCRIÇÃO DA STORY
+  Como plataforma segura,
+  quero que cada endpoint sensível exija o perfil/permissão adequado,
+  para garantir a regra de acesso no servidor (não apenas na interface).
+
+  Cobre a dependência de autorização que lê o perfil da sessão, valida a
+  permissão exigida e retorna 403 quando não autorizado, além dos testes.
+
+CRITÉRIOS DE ACEITE
+  [ ] Cada endpoint sensível declara o perfil/permissão exigido.
+  [ ] Autenticado sem permissão -> 403; sem sessão -> 401 (distintos).
+  [ ] A verificação usa perfil/permissões do banco (STORY-07/08), sem valores
+      fixos no código.
+  [ ] Tentativas negadas registradas na trilha de auditoria.
+  [ ] Testes unitários (permitido/403/401) para pelo menos 2 endpoints.
+
+====================================================================================
+  STORY-04  -  Guarda de rotas e verificação de sessão (Front)
+====================================================================================
+Trilha.....: Front-end
+Pontuação..: 3 (Fibonacci)
+Persona....: Todos os usuários autenticados
+Ajuda......: Sprint-3/ajuda-tecnica/STORY-04-ajuda-tecnica.txt
+Depende de.: STORY-02
+Habilita...: STORY-06
+
+TÍTULO DA STORY
+  Proteção das rotas internas com verificação de sessão e estado de carregamento.
 
 DESCRIÇÃO DA STORY
   Como plataforma segura,
   quero que todas as telas internas exijam sessão ativa,
-  para que usuários não autenticados sejam redirecionados ao login e sessões
-  expiradas sejam encerradas com segurança.
+  para que usuários não autenticados sejam redirecionados ao login.
 
-  Cobre o guard de rotas do app (todas as páginas internas), o tratamento de
-  sessão expirada (401 → redireciona para login preservando a rota destino) e
-  o logout que encerra a sessão no back-end e limpa o estado do cliente.
+  Cobre o guard das rotas internas e o estado de carregamento enquanto a sessão
+  é verificada (sem flash de conteúdo protegido).
 
 CRITÉRIOS DE ACEITE
-  [ ] Todas as rotas internas exigem sessão; acesso sem sessão redireciona
-      para /login com o parâmetro de rota de retorno (next).
-  [ ] Sessão expirada (resposta 401 da API) redireciona automaticamente para
-      o login, sem loop de requisições.
-  [ ] Botão de logout encerra a sessão no back-end e limpa o cookie/estado.
-  [ ] Após logout, tentar acessar rota interna volta para o login.
-  [ ] Estado de carregamento é exibido enquanto a sessão é verificada
-      (sem "flash" de conteúdo protegido).
-  [ ] A rota de retorno (next) é validada para evitar redirecionamento aberto
-      (open redirect) para domínios externos.
-
-DEPENDÊNCIAS / NOTAS
-  - Consome o endpoint de sessão/logout entregue nas STORY-01 e STORY-06.
+  [ ] Todas as rotas internas exigem sessão; sem sessão -> redireciona a /login
+      com o parâmetro de rota de retorno (next).
+  [ ] Estado de carregamento exibido enquanto a sessão é verificada.
+  [ ] Sem "flash" de conteúdo protegido antes da verificação.
 
 ====================================================================================
-  STORY-03  -  Mapeamento Personas -> Perfis (RBAC) a partir do CAV4
+  STORY-05  -  Sessão expirada (401), logout na UI e retorno seguro (Front)
 ====================================================================================
-Trilha.....: Banco / Modelagem
-Pontuação..: 3 (Fibonacci)
-Persona....: Administrador (configuração)
+Trilha.....: Front-end
+Pontuação..: 2 (Fibonacci)
+Persona....: Todos os usuários autenticados
+Ajuda......: Sprint-3/ajuda-tecnica/STORY-05-ajuda-tecnica.txt
+Depende de.: STORY-02, STORY-04
+Habilita...: -
 
 TÍTULO DA STORY
-  Modelagem e carga do RBAC: perfis, permissões e vínculo com as personas do CAV4.
+  Tratamento de 401, ação de logout na interface e proteção contra open redirect.
 
 DESCRIÇÃO DA STORY
-  Como administrador do SIGAC,
-  quero que as personas cadastradas no CAV4 sejam mapeadas para os perfis
-  internos (Administrador, Gerente, Patrocinador, Auditor),
-  para que o usuário receba automaticamente as permissões corretas ao logar.
+  Como usuário autenticado,
+  quero que sessões expiradas sejam encerradas com segurança e o logout funcione,
+  para não ficar preso em telas protegidas nem em loops de requisição.
 
-  Cobre o modelo de dados de perfis/permissões, a tabela de vínculo
-  persona(CAV4) → perfil(SIGAC), e a carga inicial (seed) das permissões de
-  cada perfil, servindo de fonte única para front e back.
+  Cobre a interceptação de 401 (redireciona uma única vez ao login preservando
+  a rota destino), a ação de logout na UI e a validação do parâmetro next.
 
 CRITÉRIOS DE ACEITE
-  [ ] Modelo de dados documentado: perfis, permissões e relação perfil↔permissão.
-  [ ] Tabela/estrutura de mapeamento persona CAV4 → perfil SIGAC criada.
-  [ ] Seed inicial com os 4 perfis e suas permissões aplicado em DEV e HMG.
-  [ ] Consulta única retorna, para um usuário, seu perfil e a lista de
-      permissões efetivas.
-  [ ] Migração versionada (Alembic) e reversível.
-  [ ] Documentada a regra para persona sem mapeamento (perfil padrão ou bloqueio).
-
-DEPENDÊNCIAS / NOTAS
-  - É a base de dados consumida por STORY-04 (menus) e STORY-06 (middleware).
-  - Validar a lista real de personas com o time do CAV4.
+  [ ] Resposta 401 redireciona automaticamente ao login, sem loop.
+  [ ] Botão de logout chama o back-end, limpa o estado do cliente e volta ao login.
+  [ ] Após logout, acessar rota interna volta ao login.
+  [ ] O parâmetro next é validado (apenas caminhos internos) contra open redirect.
 
 ====================================================================================
-  STORY-04  -  Menu e permissões diferenciadas por perfil (Front-end)
+  STORY-06  -  Menu e ações condicionados ao perfil (RBAC na UI) (Front)
 ====================================================================================
 Trilha.....: Front-end
 Pontuação..: 3 (Fibonacci)
 Persona....: Administrador, Gerente, Patrocinador, Auditor
+Ajuda......: Sprint-3/ajuda-tecnica/STORY-06-ajuda-tecnica.txt
+Depende de.: STORY-03, STORY-08
+Habilita...: -
 
 TÍTULO DA STORY
-  Renderização de menu, telas e ações condicionadas ao perfil do usuário.
+  Renderização de menu, telas e ações conforme o perfil/permissões do usuário.
 
 DESCRIÇÃO DA STORY
   Como usuário de um perfil específico,
   quero ver apenas os menus e ações a que tenho direito,
   para que a interface reflita minhas permissões reais vindas do banco.
 
-  Cobre o carregamento das permissões do usuário logado e a renderização
-  condicional de itens de menu, botões de ação e seções de tela conforme o
-  perfil (ex.: Auditor vê Logs/Relatórios em modo leitura; Gerente vê gestão
-  de projetos; Administrador vê Segurança/Usuários).
-
 CRITÉRIOS DE ACEITE
-  [ ] Menu lateral exibe apenas itens permitidos ao perfil do usuário logado.
-  [ ] Ações restritas (criar/editar/excluir) ficam ocultas/desabilitadas
-      conforme a permissão.
-  [ ] Perfil Auditor tem acesso somente de leitura a Logs e Relatórios.
-  [ ] Nenhuma permissão é fixa em tela (hardcoded): tudo vem da API/banco.
-  [ ] Acesso direto por URL a uma rota não permitida cai na página de acesso
-      negado (403) do front.
-  [ ] Comportamento validado com pelo menos 2 perfis distintos.
-
-DEPENDÊNCIAS / NOTAS
-  - Consome o RBAC de STORY-03 e a autorização de STORY-06.
+  [ ] Menu lateral exibe apenas itens permitidos ao perfil logado.
+  [ ] Ações restritas (criar/editar/excluir) ocultas/desabilitadas conforme a
+      permissão.
+  [ ] Perfil Auditor com acesso somente leitura a Logs e Relatórios.
+  [ ] Nenhuma permissão fixa em tela: tudo vem da API/banco.
+  [ ] Acesso direto por URL a rota não permitida cai em 403 do front.
+  [ ] Validado com pelo menos 2 perfis distintos.
 
 ====================================================================================
-  STORY-05  -  CI/CD, Docker e equalização dos ambientes DEV e HMG (AWS + CAV4)
+  STORY-07  -  Modelo de dados RBAC (perfis/permissões) + migração (Banco)
 ====================================================================================
-Trilha.....: DevOps / AWS / Banco
-Pontuação..: 5 (Fibonacci)
-Persona....: Time de desenvolvimento / operação
+Trilha.....: Banco / Modelagem
+Pontuação..: 2 (Fibonacci)
+Persona....: Administrador (configuração)
+Ajuda......: Sprint-3/ajuda-tecnica/STORY-07-ajuda-tecnica.txt
+Depende de.: -
+Habilita...: STORY-03, STORY-06, STORY-08
 
 TÍTULO DA STORY
-  Pipeline CI/CD com Docker, variáveis por ambiente e equalização DEV/HMG.
+  Modelo perfil/permissão e consulta única de permissões efetivas.
+
+DESCRIÇÃO DA STORY
+  Como administrador do SIGAC,
+  quero um modelo de dados de perfis e permissões,
+  para servir de fonte única de RBAC ao front e ao back.
+
+CRITÉRIOS DE ACEITE
+  [ ] Modelo documentado: perfil, permissão e relação perfil↔permissão.
+  [ ] Migração Alembic versionada e reversível (upgrade + downgrade).
+  [ ] Consulta única retorna perfil + permissões efetivas de um usuário.
+  [ ] Seed dos 4 perfis com suas permissões aplicado em DEV e HMG.
+
+====================================================================================
+  STORY-08  -  Mapeamento persona CAV4 -> perfil + seed (Banco)
+====================================================================================
+Trilha.....: Banco / Modelagem
+Pontuação..: 2 (Fibonacci)
+Persona....: Administrador (configuração)
+Ajuda......: Sprint-3/ajuda-tecnica/STORY-08-ajuda-tecnica.txt
+Depende de.: STORY-07
+Habilita...: STORY-03, STORY-06
+
+TÍTULO DA STORY
+  Vínculo persona(CAV4) -> perfil(SIGAC) e regra de persona sem mapeamento.
+
+DESCRIÇÃO DA STORY
+  Como administrador do SIGAC,
+  quero que as personas do CAV4 sejam mapeadas para os perfis internos,
+  para que o usuário receba automaticamente as permissões corretas ao logar.
+
+CRITÉRIOS DE ACEITE
+  [ ] Tabela de mapeamento persona CAV4 -> perfil SIGAC criada (índice único).
+  [ ] Migração reversível e aplicada em DEV e HMG.
+  [ ] Regra documentada para persona sem mapeamento (perfil padrão OU 403).
+  [ ] Lista de personas validada com o time do CAV4.
+
+====================================================================================
+  STORY-09  -  Docker, docker-compose e CI (GitHub Actions) (DevOps)
+====================================================================================
+Trilha.....: DevOps
+Pontuação..: 2 (Fibonacci)
+Persona....: Time de desenvolvimento
+Ajuda......: Sprint-3/ajuda-tecnica/STORY-09-ajuda-tecnica.txt
+Depende de.: -
+Habilita...: DoD (CI verde) de todas as histórias
+
+TÍTULO DA STORY
+  Containerização de front/back e pipeline de integração contínua.
 
 DESCRIÇÃO DA STORY
   Como time de desenvolvimento,
-  quero ambientes DEV e HMG equalizados com pipeline automatizado,
-  para reduzir risco de configuração de última hora e garantir paridade entre
-  os ambientes (aplicação, banco e conectividade CAV4).
-
-  Cobre a containerização (Docker) de front e back, o pipeline de CI/CD
-  (GitHub Actions), a separação de variáveis por ambiente (DEV/HMG), a base de
-  dados de cada ambiente e a configuração de rede/certificados para o CAV4.
-
-CRITÉRIOS DE ACEITE (aplicação / Docker)
-  [ ] Dockerfile de front-end e back-end buildando com sucesso localmente.
-  [ ] docker-compose (ou equivalente) sobe a stack completa (app + banco) em DEV.
-  [ ] Imagens versionadas por tag/commit.
-
-CRITÉRIOS DE ACEITE (GitHub Actions / CI)
-  [ ] Workflow executa em pull request: lint, typecheck e testes de back-end.
-  [ ] Build das imagens Docker no pipeline e publicação em registry.
-  [ ] Pipeline falha (bloqueia merge) quando lint, typecheck ou testes falham.
-  [ ] Deploy automatizado para DEV; deploy para HMG mediante aprovação manual.
-
-CRITÉRIOS DE ACEITE (AWS / ambientes)
-  [ ] Variáveis de ambiente separadas e documentadas para DEV e HMG (sem
-      segredos versionados no repositório).
-  [ ] Base de dados provisionada para DEV e HMG com migrações aplicadas.
-  [ ] Conectividade e certificado (TLS) do CAV4 configurados por ambiente
-      (CA_SSL_VERIFY / arquivo de CA quando aplicável).
-  [ ] Documento curto de "como promover DEV -> HMG".
-  [ ] DEV e HMG equalizados: mesma versão de schema e mesmas variáveis-chave.
-
-DEPENDÊNCIAS / NOTAS
-  - Habilita o teste ponta a ponta de STORY-01 (CAV4) em ambos os ambientes.
-  - Definir com o time de infra os recursos AWS-alvo (ex.: ECS/EC2/RDS) e limites.
-
-====================================================================================
-  STORY-06  -  Middleware de autorização por perfil no Back-end (RBAC + 403)
-====================================================================================
-Trilha.....: Back-end
-Pontuação..: 3 (Fibonacci)
-Persona....: Administrador, Gerente, Patrocinador, Auditor
-
-TÍTULO DA STORY
-  Autorização por perfil nos endpoints com respostas 403 e testes unitários.
-
-DESCRIÇÃO DA STORY
-  Como plataforma segura,
-  quero que cada endpoint exija o perfil/permissão adequado,
-  para que usuários sem autorização recebam 403 e a regra de acesso seja
-  garantida no servidor (não apenas na interface).
-
-  Cobre o middleware/dependência de autorização que lê o perfil da sessão,
-  valida a permissão exigida pelo endpoint e retorna 403 quando não autorizado,
-  além dos testes unitários básicos cobrindo permitido/negado.
+  quero front e back containerizados e um CI que barre merges quebrados,
+  para garantir qualidade e reprodutibilidade.
 
 CRITÉRIOS DE ACEITE
-  [ ] Cada endpoint sensível declara o perfil/permissão exigido.
-  [ ] Requisição autenticada, porém sem permissão, retorna 403 (não 401).
-  [ ] Requisição sem sessão retorna 401.
-  [ ] A verificação usa o perfil/permissões vindos do banco (STORY-03),
-      sem valores fixos no código.
-  [ ] Testes unitários cobrindo: acesso permitido, acesso negado (403) e sem
-      sessão (401) para pelo menos 2 endpoints representativos.
-  [ ] Tentativas negadas são registradas na trilha de auditoria.
+  [ ] Dockerfile de front e back buildando com sucesso.
+  [ ] docker-compose sobe app + banco em DEV.
+  [ ] CI em pull request: lint, typecheck (front) e testes (back).
+  [ ] Build das imagens no pipeline com tag por commit e publicação em registry.
+  [ ] Merge bloqueado quando lint/typecheck/teste falham.
 
-DEPENDÊNCIAS / NOTAS
-  - Consome o RBAC de STORY-03; é a contraparte de servidor da STORY-04.
+====================================================================================
+  STORY-10  -  Ambientes AWS DEV/HMG, TLS CAV4 e provisionamento de BD (DevOps)
+====================================================================================
+Trilha.....: DevOps / AWS / Banco
+Pontuação..: 2 (Fibonacci)
+Persona....: Time de operação
+Ajuda......: Sprint-3/ajuda-tecnica/STORY-10-ajuda-tecnica.txt
+Depende de.: STORY-09 (imagens/pipeline)
+Habilita...: STORY-01 (teste ponta a ponta do CAV4)
+
+TÍTULO DA STORY
+  Equalização DEV/HMG: variáveis por ambiente, bancos e TLS do CAV4.
+
+DESCRIÇÃO DA STORY
+  Como time de operação,
+  quero DEV e HMG equalizados,
+  para reduzir risco de configuração de última hora e garantir paridade.
+
+CRITÉRIOS DE ACEITE
+  [ ] Variáveis separadas e documentadas para DEV e HMG (sem segredos no repo).
+  [ ] Base de dados provisionada para DEV e HMG com migrações aplicadas.
+  [ ] Conectividade e certificado (TLS) do CAV4 por ambiente (CA_SSL_VERIFY /
+      arquivo de CA quando aplicável).
+  [ ] Deploy automatizado para DEV; HMG mediante aprovação manual.
+  [ ] Documento curto de "como promover DEV -> HMG".
+  [ ] DEV e HMG com mesma versão de schema e mesmas variáveis-chave.
 
 ====================================================================================
   RESUMO DE PONTOS
 ====================================================================================
-  STORY-01  Login SSO CAV4 (back-end validação token) .............. 5
-  STORY-02  Guarda de rotas / sessão / logout (front-end) .......... 5
-  STORY-03  Mapeamento personas -> perfis RBAC (banco) ............. 3
-  STORY-04  Menu e permissões por perfil (front-end) .............. 3
-  STORY-05  CI/CD, Docker, DEV/HMG, AWS, CAV4 (devops) ............. 5
-  STORY-06  Middleware de autorização + 403 + testes (back-end) .... 3
+  STORY-01  CAV4 OIDC: start/callback/validação de token (back) ...... 3
+  STORY-02  Sessão HttpOnly, identidade/usuário e logout (back) ...... 2
+  STORY-03  Middleware de autorização RBAC + 403 + testes (back) ..... 3
+  STORY-04  Guarda de rotas e verificação de sessão (front) .......... 3
+  STORY-05  Sessão expirada (401), logout UI, retorno seguro (front) . 2
+  STORY-06  Menu e ações por perfil - RBAC na UI (front) ............. 3
+  STORY-07  Modelo de dados RBAC + migração (banco) ................. 2
+  STORY-08  Mapeamento persona CAV4 -> perfil + seed (banco) ........ 2
+  STORY-09  Docker, docker-compose e CI GitHub Actions (devops) ..... 2
+  STORY-10  Ambientes AWS DEV/HMG, TLS CAV4, BD (devops) ............ 2
   --------------------------------------------------------------------
   TOTAL ........................................................... 24
 
   Fechamento por DEV (8 pontos cada):
-    DEV Back-end ...... STORY-01 (5) + STORY-06 (3) = 8
-    DEV Front-end ..... STORY-02 (5) + STORY-04 (3) = 8
-    DEV Banco/DevOps .. STORY-05 (5) + STORY-03 (3) = 8
+    DEV Back-end ...... STORY-01 (3) + STORY-02 (2) + STORY-03 (3) = 8
+    DEV Front-end ..... STORY-04 (3) + STORY-05 (2) + STORY-06 (3) = 8
+    DEV Banco/DevOps .. STORY-07 (2) + STORY-08 (2) + STORY-09 (2)
+                        + STORY-10 (2) ............................ = 8
 ====================================================================================

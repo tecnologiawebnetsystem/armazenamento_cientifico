@@ -1,60 +1,54 @@
 ====================================================================================
-  STORY-04  -  Menu e permissões diferenciadas por perfil (Front-end)
+  STORY-04  -  Guarda de rotas e verificação de sessão (Front)
   AJUDA TÉCNICA / REFINAMENTO
 ====================================================================================
 Trilha.....: Front-end
-Objetivo...: Renderizar menu, telas e ações conforme o perfil/permissões do
-             usuário logado, sem nada fixo (hardcoded) em tela.
+Pontuação..: 3
+Depende de.: STORY-02 (endpoint de sessão)
+Habilita...: STORY-06
+Objetivo...: Bloquear rotas internas até a sessão ser verificada, sem flash de
+             conteúdo protegido. (O tratamento de 401/logout é a STORY-05.)
 
 ------------------------------------------------------------------------------------
 1) ONDE MEXER NO CÓDIGO (arquivos existentes)
 ------------------------------------------------------------------------------------
-- lib/nav-config.ts
-    Config dos itens de menu. -> Anotar cada item com a permissão exigida
-    (ex.: requiredPermission: "logs.read").
-- components/layout/app-sidebar.tsx
-    -> Filtrar itens do menu pelas permissões vindas de use-permissions.
-- hooks/use-permissions.ts
-    Hook que carrega as permissões efetivas do usuário (via API/banco).
-    -> REFINAR: expor helper `can(permission: string): boolean`.
-- components/shared/permission-guard.tsx
-    Componente para envolver seções/ações restritas.
-    -> Usar para ocultar/desabilitar botões (criar/editar/excluir).
-- components/shared/action-button.tsx
-    -> Aceitar `requiredPermission` e desabilitar quando não permitido.
-- app/forbidden/page.tsx
-    Página 403 do front (já existe) para acesso direto por URL não permitida.
+- app/(app)/layout.tsx
+    Melhor ponto para o guard: verificar sessão antes de renderizar o conteúdo.
+    -> Exibir carregamento enquanto verifica (evitar flash).
+- hooks/use-session.ts
+    Hook que busca a sessão (GET /api/auth/session via SWR).
+    -> Expor { user, isLoading, isError }.
+- components/petrobras-loading.tsx
+    Reaproveitar para o estado "verificando sessão...".
 
 ------------------------------------------------------------------------------------
 2) O QUE CRIAR (se necessário)
 ------------------------------------------------------------------------------------
-- Um wrapper de rota (no app/(app)/layout.tsx ou por página) que verifica a
-  permissão da rota e redireciona para /forbidden quando negado.
-- Constantes de permissão em lib (ex.: lib/permissions.ts) para evitar strings
-  soltas repetidas.
+- Componente RequireSession (wrapper) que:
+    * enquanto isLoading -> mostra loading;
+    * sem user -> redireciona a /login?next=<rota-atual>;
+    * com user -> renderiza children.
 
 ------------------------------------------------------------------------------------
-3) BANCO DE DADOS
+3) EXEMPLO DE CÓDIGO
 ------------------------------------------------------------------------------------
-- Nenhuma alteração direta. Consome a consulta de permissões da STORY-03
-  (endpoint que devolve perfil + permissões efetivas).
-- IMPORTANTE: nenhuma permissão fixa no código; tudo vem da API.
+    const { user, isLoading } = useSession()
+    if (isLoading) return <PetrobrasLoading />
+    if (!user) { router.replace(`/login?next=${encodeURIComponent(pathname)}`); return null }
+    return <>{children}</>
 
 ------------------------------------------------------------------------------------
-4) SUGESTÃO DE PASSO A PASSO
+4) BANCO DE DADOS
 ------------------------------------------------------------------------------------
-  1. Anotar itens de nav-config com a permissão exigida.
-  2. Filtrar sidebar por use-permissions().can(...).
-  3. Envolver ações com permission-guard / action-button.
-  4. Auditor -> somente leitura em Logs e Relatórios.
-  5. Guard de rota -> /forbidden em acesso direto não permitido.
-  6. Testar com pelo menos 2 perfis diferentes.
+- Nenhuma alteração. Consome o endpoint de sessão da STORY-02.
 
 ------------------------------------------------------------------------------------
-5) COMO VALIDAR (aceite)
+5) COMO VALIDAR
 ------------------------------------------------------------------------------------
-- Logar como Auditor -> só vê Logs/Relatórios em leitura; sem botões de escrita.
-- Logar como Gerente -> vê gestão de projetos.
-- Acessar por URL rota não permitida -> cai em /forbidden.
-- Conferir no Network que as permissões vêm da API (não fixas).
+- Deslogado acessando rota interna -> vai a /login?next=... (sem flash).
+- Logado -> conteúdo renderiza após loading curto.
+- Recarregar rota interna logado -> não pisca conteúdo antes da verificação.
+
+CHECKLIST ANTI-HARDCODE
+  [ ] Nenhum usuário/perfil fixo no front; tudo vem de use-session.
 ====================================================================================

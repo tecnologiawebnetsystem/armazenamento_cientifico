@@ -1,0 +1,60 @@
+====================================================================================
+  STORY-08  -  Mapeamento persona CAV4 -> perfil + seed (Banco)
+  AJUDA TÉCNICA / REFINAMENTO
+====================================================================================
+Trilha.....: Banco / Modelagem
+Pontuação..: 2
+Depende de.: STORY-07 (tabelas de perfil/permissão)
+Habilita...: STORY-03, STORY-06
+Objetivo...: Vincular persona(CAV4) -> perfil(SIGAC) e definir a regra para
+             persona sem mapeamento.
+
+------------------------------------------------------------------------------------
+1) ONDE MEXER NO CÓDIGO (arquivos existentes)
+------------------------------------------------------------------------------------
+- back-end/app/db/models.py
+    -> Registrar o novo modelo de vínculo persona->perfil.
+- back-end/app/modules/users/repository.py
+    -> Resolver perfil a partir da persona do CAV4 no login (STORY-02/03).
+- back-end/app/db/seed.py
+    -> Seed dos vínculos persona -> perfil.
+
+------------------------------------------------------------------------------------
+2) O QUE CRIAR
+------------------------------------------------------------------------------------
+- NOVA migração Alembic (ex.: 0025_map_persona_perfil.py):
+    * tabela persona_cav4_perfil (persona_cav4 TEXT, perfil_id -> perfil.id);
+    * índice UNIQUE em persona_cav4;
+    * downgrade() reversível.
+- Documentar no topo da migração a regra de persona SEM mapeamento:
+    OPÇÃO A: perfil padrão (ex.: acesso mínimo/leitura);
+    OPÇÃO B: bloqueio (403) no login.
+
+------------------------------------------------------------------------------------
+3) BANCO DE DADOS (modelo sugerido)
+------------------------------------------------------------------------------------
+  persona_cav4_perfil (persona_cav4 TEXT UNIQUE, perfil_id -> perfil.id)
+
+  Resolução no login:
+    SELECT perfil_id FROM persona_cav4_perfil WHERE persona_cav4 = :persona;
+    -- sem linha -> aplicar regra definida (perfil padrão OU 403)
+
+------------------------------------------------------------------------------------
+4) SUGESTÃO DE PASSO A PASSO
+------------------------------------------------------------------------------------
+  1. Fechar a lista real de personas com o time do CAV4 (Risco R2).
+  2. Criar migração (upgrade + downgrade) com a tabela de vínculo.
+  3. Seed dos vínculos persona -> perfil.
+  4. Definir e documentar a regra de persona sem mapeamento.
+  5. Aplicar em DEV e HMG.
+
+------------------------------------------------------------------------------------
+5) COMO VALIDAR (comandos)
+------------------------------------------------------------------------------------
+- alembic upgrade head && alembic downgrade -1 -> sem erro.
+- Persona mapeada -> retorna perfil correto.
+- Persona não mapeada -> comportamento conforme regra documentada.
+
+CHECKLIST ANTI-HARDCODE
+  [ ] Vínculo persona->perfil somente no banco/seed, nunca fixo no código.
+====================================================================================

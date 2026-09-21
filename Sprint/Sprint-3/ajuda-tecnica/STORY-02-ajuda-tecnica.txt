@@ -1,67 +1,68 @@
 ====================================================================================
-  STORY-02  -  Guarda de rotas, sessão e logout no Front-end
+  STORY-02  -  Sessão HttpOnly, identidade do usuário e logout (Back)
   AJUDA TÉCNICA / REFINAMENTO
 ====================================================================================
-Trilha.....: Front-end
-Objetivo...: Proteger rotas internas, tratar 401 (sessão expirada) e logout.
+Trilha.....: Back-end
+Pontuação..: 2
+Depende de.: STORY-01 (token já validado)
+Habilita...: STORY-04, STORY-05
+Objetivo...: Transformar a identidade validada do CAV4 em sessão do SIGAC:
+             extrair/normalizar identificador -> resolver usuário -> emitir
+             cookie HttpOnly -> expor sessão/logout.
 
 ------------------------------------------------------------------------------------
 1) ONDE MEXER NO CÓDIGO (arquivos existentes)
 ------------------------------------------------------------------------------------
-- app/(app)/layout.tsx
-    Layout das rotas internas. É o melhor ponto para o "guard": verificar a
-    sessão antes de renderizar o conteúdo protegido.
-    -> Exibir estado de carregamento enquanto verifica (evitar flash de conteúdo).
-
-- hooks/use-session.ts
-    Hook que busca a sessão atual (GET /api/auth/session via SWR).
-    -> REFINAR: expor { user, isLoading, isError } e usar para o guard.
-
-- lib/api-client.ts
-    Cliente HTTP central. Já loga request_start/request_complete.
-    -> REFINAR: interceptar resposta 401 e disparar redirect para
-       /login?next=<rota-atual> (sem loop; só quando NÃO estiver já no /login).
-
-- lib/session.ts
-    Helpers de sessão no front (leitura/limpeza de estado).
-
-- components/layout/profile-avatar-menu.tsx
-    Contém a ação de logout.
-    -> REFINAR: chamar POST /api/auth/logout, limpar cache SWR (mutate) e
-       redirecionar para /login.
-
-- app/login/page.tsx  +  hooks/use-login.ts
-    Ler o parâmetro `next` e, após login, redirecionar para a rota de retorno.
+- back-end/app/core/cav4.py
+    -> Função única extract_identity(claims) -> str (lower/trim) num só ponto.
+- back-end/app/modules/users/repository.py
+    -> Buscar usuário por e-mail/matrícula (resolve_user).
+- back-end/app/core/temporary_sessions.py + app/core/authorization.py
+    -> Emissão do cookie de sessão HttpOnly. NUNCA retornar access_token.
+- back-end/app/api/routes/cav4_auth.py
+    Endpoints já existentes:
+      GET  /api/auth/session  -> retorna sessão atual
+      POST /api/auth/logout   -> encerra a sessão
+    -> REFINAR: 403 quando usuário não existe (sem criar sessão).
 
 ------------------------------------------------------------------------------------
-2) O QUE CRIAR (se ainda não existir)
+2) O QUE CRIAR
 ------------------------------------------------------------------------------------
-- Util `safeNext(next: string): string` para validar a rota de retorno
-  (aceitar apenas caminhos internos que começam com "/" e não "//" nem URL
-  absoluta) -> evita open redirect. Sugestão: em lib/utils.ts.
-- Componente simples de "verificando sessão..." reutilizando
-  components/petrobras-loading.tsx.
+- Camada "resolve user" (identidade -> registro do banco).
+- Exceção UsuarioNaoCadastrado (403) em app/core/exceptions.py.
 
 ------------------------------------------------------------------------------------
-3) BANCO DE DADOS
+3) EXEMPLO DE ASSINATURA / CONTRATO
 ------------------------------------------------------------------------------------
-- Nenhuma alteração de schema. Esta story consome os endpoints de sessão/logout
-  entregues por STORY-01/STORY-06.
+    def extract_identity(claims: dict) -> str:      # ex.: e-mail normalizado
+    def resolve_user(identity: str) -> User | None: # None -> 403
+    def issue_session(user: User, cav4_subject: str) -> Response  # set-cookie HttpOnly
 
 ------------------------------------------------------------------------------------
-4) SUGESTÃO DE PASSO A PASSO
+4) BANCO DE DADOS
 ------------------------------------------------------------------------------------
-  1. Centralizar tratamento de 401 no api-client.ts.
-  2. No layout interno, bloquear render até use-session resolver.
-  3. Sem sessão -> redirect /login?next=<rota>.
-  4. Logout -> POST /logout + limpar SWR + redirect /login.
-  5. Validar `next` com safeNext antes de redirecionar.
+- Tabela de sessões: migrações existentes
+    back-end/alembic/versions/0020_restore_auth_sessions.py
+    back-end/alembic/versions/0016_add_cav4_subject_to_sessions.py
+  O cav4_subject já é persistido; sem nova tabela aqui.
+- Vínculo de perfil do usuário vem da STORY-07/08.
 
 ------------------------------------------------------------------------------------
-5) COMO VALIDAR (aceite)
+5) NOMES REAIS DE ENV VARS
 ------------------------------------------------------------------------------------
-- Acessar rota interna deslogado -> vai para /login?next=... e volta após login.
-- Forçar 401 (expirar sessão) -> redireciona uma única vez, sem loop.
-- Logout -> não consegue mais abrir rota interna.
-- next=//evil.com ou http://... -> ignorado (cai em rota padrão interna).
+  SESSION_COOKIE_NAME, SESSION_TTL (ou equivalente em config.py),
+  COOKIE_SECURE / COOKIE_SAMESITE quando aplicável.
+
+------------------------------------------------------------------------------------
+6) COMO VALIDAR (comandos)
+------------------------------------------------------------------------------------
+- Simular callback com usuário existente -> Set-Cookie HttpOnly presente.
+- Usuário inexistente -> 403 e ausência de cookie.
+- GET /api/auth/session com cookie -> dados do usuário; sem cookie -> 401.
+- POST /api/auth/logout -> sessão encerrada; próxima /session -> 401.
+
+CHECKLIST ANTI-HARDCODE
+  [ ] Identidade sempre normalizada num único ponto.
+  [ ] Nenhum usuário/perfil fixo; tudo resolvido no banco.
+  [ ] access_token nunca sai para o front.
 ====================================================================================

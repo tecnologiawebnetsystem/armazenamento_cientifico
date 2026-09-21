@@ -1,72 +1,74 @@
 ====================================================================================
-  STORY-03  -  Mapeamento Personas -> Perfis (RBAC) a partir do CAV4
+  STORY-03  -  Middleware de autorização por perfil no Back-end (RBAC + 403)
   AJUDA TÉCNICA / REFINAMENTO
 ====================================================================================
-Trilha.....: Banco / Modelagem
-Objetivo...: Modelo de perfis/permissões + vínculo persona(CAV4) -> perfil(SIGAC)
-             + seed dos 4 perfis. Fonte única para front (STORY-04) e back (06).
+Trilha.....: Back-end
+Pontuação..: 3
+Depende de.: STORY-02 (sessão), STORY-08 (perfil/permissões no banco)
+Habilita...: STORY-06 (contraparte de servidor)
+Objetivo...: Cada endpoint sensível exige perfil/permissão; sem sessão -> 401,
+             autenticado sem permissão -> 403. Verificação no servidor.
 
 ------------------------------------------------------------------------------------
 1) ONDE MEXER NO CÓDIGO (arquivos existentes)
 ------------------------------------------------------------------------------------
-- back-end/app/modules/users/profile_model.py
-    Modelo ORM de perfil. Base do RBAC.
-- back-end/app/db/models.py  +  back-end/app/db/seed.py
-    Registro dos modelos e carga inicial (seed) de perfis/permissões.
-- back-end/app/modules/users/repository.py
-    -> Adicionar consulta única: dado um usuário, retornar perfil + permissões
-       efetivas (ex.: get_effective_permissions(user_id)).
-- back-end/alembic/versions/0003_add_perfis.py e 0023_parametrizacao_completa.py
-    Referência de como perfis/parametrização já foram migrados.
-- back-end/database/0032_seed_admin_menu_permissions.sql e
-  back-end/database/0033_corrigir_permissoes_e_catalogos.sql
-    Referência dos seeds de permissões/menu existentes.
+- back-end/app/core/authorization.py
+    -> Expor dependência require_permission("x.y").
+- back-end/app/api/dependencies.py
+    -> get_current_user / get_session (base das dependências).
+- back-end/app/common/guards/__init__.py
+    -> Guards reutilizáveis (Depends) por perfil/permissão.
+- back-end/app/core/exceptions.py
+    -> Garantir 401 (sem sessão) e 403 (sem permissão) distintos.
+- back-end/app/core/audit.py + back-end/app/modules/audit/*
+    -> Registrar tentativas negadas na trilha de auditoria.
+- Controllers dos módulos (aplicar a dependência):
+    back-end/app/modules/projects/controller.py
+    back-end/app/modules/users/... , files/controller.py, audit/controller.py
 
 ------------------------------------------------------------------------------------
-2) O QUE CRIAR
+2) O QUE CRIAR / EXEMPLO DE CÓDIGO
 ------------------------------------------------------------------------------------
-- NOVA MIGRAÇÃO Alembic (ex.: 0024_map_persona_perfil.py) contendo:
-    * tabela `perfil_permissao` (perfil_id, permissao) se ainda não normalizada;
-    * tabela `persona_cav4_perfil` (persona_cav4, perfil_id) -> vínculo;
-    * índice único em persona_cav4.
-  Gerar com:  alembic revision -m "map persona perfil"  (ou manual no padrão
-  dos arquivos em back-end/alembic/versions/).
-  IMPORTANTE: implementar downgrade() -> migração reversível (critério de aceite).
-- SEED inicial dos 4 perfis (Administrador, Gerente, Patrocinador, Auditor) com
-  suas permissões, em app/db/seed.py e/ou script SQL em back-end/database/.
-- Regra para persona SEM mapeamento: definir perfil padrão OU bloqueio (403).
-  Documentar a decisão no topo da migração.
+    def require_permission(perm: str):
+        def _dep(user = Depends(get_current_user)):
+            if user is None:
+                raise HTTPException(401)
+            if not has_permission(user, perm):
+                audit_log(user, "ACESSO_NEGADO", perm)
+                raise HTTPException(403)
+            return user
+        return _dep
+
+    # uso no endpoint:
+    @router.post("/projects", dependencies=[Depends(require_permission("projects.write"))])
+
+- Testes (pytest) em back-end/tests/: permitido (200), sem permissão (403),
+  sem sessão (401) para pelo menos 2 endpoints representativos.
 
 ------------------------------------------------------------------------------------
-3) BANCO DE DADOS (resumo do modelo sugerido)
+3) BANCO DE DADOS
 ------------------------------------------------------------------------------------
-  perfil (id, nome, descricao)
-  perfil_permissao (perfil_id -> perfil.id, permissao TEXT)
-  persona_cav4_perfil (persona_cav4 TEXT UNIQUE, perfil_id -> perfil.id)
-  usuario (... perfil_id -> perfil.id)   [vínculo do usuário ao perfil]
-
-  Consulta única (efetiva):
-    SELECT p.nome, array_agg(pp.permissao)
-    FROM usuario u
-    JOIN perfil p ON p.id = u.perfil_id
-    LEFT JOIN perfil_permissao pp ON pp.perfil_id = p.id
-    WHERE u.id = :user_id
-    GROUP BY p.nome;
+- Nenhuma tabela nova. has_permission(user, perm) lê perfil/permissões da
+  STORY-07/08 (sem valores fixos). Negativas -> tabela de auditoria existente.
 
 ------------------------------------------------------------------------------------
-4) SUGESTÃO DE PASSO A PASSO
+4) TABELA DE STATUS (contrato)
 ------------------------------------------------------------------------------------
-  1. Fechar a lista real de personas com o time do CAV4.
-  2. Criar migração (upgrade + downgrade) com as tabelas de vínculo.
-  3. Escrever seed dos 4 perfis e permissões.
-  4. Aplicar em DEV e HMG (alembic upgrade head).
-  5. Implementar a consulta única no repository.
-  6. Documentar a regra de persona sem mapeamento.
+  Situação                         | HTTP
+  ---------------------------------|-----
+  Sem cookie de sessão             | 401
+  Autenticado, sem a permissão     | 403
+  Autenticado e autorizado         | 200
 
 ------------------------------------------------------------------------------------
-5) COMO VALIDAR (aceite)
+5) COMO VALIDAR (comandos)
 ------------------------------------------------------------------------------------
-- alembic upgrade head / downgrade -1 funcionam sem erro (reversível).
-- Consulta única retorna perfil + permissões para um usuário de teste.
-- Seed presente nos 2 ambientes.
+- curl sem cookie em endpoint sensível -> 401.
+- curl com perfil sem permissão -> 403 + registro na auditoria.
+- curl com perfil autorizado -> 200.
+- pytest back-end/tests/ -> verde nos 3 cenários / 2 endpoints.
+
+CHECKLIST ANTI-HARDCODE
+  [ ] has_permission lê SEMPRE do banco (perfil/permissões efetivas).
+  [ ] Nenhuma regra de perfil escrita direto no controller.
 ====================================================================================
