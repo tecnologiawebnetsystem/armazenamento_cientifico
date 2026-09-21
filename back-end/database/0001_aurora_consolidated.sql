@@ -12,7 +12,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE TABLE IF NOT EXISTS schema_migrations (version varchar(80) PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now());
 
 CREATE TABLE IF NOT EXISTS profiles (id varchar(20) PRIMARY KEY, name varchar(80) NOT NULL UNIQUE, description varchar(255) NOT NULL DEFAULT '', created_at timestamptz NOT NULL DEFAULT now());
-CREATE TABLE IF NOT EXISTS users (id varchar(36) PRIMARY KEY, name varchar(200) NOT NULL, email varchar(320) NOT NULL UNIQUE, job_title varchar(120), area varchar(120), role varchar(40) NOT NULL DEFAULT 'participante', profile_id varchar(20) REFERENCES profiles(id) ON DELETE SET NULL, avatar_url varchar(500), last_login_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS users (id varchar(36) PRIMARY KEY, name varchar(200) NOT NULL, email varchar(320) NOT NULL UNIQUE, job_title varchar(120), area varchar(120), role varchar(40) NOT NULL DEFAULT 'solicitante', profile_id varchar(20) REFERENCES profiles(id) ON DELETE SET NULL, avatar_url varchar(500), last_login_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS modules (id varchar(80) PRIMARY KEY, name varchar(120) NOT NULL UNIQUE, route varchar(180) NOT NULL DEFAULT '', icon varchar(80) NOT NULL DEFAULT 'folder', display_order integer NOT NULL DEFAULT 0, active boolean NOT NULL DEFAULT true);
 CREATE TABLE IF NOT EXISTS permissions (id varchar(80) PRIMARY KEY, module_id varchar(80) NOT NULL REFERENCES modules(id) ON DELETE CASCADE, name varchar(120) NOT NULL, description text NOT NULL DEFAULT '', active boolean NOT NULL DEFAULT true);
 CREATE TABLE IF NOT EXISTS profile_permissions (profile_id varchar(20) NOT NULL REFERENCES profiles(id) ON DELETE CASCADE, permission_id varchar(80) NOT NULL REFERENCES permissions(id) ON DELETE CASCADE, allowed boolean NOT NULL DEFAULT true, PRIMARY KEY (profile_id, permission_id));
@@ -101,6 +101,16 @@ VALUES
 ON CONFLICT (key) DO NOTHING;
 
 -- 05 seed canônico
+-- Perfis funcionais e suas descrições de apresentação.
+INSERT INTO profiles (id, name, description)
+VALUES
+ ('ADM','administrador','Administra a plataforma, configura parâmetros e gerencia acessos.'),
+ ('GER','gerente','Coordena projetos, equipes e atividades operacionais.'),
+ ('AUD','auditor','Consulta informações e acompanha os registros de auditoria.'),
+ ('PAT','patrocinador','Acompanha resultados e aprova solicitações sob sua responsabilidade.'),
+ ('SOL','solicitante','Solicita acessos e acompanha o andamento das solicitações.')
+ON CONFLICT (id) DO UPDATE SET name=excluded.name, description=excluded.description;
+
 -- Fonte histórica consolidada: back-end/database/0040_aurora_parametrizacao_canonica.sql
 -- SIGAC / Aurora PostgreSQL
 -- Seed canônico e idempotente de parametrização.

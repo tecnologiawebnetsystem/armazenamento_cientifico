@@ -9,7 +9,7 @@ class UserBase(BaseModel):
     cargo: str | None = Field(None, max_length=120)
     area: str | None = Field(None, max_length=120)
     avatar_url: str | None = Field(None, max_length=500)
-    role: str = Field("participante", max_length=40)
+    role: str = Field("solicitante", max_length=40)
     perfil_id: str | None = Field(None, max_length=36)
 
 

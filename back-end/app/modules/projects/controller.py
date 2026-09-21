@@ -53,7 +53,7 @@ def serialize_members(rows) -> list[ProjectMemberOut]:
 
 @router.get("", response_model=dict)
 async def list_projects(service: Annotated[ProjectService, Depends(get_service)], user: CurrentUser):
-    role = user["role"] or "participante"
+    role = user["role"] or "solicitante"
     projects = await service.list_projects(str(user["id"]), str(role))
     return {"projects": [serialize_project(project) for project in projects]}
 
@@ -108,7 +108,7 @@ async def get_project(project_id: str, service: Annotated[ProjectService, Depend
     project = await service.get_project(project_id)
     if not project:
         raise project_not_found()
-    role = user["role"] or "participante"
+    role = user["role"] or "solicitante"
     if not await service.can_view(project_id, str(user["id"]), str(role)):
         raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
     return {"project": serialize_project(project)}
@@ -119,7 +119,7 @@ async def get_project_access_map(project_id: str, service: Annotated[ProjectServ
     project = await service.get_project(project_id)
     if not project:
         raise project_not_found()
-    role = user["role"] or "participante"
+    role = user["role"] or "solicitante"
     if not await service.can_view(project_id, str(user["id"]), str(role)):
         raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
     members = serialize_members(await service.list_members(project_id))
@@ -142,7 +142,7 @@ async def list_projects_layered(
     service: Annotated[ProjectService, Depends(get_service)],
     _: CurrentUser,
     x_user_id: Annotated[str, Header()] = "",
-    x_user_role: Annotated[str, Header()] = "participante",
+    x_user_role: Annotated[str, Header()] = "solicitante",
 ):
     return [serialize_project(project) for project in await service.list_projects(x_user_id, x_user_role)]
 

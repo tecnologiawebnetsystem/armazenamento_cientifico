@@ -7,10 +7,7 @@ export function normalizeRole(role: Role | string | null | undefined): string {
   const aliases: Record<string, string> = {
     administrador: "admin",
     administrator: "admin",
-    gestor: "gerente",
     manager: "gerente",
-    participante: "solicitante",
-    visualizador: "auditor",
     viewer: "auditor",
     sponsor: "patrocinador",
     requester: "solicitante",

@@ -14,7 +14,7 @@ Na pasta `back-end`, executar:
 alembic upgrade 0001_production_baseline
 ```
 
-Essa é a única migration ativa. As revisions anteriores ficam em `alembic/legacy_versions/` apenas para histórico.
+Essa é a única migration ativa. As revisions anteriores foram removidas do projeto.
 
 ## 3. Seed idempotente
 
@@ -29,7 +29,7 @@ Confirmar:
 - o seed não gerou duplicidades;
 - login por e-mail e CAV4 permanecem disponíveis;
 - endpoints de contexto da plataforma retornam menus e permissões;
-- nenhum arquivo de `legacy_versions` foi incluído no comando de migration.
+- somente `0001_production_baseline.py` está presente na pasta ativa de migrations.
 
 ## Observação sobre banco já existente
 

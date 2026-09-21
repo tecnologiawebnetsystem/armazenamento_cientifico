@@ -7,11 +7,8 @@ OFFICIAL_ROLES: Final = {"admin", "gerente", "patrocinador", "auditor", "solicit
 LEGACY_ROLE_MAP: Final = {
     "administrador": "admin",
     "administrator": "admin",
-    "gestor": "gerente",
-    "manager": "gerente",
-    "participante": "gerente",
-    "visualizador": "auditor",
-    "viewer": "auditor",
+  "manager": "gerente",
+  "viewer": "auditor",
     "sponsor": "patrocinador",
     "requester": "solicitante",
 }
