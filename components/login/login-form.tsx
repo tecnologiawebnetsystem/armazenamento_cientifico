@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { ShieldCheckIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
@@ -7,7 +8,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useLogin } from "@/hooks/use-login"
 
 export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
-  const { loading, error, corporateLogin } = useLogin(nextPath)
+  const [email, setEmail] = useState("")
+  const { loading, error, manualLogin, corporateLogin } = useLogin(nextPath)
 
   return (
     <div className="relative">
@@ -57,8 +59,14 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
               )}
 
               <div className="flex flex-col gap-5">
+                <form className="flex flex-col gap-3" onSubmit={(event) => { event.preventDefault(); void manualLogin(email) }}>
+                  <label htmlFor="login-email" className="text-left text-sm font-medium text-foreground">E-mail</label>
+                  <input id="login-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seu.email@empresa.com" required className="h-11 rounded-md border border-input bg-background px-3 text-sm outline-none transition focus:ring-2 focus:ring-ring" />
+                  <Button type="submit" size="lg" disabled={loading !== null} className="w-full">{loading === "manual" ? "Entrando..." : "Entrar com e-mail"}</Button>
+                </form>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true"><span className="h-px flex-1 bg-border" /><span>ou</span><span className="h-px flex-1 bg-border" /></div>
                 <Button type="button" size="lg" variant="outline" onClick={corporateLogin} disabled={loading !== null} className="w-full border-[#063f58] bg-gradient-to-r from-[#063f58] to-[#fdbb30] text-white shadow-md shadow-[#063f58]/30 transition-all hover:-translate-y-0.5 hover:from-[#042d40] hover:to-[#e8aa19] hover:shadow-lg hover:shadow-[#063f58]/40">
-                  Acessar com CAV4
+                  Login Corporativo
                 </Button>
                 <p className="pt-1 text-center text-xs text-muted-foreground">A autenticação corporativa é realizada pelo CAV4. Após o retorno, o SIGAC carrega seu perfil, menus e permissões do banco de dados.</p>
                 <p className="text-center text-xs text-muted-foreground">© 2026 Petrobras. Todos os direitos reservados.</p>

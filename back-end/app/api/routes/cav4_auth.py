@@ -27,6 +27,34 @@ def _schema_name() -> str:
     return f'"{settings.db_schema}"'
 
 
+@email_router.post("/login")
+async def email_login(request: Request):
+    """Login auxiliar por e-mail, permitido somente em ambiente de desenvolvimento."""
+    if not settings.temporary_cav4_session:
+        raise HTTPException(status_code=404, detail="Login por e-mail não está habilitado neste ambiente")
+    payload = await request.json()
+    email = str(payload.get("email", "")).strip().lower()
+    if not email:
+        raise HTTPException(status_code=422, detail="Informe um e-mail válido")
+    schema = _schema_name()
+    session_id = str(uuid4())
+    expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours)
+    async for database in get_session():
+        result = await database.execute(text(f"select id, profile_id from {schema}.users where lower(email)=lower(:email)"), {"email": email})
+        user = result.mappings().first()
+        if not user:
+            raise HTTPException(status_code=403, detail="Usuário não cadastrado na plataforma")
+        if not user.get("profile_id"):
+            raise HTTPException(status_code=403, detail="Usuário sem perfil configurado no banco de dados")
+        await database.execute(text(f"update {schema}.users set last_login_at=now() where id=:user_id"), {"user_id": user["id"]})
+        await database.execute(text(f"delete from {schema}.sessions where user_id=:user_id"), {"user_id": user["id"]})
+        await database.execute(text(f"insert into {schema}.sessions(id,user_id,expires_at,cav4_subject) values(:id,:user_id,:expires_at,:subject)"), {"id": session_id, "user_id": user["id"], "expires_at": expires_at, "subject": email})
+        await database.commit()
+    response = Response(status_code=204)
+    response.set_cookie(settings.cookie_name, session_id, httponly=True, secure=settings.cookie_secure, samesite="lax", max_age=settings.session_hours * 3600)
+    return response
+
+
 @email_router.get("/health/database", tags=["Diagnostics"])
 async def database_health():
     """Diagnóstico sanitizado da conexão e das tabelas essenciais."""
