@@ -95,12 +95,6 @@ async def access_map(service: Service, _: CurrentUser):
     return await service.access_map()
 
 
-@router.get("/report-fields")
-async def report_fields(service: Service, _: CurrentUser, report_code: str = Query(min_length=1)):
-    rows = await service.repository.rows("select id, report_code, field_key, label, source_key, display_order, active from report_fields where report_code = :report_code and active = true order by display_order", {"report_code": report_code})
-    return {"reportCode": report_code, "fields": rows}
-
-
 @router.get("/access-map/export")
 async def export_access_map(service: Service, _: CurrentUser, format: str = Query("csv"), fields: str = ""):
     data = await service.access_map()
@@ -112,23 +106,3 @@ async def export_access_map(service: Service, _: CurrentUser, format: str = Quer
     writer.writerows(rows)
     media_type = "text/csv" if format == "csv" else "text/plain"
     return StreamingResponse(iter([output.getvalue()]), media_type=media_type, headers={"Content-Disposition": "attachment; filename=mapa-de-acessos.csv"})
-
-
-@router.get("/reports")
-async def reports(service: Service, _: CurrentUser, status: str | None = None, area: str | None = None, gestorId: str | None = None):
-    filters = {"status": status or "todos", "area": area, "gestorId": gestorId}
-    rows = await service.repository.rows("select p.id, p.name as nome, p.code as codigo, p.responsible_area as \"areaResponsavel\", p.status, p.description as descricao, p.created_at as \"criadoEm\", p.updated_at as \"atualizadoEm\", 0 as \"totalMapas\", 0 as \"totalMembros\" from projects p where (cast(:status as text) is null or p.status = cast(:status as text)) and (cast(:area as text) is null or p.responsible_area = cast(:area as text)) order by p.name", {"status": status, "area": area})
-    by_status = await service.repository.rows("select status, count(*) as total from projects group by status")
-    return {"filtros": filters, "indicadores": {"totalProjetos": len(rows), "ativos": sum(r["status"] in ("ativo", "em_andamento") for r in rows), "suspensos": sum(r["status"] == "suspenso" for r in rows), "concluidos": sum(r["status"] == "concluido" for r in rows), "armazenamentoUsadoMb": 0, "totalMembros": 0, "totalMapas": 0}, "porArea": [], "porStatus": by_status, "projetos": rows}
-
-
-@router.get("/reports/export")
-async def export_reports(service: Service, _: CurrentUser, format: str = Query("csv"), fields: str = "", status: str | None = None, area: str | None = None, gestorId: str | None = None):
-    report = await reports(service, _, status, area, gestorId)
-    rows = report["projetos"]
-    output = io.StringIO()
-    columns = [column for column in fields.split(",") if column] or (list(rows[0].keys()) if rows else ["id", "nome", "status"])
-    writer = csv.DictWriter(output, fieldnames=columns, extrasaction="ignore")
-    writer.writeheader()
-    writer.writerows(rows)
-    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv" if format == "csv" else "text/plain", headers={"Content-Disposition": "attachment; filename=relatorio-projetos.csv"})

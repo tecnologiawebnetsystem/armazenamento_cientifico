@@ -3,33 +3,36 @@ from typing import Any
 from uuid import uuid4
 
 from .repository import PlatformRepository
+from .use_cases import DirectoryService, GovernanceService, PlatformContextService
 
 
 class PlatformService:
     def __init__(self, repository: PlatformRepository):
         self.repository = repository
+        self.context_service = PlatformContextService(repository)
+        self.directory_service = DirectoryService(repository)
+        self.governance_service = GovernanceService(repository)
 
     async def context(self, user_id: str) -> dict[str, Any]:
-        return await self.repository.context(user_id)
+        return await self.context_service.context(user_id)
 
     async def catalogs(self) -> dict[str, list[dict[str, Any]]]:
-        return await self.repository.catalogs()
+        return await self.context_service.catalogs()
 
     async def users(self) -> list[dict[str, Any]]:
-        return await self.repository.users()
+        return await self.directory_service.users()
 
     async def dashboard(self) -> dict[str, Any]:
-        return await self.repository.dashboard()
+        return await self.context_service.dashboard()
 
     async def folders(self, project_id: str) -> dict[str, list[dict[str, Any]]]:
-        return {"folders": await self.repository.folders(project_id)}
+        return await self.directory_service.folders(project_id)
 
     async def access_requests(self) -> dict[str, list[dict[str, Any]]]:
-        return {"requests": await self.repository.access_requests()}
+        return await self.governance_service.access_requests()
 
     async def settings(self) -> dict[str, Any]:
-        values = await self.repository.settings()
-        return {"settings": {row["chave"]: row["valor"] for row in values}}
+        return await self.governance_service.settings()
 
     async def activity_logs(self, page: int, limit: int) -> dict[str, Any]:
         logs, total = await self.repository.activity_logs(page, limit)
@@ -51,5 +54,4 @@ class PlatformService:
         return await self.settings()
 
     async def access_map(self) -> dict[str, Any]:
-        rows = await self.repository.rows("""select u.id as \"userId\", u.name as \"userName\", u.email as \"userEmail\", u.role as \"userRole\", u.area, p.id as \"projectId\", p.name as \"projectName\", p.status as \"projectStatus\", f.id as \"resourceId\", f.name as \"resourceName\", 'pasta' as \"resourceType\", pm.role as \"accessLevel\", f.updated_at as \"lastViewedAt\" from project_members pm join users u on u.id = pm.user_id join projects p on p.id = pm.project_id left join folders f on f.project_id = p.id order by p.name, u.name""")
-        return {"source": "database", "consultedAt": datetime.now(UTC).isoformat(), "summary": {"users": len({r["userId"] for r in rows}), "projects": len({r["projectId"] for r in rows}), "folders": len([r for r in rows if r["resourceId"]]), "files": 0, "relationships": len(rows)}, "rows": rows}
+        return await self.governance_service.access_map()

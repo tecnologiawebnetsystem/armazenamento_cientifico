@@ -16,6 +16,12 @@ class FolderService:
     async def list_folders_by_project(self, project_id: str) -> list[Folder]:
         return await self.repository.find_by_project(project_id)
 
+    async def can_list_project(self, project_id: str, user_id: str, role: str) -> bool:
+        return await self.repository.can_view_project(project_id, user_id, role)
+
+    async def project_exists(self, project_id: str) -> bool:
+        return await self.repository.project_exists(project_id)
+
     async def list_subfolders(self, parent_id: str) -> list[Folder]:
         return await self.repository.list_by_parent(parent_id)
 
