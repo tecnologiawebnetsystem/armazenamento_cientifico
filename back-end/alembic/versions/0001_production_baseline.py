@@ -9,6 +9,8 @@ A carga de parâmetros é executada separadamente pelo seed idempotente.
 
 from collections.abc import Sequence
 
+from sqlalchemy import text
+
 from alembic import op
 
 revision: str = "0001_production_baseline"
@@ -38,6 +40,20 @@ def upgrade() -> None:
 
     # Uma única chamada cria todas as tabelas registradas no metadata ORM.
     Base.metadata.create_all(bind=bind, checkfirst=True)
+    bind.execute(text("""
+        CREATE TABLE IF NOT EXISTS sessions (
+            id VARCHAR(128) PRIMARY KEY,
+            user_id VARCHAR(36) NULL REFERENCES users(id) ON DELETE CASCADE,
+            email VARCHAR(320) NOT NULL,
+            profile_id VARCHAR(20) NOT NULL REFERENCES profiles(id) ON DELETE RESTRICT,
+            expires_at TIMESTAMP NOT NULL,
+            cav4_subject VARCHAR(255),
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    """))
+    bind.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_email ON sessions(email)"))
+    bind.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_profile_id ON sessions(profile_id)"))
+    bind.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_expires_at ON sessions(expires_at)"))
 
     # Perfis oficiais da produção; perfis legados não fazem parte da baseline.
     from sqlalchemy.dialects.postgresql import insert

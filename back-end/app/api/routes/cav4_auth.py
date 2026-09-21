@@ -200,37 +200,32 @@ async def cav4_callback(request: Request, code: str, state: str):
         identity = await get_cav4_provider().exchange_callback(code=code, state=state)
     except CAV4AuthenticationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    # O provedor corporativo só confirma a identidade. Perfil, permissões e
-    # menus são sempre resolvidos pelo Aurora a partir do e-mail; nunca usamos
-    # papéis ou grupos fornecidos pelo K4/KV-4.
+    # O CAV4 fornece a identidade e o código do perfil. O SIGAC usa apenas
+    # o perfil local para carregar menus e permissões; não exige um usuário local.
     if not identity.email:
         raise HTTPException(status_code=401, detail="E-mail ausente na autenticação corporativa")
+    profile_id = next((role for role in identity.roles if role), None)
+    if not profile_id:
+        raise HTTPException(status_code=403, detail="Usuário CAV4 sem perfil corporativo configurado")
 
     session_id = str(uuid4())
     expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours)
     try:
         schema = _schema_name()
         async for database in get_session():
-            user_result = await database.execute(
-                text(f"select id, profile_id from {schema}.users where lower(email)=lower(:email)"),
-                {"email": identity.email},
+            profile_result = await database.execute(
+                text(f"select id from {schema}.profiles where id=:profile_id"),
+                {"profile_id": profile_id},
             )
-            user = user_result.mappings().first()
-            logger.info(
-                "cav4_user_lookup email=%s found=%s user_id=%s",
-                identity.email,
-                bool(user),
-                user.get("id") if user else None,
-            )
-            if not user:
-                raise HTTPException(status_code=403, detail="Usuário corporativo não cadastrado na plataforma")
-            if not user.get("profile_id"):
-                raise HTTPException(status_code=403, detail="Usuário autenticado sem perfil SIGAC configurado no banco de dados")
-            await database.execute(text(f"update {schema}.users set last_login_at=now() where id=:user_id"), {"user_id": user["id"]})
-            await database.execute(text(f"delete from {schema}.sessions where user_id=:user_id"), {"user_id": user["id"]})
+            profile = profile_result.mappings().first()
+            if not profile:
+                raise HTTPException(status_code=403, detail=f"Perfil CAV4 não cadastrado no SIGAC: {profile_id}")
+            await database.execute(text(f"delete from {schema}.sessions where lower(email)=lower(:email)"), {"email": identity.email})
             await database.execute(
-                text(f"insert into {schema}.sessions(id,user_id,expires_at,cav4_subject) values(:id,:user_id,:expires_at,:cav4_subject)"),
-                {"id": session_id, "user_id": user["id"], "expires_at": expires_at, "cav4_subject": identity.subject or identity.email},
+                text(f"""insert into {schema}.sessions
+                    (id,email,profile_id,expires_at,cav4_subject)
+                    values(:id,:email,:profile_id,:expires_at,:cav4_subject)"""),
+                {"id": session_id, "email": identity.email, "profile_id": profile_id, "expires_at": expires_at, "cav4_subject": identity.subject or identity.email},
             )
             await database.commit()
     except HTTPException:
