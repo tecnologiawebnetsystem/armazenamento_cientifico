@@ -302,7 +302,17 @@ class CAV4OIDCProvider:
                 claims = {**claims, **userinfo}
 
         if access_token and settings.cav4_resources_url and settings.cav4_base_url:
-            user_login = email or claims.get("preferred_username") or claims.get("upn") or claims.get("sub") or ""
+            # A Admin API do CAV4 identifica o usuário por user_login, não pelo
+            # e-mail corporativo. O e-mail continua sendo usado para a sessão.
+            user_login = (
+                claims.get("user_login")
+                or claims.get("userLogin")
+                or claims.get("preferred_username")
+                or claims.get("upn")
+                or email
+                or claims.get("sub")
+                or ""
+            )
             if not user_login:
                 raise CAV4AuthenticationError("Login do usuário não encontrado para consultar os papéis do CAV4")
             roles_endpoint = settings.cav4_resources_url.replace("{userLogin}", quote(str(user_login), safe=""))
@@ -323,7 +333,7 @@ class CAV4OIDCProvider:
                     "name",
                 )
                 claims = {**claims, "cav4_resource_roles": resource_roles}
-                logger.info("[CAV4] Papéis do usuário consultados endpoint=%s quantidade=%s", roles_endpoint, len(resource_roles))
+                logger.info("[CAV4] Papéis do usuário consultados login=%s endpoint=%s quantidade=%s", user_login, roles_endpoint, len(resource_roles))
 
         roles = _claim_values(
             claims,
