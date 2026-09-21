@@ -37,12 +37,13 @@ CAPABILITY_PERMISSION_MAP: Final[dict[str, str]] = {
 
 
 def has_capability(user: Any, capability: str) -> bool:
-    raw_role = user.get("role") if isinstance(user, Mapping) else getattr(user, "role", None)
-    if capability not in ROLE_CAPABILITIES.get(canonical_role(raw_role), frozenset()):
-        return False
     permissions = user.get("permissions") if isinstance(user, Mapping) else getattr(user, "permissions", None)
-    required_permission = CAPABILITY_PERMISSION_MAP.get(capability)
-    return not permissions or not required_permission or required_permission in permissions
+    if permissions:
+        required_permission = CAPABILITY_PERMISSION_MAP.get(capability, capability)
+        return required_permission in permissions
+
+    raw_role = user.get("role") if isinstance(user, Mapping) else getattr(user, "role", None)
+    return capability in ROLE_CAPABILITIES.get(canonical_role(raw_role), frozenset())
 
 
 def require_capability(user: Any, capability: str) -> Any:
