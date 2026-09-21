@@ -11,6 +11,7 @@ from app.api.dependencies import CurrentUser
 from app.db.session import get_session
 
 from .repository import PlatformRepository
+from .schemas import AccessRequestCreate, AccessRequestUpdate, SettingsUpdate
 from .service import PlatformService
 
 logger = logging.getLogger(__name__)
@@ -61,15 +62,15 @@ async def access_requests(service: Service, _: CurrentUser):
 
 
 @router.post("/access-requests", status_code=201)
-async def create_access_request(payload: dict, service: Service, user: CurrentUser):
+async def create_access_request(payload: AccessRequestCreate, service: Service, user: CurrentUser):
     logger.info("platform_access_request_create user_id=%s", user["id"])
-    return await service.create_access_request(user["id"], payload)
+    return await service.create_access_request(user["id"], payload.model_dump())
 
 
 @router.patch("/access-requests/{request_id}")
-async def update_access_request(request_id: str, payload: dict, service: Service, user: CurrentUser):
+async def update_access_request(request_id: str, payload: AccessRequestUpdate, service: Service, user: CurrentUser):
     logger.info("platform_access_request_update request_id=%s user_id=%s", request_id, user["id"])
-    return await service.update_access_request(request_id, payload["status"], user["id"])
+    return await service.update_access_request(request_id, payload.status, user["id"])
 
 
 @router.get("/settings")
@@ -78,9 +79,9 @@ async def settings(service: Service, _: CurrentUser):
 
 
 @router.patch("/settings")
-async def update_settings(payload: dict, service: Service, _: CurrentUser):
-    logger.info("platform_settings_update keys=%s", sorted(payload.keys()))
-    return await service.update_settings(payload)
+async def update_settings(payload: SettingsUpdate, service: Service, _: CurrentUser):
+    logger.info("platform_settings_update keys=%s", sorted(payload.values.keys()))
+    return await service.update_settings(payload.values)
 
 
 @router.get("/activity-logs")
