@@ -1,0 +1,74 @@
+====================================================================================
+  STORY-01  -  Login SSO integrado ao CAV4 (validação de token no back-end)
+  AJUDA TÉCNICA / REFINAMENTO
+====================================================================================
+Trilha.....: Back-end
+Objetivo...: Fluxo OIDC/SSO completo (start -> callback -> troca de código ->
+             validação de assinatura/claims -> extração da identidade -> sessão).
+
+------------------------------------------------------------------------------------
+1) ONDE MEXER NO CÓDIGO (arquivos existentes)
+------------------------------------------------------------------------------------
+- back-end/app/api/routes/cav4_auth.py
+    Rotas do fluxo. Já existem os endpoints:
+      GET  /api/auth/cav4/start     -> monta authorization URL (state + nonce)
+      GET  /api/auth/cav4/callback  -> recebe code, troca por token, cria sessão
+      POST /api/auth/login          -> login manual por e-mail (mantido)
+      GET  /api/auth/session        -> retorna sessão atual
+      POST /api/auth/logout         -> encerra sessão
+    -> REFINAR: garantir validação de issuer/audience/exp e nonce no callback.
+
+- back-end/app/core/cav4.py
+    Cliente CAV4/OIDC: discovery, troca de código, validação de token.
+    -> REFINAR: separar erros (discovery, TLS, timeout, assinatura) em exceções
+       específicas para gerar mensagens claras (ver critério de aceite de erro).
+    -> Extrair identificador (matrícula/e-mail) e normalizar (lower/trim) AQUI,
+       num único ponto, antes de consultar o banco.
+
+- back-end/app/core/config.py
+    Settings do CAV4 (client_id, client_secret, issuer/discovery URL,
+    redirect_uri, CA_SSL_VERIFY, caminho do CA). Confirmar que tudo vem de env.
+
+- back-end/app/core/temporary_sessions.py  +  app/core/authorization.py
+    Emissão do cookie de sessão HttpOnly. NÃO retornar access_token ao front.
+
+- back-end/app/core/exceptions.py
+    Adicionar/normalizar exceções (Cav4DiscoveryError, Cav4TlsError,
+    Cav4TokenInvalid, UsuarioNaoCadastrado) mapeadas para HTTP (403/502).
+
+------------------------------------------------------------------------------------
+2) O QUE CRIAR (se ainda não existir)
+------------------------------------------------------------------------------------
+- Função util `extract_identity(token_claims) -> str` em app/core/cav4.py.
+- Camada de "resolve user" que recebe a identidade e busca em
+  app/modules/users/repository.py (usuário por e-mail/matrícula).
+- Teste de fumaça do fluxo em DEV apontando para o CAV4 de desenvolvimento.
+
+------------------------------------------------------------------------------------
+3) BANCO DE DADOS
+------------------------------------------------------------------------------------
+- Sessões: verificar a tabela de sessões (migração
+  back-end/alembic/versions/0020_restore_auth_sessions.py e
+  0016_add_cav4_subject_to_sessions.py). O "cav4_subject" já é persistido.
+- Não precisa de nova tabela nesta story; apenas garantir que o usuário exista
+  na tabela de usuários (o vínculo de perfil vem da STORY-03).
+- Usuário sem cadastro -> retornar 403 e NÃO criar sessão (regra de negócio).
+
+------------------------------------------------------------------------------------
+4) SUGESTÃO DE PASSO A PASSO
+------------------------------------------------------------------------------------
+  1. Confirmar discovery/issuer no cav4.py e validar assinatura + claims.
+  2. Centralizar extração/normalização da identidade.
+  3. Resolver usuário no banco; se não existir -> 403 sem sessão.
+  4. Criar sessão HttpOnly; nunca expor token ao front.
+  5. Mapear erros para mensagens específicas + log (core/logging.py).
+  6. Testar ponta a ponta em DEV (depende de STORY-05).
+
+------------------------------------------------------------------------------------
+5) COMO VALIDAR (aceite)
+------------------------------------------------------------------------------------
+- curl no /api/auth/cav4/start -> deve redirecionar com state/nonce.
+- Simular callback e conferir criação de cookie de sessão HttpOnly.
+- Usuário inexistente -> 403 e ausência de cookie.
+- Derrubar/forçar erro de TLS -> mensagem específica + linha de log.
+====================================================================================

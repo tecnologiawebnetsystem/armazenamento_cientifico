@@ -1,0 +1,72 @@
+====================================================================================
+  STORY-03  -  Mapeamento Personas -> Perfis (RBAC) a partir do CAV4
+  AJUDA TÉCNICA / REFINAMENTO
+====================================================================================
+Trilha.....: Banco / Modelagem
+Objetivo...: Modelo de perfis/permissões + vínculo persona(CAV4) -> perfil(SIGAC)
+             + seed dos 4 perfis. Fonte única para front (STORY-04) e back (06).
+
+------------------------------------------------------------------------------------
+1) ONDE MEXER NO CÓDIGO (arquivos existentes)
+------------------------------------------------------------------------------------
+- back-end/app/modules/users/profile_model.py
+    Modelo ORM de perfil. Base do RBAC.
+- back-end/app/db/models.py  +  back-end/app/db/seed.py
+    Registro dos modelos e carga inicial (seed) de perfis/permissões.
+- back-end/app/modules/users/repository.py
+    -> Adicionar consulta única: dado um usuário, retornar perfil + permissões
+       efetivas (ex.: get_effective_permissions(user_id)).
+- back-end/alembic/versions/0003_add_perfis.py e 0023_parametrizacao_completa.py
+    Referência de como perfis/parametrização já foram migrados.
+- back-end/database/0032_seed_admin_menu_permissions.sql e
+  back-end/database/0033_corrigir_permissoes_e_catalogos.sql
+    Referência dos seeds de permissões/menu existentes.
+
+------------------------------------------------------------------------------------
+2) O QUE CRIAR
+------------------------------------------------------------------------------------
+- NOVA MIGRAÇÃO Alembic (ex.: 0024_map_persona_perfil.py) contendo:
+    * tabela `perfil_permissao` (perfil_id, permissao) se ainda não normalizada;
+    * tabela `persona_cav4_perfil` (persona_cav4, perfil_id) -> vínculo;
+    * índice único em persona_cav4.
+  Gerar com:  alembic revision -m "map persona perfil"  (ou manual no padrão
+  dos arquivos em back-end/alembic/versions/).
+  IMPORTANTE: implementar downgrade() -> migração reversível (critério de aceite).
+- SEED inicial dos 4 perfis (Administrador, Gerente, Patrocinador, Auditor) com
+  suas permissões, em app/db/seed.py e/ou script SQL em back-end/database/.
+- Regra para persona SEM mapeamento: definir perfil padrão OU bloqueio (403).
+  Documentar a decisão no topo da migração.
+
+------------------------------------------------------------------------------------
+3) BANCO DE DADOS (resumo do modelo sugerido)
+------------------------------------------------------------------------------------
+  perfil (id, nome, descricao)
+  perfil_permissao (perfil_id -> perfil.id, permissao TEXT)
+  persona_cav4_perfil (persona_cav4 TEXT UNIQUE, perfil_id -> perfil.id)
+  usuario (... perfil_id -> perfil.id)   [vínculo do usuário ao perfil]
+
+  Consulta única (efetiva):
+    SELECT p.nome, array_agg(pp.permissao)
+    FROM usuario u
+    JOIN perfil p ON p.id = u.perfil_id
+    LEFT JOIN perfil_permissao pp ON pp.perfil_id = p.id
+    WHERE u.id = :user_id
+    GROUP BY p.nome;
+
+------------------------------------------------------------------------------------
+4) SUGESTÃO DE PASSO A PASSO
+------------------------------------------------------------------------------------
+  1. Fechar a lista real de personas com o time do CAV4.
+  2. Criar migração (upgrade + downgrade) com as tabelas de vínculo.
+  3. Escrever seed dos 4 perfis e permissões.
+  4. Aplicar em DEV e HMG (alembic upgrade head).
+  5. Implementar a consulta única no repository.
+  6. Documentar a regra de persona sem mapeamento.
+
+------------------------------------------------------------------------------------
+5) COMO VALIDAR (aceite)
+------------------------------------------------------------------------------------
+- alembic upgrade head / downgrade -1 funcionam sem erro (reversível).
+- Consulta única retorna perfil + permissões para um usuário de teste.
+- Seed presente nos 2 ambientes.
+====================================================================================

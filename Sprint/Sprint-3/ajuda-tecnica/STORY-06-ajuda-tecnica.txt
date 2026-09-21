@@ -1,0 +1,72 @@
+====================================================================================
+  STORY-06  -  Middleware de autorização por perfil no Back-end (RBAC + 403)
+  AJUDA TÉCNICA / REFINAMENTO
+====================================================================================
+Trilha.....: Back-end
+Objetivo...: Cada endpoint sensível exige perfil/permissão; sem sessão -> 401,
+             autenticado sem permissão -> 403. Verificação no servidor.
+
+------------------------------------------------------------------------------------
+1) ONDE MEXER NO CÓDIGO (arquivos existentes)
+------------------------------------------------------------------------------------
+- back-end/app/core/authorization.py
+    Núcleo de autorização (leitura da sessão/perfil).
+    -> REFINAR: expor dependência `require_permission("x.y")` que valida a
+       permissão exigida contra as permissões efetivas do usuário.
+- back-end/app/api/dependencies.py
+    Dependências FastAPI (get_current_user / get_session).
+    -> Base para as dependências de autorização por rota.
+- back-end/app/common/guards/__init__.py
+    Local sugerido para guards reutilizáveis (Depends) por perfil/permissão.
+- back-end/app/core/exceptions.py
+    -> Garantir 401 (sem sessão) e 403 (sem permissão) distintos.
+- back-end/app/core/audit.py  +  back-end/app/modules/audit/*
+    -> Registrar tentativas negadas na trilha de auditoria.
+- Controllers dos módulos (aplicar a dependência):
+    back-end/app/modules/projects/controller.py
+    back-end/app/modules/users/... , files/controller.py, audit/controller.py
+
+------------------------------------------------------------------------------------
+2) O QUE CRIAR
+------------------------------------------------------------------------------------
+- Dependência de autorização, ex.:
+    def require_permission(perm: str):
+        def _dep(user = Depends(get_current_user)):
+            if user is None: raise HTTPException(401)
+            if not has_permission(user, perm):
+                audit_log(user, "ACESSO_NEGADO", perm)   # trilha de auditoria
+                raise HTTPException(403)
+            return user
+        return _dep
+  Uso no endpoint:  Depends(require_permission("projects.write"))
+- Testes unitários (pytest) em back-end/tests/ cobrindo:
+    * acesso permitido (200);
+    * autenticado sem permissão (403);
+    * sem sessão (401);
+  para pelo menos 2 endpoints representativos.
+
+------------------------------------------------------------------------------------
+3) BANCO DE DADOS
+------------------------------------------------------------------------------------
+- Nenhuma tabela nova. Consome a consulta de perfil/permissões da STORY-03
+  (has_permission deve ler do banco, sem valores fixos no código).
+- As negativas alimentam a tabela de auditoria já existente (módulo audit).
+
+------------------------------------------------------------------------------------
+4) SUGESTÃO DE PASSO A PASSO
+------------------------------------------------------------------------------------
+  1. Implementar has_permission(user, perm) lendo permissões efetivas (STORY-03).
+  2. Criar require_permission em authorization.py / guards.
+  3. Aplicar a dependência nos endpoints sensíveis.
+  4. Diferenciar 401 x 403 nas exceções.
+  5. Registrar tentativas negadas no audit.
+  6. Escrever testes permitido/negado/sem-sessão.
+
+------------------------------------------------------------------------------------
+5) COMO VALIDAR (aceite)
+------------------------------------------------------------------------------------
+- Chamar endpoint sensível sem cookie -> 401.
+- Chamar com perfil sem permissão -> 403 + registro na auditoria.
+- Chamar com perfil autorizado -> 200.
+- pytest verde para os 3 cenários em 2 endpoints.
+====================================================================================

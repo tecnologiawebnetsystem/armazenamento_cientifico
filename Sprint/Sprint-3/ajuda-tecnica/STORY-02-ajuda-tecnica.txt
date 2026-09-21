@@ -1,0 +1,67 @@
+====================================================================================
+  STORY-02  -  Guarda de rotas, sessão e logout no Front-end
+  AJUDA TÉCNICA / REFINAMENTO
+====================================================================================
+Trilha.....: Front-end
+Objetivo...: Proteger rotas internas, tratar 401 (sessão expirada) e logout.
+
+------------------------------------------------------------------------------------
+1) ONDE MEXER NO CÓDIGO (arquivos existentes)
+------------------------------------------------------------------------------------
+- app/(app)/layout.tsx
+    Layout das rotas internas. É o melhor ponto para o "guard": verificar a
+    sessão antes de renderizar o conteúdo protegido.
+    -> Exibir estado de carregamento enquanto verifica (evitar flash de conteúdo).
+
+- hooks/use-session.ts
+    Hook que busca a sessão atual (GET /api/auth/session via SWR).
+    -> REFINAR: expor { user, isLoading, isError } e usar para o guard.
+
+- lib/api-client.ts
+    Cliente HTTP central. Já loga request_start/request_complete.
+    -> REFINAR: interceptar resposta 401 e disparar redirect para
+       /login?next=<rota-atual> (sem loop; só quando NÃO estiver já no /login).
+
+- lib/session.ts
+    Helpers de sessão no front (leitura/limpeza de estado).
+
+- components/layout/profile-avatar-menu.tsx
+    Contém a ação de logout.
+    -> REFINAR: chamar POST /api/auth/logout, limpar cache SWR (mutate) e
+       redirecionar para /login.
+
+- app/login/page.tsx  +  hooks/use-login.ts
+    Ler o parâmetro `next` e, após login, redirecionar para a rota de retorno.
+
+------------------------------------------------------------------------------------
+2) O QUE CRIAR (se ainda não existir)
+------------------------------------------------------------------------------------
+- Util `safeNext(next: string): string` para validar a rota de retorno
+  (aceitar apenas caminhos internos que começam com "/" e não "//" nem URL
+  absoluta) -> evita open redirect. Sugestão: em lib/utils.ts.
+- Componente simples de "verificando sessão..." reutilizando
+  components/petrobras-loading.tsx.
+
+------------------------------------------------------------------------------------
+3) BANCO DE DADOS
+------------------------------------------------------------------------------------
+- Nenhuma alteração de schema. Esta story consome os endpoints de sessão/logout
+  entregues por STORY-01/STORY-06.
+
+------------------------------------------------------------------------------------
+4) SUGESTÃO DE PASSO A PASSO
+------------------------------------------------------------------------------------
+  1. Centralizar tratamento de 401 no api-client.ts.
+  2. No layout interno, bloquear render até use-session resolver.
+  3. Sem sessão -> redirect /login?next=<rota>.
+  4. Logout -> POST /logout + limpar SWR + redirect /login.
+  5. Validar `next` com safeNext antes de redirecionar.
+
+------------------------------------------------------------------------------------
+5) COMO VALIDAR (aceite)
+------------------------------------------------------------------------------------
+- Acessar rota interna deslogado -> vai para /login?next=... e volta após login.
+- Forçar 401 (expirar sessão) -> redireciona uma única vez, sem loop.
+- Logout -> não consegue mais abrir rota interna.
+- next=//evil.com ou http://... -> ignorado (cai em rota padrão interna).
+====================================================================================

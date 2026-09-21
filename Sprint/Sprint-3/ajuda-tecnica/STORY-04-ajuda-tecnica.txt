@@ -1,0 +1,60 @@
+====================================================================================
+  STORY-04  -  Menu e permissões diferenciadas por perfil (Front-end)
+  AJUDA TÉCNICA / REFINAMENTO
+====================================================================================
+Trilha.....: Front-end
+Objetivo...: Renderizar menu, telas e ações conforme o perfil/permissões do
+             usuário logado, sem nada fixo (hardcoded) em tela.
+
+------------------------------------------------------------------------------------
+1) ONDE MEXER NO CÓDIGO (arquivos existentes)
+------------------------------------------------------------------------------------
+- lib/nav-config.ts
+    Config dos itens de menu. -> Anotar cada item com a permissão exigida
+    (ex.: requiredPermission: "logs.read").
+- components/layout/app-sidebar.tsx
+    -> Filtrar itens do menu pelas permissões vindas de use-permissions.
+- hooks/use-permissions.ts
+    Hook que carrega as permissões efetivas do usuário (via API/banco).
+    -> REFINAR: expor helper `can(permission: string): boolean`.
+- components/shared/permission-guard.tsx
+    Componente para envolver seções/ações restritas.
+    -> Usar para ocultar/desabilitar botões (criar/editar/excluir).
+- components/shared/action-button.tsx
+    -> Aceitar `requiredPermission` e desabilitar quando não permitido.
+- app/forbidden/page.tsx
+    Página 403 do front (já existe) para acesso direto por URL não permitida.
+
+------------------------------------------------------------------------------------
+2) O QUE CRIAR (se necessário)
+------------------------------------------------------------------------------------
+- Um wrapper de rota (no app/(app)/layout.tsx ou por página) que verifica a
+  permissão da rota e redireciona para /forbidden quando negado.
+- Constantes de permissão em lib (ex.: lib/permissions.ts) para evitar strings
+  soltas repetidas.
+
+------------------------------------------------------------------------------------
+3) BANCO DE DADOS
+------------------------------------------------------------------------------------
+- Nenhuma alteração direta. Consome a consulta de permissões da STORY-03
+  (endpoint que devolve perfil + permissões efetivas).
+- IMPORTANTE: nenhuma permissão fixa no código; tudo vem da API.
+
+------------------------------------------------------------------------------------
+4) SUGESTÃO DE PASSO A PASSO
+------------------------------------------------------------------------------------
+  1. Anotar itens de nav-config com a permissão exigida.
+  2. Filtrar sidebar por use-permissions().can(...).
+  3. Envolver ações com permission-guard / action-button.
+  4. Auditor -> somente leitura em Logs e Relatórios.
+  5. Guard de rota -> /forbidden em acesso direto não permitido.
+  6. Testar com pelo menos 2 perfis diferentes.
+
+------------------------------------------------------------------------------------
+5) COMO VALIDAR (aceite)
+------------------------------------------------------------------------------------
+- Logar como Auditor -> só vê Logs/Relatórios em leitura; sem botões de escrita.
+- Logar como Gerente -> vê gestão de projetos.
+- Acessar por URL rota não permitida -> cai em /forbidden.
+- Conferir no Network que as permissões vêm da API (não fixas).
+====================================================================================
