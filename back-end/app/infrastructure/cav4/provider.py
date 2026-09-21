@@ -10,7 +10,7 @@ from functools import lru_cache
 from pathlib import Path
 from time import perf_counter
 from typing import Any, Protocol
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 import httpx
 import jwt
@@ -294,10 +294,14 @@ class CAV4OIDCProvider:
                 claims = {**claims, **userinfo}
 
         if access_token and settings.cav4_resources_url and settings.cav4_base_url:
-            resources = await self.get_user_data(access_token=access_token, endpoint=settings.cav4_resources_url)
+            user_login = email or claims.get("preferred_username") or claims.get("upn") or claims.get("sub") or ""
+            if not user_login:
+                raise CAV4AuthenticationError("Login do usuário não encontrado para consultar os papéis do CAV4")
+            roles_endpoint = settings.cav4_resources_url.replace("{userLogin}", quote(str(user_login), safe=""))
+            resources = await self.get_user_data(access_token=access_token, endpoint=roles_endpoint)
             if isinstance(resources, dict):
                 claims = {**claims, **resources}
-                logger.info("[CAV4] Recursos do usuário consultados endpoint=%s", settings.cav4_resources_url)
+                logger.info("[CAV4] Papéis do usuário consultados endpoint=%s", roles_endpoint)
 
         roles = _claim_values(
             claims,
