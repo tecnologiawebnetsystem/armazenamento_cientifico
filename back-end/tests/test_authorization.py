@@ -3,15 +3,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from app.core.authorization import canonical_role, ensure_role
-
-
-@pytest.mark.parametrize(
-    ("legacy", "canonical"),
-    [("gestor", "gerente"), ("participante", "gerente"), ("visualizador", "auditor")],
-)
-def test_legacy_roles_are_compatible(legacy: str, canonical: str):
-    assert canonical_role(legacy) == canonical
+from app.core.authorization import ensure_role
 
 
 def test_manager_is_allowed_to_manage():

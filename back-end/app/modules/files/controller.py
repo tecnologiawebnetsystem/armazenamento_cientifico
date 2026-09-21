@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser
 from app.db.session import get_session
+
 from .repository import FolderRepository
 from .schemas import FolderListOut
 from .service import FolderService
@@ -26,7 +27,7 @@ async def list_folders(
     from fastapi import HTTPException
     if not await service.project_exists(project_id):
         raise HTTPException(status_code=404, detail="Projeto não encontrado")
-    role = user["role"] or "participante"
+    role = user["role"] or "solicitante"
     if not await service.can_list_project(project_id, str(user["id"]), role):
         raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
     return {"folders": await service.list_folders_by_project(project_id)}

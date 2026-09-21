@@ -23,10 +23,7 @@ SEED_PERFIS = [
     ("GER", "gerente", "Coordena projetos, equipes e atividades operacionais."),
     ("AUD", "auditor", "Consulta informações e acompanha os registros de auditoria."),
     ("PAT", "patrocinador", "Acompanha resultados e aprova solicitações sob sua responsabilidade."),
-    ("PAR", "participante", "Participação em projetos"),
-    ("VIS", "visualizador", "Acesso somente leitura"),
     ("SOL", "solicitante", "Solicita acessos e acompanha o andamento das solicitações."),
-    ("GES", "gestor", "Gestão de projeto"),
 ]
 
 SEED_MODULES = [
@@ -187,7 +184,7 @@ async def initialize_database(engine) -> None:
 
         all_projects = {row.code: row for row in (await session.scalars(select(Project))).all()}
         for project in all_projects.values():
-            for member, papel in ((admin, "administrador"), (manager, "gestor"), (auditor, "auditor")):
+            for member, papel in ((admin, "administrador"), (manager, "gerente"), (auditor, "auditor")):
                 if not await session.get(ProjectMember, {"project_id": project.id, "user_id": member.id}):
                     session.add(ProjectMember(project_id=project.id, user_id=member.id, role=papel, created_at=now))
         await session.flush()

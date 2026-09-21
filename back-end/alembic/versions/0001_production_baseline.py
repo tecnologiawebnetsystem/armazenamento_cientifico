@@ -18,10 +18,26 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    from app.db.base import Base
     import app.db.models  # noqa: F401 - registra todos os modelos no metadata
+    from app.db.base import Base
 
-    Base.metadata.create_all(bind=op.get_bind(), checkfirst=True)
+    bind = op.get_bind()
+    Base.metadata.create_all(bind=bind, checkfirst=True)
+
+    # Perfis oficiais da produção; perfis legados não fazem parte da baseline.
+    from sqlalchemy.dialects.postgresql import insert
+
+    from app.modules.users.profile_model import Perfil
+
+    bind.execute(
+        insert(Perfil).values([
+            {"id": "ADM", "name": "administrador", "description": "Administra a plataforma, configura parâmetros e gerencia acessos."},
+            {"id": "GER", "name": "gerente", "description": "Coordena projetos, equipes e atividades operacionais."},
+            {"id": "AUD", "name": "auditor", "description": "Consulta informações e acompanha os registros de auditoria."},
+            {"id": "PAT", "name": "patrocinador", "description": "Acompanha resultados e aprova solicitações sob sua responsabilidade."},
+            {"id": "SOL", "name": "solicitante", "description": "Solicita acessos e acompanha o andamento das solicitações."},
+        ]).on_conflict_do_nothing(index_elements=["id"])
+    )
 
 
 def downgrade() -> None:
