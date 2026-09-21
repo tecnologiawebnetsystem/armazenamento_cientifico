@@ -1,0 +1,69 @@
+====================================================================================
+  STORY-05  -  CI/CD, Docker e equalização dos ambientes DEV e HMG (AWS + CAV4)
+  AJUDA TÉCNICA / REFINAMENTO
+====================================================================================
+Trilha.....: DevOps / AWS / Banco
+Objetivo...: Containerização (front+back), pipeline CI/CD, variáveis por
+             ambiente, base de dados e conectividade/TLS do CAV4 por ambiente.
+
+------------------------------------------------------------------------------------
+1) ONDE MEXER NO CÓDIGO (arquivos existentes)
+------------------------------------------------------------------------------------
+- Dockerfile                      (front-end / Next.js)
+- back-end/Dockerfile             (back-end / FastAPI)
+- docker-compose.yml              (stack raiz)
+- back-end/docker-compose.yml     (back + banco)
+- back-end/docker-compose.local.yml (perfil local/DEV)
+    -> REFINAR: garantir build multi-stage, usuário não-root e healthcheck.
+- back-end/alembic/                (migrações aplicadas no deploy)
+- back-end/app/core/config.py      (CA_SSL_VERIFY, caminho do CA, URLs CAV4)
+
+------------------------------------------------------------------------------------
+2) O QUE CRIAR
+------------------------------------------------------------------------------------
+- .github/workflows/ci.yml (NOVO):
+    * job PR: lint + typecheck (front) e testes (back-end/pytest);
+    * job build: docker build de front e back, tag por commit SHA;
+    * push das imagens para o registry;
+    * bloquear merge se lint/typecheck/teste falharem.
+- .github/workflows/deploy.yml (NOVO):
+    * deploy automático para DEV;
+    * deploy para HMG com aprovação manual (environment protection rules).
+- Arquivos de exemplo de variáveis: .env.dev.example e .env.hmg.example
+    (SEM segredos reais versionados). Documentar cada variável.
+- Doc curto "PROMOVER-DEV-PARA-HMG.md" em Sprint/Sprint-3/ ou back-end/docs/.
+
+------------------------------------------------------------------------------------
+3) BANCO DE DADOS
+------------------------------------------------------------------------------------
+- Provisionar base para DEV e HMG (ex.: RDS/Neon) com a MESMA versão de schema.
+- Rodar `alembic upgrade head` no passo de deploy de cada ambiente.
+- Garantir seeds de RBAC (STORY-03) aplicados nos dois ambientes.
+
+------------------------------------------------------------------------------------
+4) CAV4 / TLS POR AMBIENTE
+------------------------------------------------------------------------------------
+- CA_SSL_VERIFY e caminho do arquivo de CA definidos por ambiente (secrets do
+  GitHub / variáveis do ambiente AWS), nunca no repositório.
+- DEV pode usar CA interno; HMG deve validar cadeia oficial.
+- Referência: erro anterior "Erro ao conectar com CAV4 / CA_SSL_VERIFY".
+
+------------------------------------------------------------------------------------
+5) SUGESTÃO DE PASSO A PASSO
+------------------------------------------------------------------------------------
+  1. Validar Dockerfiles buildando localmente (front e back).
+  2. docker-compose subindo app + banco em DEV.
+  3. Criar ci.yml (lint/typecheck/test + build + push).
+  4. Criar deploy.yml (DEV automático, HMG com aprovação).
+  5. Separar variáveis por ambiente + provisionar bancos + migrar.
+  6. Configurar TLS/CA do CAV4 por ambiente e testar STORY-01 ponta a ponta.
+  7. Escrever o doc de promoção DEV -> HMG.
+
+------------------------------------------------------------------------------------
+6) COMO VALIDAR (aceite)
+------------------------------------------------------------------------------------
+- PR com erro de lint/teste -> pipeline vermelho, merge bloqueado.
+- Imagens publicadas com tag por commit.
+- DEV e HMG com mesmo schema e variáveis-chave equalizadas.
+- Login CAV4 funciona nos dois ambientes.
+====================================================================================
