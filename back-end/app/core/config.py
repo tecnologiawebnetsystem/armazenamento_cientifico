@@ -1,175 +1,120 @@
-import os
 import re
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import quote
 
-from dotenv import load_dotenv
-from pydantic import BaseModel, Field, model_validator
+from pydantic import AliasChoices, Field, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-load_dotenv(PROJECT_ROOT / ".env")
-load_dotenv()
 
 
-def _database_url() -> str:
-    aurora_url = (
-        os.getenv("RDS_AURORA_POSTGRES_URL", "").strip()
-        or os.getenv("DATABASE_URL", "").strip()
-        or os.getenv("DATABASE_URL_UNPOOLED", "").strip()
-        or os.getenv("POSTGRES_URL", "").strip()
-        or os.getenv("POSTGRES_PRISMA_URL", "").strip()
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=(PROJECT_ROOT / ".env", ".env"),
+        env_file_encoding="utf-8",
+        extra="allow",
+        case_sensitive=False,
     )
-    if aurora_url:
-        return aurora_url if "://" in aurora_url else f"postgresql://{aurora_url}"
 
-    host = (
-        os.getenv("RDS_AURORA_POSTGRES_HOST", "").strip()
-        or os.getenv("POSTGRES_HOST", "").strip()
-        or os.getenv("PGHOST", "").strip()
-    )
-    user = (
-        os.getenv("RDS_AURORA_POSTGRES_USERNAME", "").strip()
-        or os.getenv("RDS_AURORA_POSTGRES_USER", "").strip()
-        or os.getenv("POSTGRES_USER", "").strip()
-        or os.getenv("PGUSER", "").strip()
-    )
-    password = (
-        os.getenv("RDS_AURORA_POSTGRES_PASSWORD", "").strip()
-        or os.getenv("POSTGRES_PASSWORD", "").strip()
-        or os.getenv("PGPASSWORD", "").strip()
-    )
-    if host and user and password:
-        from urllib.parse import quote
-
-        database = (
-            os.getenv("RDS_AURORA_POSTGRES_DATABASE", "").strip()
-            or os.getenv("RDS_AURORA_POSTGRES_DB", "").strip()
-            or os.getenv("POSTGRES_DATABASE", "").strip()
-            or os.getenv("PGDATABASE", "").strip()
-        )
-        if not database:
-            return ""
-        credentials = f"{quote(user, safe='')}:{quote(password, safe='')}"
-        return f"postgresql://{credentials}@{host}:5432/{quote(database, safe='')}"
-    return ""
-
-
-class Settings(BaseModel):
     app_name: str = "SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico API"
     app_version: str = "3.1.0"
     database_engine: str = "postgresql"
-    database_url: str = Field(default_factory=_database_url)
-    cors_origins: list[str] = Field(
-        default_factory=lambda: [
-            x.strip()
-            for x in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
-            if x.strip()
-        ]
+    database_url: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "RDS_AURORA_POSTGRES_URL", "DATABASE_URL", "DATABASE_URL_UNPOOLED",
+            "POSTGRES_URL", "POSTGRES_PRISMA_URL",
+        ),
     )
-    frontend_url: str = Field(default_factory=lambda: os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/"))
-    cookie_name: str = os.getenv("COOKIE_NAME", "wayon_session_id")
-    cookie_secure: bool = os.getenv(
-        "COOKIE_SECURE",
-        "true" if os.getenv("ENVIRONMENT", "development").lower() == "production" else "false",
-    ).lower() == "true"
-    session_hours: int = int(os.getenv("SESSION_HOURS", "8"))
-    temporary_cav4_session: bool = os.getenv("TEMPORARY_CAV4_SESSION", "false").lower() == "true"
-    email_login_enabled: bool = os.getenv(
-        "EMAIL_LOGIN_ENABLED",
-        "true" if os.getenv("ENVIRONMENT", "development").lower() != "production" else "false",
-    ).lower() == "true"
-    db_min_size: int = int(os.getenv("DB_MIN_SIZE", "1"))
-    db_max_size: int = int(os.getenv("DB_MAX_SIZE", "10"))
-    db_command_timeout: int = int(os.getenv("DB_COMMAND_TIMEOUT", "30"))
-    db_ssl_verify: bool = os.getenv("DB_SSL_VERIFY", "true").lower() == "true"
-    db_ssl_ca_file: str = os.getenv("DB_SSL_CA_FILE", "").strip()
-    db_schema: str = os.getenv("DB_SCHEMA", "").strip()
-    api_prefix: str = os.getenv("API_PREFIX", "/api")
-    log_level: str = os.getenv("LOG_LEVEL", "INFO")
-    environment: str = os.getenv("ENVIRONMENT", "development")
-    expose_api_docs: bool = os.getenv(
-        "EXPOSE_API_DOCS",
-        "false" if os.getenv("ENVIRONMENT", "development").lower() == "production" else "true",
-    ).lower() == "true"
-    security_headers_enabled: bool = os.getenv("SECURITY_HEADERS_ENABLED", "true").lower() == "true"
-    cookie_domain: str | None = os.getenv("COOKIE_DOMAIN") or None
-    audit_retention_days: int = int(os.getenv("AUDIT_RETENTION_DAYS", "365"))
-    cav4_enabled: bool = os.getenv("CAV4_ENABLED", "false").lower() == "true"
-    cav4_base_url: str = os.getenv("CA_API_BASE_URL") or os.getenv("CAV4_BASE_URL", "")
-    oidc_discovery_url: str = os.getenv("OIDC_DISCOVERY_URL", "")
-    ca_ssl_use_truststore: bool = os.getenv(
-        "CA_SSL_USE_TRUSTSTORE",
-        "true" if os.getenv("ENVIRONMENT", "development").lower() == "production" else "false",
-    ).lower() == "true"
-    ca_ssl_cert_file: str = os.getenv("CA_SSL_CERT_FILE", "")
-    ca_ssl_verify: bool = os.getenv(
-        "CA_SSL_VERIFY",
-        "true" if os.getenv("ENVIRONMENT", "development").lower() == "production" else "false",
-    ).lower() == "true"
-    # O CAV4 fornece o identificador como CA_CLIENT_ID; CAV4_CLIENT_ID
-    # permanece aceito para compatibilidade com configurações anteriores.
-    cav4_client_id: str = os.getenv("CA_CLIENT_ID") or os.getenv("CAV4_CLIENT_ID", "")
-    cav4_client_secret: str = os.getenv("CA_CLIENT_SECRET") or os.getenv("CAV4_CLIENT_SECRET", "")
-    cav4_redirect_uri: str = os.getenv("CA_REDIRECT_URI") or os.getenv("CAV4_REDIRECT_URI", "http://localhost:8080/api/auth/cav4/callback")
-    cav4_scopes: str = os.getenv("CA_SCOPES") or os.getenv("CAV4_SCOPES", "openid profile email")
-    cav4_jwt_leeway_seconds: int = int(os.getenv("CAV4_JWT_LEEWAY_SECONDS", "120"))
-    cav4_authorization_url: str = os.getenv("CA_AUTHORIZATION_URL", "")
-    cav4_token_url: str = os.getenv("CA_TOKEN_URL", "")
-    cav4_userinfo_url: str = os.getenv("CA_USERINFO_URL", "")
-    cav4_logout_url: str = os.getenv("CA_LOGOUT_URL", "")
-    cav4_issuer: str = os.getenv("CA_ISSUER") or os.getenv("CAV4_ISSUER", "")
-    cav4_jwks_url: str = os.getenv("CA_JWKS_URL", "")
+    aurora_host: str = Field(default="", validation_alias=AliasChoices("RDS_AURORA_POSTGRES_HOST", "POSTGRES_HOST", "PGHOST"))
+    aurora_user: str = Field(default="", validation_alias=AliasChoices("RDS_AURORA_POSTGRES_USERNAME", "RDS_AURORA_POSTGRES_USER", "POSTGRES_USER", "PGUSER"))
+    aurora_password: str = Field(default="", validation_alias=AliasChoices("RDS_AURORA_POSTGRES_PASSWORD", "POSTGRES_PASSWORD", "PGPASSWORD"))
+    aurora_database: str = Field(default="", validation_alias=AliasChoices("RDS_AURORA_POSTGRES_DATABASE", "RDS_AURORA_POSTGRES_DB", "POSTGRES_DATABASE", "PGDATABASE"))
+    cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+    frontend_url: str = "http://localhost:3000"
+    cookie_name: str = "wayon_session_id"
+    cookie_secure: bool = False
+    session_hours: int = 8
+    temporary_cav4_session: bool = False
+    email_login_enabled: bool = True
+    db_min_size: int = 1
+    db_max_size: int = 10
+    db_command_timeout: int = 30
+    db_ssl_verify: bool = True
+    db_ssl_ca_file: str = ""
+    db_schema: str = ""
+    api_prefix: str = "/api"
+    log_level: str = "INFO"
+    environment: str = "development"
+    expose_api_docs: bool = True
+    security_headers_enabled: bool = True
+    cookie_domain: str | None = None
+    audit_retention_days: int = 365
+    cav4_enabled: bool = False
+    cav4_base_url: str = Field(default="", validation_alias=AliasChoices("CA_API_BASE_URL", "CAV4_BASE_URL"))
+    oidc_discovery_url: str = ""
+    ca_ssl_use_truststore: bool = False
+    ca_ssl_cert_file: str = ""
+    ca_ssl_verify: bool = False
+    cav4_client_id: str = Field(default="", validation_alias=AliasChoices("CA_CLIENT_ID", "CAV4_CLIENT_ID"))
+    cav4_client_secret: str = Field(default="", validation_alias=AliasChoices("CA_CLIENT_SECRET", "CAV4_CLIENT_SECRET"))
+    cav4_redirect_uri: str = Field(default="http://localhost:8080/api/auth/cav4/callback", validation_alias=AliasChoices("CA_REDIRECT_URI", "CAV4_REDIRECT_URI"))
+    cav4_scopes: str = Field(default="openid profile email", validation_alias=AliasChoices("CA_SCOPES", "CAV4_SCOPES"))
+    cav4_jwt_leeway_seconds: int = 120
+    cav4_authorization_url: str = ""
+    cav4_token_url: str = ""
+    cav4_userinfo_url: str = ""
+    cav4_logout_url: str = ""
+    cav4_issuer: str = Field(default="", validation_alias=AliasChoices("CA_ISSUER", "CAV4_ISSUER"))
+    cav4_jwks_url: str = ""
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_environment_values(cls, values: dict) -> dict:
+        data = dict(values or {})
+        env = str(data.get("environment") or "development").lower()
+        if not data.get("cors_origins"):
+            data["cors_origins"] = ["http://localhost:3000"]
+        elif isinstance(data["cors_origins"], str):
+            data["cors_origins"] = [x.strip() for x in data["cors_origins"].split(",") if x.strip()]
+        if not data.get("database_url"):
+            host = data.get("RDS_AURORA_POSTGRES_HOST") or data.get("POSTGRES_HOST") or data.get("PGHOST")
+            user = data.get("RDS_AURORA_POSTGRES_USERNAME") or data.get("RDS_AURORA_POSTGRES_USER") or data.get("POSTGRES_USER") or data.get("PGUSER")
+            password = data.get("RDS_AURORA_POSTGRES_PASSWORD") or data.get("POSTGRES_PASSWORD") or data.get("PGPASSWORD")
+            database = data.get("RDS_AURORA_POSTGRES_DATABASE") or data.get("RDS_AURORA_POSTGRES_DB") or data.get("POSTGRES_DATABASE") or data.get("PGDATABASE")
+            if host and user and password and database:
+                data["database_url"] = f"postgresql://{quote(user, safe='')}:{quote(password, safe='')}@{host}:5432/{quote(database, safe='')}"
+        data.setdefault("cookie_secure", env == "production")
+        data.setdefault("email_login_enabled", env != "production")
+        data.setdefault("expose_api_docs", env != "production")
+        data.setdefault("ca_ssl_use_truststore", env == "production")
+        data.setdefault("ca_ssl_verify", env == "production")
+        return data
 
     @model_validator(mode="after")
     def validate_settings(self) -> "Settings":
-        if self.database_url and not self.database_url.startswith(("postgresql://", "postgres://", "postgresql+asyncpg://")):
+        if not self.database_url and self.aurora_host and self.aurora_user and self.aurora_password and self.aurora_database:
+            self.database_url = f"postgresql://{quote(self.aurora_user, safe='')}:{quote(self.aurora_password, safe='')}@{self.aurora_host}:5432/{quote(self.aurora_database, safe='')}"
+        if self.database_url and not self.database_url.startswith(("postgresql://", "postgres://", "postgresql+asyncpg://", "postgresql+psycopg://")):
             raise ValueError("DATABASE_URL/RDS_AURORA_POSTGRES_URL deve usar o esquema PostgreSQL/Aurora")
         if not self.database_url and not self.temporary_cav4_session:
-            connection_vars = (
-                "DATABASE_URL/POSTGRES_URL"
-                " ou RDS_AURORA_POSTGRES_URL"
-                " ou RDS_AURORA_POSTGRES_HOST + RDS_AURORA_POSTGRES_USERNAME"
-                " + RDS_AURORA_POSTGRES_PASSWORD + RDS_AURORA_POSTGRES_DATABASE"
-            )
-            raise ValueError(
-                f"Configuração PostgreSQL ausente. Defina {connection_vars} no arquivo .env "
-                "do diretório back-end (copie .env.example para .env e preencha os valores)."
-            )
-        if not self.db_schema:
-            raise ValueError(
-                "DB_SCHEMA é obrigatório. Defina o schema no arquivo .env; "
-                "não há schema fixo no código."
-            )
-        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", self.db_schema):
-            raise ValueError("DB_SCHEMA deve conter apenas um identificador PostgreSQL válido")
+            raise ValueError("Configuração PostgreSQL ausente. Defina RDS_AURORA_POSTGRES_URL ou as variáveis PG/RDS_AURORA_POSTGRES_*.")
+        if not self.db_schema or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", self.db_schema):
+            raise ValueError("DB_SCHEMA é obrigatório e deve conter um identificador PostgreSQL válido")
         if self.db_min_size < 1 or self.db_max_size < self.db_min_size:
             raise ValueError("DB_MIN_SIZE e DB_MAX_SIZE possuem valores inválidos")
-        if self.environment.lower() == "production":
-            if self.temporary_cav4_session:
-                raise ValueError("TEMPORARY_CAV4_SESSION não pode ser true em produção")
-            if self.email_login_enabled:
-                raise ValueError("EMAIL_LOGIN_ENABLED deve ser false em produção")
-            if not self.cookie_secure:
-                raise ValueError("COOKIE_SECURE deve ser true em produção")
-            if not self.cors_origins:
-                raise ValueError("CORS_ORIGINS deve conter pelo menos uma origem")
+        if self.environment.lower() == "production" and (
+            self.temporary_cav4_session or self.email_login_enabled or not self.cookie_secure or not self.cors_origins
+        ):
+            raise ValueError("Configuração de segurança inválida para produção")
         if any(origin == "*" for origin in self.cors_origins) and self.environment.lower() == "production":
             raise ValueError("CORS_ORIGINS não pode usar wildcard em produção")
-        cav4_values = {
-            "CA_CLIENT_ID": self.cav4_client_id, "CA_CLIENT_SECRET": self.cav4_client_secret,
-            "CA_REDIRECT_URI": self.cav4_redirect_uri, "OIDC_DISCOVERY_URL": self.oidc_discovery_url,
-        }
         if self.cav4_enabled:
-            missing = [key for key, value in cav4_values.items() if not value.strip()]
+            required = {"CA_CLIENT_ID": self.cav4_client_id, "CA_CLIENT_SECRET": self.cav4_client_secret, "CA_REDIRECT_URI": self.cav4_redirect_uri, "OIDC_DISCOVERY_URL": self.oidc_discovery_url}
+            missing = [key for key, value in required.items() if not value.strip()]
             if missing:
                 raise ValueError(f"Configuração CAV4 incompleta; faltando: {', '.join(missing)}")
-            for key, value in cav4_values.items():
-                if key.endswith("URL") and not value.startswith(("http://", "https://")):
-                    raise ValueError(f"{key} deve começar com http:// ou https://")
-            if self.environment.lower() == "production" and not self.ca_ssl_verify:
-                raise ValueError("CA_SSL_VERIFY deve ser true em produção")
-            if self.ca_ssl_cert_file and not Path(self.ca_ssl_cert_file).is_file():
-                raise ValueError("CA_SSL_CERT_FILE aponta para um arquivo inexistente")
         return self
 
 
