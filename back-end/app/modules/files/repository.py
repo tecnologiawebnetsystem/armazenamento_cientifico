@@ -19,6 +19,14 @@ class FolderRepository:
         )
         return list(result)
 
+    async def project_exists(self, project_id: str) -> bool:
+        from app.modules.projects.models import Project
+        return await self.session.scalar(select(Project.id).where(Project.id == project_id)) is not None
+
+    async def can_view_project(self, project_id: str, user_id: str, role: str) -> bool:
+        from app.modules.projects.repository import ProjectRepository
+        return await ProjectRepository(self.session).can_view(project_id, user_id, role)
+
     async def find_by_path(self, project_id: str, path: str) -> Folder | None:
         return await self.session.scalar(
             select(Folder).where(
