@@ -27,8 +27,8 @@ Service = Annotated[PlatformService, Depends(service_dependency)]
 
 @router.get("/platform/context")
 async def platform_context(service: Service, user: CurrentUser):
-    logger.info("platform_context_read user_id=%s", user["id"])
-    return await service.context(user["id"])
+    logger.info("platform_context_read profile_id=%s email=%s", user.get("profile_id"), user.get("email"))
+    return await service.context(user)
 
 
 @router.get("/catalogos")

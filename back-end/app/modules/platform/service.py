@@ -12,8 +12,8 @@ class PlatformService:
         self.directory_service = DirectoryService(repository)
         self.governance_service = GovernanceService(repository)
 
-    async def context(self, user_id: str) -> dict[str, Any]:
-        return await self.context_service.context(user_id)
+    async def context(self, user: dict[str, Any]) -> dict[str, Any]:
+        return await self.context_service.context(user)
 
     async def catalogs(self) -> dict[str, list[dict[str, Any]]]:
         return await self.context_service.catalogs()
