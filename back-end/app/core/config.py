@@ -66,6 +66,7 @@ class Settings(BaseSettings):
     cav4_authorization_url: str = ""
     cav4_token_url: str = ""
     cav4_userinfo_url: str = ""
+    cav4_resources_url: str = Field(default="/resources", validation_alias=AliasChoices("CA_RESOURCES_URL", "CAV4_RESOURCES_URL"))
     cav4_logout_url: str = ""
     cav4_issuer: str = Field(default="", validation_alias=AliasChoices("CA_ISSUER", "CAV4_ISSUER"))
     cav4_jwks_url: str = ""

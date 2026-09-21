@@ -293,6 +293,12 @@ class CAV4OIDCProvider:
                 display_name = display_name or userinfo.get("name")
                 claims = {**claims, **userinfo}
 
+        if access_token and settings.cav4_resources_url and settings.cav4_base_url:
+            resources = await self.get_user_data(access_token=access_token, endpoint=settings.cav4_resources_url)
+            if isinstance(resources, dict):
+                claims = {**claims, **resources}
+                logger.info("[CAV4] Recursos do usuário consultados endpoint=%s", settings.cav4_resources_url)
+
         roles = _claim_values(
             claims,
             "roles",
@@ -304,6 +310,11 @@ class CAV4OIDCProvider:
             "profileId",
             "information-values",
             "information_values",
+            "resources",
+            "resource",
+            "resource_code",
+            "resourceCode",
+            "code",
         )
         logger.info("[CAV4] Claims de autorização encontrados chaves=%s quantidade_papeis=%s", sorted(claims.keys()), len(roles))
 
