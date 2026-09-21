@@ -1,12 +1,13 @@
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.common import FileCreate, LoginRequest, ProjectCreate
+from app.modules.projects.schemas import ProjectCreate
+from app.modules.users.schemas import UserCreate
 
 
-def test_login_requires_valid_email():
+def test_user_requires_valid_email():
     with pytest.raises(ValidationError):
-        LoginRequest(email="invalido", senha="x")
+        UserCreate(name="Usuário", email="invalido")
 
 
 def test_project_rejects_short_name():
@@ -14,6 +15,6 @@ def test_project_rejects_short_name():
         ProjectCreate(nome="x", codigo="P1", areaResponsavel="Pesquisa")
 
 
-def test_file_rejects_negative_size():
+def test_project_rejects_empty_responsible_area():
     with pytest.raises(ValidationError):
-        FileCreate(projectId="p1", tipo="arquivo", nome="dados.csv", tamanho=-1)
+        ProjectCreate(nome="Projeto válido", codigo="P1", areaResponsavel="")
