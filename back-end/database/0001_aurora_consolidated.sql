@@ -101,6 +101,16 @@ VALUES
 ON CONFLICT (key) DO NOTHING;
 
 -- 05 seed canônico
+-- Perfis funcionais e suas descrições de apresentação.
+INSERT INTO profiles (id, name, description)
+VALUES
+ ('ADM','administrador','Administra a plataforma, configura parâmetros e gerencia acessos.'),
+ ('GER','gerente','Coordena projetos, equipes e atividades operacionais.'),
+ ('AUD','auditor','Consulta informações e acompanha os registros de auditoria.'),
+ ('PAT','patrocinador','Acompanha resultados e aprova solicitações sob sua responsabilidade.'),
+ ('SOL','solicitante','Solicita acessos e acompanha o andamento das solicitações.')
+ON CONFLICT (id) DO UPDATE SET name=excluded.name, description=excluded.description;
+
 -- Fonte histórica consolidada: back-end/database/0040_aurora_parametrizacao_canonica.sql
 -- SIGAC / Aurora PostgreSQL
 -- Seed canônico e idempotente de parametrização.

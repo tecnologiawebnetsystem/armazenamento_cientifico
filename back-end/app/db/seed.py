@@ -19,13 +19,13 @@ from app.modules.users.models import User
 from app.modules.users.profile_model import Perfil
 
 SEED_PERFIS = [
-    ("ADM", "administrador", "Acesso total à plataforma"),
-    ("GER", "gerente", "Gestão operacional de projetos"),
-    ("AUD", "auditor", "Consulta e auditoria"),
-    ("PAT", "patrocinador", "Acompanhamento e aprovação"),
+    ("ADM", "administrador", "Administra a plataforma, configura parâmetros e gerencia acessos."),
+    ("GER", "gerente", "Coordena projetos, equipes e atividades operacionais."),
+    ("AUD", "auditor", "Consulta informações e acompanha os registros de auditoria."),
+    ("PAT", "patrocinador", "Acompanha resultados e aprova solicitações sob sua responsabilidade."),
     ("PAR", "participante", "Participação em projetos"),
     ("VIS", "visualizador", "Acesso somente leitura"),
-    ("SOL", "solicitante", "Solicitação e acompanhamento de acessos"),
+    ("SOL", "solicitante", "Solicita acessos e acompanha o andamento das solicitações."),
     ("GES", "gestor", "Gestão de projeto"),
 ]
 
