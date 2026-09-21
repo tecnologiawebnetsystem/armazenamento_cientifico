@@ -139,6 +139,10 @@ class Settings(BaseModel):
         if self.db_min_size < 1 or self.db_max_size < self.db_min_size:
             raise ValueError("DB_MIN_SIZE e DB_MAX_SIZE possuem valores inválidos")
         if self.environment.lower() == "production":
+            if self.temporary_cav4_session:
+                raise ValueError("TEMPORARY_CAV4_SESSION não pode ser true em produção")
+            if self.email_login_enabled:
+                raise ValueError("EMAIL_LOGIN_ENABLED deve ser false em produção")
             if not self.cookie_secure:
                 raise ValueError("COOKIE_SECURE deve ser true em produção")
             if not self.cors_origins:

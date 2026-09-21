@@ -10,10 +10,11 @@ from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 
 from app.api.dependencies import get_current_user
-from app.core.cav4 import CAV4AuthenticationError, decode_state_nonce, get_cav4_provider
+from app.infrastructure.cav4 import CAV4AuthenticationError, decode_state_nonce, get_cav4_provider
 from app.core.config import settings
 from app.core.temporary_sessions import delete_session
 from app.db.session import get_session
+from app.modules.auth.repository import AuthRepository
 
 logger = logging.getLogger(__name__)
 
@@ -46,16 +47,13 @@ async def email_login(request: Request):
     session_id = str(uuid4())
     expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours)
     async for database in get_session():
-        result = await database.execute(text(f"select id, profile_id from {schema}.users where lower(email)=lower(:email)"), {"email": email})
-        user = result.mappings().first()
+        repository = AuthRepository(database, settings.db_schema)
+        user = await repository.find_user_by_email(email)
         if not user:
             raise HTTPException(status_code=403, detail="Usuário não cadastrado na plataforma")
         if not user.get("profile_id"):
             raise HTTPException(status_code=403, detail="Usuário sem perfil configurado no banco de dados")
-        await database.execute(text(f"update {schema}.users set last_login_at=now() where id=:user_id"), {"user_id": user["id"]})
-        await database.execute(text(f"delete from {schema}.sessions where user_id=:user_id"), {"user_id": user["id"]})
-        await database.execute(text(f"insert into {schema}.sessions(id,user_id,expires_at,cav4_subject) values(:id,:user_id,:expires_at,:subject)"), {"id": session_id, "user_id": user["id"], "expires_at": expires_at, "subject": email})
-        await database.commit()
+        await repository.create_session(user["id"], session_id, expires_at, email)
     response = Response(status_code=204)
     response.set_cookie(settings.cookie_name, session_id, httponly=True, secure=settings.cookie_secure, samesite="lax", max_age=settings.session_hours * 3600)
     return response
