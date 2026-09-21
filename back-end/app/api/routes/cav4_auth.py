@@ -29,8 +29,14 @@ def _schema_name() -> str:
 
 @email_router.post("/login")
 async def email_login(request: Request):
-    """Login auxiliar por e-mail, permitido somente em ambiente de desenvolvimento."""
-    if not settings.temporary_cav4_session:
+    """Login auxiliar por e-mail (botão "Entrar com e-mail").
+
+    Controlado por EMAIL_LOGIN_ENABLED (padrão: ligado fora de produção). A
+    autenticação e a sessão continuam 100% dirigidas pelo banco: o e-mail é
+    buscado em `users`, o perfil precisa existir e a sessão é persistida em
+    `sessions`. Perfil, permissões e menus são resolvidos depois pelo Aurora.
+    """
+    if not settings.email_login_enabled:
         raise HTTPException(status_code=404, detail="Login por e-mail não está habilitado neste ambiente")
     payload = await request.json()
     email = str(payload.get("email", "")).strip().lower()

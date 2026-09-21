@@ -262,7 +262,7 @@ O backend em [`back-end/`](back-end/) é um serviço FastAPI. Ele concentra aute
 | [`back-end/app/api/routes/`](back-end/app/api/routes/) | Rotas transversais, como health e autenticação corporativa. |
 | [`back-end/app/api/dependencies.py`](back-end/app/api/dependencies.py) | Resolve usuário da sessão e dependências de autorização. |
 | [`back-end/app/api/legacy.py`](back-end/app/api/legacy.py) | Endpoints legados e compatibilidade OpenAPI. |
-| [`back-end/app/core/`](back-end/app/core/) | Configuração, autorização, segurança, Entra ID, CAV4, erros e logs. |
+| [`back-end/app/core/`](back-end/app/core/) | Configuração, autorização, segurança, CAV4, erros e logs. |
 | [`back-end/app/db/`](back-end/app/db/) | Pool/conexão, base e seed do banco. |
 | [`back-end/app/modules/projects/`](back-end/app/modules/projects/) | Controllers, schemas, services, repositories e models de projetos. |
 | [`back-end/app/modules/files/`](back-end/app/modules/files/) | Consulta somente leitura de arquivos e pastas. |
