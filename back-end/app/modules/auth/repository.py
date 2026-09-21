@@ -15,16 +15,16 @@ class AuthRepository:
 
     async def find_session_identity(self, session_id: str) -> dict[str, Any] | None:
         result = await self.database.execute(text(f"""
-            select u.*, s.cav4_subject, p.id as profile_id, p.name as profile_name,
+            select s.id, s.email, s.cav4_subject, s.profile_id,
+                   p.name as profile_name,
                    coalesce(array_agg(distinct perm.id) filter
                      (where pp.allowed = true and perm.active = true), '{{}}') as db_permissions
             from {self.schema}.sessions s
-            join {self.schema}.users u on u.id = s.user_id
-            left join {self.schema}.profiles p on p.id = u.profile_id
+            left join {self.schema}.profiles p on p.id = s.profile_id
             left join {self.schema}.profile_permissions pp on pp.profile_id = p.id
             left join {self.schema}.permissions perm on perm.id = pp.permission_id
             where s.id = :session_id and s.expires_at > now()
-            group by u.id, s.cav4_subject, p.id, p.name
+            group by s.id, s.email, s.cav4_subject, s.profile_id, p.name
         """), {"session_id": session_id})
         row = result.mappings().first()
         return dict(row) if row else None
@@ -38,11 +38,29 @@ class AuthRepository:
         return dict(row) if row else None
 
     async def create_session(self, user_id: str, session_id: str, expires_at: datetime, subject: str) -> None:
+        user_result = await self.database.execute(
+            text(f"select email, profile_id from {self.schema}.users where id=:user_id"),
+            {"user_id": user_id},
+        )
+        user = user_result.mappings().first()
+        if not user or not user.get("profile_id"):
+            raise ValueError("Usuário sem perfil para criar sessão")
         await self.database.execute(text(f"update {self.schema}.users set last_login_at=now() where id=:user_id"), {"user_id": user_id})
         await self.database.execute(text(f"delete from {self.schema}.sessions where user_id=:user_id"), {"user_id": user_id})
         await self.database.execute(text(f"""insert into {self.schema}.sessions
-            (id,user_id,expires_at,cav4_subject) values(:id,:user_id,:expires_at,:subject)"""),
-            {"id": session_id, "user_id": user_id, "expires_at": expires_at, "subject": subject})
+            (id,user_id,email,profile_id,expires_at,cav4_subject)
+            values(:id,:user_id,:email,:profile_id,:expires_at,:subject)"""),
+            {"id": session_id, "user_id": user_id, "email": user["email"], "profile_id": user["profile_id"], "expires_at": expires_at, "subject": subject})
+        await self.database.commit()
+
+    async def create_cav4_session(self, email: str, profile_id: str, session_id: str, expires_at: datetime, subject: str) -> None:
+        await self.database.execute(text(f"delete from {self.schema}.sessions where lower(email)=lower(:email)"), {"email": email})
+        await self.database.execute(
+            text(f"""insert into {self.schema}.sessions
+                (id,email,profile_id,expires_at,cav4_subject)
+                values(:id,:email,:profile_id,:expires_at,:subject)"""),
+            {"id": session_id, "email": email, "profile_id": profile_id, "expires_at": expires_at, "subject": subject},
+        )
         await self.database.commit()
 
     async def revoke_session(self, session_id: str) -> None:

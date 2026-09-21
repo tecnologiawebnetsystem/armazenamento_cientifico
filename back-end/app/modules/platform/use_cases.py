@@ -7,8 +7,8 @@ class PlatformContextService:
     def __init__(self, repository: PlatformRepository):
         self.repository = repository
 
-    async def context(self, user_id: str) -> dict[str, Any]:
-        return await self.repository.context(user_id)
+    async def context(self, user: dict[str, Any]) -> dict[str, Any]:
+        return await self.repository.context(user)
 
     async def catalogs(self) -> dict[str, list[dict[str, Any]]]:
         return await self.repository.catalogs()
