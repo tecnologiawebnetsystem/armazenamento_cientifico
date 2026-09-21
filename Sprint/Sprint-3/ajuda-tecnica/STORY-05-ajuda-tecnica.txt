@@ -1,69 +1,60 @@
 ====================================================================================
-  STORY-05  -  CI/CD, Docker e equalização dos ambientes DEV e HMG (AWS + CAV4)
+  STORY-05  -  Sessão expirada (401), logout na UI e retorno seguro (Front)
   AJUDA TÉCNICA / REFINAMENTO
 ====================================================================================
-Trilha.....: DevOps / AWS / Banco
-Objetivo...: Containerização (front+back), pipeline CI/CD, variáveis por
-             ambiente, base de dados e conectividade/TLS do CAV4 por ambiente.
+Trilha.....: Front-end
+Pontuação..: 2
+Depende de.: STORY-02 (logout/sessão), STORY-04 (guard já ativo)
+Habilita...: -
+Objetivo...: Interceptar 401, executar logout na UI e validar o parâmetro next
+             contra open redirect.
 
 ------------------------------------------------------------------------------------
 1) ONDE MEXER NO CÓDIGO (arquivos existentes)
 ------------------------------------------------------------------------------------
-- Dockerfile                      (front-end / Next.js)
-- back-end/Dockerfile             (back-end / FastAPI)
-- docker-compose.yml              (stack raiz)
-- back-end/docker-compose.yml     (back + banco)
-- back-end/docker-compose.local.yml (perfil local/DEV)
-    -> REFINAR: garantir build multi-stage, usuário não-root e healthcheck.
-- back-end/alembic/                (migrações aplicadas no deploy)
-- back-end/app/core/config.py      (CA_SSL_VERIFY, caminho do CA, URLs CAV4)
+- lib/api-client.ts
+    Cliente HTTP central (já loga request_start/request_complete).
+    -> Interceptar 401 e disparar redirect a /login?next=<rota-atual>,
+       apenas quando NÃO estiver já em /login (sem loop).
+- components/layout/profile-avatar-menu.tsx
+    -> Logout: POST /api/auth/logout, limpar cache SWR (mutate) e ir a /login.
+- app/login/page.tsx + hooks/use-login.ts
+    -> Ler o parâmetro next e redirecionar para a rota de retorno após login.
+- lib/session.ts
+    -> Helpers de limpeza de estado no cliente.
 
 ------------------------------------------------------------------------------------
 2) O QUE CRIAR
 ------------------------------------------------------------------------------------
-- .github/workflows/ci.yml (NOVO):
-    * job PR: lint + typecheck (front) e testes (back-end/pytest);
-    * job build: docker build de front e back, tag por commit SHA;
-    * push das imagens para o registry;
-    * bloquear merge se lint/typecheck/teste falharem.
-- .github/workflows/deploy.yml (NOVO):
-    * deploy automático para DEV;
-    * deploy para HMG com aprovação manual (environment protection rules).
-- Arquivos de exemplo de variáveis: .env.dev.example e .env.hmg.example
-    (SEM segredos reais versionados). Documentar cada variável.
-- Doc curto "PROMOVER-DEV-PARA-HMG.md" em Sprint/Sprint-3/ ou back-end/docs/.
+- Util safeNext(next: string): string em lib/utils.ts:
+    aceitar apenas caminhos internos que começam com "/" e não "//" nem URL
+    absoluta -> previne open redirect.
 
 ------------------------------------------------------------------------------------
-3) BANCO DE DADOS
+3) EXEMPLO DE CÓDIGO
 ------------------------------------------------------------------------------------
-- Provisionar base para DEV e HMG (ex.: RDS/Neon) com a MESMA versão de schema.
-- Rodar `alembic upgrade head` no passo de deploy de cada ambiente.
-- Garantir seeds de RBAC (STORY-03) aplicados nos dois ambientes.
+    // safeNext
+    export function safeNext(next?: string) {
+      if (!next || !next.startsWith("/") || next.startsWith("//")) return "/dashboard"
+      return next
+    }
+    // interceptor 401
+    if (res.status === 401 && !location.pathname.startsWith("/login")) {
+      location.assign(`/login?next=${encodeURIComponent(location.pathname)}`)
+    }
 
 ------------------------------------------------------------------------------------
-4) CAV4 / TLS POR AMBIENTE
+4) BANCO DE DADOS
 ------------------------------------------------------------------------------------
-- CA_SSL_VERIFY e caminho do arquivo de CA definidos por ambiente (secrets do
-  GitHub / variáveis do ambiente AWS), nunca no repositório.
-- DEV pode usar CA interno; HMG deve validar cadeia oficial.
-- Referência: erro anterior "Erro ao conectar com CAV4 / CA_SSL_VERIFY".
+- Nenhuma alteração.
 
 ------------------------------------------------------------------------------------
-5) SUGESTÃO DE PASSO A PASSO
+5) COMO VALIDAR
 ------------------------------------------------------------------------------------
-  1. Validar Dockerfiles buildando localmente (front e back).
-  2. docker-compose subindo app + banco em DEV.
-  3. Criar ci.yml (lint/typecheck/test + build + push).
-  4. Criar deploy.yml (DEV automático, HMG com aprovação).
-  5. Separar variáveis por ambiente + provisionar bancos + migrar.
-  6. Configurar TLS/CA do CAV4 por ambiente e testar STORY-01 ponta a ponta.
-  7. Escrever o doc de promoção DEV -> HMG.
+- Forçar 401 (expirar sessão) -> redireciona uma única vez, sem loop.
+- Logout -> não consegue mais abrir rota interna; volta a /login.
+- next=//evil.com ou http://... -> ignorado (cai em /dashboard).
 
-------------------------------------------------------------------------------------
-6) COMO VALIDAR (aceite)
-------------------------------------------------------------------------------------
-- PR com erro de lint/teste -> pipeline vermelho, merge bloqueado.
-- Imagens publicadas com tag por commit.
-- DEV e HMG com mesmo schema e variáveis-chave equalizadas.
-- Login CAV4 funciona nos dois ambientes.
+CHECKLIST ANTI-HARDCODE
+  [ ] Rotas de retorno nunca confiam em valor externo sem safeNext.
 ====================================================================================

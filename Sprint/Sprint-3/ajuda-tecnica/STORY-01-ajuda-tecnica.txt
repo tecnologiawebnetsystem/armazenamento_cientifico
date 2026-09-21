@@ -1,74 +1,74 @@
 ====================================================================================
-  STORY-01  -  Login SSO integrado ao CAV4 (validação de token no back-end)
+  STORY-01  -  CAV4 OIDC: início do login, callback e validação de token (Back)
   AJUDA TÉCNICA / REFINAMENTO
 ====================================================================================
 Trilha.....: Back-end
-Objetivo...: Fluxo OIDC/SSO completo (start -> callback -> troca de código ->
-             validação de assinatura/claims -> extração da identidade -> sessão).
+Pontuação..: 3
+Depende de.: STORY-10 (TLS/conectividade CAV4 para teste ponta a ponta)
+Habilita...: STORY-02
+Objetivo...: Fluxo OIDC start -> callback -> troca de código -> validação de
+             assinatura/issuer/audience/exp/nonce. (A sessão/usuário é a STORY-02.)
 
 ------------------------------------------------------------------------------------
 1) ONDE MEXER NO CÓDIGO (arquivos existentes)
 ------------------------------------------------------------------------------------
 - back-end/app/api/routes/cav4_auth.py
-    Rotas do fluxo. Já existem os endpoints:
-      GET  /api/auth/cav4/start     -> monta authorization URL (state + nonce)
-      GET  /api/auth/cav4/callback  -> recebe code, troca por token, cria sessão
-      POST /api/auth/login          -> login manual por e-mail (mantido)
-      GET  /api/auth/session        -> retorna sessão atual
-      POST /api/auth/logout         -> encerra sessão
-    -> REFINAR: garantir validação de issuer/audience/exp e nonce no callback.
+    Endpoints do fluxo:
+      GET /api/auth/cav4/start     -> monta authorization URL (state + nonce)
+      GET /api/auth/cav4/callback  -> recebe code, troca por token
+    -> REFINAR: gravar state/nonce e validá-los no callback.
 
 - back-end/app/core/cav4.py
-    Cliente CAV4/OIDC: discovery, troca de código, validação de token.
-    -> REFINAR: separar erros (discovery, TLS, timeout, assinatura) em exceções
-       específicas para gerar mensagens claras (ver critério de aceite de erro).
-    -> Extrair identificador (matrícula/e-mail) e normalizar (lower/trim) AQUI,
-       num único ponto, antes de consultar o banco.
+    Cliente OIDC: discovery, troca de código, validação do token.
+    -> REFINAR: validar assinatura + issuer + audience + exp + nonce.
+    -> Separar erros em exceções específicas (discovery, TLS, timeout, assinatura).
 
 - back-end/app/core/config.py
-    Settings do CAV4 (client_id, client_secret, issuer/discovery URL,
-    redirect_uri, CA_SSL_VERIFY, caminho do CA). Confirmar que tudo vem de env.
-
-- back-end/app/core/temporary_sessions.py  +  app/core/authorization.py
-    Emissão do cookie de sessão HttpOnly. NÃO retornar access_token ao front.
-
-- back-end/app/core/exceptions.py
-    Adicionar/normalizar exceções (Cav4DiscoveryError, Cav4TlsError,
-    Cav4TokenInvalid, UsuarioNaoCadastrado) mapeadas para HTTP (403/502).
+    Settings do CAV4, todas vindas de env (ver seção 6).
 
 ------------------------------------------------------------------------------------
-2) O QUE CRIAR (se ainda não existir)
+2) O QUE CRIAR
 ------------------------------------------------------------------------------------
-- Função util `extract_identity(token_claims) -> str` em app/core/cav4.py.
-- Camada de "resolve user" que recebe a identidade e busca em
-  app/modules/users/repository.py (usuário por e-mail/matrícula).
-- Teste de fumaça do fluxo em DEV apontando para o CAV4 de desenvolvimento.
+- Em app/core/exceptions.py: Cav4DiscoveryError, Cav4TlsError, Cav4TokenInvalid
+  mapeadas para HTTP (502 p/ infra do CAV4; 400/401 p/ token inválido).
+- Teste de fumaça do start/callback em DEV (CAV4 de desenvolvimento).
 
 ------------------------------------------------------------------------------------
-3) BANCO DE DADOS
+3) EXEMPLO DE ASSINATURA / CONTRATO
 ------------------------------------------------------------------------------------
-- Sessões: verificar a tabela de sessões (migração
-  back-end/alembic/versions/0020_restore_auth_sessions.py e
-  0016_add_cav4_subject_to_sessions.py). O "cav4_subject" já é persistido.
-- Não precisa de nova tabela nesta story; apenas garantir que o usuário exista
-  na tabela de usuários (o vínculo de perfil vem da STORY-03).
-- Usuário sem cadastro -> retornar 403 e NÃO criar sessão (regra de negócio).
+    # app/core/cav4.py
+    def build_authorization_url(state: str, nonce: str) -> str: ...
+    def exchange_code_for_token(code: str) -> dict:   # claims já validados
+        # valida assinatura (JWKS), issuer, audience, exp e nonce
+        ...
 
 ------------------------------------------------------------------------------------
-4) SUGESTÃO DE PASSO A PASSO
+4) BANCO DE DADOS
 ------------------------------------------------------------------------------------
-  1. Confirmar discovery/issuer no cav4.py e validar assinatura + claims.
-  2. Centralizar extração/normalização da identidade.
-  3. Resolver usuário no banco; se não existir -> 403 sem sessão.
-  4. Criar sessão HttpOnly; nunca expor token ao front.
-  5. Mapear erros para mensagens específicas + log (core/logging.py).
-  6. Testar ponta a ponta em DEV (depende de STORY-05).
+- Sem alteração de schema nesta story. (Sessão/cav4_subject entram na STORY-02.)
 
 ------------------------------------------------------------------------------------
-5) COMO VALIDAR (aceite)
+5) TABELA DE ERROS (compartilhada com STORY-02/03 e front STORY-05)
 ------------------------------------------------------------------------------------
-- curl no /api/auth/cav4/start -> deve redirecionar com state/nonce.
-- Simular callback e conferir criação de cookie de sessão HttpOnly.
-- Usuário inexistente -> 403 e ausência de cookie.
-- Derrubar/forçar erro de TLS -> mensagem específica + linha de log.
+  Exceção              | HTTP | Mensagem ao usuário
+  ---------------------|------|-----------------------------------------------
+  Cav4DiscoveryError   | 502  | "Serviço de autenticação indisponível."
+  Cav4TlsError         | 502  | "Erro ao conectar com CAV4. Verifique CA_SSL_VERIFY."
+  Cav4TokenInvalid     | 401  | "Falha na autenticação corporativa."
+
+------------------------------------------------------------------------------------
+6) NOMES REAIS DE ENV VARS (confirmar em config.py)
+------------------------------------------------------------------------------------
+  CAV4_ISSUER / CAV4_DISCOVERY_URL, CAV4_CLIENT_ID, CAV4_CLIENT_SECRET,
+  CAV4_REDIRECT_URI, CA_SSL_VERIFY, CA_FILE (caminho do CA quando aplicável).
+
+------------------------------------------------------------------------------------
+7) COMO VALIDAR (comandos)
+------------------------------------------------------------------------------------
+- curl -i http://localhost:8000/api/auth/cav4/start   -> 307/302 com state+nonce.
+- Forçar erro de TLS -> resposta 502 com mensagem específica + linha de log.
+- Token com audience errada -> 401 Cav4TokenInvalid.
+
+CHECKLIST ANTI-HARDCODE
+  [ ] Nenhuma URL/segredo do CAV4 fixo no código (tudo de env).
 ====================================================================================

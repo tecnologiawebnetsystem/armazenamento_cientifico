@@ -1,72 +1,60 @@
 ====================================================================================
-  STORY-06  -  Middleware de autorização por perfil no Back-end (RBAC + 403)
+  STORY-06  -  Menu e ações condicionados ao perfil (RBAC na UI) (Front)
   AJUDA TÉCNICA / REFINAMENTO
 ====================================================================================
-Trilha.....: Back-end
-Objetivo...: Cada endpoint sensível exige perfil/permissão; sem sessão -> 401,
-             autenticado sem permissão -> 403. Verificação no servidor.
+Trilha.....: Front-end
+Pontuação..: 3
+Depende de.: STORY-03 (autorização no servidor), STORY-08 (RBAC no banco)
+Habilita...: -
+Objetivo...: Renderizar menu, telas e ações conforme o perfil/permissões do
+             usuário logado, sem nada fixo (hardcoded) em tela.
 
 ------------------------------------------------------------------------------------
 1) ONDE MEXER NO CÓDIGO (arquivos existentes)
 ------------------------------------------------------------------------------------
-- back-end/app/core/authorization.py
-    Núcleo de autorização (leitura da sessão/perfil).
-    -> REFINAR: expor dependência `require_permission("x.y")` que valida a
-       permissão exigida contra as permissões efetivas do usuário.
-- back-end/app/api/dependencies.py
-    Dependências FastAPI (get_current_user / get_session).
-    -> Base para as dependências de autorização por rota.
-- back-end/app/common/guards/__init__.py
-    Local sugerido para guards reutilizáveis (Depends) por perfil/permissão.
-- back-end/app/core/exceptions.py
-    -> Garantir 401 (sem sessão) e 403 (sem permissão) distintos.
-- back-end/app/core/audit.py  +  back-end/app/modules/audit/*
-    -> Registrar tentativas negadas na trilha de auditoria.
-- Controllers dos módulos (aplicar a dependência):
-    back-end/app/modules/projects/controller.py
-    back-end/app/modules/users/... , files/controller.py, audit/controller.py
+- lib/nav-config.ts
+    -> Anotar cada item com a permissão exigida (ex.: requiredPermission: "logs.read").
+- components/layout/app-sidebar.tsx
+    -> Filtrar itens do menu pelas permissões de use-permissions.
+- hooks/use-permissions.ts
+    -> Expor helper can(permission: string): boolean.
+- components/shared/permission-guard.tsx
+    -> Envolver seções/ações restritas (ocultar/desabilitar).
+- components/shared/action-button.tsx
+    -> Aceitar requiredPermission e desabilitar quando não permitido.
+- app/forbidden/page.tsx
+    -> Página 403 do front para acesso direto por URL não permitida.
 
 ------------------------------------------------------------------------------------
-2) O QUE CRIAR
+2) O QUE CRIAR (se necessário)
 ------------------------------------------------------------------------------------
-- Dependência de autorização, ex.:
-    def require_permission(perm: str):
-        def _dep(user = Depends(get_current_user)):
-            if user is None: raise HTTPException(401)
-            if not has_permission(user, perm):
-                audit_log(user, "ACESSO_NEGADO", perm)   # trilha de auditoria
-                raise HTTPException(403)
-            return user
-        return _dep
-  Uso no endpoint:  Depends(require_permission("projects.write"))
-- Testes unitários (pytest) em back-end/tests/ cobrindo:
-    * acesso permitido (200);
-    * autenticado sem permissão (403);
-    * sem sessão (401);
-  para pelo menos 2 endpoints representativos.
+- Wrapper de rota (em app/(app)/layout.tsx ou por página) que verifica a
+  permissão da rota e redireciona a /forbidden quando negado.
+- Constantes de permissão em lib/permissions.ts (evitar strings soltas).
 
 ------------------------------------------------------------------------------------
-3) BANCO DE DADOS
+3) EXEMPLO DE CÓDIGO
 ------------------------------------------------------------------------------------
-- Nenhuma tabela nova. Consome a consulta de perfil/permissões da STORY-03
-  (has_permission deve ler do banco, sem valores fixos no código).
-- As negativas alimentam a tabela de auditoria já existente (módulo audit).
+    const { can } = usePermissions()
+    {can("projects.write") && <ActionButton requiredPermission="projects.write">Novo</ActionButton>}
+    // sidebar:
+    items.filter(i => !i.requiredPermission || can(i.requiredPermission))
 
 ------------------------------------------------------------------------------------
-4) SUGESTÃO DE PASSO A PASSO
+4) BANCO DE DADOS
 ------------------------------------------------------------------------------------
-  1. Implementar has_permission(user, perm) lendo permissões efetivas (STORY-03).
-  2. Criar require_permission em authorization.py / guards.
-  3. Aplicar a dependência nos endpoints sensíveis.
-  4. Diferenciar 401 x 403 nas exceções.
-  5. Registrar tentativas negadas no audit.
-  6. Escrever testes permitido/negado/sem-sessão.
+- Nenhuma alteração direta. Consome a consulta de permissões (STORY-07/08) via
+  endpoint que devolve perfil + permissões efetivas.
 
 ------------------------------------------------------------------------------------
-5) COMO VALIDAR (aceite)
+5) COMO VALIDAR
 ------------------------------------------------------------------------------------
-- Chamar endpoint sensível sem cookie -> 401.
-- Chamar com perfil sem permissão -> 403 + registro na auditoria.
-- Chamar com perfil autorizado -> 200.
-- pytest verde para os 3 cenários em 2 endpoints.
+- Logar como Auditor -> só Logs/Relatórios em leitura; sem botões de escrita.
+- Logar como Gerente -> vê gestão de projetos.
+- Acessar por URL rota não permitida -> cai em /forbidden.
+- Conferir no Network que as permissões vêm da API (não fixas).
+
+CHECKLIST ANTI-HARDCODE
+  [ ] Nenhum item de menu/permissão/rótulo fixo: tudo vem da API.
+  [ ] Auditor não vê nenhuma ação de escrita.
 ====================================================================================

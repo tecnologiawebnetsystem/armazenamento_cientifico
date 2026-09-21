@@ -1,0 +1,69 @@
+====================================================================================
+  STORY-07  -  Modelo de dados RBAC (perfis/permissões) + migração (Banco)
+  AJUDA TÉCNICA / REFINAMENTO
+====================================================================================
+Trilha.....: Banco / Modelagem
+Pontuação..: 2
+Depende de.: -
+Habilita...: STORY-03, STORY-06, STORY-08
+Objetivo...: Modelo perfil/permissão + consulta única de permissões efetivas.
+             É a base do RBAC (o vínculo com persona CAV4 é a STORY-08).
+
+------------------------------------------------------------------------------------
+1) ONDE MEXER NO CÓDIGO (arquivos existentes)
+------------------------------------------------------------------------------------
+- back-end/app/modules/users/profile_model.py
+    Modelo ORM de perfil. Base do RBAC.
+- back-end/app/db/models.py + back-end/app/db/seed.py
+    Registro dos modelos e carga inicial (seed) de perfis/permissões.
+- back-end/app/modules/users/repository.py
+    -> Adicionar get_effective_permissions(user_id) (consulta única).
+- Referências de migração/seed já existentes:
+    back-end/alembic/versions/0003_add_perfis.py
+    back-end/alembic/versions/0023_parametrizacao_completa.py
+    back-end/database/0032_seed_admin_menu_permissions.sql
+    back-end/database/0033_corrigir_permissoes_e_catalogos.sql
+
+------------------------------------------------------------------------------------
+2) O QUE CRIAR
+------------------------------------------------------------------------------------
+- NOVA migração Alembic (ex.: 0024_rbac_perfil_permissao.py):
+    * tabela perfil_permissao (perfil_id, permissao) se ainda não normalizada;
+    * índices necessários.
+  IMPORTANTE: implementar downgrade() -> reversível.
+- SEED dos 4 perfis (Administrador, Gerente, Patrocinador, Auditor) com suas
+  permissões em app/db/seed.py e/ou SQL em back-end/database/.
+
+------------------------------------------------------------------------------------
+3) BANCO DE DADOS (modelo sugerido)
+------------------------------------------------------------------------------------
+  perfil (id, nome, descricao)
+  perfil_permissao (perfil_id -> perfil.id, permissao TEXT)
+  usuario (... perfil_id -> perfil.id)
+
+  Consulta única (efetiva):
+    SELECT p.nome, array_agg(pp.permissao)
+    FROM usuario u
+    JOIN perfil p ON p.id = u.perfil_id
+    LEFT JOIN perfil_permissao pp ON pp.perfil_id = p.id
+    WHERE u.id = :user_id
+    GROUP BY p.nome;
+
+------------------------------------------------------------------------------------
+4) SUGESTÃO DE PASSO A PASSO
+------------------------------------------------------------------------------------
+  1. Criar migração (upgrade + downgrade) das tabelas de perfil/permissão.
+  2. Escrever seed dos 4 perfis e permissões.
+  3. Implementar get_effective_permissions no repository.
+  4. Aplicar em DEV e HMG (alembic upgrade head).
+
+------------------------------------------------------------------------------------
+5) COMO VALIDAR (comandos)
+------------------------------------------------------------------------------------
+- alembic upgrade head && alembic downgrade -1  -> sem erro (reversível).
+- Consulta única retorna perfil + permissões para um usuário de teste.
+- Seed presente em DEV e HMG.
+
+CHECKLIST ANTI-HARDCODE
+  [ ] Permissões definidas no seed/banco, nunca no código de aplicação.
+====================================================================================

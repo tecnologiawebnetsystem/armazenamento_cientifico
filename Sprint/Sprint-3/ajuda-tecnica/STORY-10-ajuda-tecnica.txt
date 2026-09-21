@@ -1,0 +1,68 @@
+====================================================================================
+  STORY-10  -  Ambientes AWS DEV/HMG, TLS CAV4 e provisionamento de BD (DevOps)
+  AJUDA TÉCNICA / REFINAMENTO
+====================================================================================
+Trilha.....: DevOps / AWS / Banco
+Pontuação..: 2
+Depende de.: STORY-09 (imagens/pipeline)
+Habilita...: STORY-01 (teste ponta a ponta do CAV4)
+Objetivo...: Equalizar DEV e HMG: variáveis por ambiente, bancos, TLS do CAV4 e
+             deploy com aprovação para HMG.
+
+------------------------------------------------------------------------------------
+1) ONDE MEXER NO CÓDIGO (arquivos existentes)
+------------------------------------------------------------------------------------
+- back-end/app/core/config.py   (CA_SSL_VERIFY, CA_FILE, URLs do CAV4)
+- back-end/alembic/             (migrações aplicadas no deploy)
+
+------------------------------------------------------------------------------------
+2) O QUE CRIAR
+------------------------------------------------------------------------------------
+- .github/workflows/deploy.yml (NOVO):
+    * deploy automático para DEV;
+    * deploy para HMG com aprovação manual (environment protection rules).
+- Arquivos de exemplo: .env.dev.example e .env.hmg.example
+    (SEM segredos reais versionados). Documentar cada variável.
+- Doc curto "PROMOVER-DEV-PARA-HMG.md" em Sprint/Sprint-3/ ou back-end/docs/.
+
+------------------------------------------------------------------------------------
+3) BANCO DE DADOS
+------------------------------------------------------------------------------------
+- Provisionar base para DEV e HMG (ex.: RDS/Neon) com a MESMA versão de schema.
+- Rodar alembic upgrade head no passo de deploy de cada ambiente.
+- Garantir seeds de RBAC (STORY-07/08) aplicados nos dois ambientes.
+
+------------------------------------------------------------------------------------
+4) CAV4 / TLS POR AMBIENTE
+------------------------------------------------------------------------------------
+- CA_SSL_VERIFY e CA_FILE definidos por ambiente (secrets do GitHub / variáveis
+  do ambiente AWS), nunca no repositório.
+- DEV pode usar CA interno; HMG deve validar a cadeia oficial.
+- Referência: erro anterior "Erro ao conectar com CAV4 / CA_SSL_VERIFY".
+
+------------------------------------------------------------------------------------
+5) NOMES REAIS DE ENV VARS (por ambiente)
+------------------------------------------------------------------------------------
+  CA_SSL_VERIFY, CA_FILE, CAV4_ISSUER/CAV4_DISCOVERY_URL, CAV4_CLIENT_ID,
+  CAV4_CLIENT_SECRET, CAV4_REDIRECT_URI, DATABASE_URL.
+
+------------------------------------------------------------------------------------
+6) SUGESTÃO DE PASSO A PASSO
+------------------------------------------------------------------------------------
+  1. Fechar recursos AWS-alvo com infra (ECS/EC2/RDS) - Risco R3.
+  2. Separar variáveis por ambiente + provisionar bancos + migrar.
+  3. Configurar TLS/CA do CAV4 por ambiente.
+  4. Criar deploy.yml (DEV automático, HMG com aprovação).
+  5. Testar STORY-01 ponta a ponta nos dois ambientes.
+  6. Escrever o doc de promoção DEV -> HMG.
+
+------------------------------------------------------------------------------------
+7) COMO VALIDAR
+------------------------------------------------------------------------------------
+- DEV e HMG com mesmo schema e variáveis-chave equalizadas.
+- Login CAV4 funciona nos dois ambientes.
+- Deploy para HMG exige aprovação manual.
+
+CHECKLIST ANTI-HARDCODE
+  [ ] Nenhum segredo/URL de ambiente versionado; tudo em secrets/vars.
+====================================================================================

@@ -1,0 +1,61 @@
+====================================================================================
+  STORY-09  -  Docker, docker-compose e CI (GitHub Actions) (DevOps)
+  AJUDA TÉCNICA / REFINAMENTO
+====================================================================================
+Trilha.....: DevOps
+Pontuação..: 2
+Depende de.: -
+Habilita...: DoD (CI verde) de todas as histórias
+Objetivo...: Containerizar front/back e criar o pipeline de integração contínua.
+             (Ambientes/TLS/BD por ambiente são a STORY-10.)
+
+------------------------------------------------------------------------------------
+1) ONDE MEXER NO CÓDIGO (arquivos existentes)
+------------------------------------------------------------------------------------
+- Dockerfile                        (front-end / Next.js)
+- back-end/Dockerfile               (back-end / FastAPI)
+- docker-compose.yml                (stack raiz)
+- back-end/docker-compose.yml       (back + banco)
+- back-end/docker-compose.local.yml (perfil local/DEV)
+    -> REFINAR: build multi-stage, usuário não-root, healthcheck.
+
+------------------------------------------------------------------------------------
+2) O QUE CRIAR
+------------------------------------------------------------------------------------
+- .github/workflows/ci.yml (NOVO):
+    * job PR: lint + typecheck (front) e testes (back-end/pytest);
+    * job build: docker build de front e back, tag por commit SHA;
+    * push das imagens para o registry;
+    * bloquear merge se lint/typecheck/teste falharem (required checks).
+
+------------------------------------------------------------------------------------
+3) EXEMPLO (esqueleto ci.yml)
+------------------------------------------------------------------------------------
+    on: { pull_request: {}, push: { branches: [main] } }
+    jobs:
+      quality:
+        steps:
+          - run: pnpm install && pnpm lint && pnpm typecheck   # front
+          - run: pip install -r back-end/requirements.txt && pytest back-end
+      build:
+        needs: quality
+        steps:
+          - run: docker build -t sigac-front:${{ github.sha }} .
+          - run: docker build -t sigac-back:${{ github.sha }} back-end
+
+------------------------------------------------------------------------------------
+4) BANCO DE DADOS
+------------------------------------------------------------------------------------
+- Nenhuma alteração de schema. docker-compose sobe um banco para DEV local.
+
+------------------------------------------------------------------------------------
+5) COMO VALIDAR
+------------------------------------------------------------------------------------
+- docker build (front e back) conclui localmente.
+- docker-compose up sobe app + banco em DEV.
+- PR com erro de lint/teste -> pipeline vermelho, merge bloqueado.
+- Imagens publicadas com tag por commit.
+
+CHECKLIST ANTI-HARDCODE
+  [ ] Nenhum segredo no Dockerfile/compose versionado (usar env/secret).
+====================================================================================
