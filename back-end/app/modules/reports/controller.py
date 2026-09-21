@@ -1,13 +1,16 @@
 import csv
 import io
 from typing import Annotated
+
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.dependencies import CurrentUser
 from app.db.session import get_session
+
 from .repository import ReportRepository
-from .schemas import ReportExportQuery, ReportFilters
+from .schemas import ReportExportQuery
 from .service import ReportService
 
 router = APIRouter(prefix="/api", tags=["Reports"])

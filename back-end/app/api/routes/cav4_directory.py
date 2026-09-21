@@ -4,9 +4,9 @@ from time import perf_counter
 from fastapi import APIRouter, HTTPException, Request, status
 
 from app.api.dependencies import get_current_user
-from app.infrastructure.cav4 import CAV4AuthenticationError, CAV4OIDCProvider
 from app.core.config import settings
 from app.core.temporary_sessions import get_session_user
+from app.infrastructure.cav4 import CAV4AuthenticationError, CAV4OIDCProvider
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/cav4", tags=["CAV4 Directory"])
