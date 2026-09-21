@@ -4,7 +4,7 @@ import useSWR from "swr"
 import { getSession } from "@/lib/api-client"
 
 export function useSession() {
-  const { data, error, isLoading, mutate } = useSWR("session", () => getSession(), {
+  const { data, error, isLoading, mutate } = useSWR("/api/auth/session", getSession, {
     revalidateOnFocus: false,
     shouldRetryOnError: false,
   })

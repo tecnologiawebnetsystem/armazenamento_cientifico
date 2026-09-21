@@ -5,7 +5,7 @@ import { getPlatformContext } from "@/lib/api-client"
 import type { PlatformContext } from "@/lib/types"
 
 export function usePlatformContext() {
-  const swr = useSWR<PlatformContext>("platform-context", getPlatformContext, {
+  const swr = useSWR<PlatformContext>("/api/platform/context", getPlatformContext, {
     revalidateOnFocus: false,
     revalidateOnReconnect: true,
     shouldRetryOnError: false,
