@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 import secrets
+import ssl
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -13,6 +14,7 @@ from urllib.parse import urlencode
 
 import httpx
 import jwt
+import truststore
 from jwt import InvalidTokenError
 
 from app.core.config import settings
@@ -55,12 +57,20 @@ class UnconfiguredCAV4Provider:
 
 def _claim_values(claims: dict[str, Any], *names: str) -> tuple[str, ...]:
     values: list[str] = []
-    for name in names:
-        value = claims.get(name)
+
+    def collect(value: Any) -> None:
         if isinstance(value, str):
             values.extend(part.strip() for part in value.replace(",", " ").split() if part.strip())
-        elif isinstance(value, list):
-            values.extend(str(item).strip() for item in value if str(item).strip())
+        elif isinstance(value, (list, tuple, set)):
+            for item in value:
+                collect(item)
+        elif isinstance(value, dict):
+            for key in names:
+                if key in value:
+                    collect(value[key])
+
+    for name in names:
+        collect(claims.get(name))
     return tuple(dict.fromkeys(values))
 
 
@@ -85,16 +95,27 @@ def decode_state_nonce(state: str) -> str:
 
 
 def _build_httpx_client() -> httpx.AsyncClient:
-    """Cria cliente HTTP com certificados SSL configurados."""
-    ca_certs = None
-    if settings.ca_ssl_use_truststore and settings.ca_ssl_cert_file and Path(settings.ca_ssl_cert_file).is_file():
-        ca_certs = settings.ca_ssl_cert_file
+    """Cria cliente HTTP usando CA corporativa ou trust store do sistema."""
+    if not settings.ca_ssl_verify:
+        verify: bool | str = False
+        tls_source = "disabled"
+    elif settings.ca_ssl_cert_file:
+        ca_file = Path(settings.ca_ssl_cert_file)
+        if not ca_file.is_file():
+            raise CAV4AuthenticationError(f"CA_SSL_CERT_FILE não encontrado: {ca_file}")
+        verify = str(ca_file)
+        tls_source = "ca_file"
     elif settings.ca_ssl_use_truststore:
-        ca_certs = True
-    verify = ca_certs if settings.ca_ssl_verify else False
+        verify = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        tls_source = "system_truststore"
+    else:
+        verify = True
+        tls_source = "certifi"
+
     logger.info(
-        "[CAV4] TLS configurado verify=%s truststore=%s ca_file_configured=%s",
+        "[CAV4] TLS configurado verify=%s source=%s truststore=%s ca_file_configured=%s",
         settings.ca_ssl_verify,
+        tls_source,
         settings.ca_ssl_use_truststore,
         bool(settings.ca_ssl_cert_file),
     )
@@ -265,18 +286,32 @@ class CAV4OIDCProvider:
         access_token = token_data.get("access_token")
         email = claims.get("email") or claims.get("preferred_username") or claims.get("upn") or ""
         display_name = claims.get("name")
-        if not email and access_token and settings.cav4_userinfo_url:
+        if access_token and settings.cav4_userinfo_url:
             userinfo = await self.get_user_data(access_token=access_token, endpoint=settings.cav4_userinfo_url)
             if isinstance(userinfo, dict):
-                email = userinfo.get("email") or userinfo.get("preferred_username") or userinfo.get("upn") or ""
+                email = email or userinfo.get("email") or userinfo.get("preferred_username") or userinfo.get("upn") or ""
                 display_name = display_name or userinfo.get("name")
                 claims = {**claims, **userinfo}
+
+        roles = _claim_values(
+            claims,
+            "roles",
+            "role",
+            "groups",
+            "group",
+            "profile",
+            "profile_id",
+            "profileId",
+            "information-values",
+            "information_values",
+        )
+        logger.info("[CAV4] Claims de autorização encontrados chaves=%s quantidade_papeis=%s", sorted(claims.keys()), len(roles))
 
         return CAV4Identity(
             subject=claims.get("sub", ""),
             email=email,
             display_name=display_name,
-            roles=_claim_values(claims, "roles", "groups", "role", "group", "information-values"),
+            roles=roles,
             permissions=_claim_values(claims, "permissions", "scp", "scope"),
             raw_claims=claims,
             access_token=access_token,
