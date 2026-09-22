@@ -1,9 +1,15 @@
 import Image from "next/image"
+import { redirect } from "next/navigation"
 import { LoginForm } from "@/components/login/login-form"
 import { LogoFull } from "@/components/brand/logo-mark"
+import { getBackendSession } from "@/lib/session"
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ auth_error?: string }> }) {
-  const { auth_error: authError } = await searchParams
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ auth_error?: string; next?: string }> }) {
+  const { auth_error: authError, next } = await searchParams
+  const user = await getBackendSession()
+  const nextPath = next?.startsWith("/") && !next.startsWith("//") ? next : "/dashboard"
+  if (user && !authError) redirect(nextPath)
+
   return (
     <div className="light relative grid min-h-svh overflow-hidden bg-[linear-gradient(112deg,#063f58_0%,#075b70_24%,#087d69_48%,#008f5a_70%,#006b3f_100%)] text-foreground lg:grid-cols-[1.1fr_1fr]">
       <Image
@@ -81,7 +87,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             </p>
           </div>
 
-          <LoginForm authError={authError} />
+          <LoginForm authError={authError} nextPath={nextPath} />
         </div>
       </div>
     </div>

@@ -20,13 +20,18 @@ export async function getBackendSession(): Promise<SessionUser | null> {
   const baseUrl = process.env.NODE_ENV === "production"
     ? (process.env.BACKEND_INTERNAL_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "")
     : "http://localhost:8080"
-  const response = await fetch(`${baseUrl}/api/auth/session`, {
-    headers: { Cookie: `${SESSION_COOKIE}=${encodeURIComponent(sessionId)}` },
-    cache: "no-store",
-  })
-  if (!response.ok) return null
-  const payload = (await response.json()) as { user: SessionUser | null }
-  return payload.user
+  try {
+    const response = await fetch(`${baseUrl}/api/auth/session`, {
+      headers: { Cookie: `${SESSION_COOKIE}=${encodeURIComponent(sessionId)}` },
+      cache: "no-store",
+    })
+    if (!response.ok) return null
+    const payload = (await response.json()) as { user: SessionUser | null }
+    return payload.user
+  } catch {
+    // Se o backend estiver indisponível, trate a sessão como ausente e permita novo login.
+    return null
+  }
 }
 
 export async function setSessionUserId(userId: string) {
