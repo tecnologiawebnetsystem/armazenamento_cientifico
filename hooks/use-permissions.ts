@@ -16,6 +16,16 @@ export function normalizeRole(role: Role | string | null | undefined): string {
   return aliases[value] ?? value
 }
 
+export function isMenuAllowedForRole(role: Role | string | null | undefined, route: string): boolean {
+  const normalized = normalizeRole(role)
+  const path = route.replace(/\/$/, "") || "/"
+  if (normalized === "admin") return true
+  if (normalized === "gerente") return path !== "/configuracoes"
+  if (normalized === "patrocinador") return path === "/projetos" || path.startsWith("/projetos/")
+  if (normalized === "auditor") return path === "/auditoria" || path.startsWith("/auditoria/") || path === "/logs" || path.startsWith("/logs/")
+  return false
+}
+
 export function hasCapability(permissions: string[] | undefined, capability: Capability): boolean {
   return Boolean(permissions?.includes(capability))
 }

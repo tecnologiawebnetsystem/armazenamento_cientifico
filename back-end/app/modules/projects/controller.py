@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, require_capabilities
+from app.core.authorization import canonical_role, require_capability
 from app.core.exceptions import ConflictException
 from app.db.session import get_session
 from app.modules.projects.models import Project
@@ -62,8 +63,11 @@ async def list_projects(service: Annotated[ProjectService, Depends(get_service)]
 async def create_project(
     data: ProjectCreate,
     service: Annotated[ProjectService, Depends(get_service)],
-    _: Annotated[dict, Depends(require_capabilities("create"))],
+    user: CurrentUser,
 ):
+    if canonical_role(user.get("role")) in {"gerente", "patrocinador", "auditor", "solicitante"}:
+        raise HTTPException(status_code=403, detail="Este perfil não pode criar projetos")
+    require_capability(user, "create")
     try:
         project = await service.create_project(data)
     except ConflictException as error:

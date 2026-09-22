@@ -38,7 +38,17 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
     session_hours: int = 8
     temporary_cav4_session: bool = False
-    email_login_enabled: bool = True
+    email_login_enabled: bool = Field(
+        default=True,
+        validation_alias=AliasChoices(
+            "EMAIL_LOGIN_ENABLED",
+            "EMAIL_LOGIN_ENABLE",
+            "email.login.enable",
+            "NEST_PUBLIC_EMAIL_LOGIN_ENABLED",
+            "NEST_PUBLIC_EMAIL_LOGIN_ENABLE",
+            "nest.public.email.login.enable",
+        ),
+    )
     db_min_size: int = 1
     db_max_size: int = 10
     db_command_timeout: int = 30
