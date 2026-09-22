@@ -29,20 +29,8 @@ CREATE TABLE IF NOT EXISTS access_requests (id varchar(36) PRIMARY KEY, project_
 CREATE TABLE IF NOT EXISTS activity_logs (id varchar(36) PRIMARY KEY, user_id varchar(36) REFERENCES users(id) ON DELETE SET NULL, action varchar(100) NOT NULL, entity varchar(100) NOT NULL, entity_id varchar(36), details text NOT NULL DEFAULT '', created_at timestamptz NOT NULL DEFAULT now());
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email); CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status); CREATE INDEX IF NOT EXISTS idx_folders_project_parent ON folders(project_id,parent_id); CREATE INDEX IF NOT EXISTS idx_activity_logs_created ON activity_logs(created_at DESC); CREATE INDEX IF NOT EXISTS idx_access_requests_project ON access_requests(project_id); 
 
--- 02 subject CAV4
--- Fonte histórica consolidada: back-end/database/migrations/0016_add_cav4_subject_to_sessions.sql
--- SIGAC migration 0016
--- Persiste somente o subject/identificador técnico retornado pelo CAV4
--- na sessão autenticada. Não cria nem persiste papéis, grupos ou permissões CAV4.
+  -- O identificador técnico do CAV4 é armazenado diretamente em sessions.user_id.
 
-ALTER TABLE sessions
-    ADD COLUMN IF NOT EXISTS cav4_subject VARCHAR(255);
-
-COMMENT ON COLUMN sessions.cav4_subject IS
-    'Identificador técnico (subject) retornado pelo CAV4 para a sessão autenticada; não representa papel, grupo ou permissão.';
-
--- Rollback manual, se necessário:
--- ALTER TABLE sessions DROP COLUMN IF EXISTS cav4_subject;
 
 -- 03 sessões de autenticação
 -- Fonte histórica consolidada: back-end/database/migrations/0020_restore_auth_sessions.sql
@@ -50,11 +38,10 @@ COMMENT ON COLUMN sessions.cav4_subject IS
 
 CREATE TABLE IF NOT EXISTS sessions (
     id VARCHAR(128) PRIMARY KEY,
-    user_id VARCHAR(36) NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) NULL,
     email VARCHAR(320) NOT NULL,
     profile_id VARCHAR(20) NOT NULL REFERENCES profiles(id) ON DELETE RESTRICT,
-    expires_at TIMESTAMP NOT NULL,
-    cav4_subject VARCHAR(255),
+  expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

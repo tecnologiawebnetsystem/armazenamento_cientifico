@@ -43,11 +43,10 @@ def upgrade() -> None:
     bind.execute(text("""
         CREATE TABLE IF NOT EXISTS sessions (
             id VARCHAR(128) PRIMARY KEY,
-            user_id VARCHAR(36) NULL REFERENCES users(id) ON DELETE CASCADE,
+            user_id VARCHAR(255) NULL,
             email VARCHAR(320) NOT NULL,
             profile_id VARCHAR(20) NOT NULL REFERENCES profiles(id) ON DELETE RESTRICT,
-            expires_at TIMESTAMP NOT NULL,
-            cav4_subject VARCHAR(255),
+  expires_at TIMESTAMP NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
     """))
@@ -58,7 +57,9 @@ def upgrade() -> None:
     bind.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS email VARCHAR(320)"))
     bind.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS profile_id VARCHAR(20)"))
     bind.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP"))
-    bind.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS cav4_subject VARCHAR(255)"))
+    bind.execute(text("ALTER TABLE sessions DROP CONSTRAINT IF EXISTS sessions_user_id_fkey"))
+    bind.execute(text("ALTER TABLE sessions ALTER COLUMN user_id TYPE VARCHAR(255) USING user_id::text"))
+    bind.execute(text("ALTER TABLE sessions DROP COLUMN IF EXISTS cav4_subject"))
     bind.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_email ON sessions(email)"))
     bind.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_profile_id ON sessions(profile_id)"))
     bind.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_expires_at ON sessions(expires_at)"))
