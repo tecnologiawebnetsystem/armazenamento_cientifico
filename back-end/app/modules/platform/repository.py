@@ -38,7 +38,45 @@ class PlatformRepository:
             return {"user": user, "permissions": [], "modules": [], "menus": [], "dashboardCards": []}
         permissions = await self.rows(f"select pp.permission_id as id from {self.schema}.profile_permissions pp join {self.schema}.permissions p on p.id = pp.permission_id where pp.profile_id = :profile_id and pp.allowed = true and p.active = true", {"profile_id": profile_id})
         modules = await self.rows(f"select m.id, m.name as nome, m.route as rota, m.icon as icone, m.display_order as ordem from {self.schema}.profile_modules pm join {self.schema}.modules m on m.id = pm.module_id where pm.profile_id = :profile_id and pm.can_view = true and m.active = true order by m.display_order, m.name", {"profile_id": profile_id})
-        menus = await self.rows(f"select distinct mi.id, mi.name as nome, mi.route as rota, mi.icon as icone, mi.display_order as ordem, mi.parent_id as parent_id from {self.schema}.menus mi left join {self.schema}.menu_permissions mp on mp.menu_id = mi.id where mi.active = true and mp.permission_id is not null and mp.allowed = true and mp.permission_id in (select pp.permission_id from {self.schema}.profile_permissions pp where pp.profile_id = :profile_id and pp.allowed = true) order by mi.display_order, mi.name", {"profile_id": profile_id})
+        menus = await self.rows(
+            f"""
+            select distinct
+                mi.id,
+                mi.name as nome,
+                mi.route as rota,
+                mi.icon as icone,
+                mi.display_order as ordem,
+                mi.parent_id
+            from {self.schema}.menus mi
+            join {self.schema}.modules md
+                on md.id = mi.module_id
+               and md.active = true
+            where mi.active = true
+              and exists (
+                  select 1
+                  from {self.schema}.profile_modules pm
+                  where pm.profile_id = :profile_id
+                    and pm.module_id = mi.module_id
+                    and pm.can_view = true
+              )
+              and exists (
+                  select 1
+                  from {self.schema}.menu_permissions mp
+                  join {self.schema}.profile_permissions pp
+                    on pp.permission_id = mp.permission_id
+                   and pp.profile_id = :profile_id
+                   and pp.allowed = true
+                  join {self.schema}.permissions p
+                    on p.id = mp.permission_id
+                   and p.module_id = mi.module_id
+                   and p.active = true
+                  where mp.menu_id = mi.id
+                    and mp.allowed = true
+              )
+            order by mi.display_order, mi.name
+            """,
+            {"profile_id": profile_id},
+        )
         cards = await self.rows(f"select id, key, title as titulo, description as descricao, metric_key as metrica, route as rota, display_order as ordem from {self.schema}.dashboard_cards where active = true and (profile_ids = '' or position(',' || :profile_id || ',' in ',' || replace(profile_ids, ' ', '') || ',') > 0) order by display_order, title", {"profile_id": profile_id})
         return {"user": user, "permissions": [row["id"] for row in permissions], "modules": modules, "menus": menus, "dashboardCards": cards}
 
