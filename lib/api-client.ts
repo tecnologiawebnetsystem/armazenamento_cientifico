@@ -5,7 +5,6 @@ import type {
   ActivityLog,
   DashboardSummary,
   FileNode,
-  PlatformSettings,
   Project,
   ProjectMember,
   Role,
@@ -276,18 +275,7 @@ export function updateAccessRequest(id: string, status: "aprovado" | "negado") {
   })
 }
 
-/* -------------------------------- Settings -------------------------------- */
 
-export function getSettings() {
-  return request<{ settings: PlatformSettings }>("/api/settings")
-}
-
-export function updateSettings(data: Partial<PlatformSettings>) {
-  return request<{ settings: PlatformSettings }>("/api/settings", {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  })
-}
 
 /* ------------------------------ Activity logs ------------------------------ */
 

@@ -98,9 +98,6 @@ class PlatformRepository:
     async def access_requests(self) -> list[dict[str, Any]]:
         return await self.rows(f"select id, requester_id as \"usuarioId\", project_id as \"projetoId\", request_type as tipo, requested_role as \"papelSolicitado\", justification as justificativa, servicenow_ticket as \"numeroChamadoServiceNow\", status, created_at as \"criadoEm\", updated_at as \"atualizadoEm\", analyzed_by as \"analisadoPor\" from {self.schema}.access_requests order by created_at desc")
 
-    async def settings(self) -> list[dict[str, Any]]:
-        return await self.rows(f"select key as chave, value as valor from {self.schema}.system_settings where active = true")
-
     async def activity_logs(self, page: int, limit: int) -> tuple[list[dict[str, Any]], int]:
         rows = await self.rows(f"select al.id, al.user_id as \"userId\", u.name as \"userName\", u.email as \"userEmail\", al.action as acao, al.entity as entidade, al.entity_id as \"entidadeId\", al.details as detalhes, al.created_at as \"criadoEm\", al.result as resultado, al.project_id as \"projetoId\" from {self.schema}.activity_logs al left join {self.schema}.users u on u.id = al.user_id order by al.created_at desc limit :limit offset :offset", {"limit": limit, "offset": (page - 1) * limit})
         count = await self.one(f"select count(*) as total from {self.schema}.activity_logs")

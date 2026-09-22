@@ -24,7 +24,6 @@ from app.modules.catalogs.models import (
     ProjectType,
     ReportField,
     ReportType,
-    SystemSetting,
 )
 from app.modules.files.models import Folder
 from app.modules.projects.member_model import ProjectMember
@@ -51,7 +50,7 @@ __all__ = [
     "AccessRequest", "ActivityLog", "DashboardCard", "Folder", "MenuItem", "MenuPermission", "Module", "Perfil",
     "Permission", "ProfileModule", "ProfilePermission",
     "Project", "ProjectMember", "ProjectStatusCatalog", "ProjectType",
-    "ReportField", "ReportType", "ResponsibleArea", "SystemSetting", "User",
+    "ReportField", "ReportType", "ResponsibleArea", "User",
 ]
 
 # Evita que linters removam os imports que registram as classes no metadata.
@@ -59,7 +58,7 @@ _ORM_MODELS = (
     AccessRequest, ActivityLog, DashboardCard, Folder, MenuItem, MenuPermission, Module, Perfil, Permission,
     ProfileModule, ProfilePermission, Project, ProjectMember,
     ProjectStatusCatalog, ProjectType, ReportField, ReportType, ResponsibleArea,
-    SystemSetting, User,
+    User,
 )
 
 # A tupla mantém referências aos modelos importados para o carregamento do metadata.

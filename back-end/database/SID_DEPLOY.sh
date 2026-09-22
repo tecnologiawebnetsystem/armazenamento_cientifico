@@ -26,6 +26,12 @@ psql "$DATABASE_URL" \
   --single-transaction \
   --file "$ROOT_DIR/database/002_seed_operational_catalogs.sql"
 
+printf '%s\n' '[SID Deploy] Removendo tabelas descontinuadas...'
+psql "$DATABASE_URL" \
+  --set ON_ERROR_STOP=1 \
+  --single-transaction \
+  --file "$ROOT_DIR/database/005_remove_obsolete_tables.sql"
+
 printf '%s\n' '[SID Deploy] Validando versão e tabelas principais...'
 uv run alembic current
 psql "$DATABASE_URL" \

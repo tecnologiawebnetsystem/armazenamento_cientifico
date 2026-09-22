@@ -29,7 +29,7 @@ def upgrade() -> None:
         "menu_permissions", "menus", "modules", "permissions", "profile_modules",
         "profile_permissions", "profiles", "project_members", "project_statuses",
         "project_types", "projects", "report_fields", "report_types",
-        "responsible_areas", "system_settings", "users",
+        "responsible_areas", "users",
     }
     registered_tables = set(Base.metadata.tables)
     missing_tables = expected_tables - registered_tables

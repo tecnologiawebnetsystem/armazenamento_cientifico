@@ -153,13 +153,6 @@ export interface PlatformCatalogs {
   tiposRelatorios: Array<{ id: string; codigo: string; nome: string; descricao: string; formatos: string; ativo: boolean }>
 }
 
-/** Parâmetros administráveis da plataforma (administração > parâmetros). */
-export interface PlatformSettings {
-  areasOrganizacionais: string[]
-  cotaArmazenamentoPadraoMb: number
-  diasExpiracaoSolicitacaoAcesso: number
-  mensagemAvisoAmbiente: string
-}
 
 /** Ação registrada na trilha de auditoria da plataforma. */
 export type ActivityAction =

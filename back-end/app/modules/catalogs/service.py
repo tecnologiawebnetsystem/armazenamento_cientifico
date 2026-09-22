@@ -5,7 +5,6 @@ from app.modules.catalogs.models import (
     Permission,
     ProjectStatusCatalog,
     ProjectType,
-    SystemSetting,
 )
 from app.modules.catalogs.repository import (
     MenuItemRepository,
@@ -14,7 +13,6 @@ from app.modules.catalogs.repository import (
     ProjectStatusRepository,
     ProjectTypeRepository,
     ResponsibleAreaRepository,
-    SystemSettingRepository,
 )
 
 
@@ -44,20 +42,6 @@ class PermissionService:
 
     async def list_all_permissions(self) -> list[Permission]:
         return await self.repository.list_all()
-
-
-class SystemSettingService:
-    def __init__(self, repository: SystemSettingRepository):
-        self.repository = repository
-
-    async def get_setting(self, key: str) -> SystemSetting | None:
-        return await self.repository.find_by_key(key)
-
-    async def list_all_settings(self) -> list[SystemSetting]:
-        return await self.repository.list_all()
-
-    async def list_settings_by_group(self, group: str) -> list[SystemSetting]:
-        return await self.repository.list_by_group(group)
 
 
 class ProjectStatusService:

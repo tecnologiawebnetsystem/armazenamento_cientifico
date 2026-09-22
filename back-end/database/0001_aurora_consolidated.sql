@@ -19,7 +19,6 @@ CREATE TABLE IF NOT EXISTS profile_permissions (profile_id varchar(20) NOT NULL 
 CREATE TABLE IF NOT EXISTS profile_modules (profile_id varchar(20) NOT NULL REFERENCES profiles(id) ON DELETE CASCADE, module_id varchar(80) NOT NULL REFERENCES modules(id) ON DELETE CASCADE, can_view boolean NOT NULL DEFAULT true, PRIMARY KEY (profile_id, module_id));
 CREATE TABLE IF NOT EXISTS project_statuses (id varchar(40) PRIMARY KEY, code varchar(40) NOT NULL UNIQUE, name varchar(100) NOT NULL, color varchar(20) NOT NULL DEFAULT 'slate', display_order integer NOT NULL DEFAULT 0, active boolean NOT NULL DEFAULT true, allows_edit boolean NOT NULL DEFAULT true);
 CREATE TABLE IF NOT EXISTS project_types (id varchar(40) PRIMARY KEY, code varchar(40) NOT NULL UNIQUE, name varchar(100) NOT NULL, description text NOT NULL DEFAULT '', active boolean NOT NULL DEFAULT true);
-CREATE TABLE IF NOT EXISTS system_settings (key varchar(120) PRIMARY KEY, value text NOT NULL DEFAULT '', value_type varchar(30) NOT NULL DEFAULT 'string', description text NOT NULL DEFAULT '', group_name varchar(80) NOT NULL DEFAULT 'general', active boolean NOT NULL DEFAULT true);
 CREATE TABLE IF NOT EXISTS report_types (id varchar(60) PRIMARY KEY, code varchar(60) NOT NULL UNIQUE, name varchar(120) NOT NULL, description text NOT NULL DEFAULT '', formats text NOT NULL DEFAULT 'csv', active boolean NOT NULL DEFAULT true);
 CREATE TABLE IF NOT EXISTS report_fields (id varchar(60) PRIMARY KEY, report_code varchar(60) NOT NULL REFERENCES report_types(code) ON DELETE CASCADE, field_key varchar(100) NOT NULL, label varchar(160) NOT NULL, source_key varchar(160) NOT NULL, display_order integer NOT NULL DEFAULT 0, active boolean NOT NULL DEFAULT true, UNIQUE (report_code, field_key));
 CREATE TABLE IF NOT EXISTS menus (id varchar(80) PRIMARY KEY, module_id varchar(80) REFERENCES modules(id) ON DELETE SET NULL, parent_id varchar(80), name varchar(120) NOT NULL, route varchar(180) NOT NULL DEFAULT '', icon varchar(80) NOT NULL DEFAULT 'circle', display_order integer NOT NULL DEFAULT 0, active boolean NOT NULL DEFAULT true);
@@ -73,7 +72,6 @@ CREATE INDEX IF NOT EXISTS ix_sessions_expires_at ON sessions(expires_at);
 -- 04 parametrização estrutural
 -- Fonte histórica consolidada: back-end/database/0023_parametrizacao_completa.sql
 -- Parametrização de menus e dashboard. Executar no Aurora/PostgreSQL.
--- Não contém permission_matrix nem SQL executável armazenado em parâmetros.
 
 CREATE TABLE IF NOT EXISTS menu_permissions (
   menu_id VARCHAR(80) NOT NULL REFERENCES menus(id) ON DELETE CASCADE,
@@ -227,11 +225,6 @@ FROM profiles p CROSS JOIN (VALUES
 WHERE EXISTS (SELECT 1 FROM permissions permission WHERE permission.id=x.permission_id)
 ON CONFLICT (profile_id,permission_id) DO UPDATE SET allowed=excluded.allowed;
 
-INSERT INTO system_settings (key,value,value_type,description,group_name,active) VALUES
- ('limite_arquivo_mb','100','number','Tamanho máximo de arquivo','arquivos',true),
- ('retencao_logs_dias','365','number','Retenção de auditoria','auditoria',true),
- ('parametrizacao_seed_versao','0040','string','Versão do seed canônico','sistema',true)
-ON CONFLICT (key) DO UPDATE SET value=excluded.value, value_type=excluded.value_type, description=excluded.description, group_name=excluded.group_name, active=excluded.active;
 
 -- COMMIT removido: transação controlada pela migration consolidada.
 

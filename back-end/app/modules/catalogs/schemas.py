@@ -22,17 +22,6 @@ class PermissionOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class SystemSettingOut(BaseModel):
-    chave: str
-    valor: str
-    tipo: str
-    descricao: str
-    grupo: str
-    ativo: bool
-
-    model_config = {"from_attributes": True}
-
-
 class ProjectStatusOut(BaseModel):
     id: str
     codigo: str

@@ -95,7 +95,7 @@ O perfil administrador deve possuir acesso a todos os módulos ativos, menus ati
 | Autorização | `permissions`, `profile_permissions`, `profile_modules`, `menu_permissions` | Controle parametrizado de capacidades, módulos e menus. |
 | Projetos | `projects`, `project_members`, `access_requests` | Projetos, participantes e solicitações de acesso. |
 | Relatórios | `report_types`, `report_fields` | Catálogo e campos configuráveis de relatórios. |
-| Catálogos/configuração | `project_statuses`, `project_types`, `responsible_areas`, `system_settings` | Dados parametrizáveis do sistema. |
+  | Catálogos | `project_statuses`, `project_types`, `responsible_areas` | Dados parametrizáveis do sistema. |
 | Auditoria | `activity_logs` | Eventos de autenticação, autorização e operações. |
 | Arquivos | `folders` | Consulta somente leitura da estrutura autorizada. |
 

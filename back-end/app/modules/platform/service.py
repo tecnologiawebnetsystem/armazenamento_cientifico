@@ -30,9 +30,6 @@ class PlatformService:
     async def access_requests(self) -> dict[str, list[dict[str, Any]]]:
         return await self.governance_service.access_requests()
 
-    async def settings(self) -> dict[str, Any]:
-        return await self.governance_service.settings()
-
     async def activity_logs(self, page: int, limit: int) -> dict[str, Any]:
         logs, total = await self.repository.activity_logs(page, limit)
         return {"logs": logs, "pagination": {"page": page, "limit": limit, "total": total, "totalPages": (total + limit - 1) // limit}}
@@ -46,11 +43,6 @@ class PlatformService:
         await self.repository.execute("update access_requests set status = :status, analyzed_by = :user_id, updated_at = now() where id = :id", {"id": request_id, "status": status, "user_id": user_id})
         request = await self.repository.one("select id, requester_id as \"usuarioId\", project_id as \"projetoId\", request_type as tipo, requested_role as \"papelSolicitado\", justification as justificativa, status from access_requests where id = :id", {"id": request_id})
         return {"request": request}
-
-    async def update_settings(self, values: dict[str, Any]) -> dict[str, Any]:
-        for key, value in values.items():
-            await self.repository.execute("update system_settings set value = :value where key = :key", {"key": key, "value": str(value)})
-        return await self.settings()
 
     async def access_map(self) -> dict[str, Any]:
         return await self.governance_service.access_map()

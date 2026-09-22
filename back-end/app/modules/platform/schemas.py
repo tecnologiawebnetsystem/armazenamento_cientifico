@@ -10,7 +10,3 @@ class AccessRequestCreate(BaseModel):
 
 class AccessRequestUpdate(BaseModel):
     status: str
-
-
-class SettingsUpdate(BaseModel):
-    values: dict[str, str | int | bool | None]
