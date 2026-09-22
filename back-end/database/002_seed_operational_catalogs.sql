@@ -52,15 +52,25 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO report_fields (id, report_code, field_key, label, source_key, display_order, active)
 VALUES
- ('projetos-codigo','projetos','codigo','Código','codigo',10,true),
+ ('projetos-codigo','projetos','codigo','Código ou identificador','codigo',10,true),
  ('projetos-nome','projetos','nome','Nome do projeto','nome',20,true),
- ('projetos-area','projetos','areaResponsavel','Área responsável','areaResponsavel',30,true),
- ('projetos-status','projetos','status','Status','status',40,true),
- ('projetos-criado-em','projetos','criadoEm','Criado em','criadoEm',50,true),
+ ('projetos-area-responsavel','projetos','areaResponsavel','Área responsável','areaResponsavel',30,true),
+ ('projetos-gestores-ids','projetos','gestoresIds','Gestores do projeto','gestoresIds',40,true),
+ ('projetos-grupo-escrita','projetos','grupoAdEscrita','Grupo Azure AD — escrita','grupoAdEscrita',50,true),
+ ('projetos-grupo-leitura','projetos','grupoAdLeitura','Grupo Azure AD — leitura','grupoAdLeitura',60,true),
+ ('projetos-role-escrita','projetos','roleIdentidadeEscrita','Role Identidade — escrita','roleIdentidadeEscrita',70,true),
+ ('projetos-role-leitura','projetos','roleIdentidadeLeitura','Role Identidade — leitura','roleIdentidadeLeitura',80,true),
+ ('projetos-tarefa-snow','projetos','numeroTarefaSnow','Número da tarefa do Snow','numeroTarefaSnow',90,true),
+ ('projetos-pasta-mae','projetos','pastaMae','Pasta mãe do projeto','pastaMae',100,true),
+ ('projetos-descricao','projetos','descricao','Descrição','descricao',110,true),
+ ('projetos-status','projetos','status','Status','status',120,true),
+ ('projetos-criado-em','projetos','criadoEm','Data de criação','criadoEm',130,true),
+ ('projetos-atualizado-em','projetos','atualizadoEm','Data de atualização','atualizadoEm',140,true),
  ('acessos-usuario','acessos','userName','Usuário','userName',10,true),
- ('acessos-email','acessos','userEmail','E-mail','userEmail',20,true),
- ('acessos-projeto','acessos','projectName','Projeto','projectName',30,true),
- ('acessos-nivel','acessos','accessLevel','Nível de acesso','accessLevel',40,true)
+ ('acessos-chave-cav4','acessos','userId','Chave do usuário CAv4','userId',20,true),
+ ('acessos-email','acessos','userEmail','E-mail','userEmail',30,true),
+ ('acessos-projeto','acessos','projectName','Projeto','projectName',40,true),
+ ('acessos-nivel','acessos','accessLevel','Nível de acesso','accessLevel',50,true)
 ON CONFLICT (id) DO UPDATE SET
  report_code=excluded.report_code, field_key=excluded.field_key, label=excluded.label,
  source_key=excluded.source_key, display_order=excluded.display_order, active=excluded.active;
