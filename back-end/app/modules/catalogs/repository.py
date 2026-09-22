@@ -7,7 +7,6 @@ from app.modules.catalogs.models import (
     Module,
     Permission,
     ProjectStatusCatalog,
-    ProjectType,
 )
 
 
@@ -65,22 +64,6 @@ class ProjectStatusRepository:
             select(ProjectStatusCatalog)
             .where(ProjectStatusCatalog.ativo.is_(True))
             .order_by(ProjectStatusCatalog.ordem)
-        )
-        return list(result)
-
-
-class ProjectTypeRepository:
-    def __init__(self, session: AsyncSession):
-        self.session = session
-
-    async def find_by_id(self, type_id: str) -> ProjectType | None:
-        return await self.session.scalar(
-            select(ProjectType).where(ProjectType.id == type_id)
-        )
-
-    async def list_active(self) -> list[ProjectType]:
-        result = await self.session.scalars(
-            select(ProjectType).where(ProjectType.ativo.is_(True))
         )
         return list(result)
 

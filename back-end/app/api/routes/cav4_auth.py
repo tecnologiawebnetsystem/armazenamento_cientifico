@@ -234,12 +234,13 @@ async def cav4_callback(request: Request, code: str, state: str):
             )
             await database.execute(
                 text(f"""insert into {schema}.sessions
-                    (id,user_id,email,profile_id,expires_at)
-                    values(:id,:user_id,:email,:profile_id,:expires_at)"""),
+                    (id,user_id,email,display_name,profile_id,expires_at)
+                    values(:id,:user_id,:email,:display_name,:profile_id,:expires_at)"""),
                 {
                     "id": session_id,
                     "user_id": identity.user_login or identity.subject or identity.email,
                     "email": identity.email,
+                    "display_name": identity.display_name or identity.user_login or identity.email,
                     "profile_id": str(profile_id),
                     "expires_at": expires_at,
                 },

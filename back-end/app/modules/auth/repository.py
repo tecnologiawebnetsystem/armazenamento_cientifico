@@ -15,7 +15,7 @@ class AuthRepository:
 
     async def find_session_identity(self, session_id: str) -> dict[str, Any] | None:
         result = await self.database.execute(text(f"""
-            select s.id, s.email, s.user_id, s.profile_id,
+            select s.id, s.email, s.user_id, s.display_name, s.profile_id,
                    u.name as name,
                    p.name as profile_name,
                    coalesce(array_agg(distinct perm.id) filter
@@ -26,7 +26,7 @@ class AuthRepository:
             left join {self.schema}.profile_permissions pp on pp.profile_id = p.id
             left join {self.schema}.permissions perm on perm.id = pp.permission_id
             where s.id = :session_id and s.expires_at > now()
-            group by s.id, s.email, s.user_id, s.profile_id, u.name, p.name
+            group by s.id, s.email, s.user_id, s.display_name, s.profile_id, u.name, p.name
         """), {"session_id": session_id})
         row = result.mappings().first()
         return dict(row) if row else None

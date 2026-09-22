@@ -8,8 +8,7 @@ from app.modules.catalogs.models import (
     Permission,
     ProfilePermission,
     ProjectStatusCatalog,
-    ProjectType,
-    ReportField,
+      ReportField,
     ReportType,
 )
 from app.modules.projects.member_model import ProjectMember
@@ -36,7 +35,6 @@ SEED_PERMISSIONS = [
     ("administracao.configurar", "administracao", "Configurar parâmetros"),
 ]
 SEED_STATUS = [("ATIVO", "ativo", "Ativo", "green", 10, True), ("INATIVO", "inativo", "Inativo", "slate", 20, False), ("CONCLUIDO", "concluido", "Concluído", "blue", 30, False), ("SUSPENSO", "suspenso", "Suspenso", "amber", 40, True)]
-SEED_TYPES = [("CIENTIFICO", "cientifico", "Científico", "Projetos científicos"), ("TECNOLOGIA", "tecnologia", "Tecnologia", "Projetos de tecnologia")]
 SEED_REPORTS = [("PROJETOS", "projetos", "Relatório de projetos", "csv,xlsx,pdf"), ("ACESSOS", "acessos", "Mapa de acessos", "csv,xlsx,pdf")]
 SEED_AREAS = [
     ("tecnologia-informacao", "Tecnologia da Informação", "TI"),
@@ -110,9 +108,7 @@ async def initialize_database(engine) -> None:
         for status_id, code, name, color, order, editable in SEED_STATUS:
             if not await session.get(ProjectStatusCatalog, status_id):
                 session.add(ProjectStatusCatalog(id=status_id, codigo=code, nome=name, cor=color, ordem=order, ativo=True, permite_edicao=editable))
-        for type_id, code, name, description in SEED_TYPES:
-            if not await session.get(ProjectType, type_id):
-                session.add(ProjectType(id=type_id, codigo=code, nome=name, descricao=description, ativo=True))
+
         for report_id, code, name, formats in SEED_REPORTS:
             if not await session.get(ReportType, report_id):
                 session.add(ReportType(id=report_id, codigo=code, nome=name, descricao=name, formatos=formats, ativo=True))
