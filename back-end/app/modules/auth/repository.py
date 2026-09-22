@@ -15,7 +15,7 @@ class AuthRepository:
 
     async def find_session_identity(self, session_id: str) -> dict[str, Any] | None:
         result = await self.database.execute(text(f"""
-            select s.id, s.email, s.user_id, s.display_name, s.profile_id,
+            select s.id, s.email, s.user_id, coalesce(nullif(u.name, ''), nullif(s.display_name, '')) as display_name, s.profile_id,
                    u.name as name,
                    p.name as profile_name,
                    coalesce(array_agg(distinct perm.id) filter
