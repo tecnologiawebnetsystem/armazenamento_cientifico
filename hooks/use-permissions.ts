@@ -11,6 +11,12 @@ export function normalizeRole(role: Role | string | null | undefined): string {
     viewer: "auditor",
     sponsor: "patrocinador",
     requester: "solicitante",
+    adm: "admin",
+    ger: "gerente",
+    pat: "patrocinador",
+    aud: "auditor",
+    audit: "auditor",
+    auditoria: "auditor",
   }
   const value = String(role ?? "").trim().toLowerCase()
   return aliases[value] ?? value

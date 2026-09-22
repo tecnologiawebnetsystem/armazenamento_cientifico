@@ -65,11 +65,19 @@ export function AppSidebar() {
   const { menus, permissions, data } = usePlatformContext()
   const isAdministrator = data?.user?.perfil_id?.toUpperCase() === "ADM" || data?.user?.perfil_nome?.toLowerCase().includes("admin")
   const canManageConfiguration = isAdministrator || permissions.includes("administracao.configuracoes")
-  const role = data?.user?.perfil_nome
+  const role = data?.user?.perfil_id || data?.user?.perfil_nome
+  const normalizedRole = String(role ?? "").trim().toLowerCase()
   const roleMenus = menus.filter((menu) => isMenuAllowedForRole(role, menu.rota))
-  const visibleMenus = canManageConfiguration && !roleMenus.some((menu) => menu.rota === "/configuracoes")
-    ? [...roleMenus, { id: "menu-configuracoes", nome: "Configurações", rota: "/configuracoes", icone: "settings", ordem: 90 }]
-    : roleMenus
+  const fallbackMenus: PlatformMenu[] = normalizedRole.includes("pat") || normalizedRole === "pat"
+    ? [{ id: "menu-projetos", nome: "Projetos", rota: "/projetos", icone: "folder", ordem: 10 }]
+    : normalizedRole.includes("aud") || normalizedRole === "aud"
+      ? [{ id: "menu-logs", nome: "Logs e Auditoria", rota: "/logs", icone: "logs", ordem: 50 }]
+      : []
+  const fallbackRoutes = new Set(roleMenus.map((menu) => menu.rota.replace(/\/$/, "") || "/"))
+  const mergedMenus = [...roleMenus, ...fallbackMenus.filter((menu) => !fallbackRoutes.has(menu.rota))]
+  const visibleMenus = canManageConfiguration && !mergedMenus.some((menu) => menu.rota === "/configuracoes")
+    ? [...mergedMenus, { id: "menu-configuracoes", nome: "Configurações", rota: "/configuracoes", icone: "settings", ordem: 90 }]
+    : mergedMenus
   const groups = buildNavGroups(visibleMenus)
 
   return (
