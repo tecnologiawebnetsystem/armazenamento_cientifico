@@ -25,7 +25,7 @@ export default function AccessMapPage() {
   const { data: configuredFields } = useSWR("/api/report-fields?report_code=acessos", () => getReportFields("acessos"))
   const [search, setSearch] = useState(""); const [type, setType] = useState("todos"); const [level, setLevel] = useState("todos"); const [area, setArea] = useState("todos"); const [role, setRole] = useState("todos"); const [projectStatus, setProjectStatus] = useState("todos"); const [view, setView] = useState("projeto"); const [exportOpen, setExportOpen] = useState(false)
   const hasCriteria = Boolean(search.trim()) || [type, level, area, role, projectStatus].some((value) => value !== "todos")
-  const accessLabel = (value: string) => ({ gerente: "Gestão", editor: "Edição", leitor: "Leitura", viewer: "Leitura" }[value.toLowerCase()] ?? value)
+  const accessLabel = (value?: string | null) => { const key = (value ?? "").toString().trim(); if (!key) return "Não definido"; return ({ gerente: "Gestão", editor: "Edição", leitor: "Leitura", viewer: "Leitura" }[key.toLowerCase()] ?? key) }
   const resourceTypes = useMemo(() => Array.from(new Set((data?.rows ?? []).map((row) => row.resourceType).filter(Boolean))), [data?.rows])
   const accessLevels = useMemo(() => Array.from(new Set((data?.rows ?? []).map((row) => row.accessLevel).filter(Boolean))), [data?.rows])
   const roles = useMemo(() => Array.from(new Set((data?.rows ?? []).map((row) => row.userRole).filter(Boolean))), [data?.rows])
