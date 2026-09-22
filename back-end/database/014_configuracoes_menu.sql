@@ -15,11 +15,13 @@ VALUES ('menu-configuracoes', 'administracao.configuracoes', true)
 ON CONFLICT (menu_id, permission_id) DO UPDATE SET allowed = excluded.allowed;
 
 INSERT INTO profile_modules (profile_id, module_id, can_view)
-SELECT 'ADM', 'configuracoes', true
-WHERE EXISTS (SELECT 1 FROM profiles WHERE id = 'ADM')
+SELECT id, 'configuracoes', true
+FROM profiles
+WHERE UPPER(id) = 'ADM' OR LOWER(name) LIKE '%admin%'
 ON CONFLICT (profile_id, module_id) DO UPDATE SET can_view = excluded.can_view;
 
 INSERT INTO profile_permissions (profile_id, permission_id, allowed)
-SELECT 'ADM', 'administracao.configuracoes', true
-WHERE EXISTS (SELECT 1 FROM profiles WHERE id = 'ADM')
+SELECT id, 'administracao.configuracoes', true
+FROM profiles
+WHERE UPPER(id) = 'ADM' OR LOWER(name) LIKE '%admin%'
 ON CONFLICT (profile_id, permission_id) DO UPDATE SET allowed = excluded.allowed;

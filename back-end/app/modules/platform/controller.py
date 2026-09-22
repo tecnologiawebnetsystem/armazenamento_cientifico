@@ -41,7 +41,9 @@ CONFIGURATION_RESOURCES = frozenset(PlatformRepository.CONFIGURATION_TABLES)
 
 
 def require_admin(user: dict[str, Any]) -> None:
-    if str(user.get("profile_id", "")).upper() != "ADM":
+    profile_id = str(user.get("profile_id", ""))
+    profile_name = str(user.get("profile_name", ""))
+    if profile_id.upper() != "ADM" and "admin" not in profile_name.lower():
         raise HTTPException(status_code=403, detail="Apenas administradores podem alterar configurações")
 
 
