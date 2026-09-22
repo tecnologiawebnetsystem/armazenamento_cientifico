@@ -41,11 +41,20 @@ function getIcon(name: string): LucideIcon {
 }
 
 function buildNavGroups(menus: PlatformMenu[]): NavGroup[] {
-  const items: NavItem[] = menus.map((menu) => ({
+  const uniqueMenus = Array.from(
+    new Map(
+      menus
+        .filter((menu) => menu.rota)
+        .map((menu) => [menu.rota.trim().replace(/\/$/, "") || "/", menu]),
+    ).values(),
+  )
+
+  const items: NavItem[] = uniqueMenus.map((menu) => ({
     title: menu.nome,
     url: menu.rota,
     icon: getIcon(menu.icone),
   }))
+
   return items.length ? [{ label: "Sistema", items }] : []
 }
 
