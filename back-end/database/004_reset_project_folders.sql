@@ -4,37 +4,32 @@
 
 BEGIN;
 
+-- Normaliza registros antigos antes da recriação.
+UPDATE folders SET kind = 'pasta' WHERE kind = 'folder';
+
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM projects) THEN
         RAISE EXCEPTION 'Nenhum projeto encontrado; carga de pastas cancelada';
     END IF;
-
-    IF NOT EXISTS (
-        SELECT 1 FROM users
-        WHERE profile_id = 'ADM' OR role = 'administrador'
-    ) THEN
-        RAISE EXCEPTION 'Nenhum usuário administrador encontrado para created_by';
-    END IF;
 END $$;
 
--- A FK folders.created_by é NOT NULL e RESTRICT. Por isso, todas as novas
--- pastas serão criadas com o mesmo administrador técnico existente.
+-- Pastas pertencem aos projetos e podem existir sem usuário local.
+-- Isso é necessário quando a identidade vem exclusivamente do CAv4.
+ALTER TABLE folders ALTER COLUMN created_by DROP NOT NULL;
+ALTER TABLE folders DROP CONSTRAINT IF EXISTS folders_created_by_fkey;
+ALTER TABLE folders
+    ADD CONSTRAINT folders_created_by_fkey
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL;
+
 CREATE OR REPLACE FUNCTION pg_temp.seed_project_folders()
 RETURNS void
 LANGUAGE plpgsql
 AS $function$
 DECLARE
-    folder_owner varchar(36);
     project_row record;
     root_id varchar(128);
 BEGIN
-    SELECT u.id INTO folder_owner
-    FROM users u
-    WHERE u.profile_id = 'ADM' OR u.role = 'administrador'
-    ORDER BY u.created_at NULLS LAST, u.id
-    LIMIT 1;
-
     DELETE FROM folders;
 
     FOR project_row IN
@@ -49,7 +44,7 @@ BEGIN
             mime_type, created_by, created_at, updated_at
         ) VALUES (
             root_id, project_row.id, NULL, 'pasta', 'Documentos', 0,
-            NULL, folder_owner, current_timestamp, current_timestamp
+            NULL, NULL, current_timestamp, current_timestamp
         );
 
         INSERT INTO folders (
@@ -57,13 +52,13 @@ BEGIN
             mime_type, created_by, created_at, updated_at
         ) VALUES
         (md5('sigac-folder:' || project_row.id || ':contratos'), project_row.id,
-         root_id, 'pasta', 'Contratos', 0, NULL, folder_owner,
+         root_id, 'pasta', 'Contratos', 0, NULL, NULL,
          current_timestamp, current_timestamp),
         (md5('sigac-folder:' || project_row.id || ':relatorios'), project_row.id,
-         root_id, 'pasta', 'Relatórios', 0, NULL, folder_owner,
+         root_id, 'pasta', 'Relatórios', 0, NULL, NULL,
          current_timestamp, current_timestamp),
         (md5('sigac-folder:' || project_row.id || ':documentos'), project_row.id,
-         root_id, 'pasta', 'Documentos do projeto', 0, NULL, folder_owner,
+         root_id, 'pasta', 'Documentos do projeto', 0, NULL, NULL,
          current_timestamp, current_timestamp);
     END LOOP;
 END;

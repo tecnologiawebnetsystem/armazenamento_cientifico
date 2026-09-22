@@ -14,7 +14,7 @@ class FolderRepository:
     async def find_by_project(self, project_id: str) -> list[Folder]:
         result = await self.session.scalars(
             select(Folder)
-            .where(Folder.project_id == project_id, Folder.kind == "pasta")
+            .where(Folder.project_id == project_id, Folder.kind.in_(("pasta", "folder")))
             .order_by(Folder.name)
         )
         return list(result)
