@@ -299,6 +299,10 @@ class CAV4OIDCProvider:
             or claims.get("display_name")
             or claims.get("displayName")
             or claims.get("full_name")
+            or claims.get("fullName")
+            or claims.get("nome_completo")
+            or claims.get("nomeCompleto")
+            or claims.get("preferred_name")
             or claims.get("nome")
         )
         if not display_name:
@@ -352,6 +356,10 @@ class CAV4OIDCProvider:
             or claims.get("display_name")
             or claims.get("displayName")
             or claims.get("full_name")
+            or claims.get("fullName")
+            or claims.get("nome_completo")
+            or claims.get("nomeCompleto")
+            or claims.get("preferred_name")
             or claims.get("nome")
         )
         if not display_name:
