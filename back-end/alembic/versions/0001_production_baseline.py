@@ -43,8 +43,9 @@ def upgrade() -> None:
     bind.execute(text("""
         CREATE TABLE IF NOT EXISTS sessions (
             id VARCHAR(128) PRIMARY KEY,
-            user_id VARCHAR(255) NULL,
-            email VARCHAR(320) NOT NULL,
+  user_id VARCHAR(255) NULL,
+  email VARCHAR(320) NOT NULL,
+  display_name VARCHAR(255),
             profile_id VARCHAR(20) NOT NULL REFERENCES profiles(id) ON DELETE RESTRICT,
   expires_at TIMESTAMP NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -60,6 +61,7 @@ def upgrade() -> None:
     bind.execute(text("ALTER TABLE sessions DROP CONSTRAINT IF EXISTS sessions_user_id_fkey"))
     bind.execute(text("ALTER TABLE sessions ALTER COLUMN user_id TYPE VARCHAR(255) USING user_id::text"))
     bind.execute(text("ALTER TABLE sessions DROP COLUMN IF EXISTS cav4_subject"))
+    bind.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS display_name VARCHAR(255)"))
     bind.execute(text("ALTER TABLE project_members DROP CONSTRAINT IF EXISTS project_members_user_id_fkey"))
     bind.execute(text("ALTER TABLE project_members ALTER COLUMN user_id TYPE VARCHAR(255) USING user_id::text"))
     bind.execute(text("ALTER TABLE project_members DROP COLUMN IF EXISTS role"))

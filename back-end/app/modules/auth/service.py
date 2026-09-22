@@ -30,7 +30,7 @@ class CurrentUserService:
             "role": canonical_role(role),
             "roles": list(user.get("roles") or []),
             "permissions": sorted(permissions),
-            "nome": user.get("name") or user.get("display_name"),
+            "nome": user.get("display_name") or user.get("name") or user.get("user_id") or user.get("subject"),
             "cargo": user.get("job_title") or user.get("cargo"),
             "area": user.get("area"),
             "avatarUrl": user.get("avatar_url"),
