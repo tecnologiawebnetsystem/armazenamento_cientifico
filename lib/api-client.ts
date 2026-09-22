@@ -1,11 +1,9 @@
 import type {
   ProjectReport,
-  AccessRequest,
   AccessMapResponse,
   ActivityLog,
   DashboardSummary,
   FileNode,
-  PlatformSettings,
   Project,
   ProjectMember,
   Role,
@@ -249,44 +247,6 @@ export function getProjectReportExportPath(params: { format: "csv" | "txt" | "pd
 export async function getUsers() {
   const response = await request<User[] | { users: User[] }>("/api/users")
   return { users: Array.isArray(response) ? response : (response.users ?? []) }
-}
-
-/* ----------------------------- Access requests ---------------------------- */
-
-export function getAccessRequests() {
-  return request<{ requests: AccessRequest[] }>("/api/access-requests")
-}
-
-export function createAccessRequest(data: {
-  projetoId: string
-  tipo: "novo-acesso" | "alteracao-permissao"
-  papelSolicitado: Role
-  justificativa: string
-}) {
-  return request<{ request: AccessRequest }>("/api/access-requests", {
-    method: "POST",
-    body: JSON.stringify(data),
-  })
-}
-
-export function updateAccessRequest(id: string, status: "aprovado" | "negado") {
-  return request<{ request: AccessRequest }>(`/api/access-requests/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify({ status }),
-  })
-}
-
-/* -------------------------------- Settings -------------------------------- */
-
-export function getSettings() {
-  return request<{ settings: PlatformSettings }>("/api/settings")
-}
-
-export function updateSettings(data: Partial<PlatformSettings>) {
-  return request<{ settings: PlatformSettings }>("/api/settings", {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  })
 }
 
 /* ------------------------------ Activity logs ------------------------------ */

@@ -11,7 +11,6 @@ from app.modules.catalogs.models import (
     ProjectType,
     ReportField,
     ReportType,
-    SystemSetting,
 )
 from app.modules.projects.member_model import ProjectMember
 from app.modules.projects.models import Project
@@ -67,7 +66,6 @@ SEED_REPORT_FIELDS = [
     ("acessos-acesso", "acessos", "acesso", "Nível de acesso", "accessLevel", 80),
     ("acessos-ultima", "acessos", "ultimaVisualizacao", "Última visualização", "lastViewedAt", 90),
 ]
-SEED_SETTINGS = [("limite_arquivo_mb", "100", "number", "Tamanho máximo de arquivo", "arquivos"), ("retencao_logs_dias", "365", "number", "Retenção de auditoria", "auditoria")]
 SEED_MENUS = [("menu-projetos", "projetos", "Projetos", "/projetos", "folder", 10), ("menu-usuarios", "usuarios", "Usuários", "/usuarios", "users", 20), ("menu-relatorios", "relatorios", "Relatórios", "/relatorios", "chart", 30)]
 
 SEED_USERS = [
@@ -121,9 +119,7 @@ async def initialize_database(engine) -> None:
         for field_id, report_code, field_key, label, source_key, display_order in SEED_REPORT_FIELDS:
             if not await session.get(ReportField, field_id):
                 session.add(ReportField(id=field_id, report_code=report_code, field_key=field_key, label=label, source_key=source_key, display_order=display_order, active=True))
-        for key, value, kind, description, group in SEED_SETTINGS:
-            if not await session.get(SystemSetting, key):
-                session.add(SystemSetting(chave=key, valor=value, tipo=kind, descricao=description, grupo=group, ativo=True))
+
         for menu_id, module_id, name, route, icon, order in SEED_MENUS:
             if not await session.get(MenuItem, menu_id):
                 session.add(MenuItem(id=menu_id, modulo_id=module_id, nome=name, rota=route, icone=icon, ordem=order, ativo=True))

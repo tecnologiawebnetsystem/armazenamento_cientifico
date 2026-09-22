@@ -58,16 +58,6 @@ class ProjectType(Base):
     ativo: Mapped[bool] = mapped_column("active", Boolean, default=True, nullable=False)
 
 
-class SystemSetting(Base):
-    __tablename__ = "system_settings"
-    chave: Mapped[str] = mapped_column("key", String(120), primary_key=True)
-    valor: Mapped[str] = mapped_column("value", Text, default="", nullable=False)
-    tipo: Mapped[str] = mapped_column("value_type", String(30), default="string", nullable=False)
-    descricao: Mapped[str] = mapped_column("description", Text, default="", nullable=False)
-    grupo: Mapped[str] = mapped_column("group_name", String(80), default="geral", nullable=False)
-    ativo: Mapped[bool] = mapped_column("active", Boolean, default=True, nullable=False)
-
-
 class ReportField(Base):
     __tablename__ = "report_fields"
     id: Mapped[str] = mapped_column(String(60), primary_key=True)

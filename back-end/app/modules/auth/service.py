@@ -37,7 +37,7 @@ class CurrentUserService:
             "ultimoLogin": user.get("last_login_at"),
             "perfilId": user.get("profile_id"),
             "perfilNome": user.get("profile_name") or role,
-            "chaveCav4": user.get("cav4_subject") or user.get("subject"),
+            "chaveCav4": user.get("user_id") or user.get("subject"),
             "criadoEm": user.get("created_at"),
             "groups": list(user.get("groups") or []),
         }

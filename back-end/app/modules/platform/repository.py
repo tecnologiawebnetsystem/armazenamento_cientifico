@@ -91,18 +91,12 @@ class PlatformRepository:
 
     async def dashboard(self) -> dict[str, Any]:
         projects = await self.rows(f"select id, name as nome, code as codigo, responsible_area as \"areaResponsavel\", status, description as descricao, created_at as \"criadoEm\", updated_at as \"atualizadoEm\" from {self.schema}.projects order by updated_at desc")
-        counts = await self.one(f"select (select count(*) from {self.schema}.project_members) as membros, (select count(*) from {self.schema}.folders) as mapas, (select count(*) from {self.schema}.access_requests where status = 'pendente') as pendencias, (select coalesce(sum(size_bytes), 0) from {self.schema}.folders) as armazenamento")
+        counts = await self.one(f"select (select count(*) from {self.schema}.project_members) as membros, (select count(*) from {self.schema}.folders) as mapas, (select coalesce(sum(size_bytes), 0) from {self.schema}.folders) as armazenamento")
         activity = await self.rows(f"select id, user_id as \"userId\", action as acao, entity as entidade, entity_id as \"entidadeId\", details as detalhes, created_at as \"criadoEm\", result as resultado, project_id as \"projetoId\" from {self.schema}.activity_logs order by created_at desc limit 10")
-        return {"projects": projects, "totalMembros": counts["membros"], "totalMapas": counts["mapas"], "armazenamentoMb": counts["armazenamento"], "pendencias": counts["pendencias"], "activity": activity, "source": "database", "consultedAt": datetime.now(UTC).isoformat()}
-
-    async def access_requests(self) -> list[dict[str, Any]]:
-        return await self.rows(f"select id, requester_id as \"usuarioId\", project_id as \"projetoId\", request_type as tipo, requested_role as \"papelSolicitado\", justification as justificativa, servicenow_ticket as \"numeroChamadoServiceNow\", status, created_at as \"criadoEm\", updated_at as \"atualizadoEm\", analyzed_by as \"analisadoPor\" from {self.schema}.access_requests order by created_at desc")
-
-    async def settings(self) -> list[dict[str, Any]]:
-        return await self.rows(f"select key as chave, value as valor from {self.schema}.system_settings where active = true")
+        return {"projects": projects, "totalMembros": counts["membros"], "totalMapas": counts["mapas"], "armazenamentoMb": counts["armazenamento"], "activity": activity, "source": "database", "consultedAt": datetime.now(UTC).isoformat()}
 
     async def activity_logs(self, page: int, limit: int) -> tuple[list[dict[str, Any]], int]:
-        rows = await self.rows(f"select al.id, al.user_id as \"userId\", u.name as \"userName\", u.email as \"userEmail\", al.action as acao, al.entity as entidade, al.entity_id as \"entidadeId\", al.details as detalhes, al.created_at as \"criadoEm\", al.result as resultado, al.project_id as \"projetoId\" from {self.schema}.activity_logs al left join {self.schema}.users u on u.id = al.user_id order by al.created_at desc limit :limit offset :offset", {"limit": limit, "offset": (page - 1) * limit})
+        rows = await self.rows(f"select al.id, al.user_id as \"userId\", null as \"userName\", null as \"userEmail\", al.action as acao, al.entity as entidade, al.entity_id as \"entidadeId\", al.details as detalhes, al.created_at as \"criadoEm\", al.result as resultado, al.project_id as \"projetoId\" from {self.schema}.activity_logs al order by al.created_at desc limit :limit offset :offset", {"limit": limit, "offset": (page - 1) * limit})
         count = await self.one(f"select count(*) as total from {self.schema}.activity_logs")
         return rows, int(count["total"])
 

@@ -25,11 +25,11 @@ def upgrade() -> None:
 
     bind = op.get_bind()
     expected_tables = {
-        "access_requests", "activity_logs", "dashboard_cards", "folders",
+        "activity_logs", "dashboard_cards", "folders",
         "menu_permissions", "menus", "modules", "permissions", "profile_modules",
         "profile_permissions", "profiles", "project_members", "project_statuses",
         "project_types", "projects", "report_fields", "report_types",
-        "responsible_areas", "system_settings", "users",
+        "responsible_areas", "users",
     }
     registered_tables = set(Base.metadata.tables)
     missing_tables = expected_tables - registered_tables
@@ -43,11 +43,10 @@ def upgrade() -> None:
     bind.execute(text("""
         CREATE TABLE IF NOT EXISTS sessions (
             id VARCHAR(128) PRIMARY KEY,
-            user_id VARCHAR(36) NULL REFERENCES users(id) ON DELETE CASCADE,
+            user_id VARCHAR(255) NULL,
             email VARCHAR(320) NOT NULL,
             profile_id VARCHAR(20) NOT NULL REFERENCES profiles(id) ON DELETE RESTRICT,
-            expires_at TIMESTAMP NOT NULL,
-            cav4_subject VARCHAR(255),
+  expires_at TIMESTAMP NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
     """))
@@ -58,7 +57,11 @@ def upgrade() -> None:
     bind.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS email VARCHAR(320)"))
     bind.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS profile_id VARCHAR(20)"))
     bind.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP"))
-    bind.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS cav4_subject VARCHAR(255)"))
+    bind.execute(text("ALTER TABLE sessions DROP CONSTRAINT IF EXISTS sessions_user_id_fkey"))
+    bind.execute(text("ALTER TABLE sessions ALTER COLUMN user_id TYPE VARCHAR(255) USING user_id::text"))
+    bind.execute(text("ALTER TABLE sessions DROP COLUMN IF EXISTS cav4_subject"))
+    bind.execute(text("ALTER TABLE activity_logs DROP CONSTRAINT IF EXISTS activity_logs_user_id_fkey"))
+    bind.execute(text("ALTER TABLE activity_logs ALTER COLUMN user_id TYPE VARCHAR(255) USING user_id::text"))
     bind.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_email ON sessions(email)"))
     bind.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_profile_id ON sessions(profile_id)"))
     bind.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_expires_at ON sessions(expires_at)"))

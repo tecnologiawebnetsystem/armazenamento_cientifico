@@ -19,31 +19,17 @@ CREATE TABLE IF NOT EXISTS profile_permissions (profile_id varchar(20) NOT NULL 
 CREATE TABLE IF NOT EXISTS profile_modules (profile_id varchar(20) NOT NULL REFERENCES profiles(id) ON DELETE CASCADE, module_id varchar(80) NOT NULL REFERENCES modules(id) ON DELETE CASCADE, can_view boolean NOT NULL DEFAULT true, PRIMARY KEY (profile_id, module_id));
 CREATE TABLE IF NOT EXISTS project_statuses (id varchar(40) PRIMARY KEY, code varchar(40) NOT NULL UNIQUE, name varchar(100) NOT NULL, color varchar(20) NOT NULL DEFAULT 'slate', display_order integer NOT NULL DEFAULT 0, active boolean NOT NULL DEFAULT true, allows_edit boolean NOT NULL DEFAULT true);
 CREATE TABLE IF NOT EXISTS project_types (id varchar(40) PRIMARY KEY, code varchar(40) NOT NULL UNIQUE, name varchar(100) NOT NULL, description text NOT NULL DEFAULT '', active boolean NOT NULL DEFAULT true);
-CREATE TABLE IF NOT EXISTS system_settings (key varchar(120) PRIMARY KEY, value text NOT NULL DEFAULT '', value_type varchar(30) NOT NULL DEFAULT 'string', description text NOT NULL DEFAULT '', group_name varchar(80) NOT NULL DEFAULT 'general', active boolean NOT NULL DEFAULT true);
 CREATE TABLE IF NOT EXISTS report_types (id varchar(60) PRIMARY KEY, code varchar(60) NOT NULL UNIQUE, name varchar(120) NOT NULL, description text NOT NULL DEFAULT '', formats text NOT NULL DEFAULT 'csv', active boolean NOT NULL DEFAULT true);
 CREATE TABLE IF NOT EXISTS report_fields (id varchar(60) PRIMARY KEY, report_code varchar(60) NOT NULL REFERENCES report_types(code) ON DELETE CASCADE, field_key varchar(100) NOT NULL, label varchar(160) NOT NULL, source_key varchar(160) NOT NULL, display_order integer NOT NULL DEFAULT 0, active boolean NOT NULL DEFAULT true, UNIQUE (report_code, field_key));
 CREATE TABLE IF NOT EXISTS menus (id varchar(80) PRIMARY KEY, module_id varchar(80) REFERENCES modules(id) ON DELETE SET NULL, parent_id varchar(80), name varchar(120) NOT NULL, route varchar(180) NOT NULL DEFAULT '', icon varchar(80) NOT NULL DEFAULT 'circle', display_order integer NOT NULL DEFAULT 0, active boolean NOT NULL DEFAULT true);
 CREATE TABLE IF NOT EXISTS projects (id varchar(36) PRIMARY KEY, name varchar(200) NOT NULL, code varchar(50) NOT NULL UNIQUE, responsible_area varchar(160) NOT NULL, managers_ids jsonb NOT NULL DEFAULT '[]', write_group varchar(160) NOT NULL DEFAULT '', read_group varchar(160) NOT NULL DEFAULT '', write_identity_role varchar(160) NOT NULL DEFAULT '', read_identity_role varchar(160) NOT NULL DEFAULT '', snow_task_number varchar(120) NOT NULL DEFAULT '', parent_folder varchar(500) NOT NULL DEFAULT '', description text NOT NULL DEFAULT '', status varchar(30) NOT NULL DEFAULT 'ativo', participants_ids jsonb NOT NULL DEFAULT '[]', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS project_members (project_id varchar(36) NOT NULL REFERENCES projects(id) ON DELETE CASCADE, user_id varchar(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE, role varchar(40) NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY (project_id, user_id));
 CREATE TABLE IF NOT EXISTS folders (id varchar(36) PRIMARY KEY, project_id varchar(36) NOT NULL REFERENCES projects(id) ON DELETE CASCADE, parent_id varchar(36) REFERENCES folders(id) ON DELETE CASCADE, kind varchar(20) NOT NULL DEFAULT 'pasta' CHECK (kind = 'pasta'), name varchar(500) NOT NULL, size_bytes bigint NOT NULL DEFAULT 0, mime_type varchar(160), created_by varchar(36) NOT NULL REFERENCES users(id) ON DELETE RESTRICT, last_viewed_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
-CREATE TABLE IF NOT EXISTS access_requests (id varchar(36) PRIMARY KEY, project_id varchar(36) NOT NULL REFERENCES projects(id) ON DELETE CASCADE, requester_id varchar(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE, status varchar(30) NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
-CREATE TABLE IF NOT EXISTS activity_logs (id varchar(36) PRIMARY KEY, user_id varchar(36) REFERENCES users(id) ON DELETE SET NULL, action varchar(100) NOT NULL, entity varchar(100) NOT NULL, entity_id varchar(36), details text NOT NULL DEFAULT '', created_at timestamptz NOT NULL DEFAULT now());
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email); CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status); CREATE INDEX IF NOT EXISTS idx_folders_project_parent ON folders(project_id,parent_id); CREATE INDEX IF NOT EXISTS idx_activity_logs_created ON activity_logs(created_at DESC); CREATE INDEX IF NOT EXISTS idx_access_requests_project ON access_requests(project_id); 
+CREATE TABLE IF NOT EXISTS activity_logs (id varchar(36) PRIMARY KEY, user_id varchar(255), action varchar(100) NOT NULL, entity varchar(100) NOT NULL, entity_id varchar(36), details text NOT NULL DEFAULT '', created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email); CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status); CREATE INDEX IF NOT EXISTS idx_folders_project_parent ON folders(project_id,parent_id); CREATE INDEX IF NOT EXISTS idx_activity_logs_created ON activity_logs(created_at DESC);
 
--- 02 subject CAV4
--- Fonte histórica consolidada: back-end/database/migrations/0016_add_cav4_subject_to_sessions.sql
--- SIGAC migration 0016
--- Persiste somente o subject/identificador técnico retornado pelo CAV4
--- na sessão autenticada. Não cria nem persiste papéis, grupos ou permissões CAV4.
+  -- O identificador técnico do CAV4 é armazenado diretamente em sessions.user_id.
 
-ALTER TABLE sessions
-    ADD COLUMN IF NOT EXISTS cav4_subject VARCHAR(255);
-
-COMMENT ON COLUMN sessions.cav4_subject IS
-    'Identificador técnico (subject) retornado pelo CAV4 para a sessão autenticada; não representa papel, grupo ou permissão.';
-
--- Rollback manual, se necessário:
--- ALTER TABLE sessions DROP COLUMN IF EXISTS cav4_subject;
 
 -- 03 sessões de autenticação
 -- Fonte histórica consolidada: back-end/database/migrations/0020_restore_auth_sessions.sql
@@ -51,11 +37,10 @@ COMMENT ON COLUMN sessions.cav4_subject IS
 
 CREATE TABLE IF NOT EXISTS sessions (
     id VARCHAR(128) PRIMARY KEY,
-    user_id VARCHAR(36) NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) NULL,
     email VARCHAR(320) NOT NULL,
     profile_id VARCHAR(20) NOT NULL REFERENCES profiles(id) ON DELETE RESTRICT,
-    expires_at TIMESTAMP NOT NULL,
-    cav4_subject VARCHAR(255),
+  expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -73,7 +58,6 @@ CREATE INDEX IF NOT EXISTS ix_sessions_expires_at ON sessions(expires_at);
 -- 04 parametrização estrutural
 -- Fonte histórica consolidada: back-end/database/0023_parametrizacao_completa.sql
 -- Parametrização de menus e dashboard. Executar no Aurora/PostgreSQL.
--- Não contém permission_matrix nem SQL executável armazenado em parâmetros.
 
 CREATE TABLE IF NOT EXISTS menu_permissions (
   menu_id VARCHAR(80) NOT NULL REFERENCES menus(id) ON DELETE CASCADE,
@@ -227,11 +211,6 @@ FROM profiles p CROSS JOIN (VALUES
 WHERE EXISTS (SELECT 1 FROM permissions permission WHERE permission.id=x.permission_id)
 ON CONFLICT (profile_id,permission_id) DO UPDATE SET allowed=excluded.allowed;
 
-INSERT INTO system_settings (key,value,value_type,description,group_name,active) VALUES
- ('limite_arquivo_mb','100','number','Tamanho máximo de arquivo','arquivos',true),
- ('retencao_logs_dias','365','number','Retenção de auditoria','auditoria',true),
- ('parametrizacao_seed_versao','0040','string','Versão do seed canônico','sistema',true)
-ON CONFLICT (key) DO UPDATE SET value=excluded.value, value_type=excluded.value_type, description=excluded.description, group_name=excluded.group_name, active=excluded.active;
 
 -- COMMIT removido: transação controlada pela migration consolidada.
 

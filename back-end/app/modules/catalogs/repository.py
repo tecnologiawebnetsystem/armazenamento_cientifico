@@ -8,7 +8,6 @@ from app.modules.catalogs.models import (
     Permission,
     ProjectStatusCatalog,
     ProjectType,
-    SystemSetting,
 )
 
 
@@ -48,30 +47,6 @@ class PermissionRepository:
     async def list_all(self) -> list[Permission]:
         result = await self.session.scalars(
             select(Permission).where(Permission.ativo.is_(True))
-        )
-        return list(result)
-
-
-class SystemSettingRepository:
-    def __init__(self, session: AsyncSession):
-        self.session = session
-
-    async def find_by_key(self, key: str) -> SystemSetting | None:
-        return await self.session.scalar(
-            select(SystemSetting).where(SystemSetting.chave == key)
-        )
-
-    async def list_all(self) -> list[SystemSetting]:
-        result = await self.session.scalars(
-            select(SystemSetting).where(SystemSetting.ativo.is_(True))
-        )
-        return list(result)
-
-    async def list_by_group(self, group: str) -> list[SystemSetting]:
-        result = await self.session.scalars(
-            select(SystemSetting).where(
-                SystemSetting.grupo == group, SystemSetting.ativo.is_(True)
-            )
         )
         return list(result)
 
