@@ -169,8 +169,9 @@ INSERT INTO dashboard_cards (id,module_id,key,title,description,metric_key,route
 ON CONFLICT (key) DO UPDATE SET module_id=excluded.module_id, title=excluded.title, description=excluded.description, metric_key=excluded.metric_key, route=excluded.route, profile_ids=excluded.profile_ids, display_order=excluded.display_order, active=excluded.active;
 
 INSERT INTO report_types (id,code,name,description,formats,active) VALUES
- ('PROJETOS','projetos','Relatório de projetos','Relatório de projetos','csv,xlsx,pdf',true),
- ('ACESSOS','acessos','Mapa de acessos','Mapa de acessos','csv,xlsx,pdf',true)
+('PROJETOS','projetos','Relatório Executivo de Projetos','Portfólio, status, áreas, gestores e indicadores operacionais','csv,txt,pdf',true),
+  ('ACESSOS','acessos','Mapa de Acessos Científico','Projetos, grupos, membros, pastas e níveis de acesso autorizados','csv,txt,pdf',true),
+  ('AUDITORIA','auditoria','Logs de Auditoria','Rastreabilidade de ações, usuários, entidades, resultados e datas','csv,txt,pdf',true)
 ON CONFLICT (id) DO UPDATE SET name=excluded.name, description=excluded.description, formats=excluded.formats, active=excluded.active;
 
 INSERT INTO report_fields (id,report_code,field_key,label,source_key,display_order,active) VALUES
@@ -179,7 +180,19 @@ INSERT INTO report_fields (id,report_code,field_key,label,source_key,display_ord
  ('projetos-area','projetos','areaResponsavel','Área responsável','areaResponsavel',30,true),
  ('projetos-status','projetos','status','Status','status',40,true),
  ('projetos-criado-em','projetos','criadoEm','Criado em','criadoEm',50,true),
- ('acessos-usuario-id','acessos','userId','Identificador do usuário','userId',10,true),
+   ('projetos-gestores','projetos','gestoresIds','Gestores','gestoresIds',60,true),
+  ('projetos-mapas','projetos','totalMapas','Total de mapas','totalMapas',70,true),
+  ('projetos-membros','projetos','totalMembros','Total de membros','totalMembros',80,true),
+  ('auditoria-id','auditoria','id','Identificador do evento','id',10,true),
+  ('auditoria-data','auditoria','criadoEm','Data e hora','criadoEm',20,true),
+  ('auditoria-usuario','auditoria','userName','Usuário','userName',30,true),
+  ('auditoria-email','auditoria','userEmail','E-mail','userEmail',40,true),
+  ('auditoria-acao','auditoria','acao','Ação','acao',50,true),
+  ('auditoria-entidade','auditoria','entidade','Entidade','entidade',60,true),
+  ('auditoria-entidade-id','auditoria','entidadeId','Identificador da entidade','entidadeId',70,true),
+  ('auditoria-resultado','auditoria','resultado','Resultado','resultado',80,true),
+  ('auditoria-detalhes','auditoria','detalhes','Detalhes','detalhes',90,true),
+  ('acessos-usuario-id','acessos','userId','Identificador do usuário','userId',10,true),
  ('acessos-usuario','acessos','userName','Membro','userName',20,true),
  ('acessos-email','acessos','userEmail','E-mail','userEmail',30,true),
  ('acessos-perfil','acessos','userRole','Perfil','userRole',40,true),
