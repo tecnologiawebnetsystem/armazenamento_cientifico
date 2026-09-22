@@ -43,7 +43,7 @@ def project_not_found() -> HTTPException:
 def serialize_members(rows) -> list[ProjectMemberOut]:
     return [
         ProjectMemberOut(
-            projectId=member.project_id, userId=member.user_id, papel=member.role,
+            projectId=member.project_id, userId=member.user_id,
             adicionadoEm=member.created_at,
             user={"id": user.id, "nome": user.name, "email": user.email, "cargo": user.cargo, "area": user.area},
         )
