@@ -51,6 +51,13 @@ def upgrade() -> None:
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
     """))
+    # Compatibilidade com bancos que já possuem a tabela sessions legada.
+    # As colunas são adicionadas antes dos índices e permanecem nullable para
+    # não invalidar sessões históricas sem e-mail/perfil corporativo.
+    bind.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS email VARCHAR(320)"))
+    bind.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS profile_id VARCHAR(20)"))
+    bind.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP"))
+    bind.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS cav4_subject VARCHAR(255)"))
     bind.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_email ON sessions(email)"))
     bind.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_profile_id ON sessions(profile_id)"))
     bind.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_expires_at ON sessions(expires_at)"))
