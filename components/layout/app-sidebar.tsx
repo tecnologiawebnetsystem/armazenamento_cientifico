@@ -61,8 +61,13 @@ function buildNavGroups(menus: PlatformMenu[]): NavGroup[] {
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { menus } = usePlatformContext()
-  const groups = buildNavGroups(menus)
+  const { menus, permissions, data } = usePlatformContext()
+  const isAdministrator = data?.user?.perfil_id?.toUpperCase() === "ADM" || data?.user?.perfil_nome?.toLowerCase().includes("admin")
+  const canManageConfiguration = isAdministrator || permissions.includes("administracao.configuracoes")
+  const visibleMenus = canManageConfiguration && !menus.some((menu) => menu.rota === "/configuracoes")
+    ? [...menus, { id: "menu-configuracoes", nome: "Configurações", rota: "/configuracoes", icone: "settings", ordem: 90 }]
+    : menus
+  const groups = buildNavGroups(visibleMenus)
 
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border/70 bg-sidebar shadow-2xl shadow-sidebar/25 transition-[width] duration-200 md:flex">
