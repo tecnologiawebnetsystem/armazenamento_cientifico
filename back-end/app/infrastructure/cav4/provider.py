@@ -294,7 +294,17 @@ class CAV4OIDCProvider:
 
         access_token = token_data.get("access_token")
         email = claims.get("email") or claims.get("preferred_username") or claims.get("upn") or ""
-        display_name = claims.get("name")
+        display_name = (
+            claims.get("name")
+            or claims.get("display_name")
+            or claims.get("displayName")
+            or claims.get("full_name")
+            or claims.get("nome")
+        )
+        if not display_name:
+            display_name = " ".join(
+                part for part in (claims.get("given_name"), claims.get("family_name")) if part
+            ) or None
         if access_token and settings.cav4_userinfo_url:
             userinfo = await self.get_user_data(access_token=access_token, endpoint=settings.cav4_userinfo_url)
             if isinstance(userinfo, dict):
@@ -335,6 +345,19 @@ class CAV4OIDCProvider:
                 )
                 claims = {**claims, "cav4_resource_roles": resource_roles}
                 logger.info("[CAV4] Papéis do usuário consultados login=%s endpoint=%s quantidade=%s", user_login, roles_endpoint, len(resource_roles))
+
+        display_name = (
+            display_name
+            or claims.get("name")
+            or claims.get("display_name")
+            or claims.get("displayName")
+            or claims.get("full_name")
+            or claims.get("nome")
+        )
+        if not display_name:
+            display_name = " ".join(
+                part for part in (claims.get("given_name"), claims.get("family_name")) if part
+            ) or None
 
         roles = _claim_values(
             claims,
