@@ -7,8 +7,9 @@ import { Spinner } from "@/components/ui/spinner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useLogin } from "@/hooks/use-login"
 
-export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
+export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: string; authError?: string }) {
   const [email, setEmail] = useState("")
+  const accessError = authError
   const { loading, error, manualLogin, corporateLogin } = useLogin(nextPath)
 
   return (
@@ -51,10 +52,10 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
             </div>
           ) : (
             <>
-              {error && (
+              {(error || accessError) && (
                 <Alert variant="destructive" className="border-destructive/30 shadow-sm">
-                  <AlertTitle>Falha na autenticação</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
+                  <AlertTitle>{accessError ? "Acesso não autorizado" : "Falha na autenticação"}</AlertTitle>
+                  <AlertDescription>{accessError || error}</AlertDescription>
                 </Alert>
               )}
 

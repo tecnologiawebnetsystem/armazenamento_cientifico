@@ -2,6 +2,7 @@ import logging
 import re
 from datetime import UTC, datetime, timedelta
 from secrets import compare_digest
+from urllib.parse import quote
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
@@ -209,9 +210,10 @@ async def cav4_callback(request: Request, code: str, state: str):
     if not profile_id:
         raise HTTPException(status_code=403, detail="Usuário CAV4 sem perfil corporativo configurado")
     if canonical_role(profile_id) == "solicitante":
-        raise HTTPException(
-            status_code=403,
-            detail="Seu perfil é Solicitante e não possui acesso ao SIGAC.",
+        message = "Seu perfil é Solicitante e não possui permissão para acessar o SIGAC."
+        return RedirectResponse(
+            url=f"/login?auth_error={quote(message)}",
+            status_code=status.HTTP_303_SEE_OTHER,
         )
 
     session_id = str(uuid4())
