@@ -74,7 +74,7 @@ export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: s
                 <Button type="button" size="lg" variant="outline" onClick={corporateLogin} disabled={loading !== null} className="w-full border-[#063f58] bg-gradient-to-r from-[#063f58] to-[#fdbb30] text-white shadow-md shadow-[#063f58]/30 transition-all hover:-translate-y-0.5 hover:from-[#042d40] hover:to-[#e8aa19] hover:shadow-lg hover:shadow-[#063f58]/40">
                   Login Corporativo
                 </Button>
-                <p className="pt-1 text-center text-xs text-muted-foreground">A autenticação corporativa é realizada pelo CAV4. Após o retorno, o SIGAC carrega seu perfil, menus e permissões do banco de dados.</p>
+                <p className="pt-1 text-center text-xs text-muted-foreground">A autenticação corporativa é realizada pelo CAV4. Após o retorno, o SIGAC carrega seu perfil, menus e permissões.</p>
                 <p className="text-center text-xs text-muted-foreground">© 2026 Petrobras. Todos os direitos reservados.</p>
               </div>
             </>
