@@ -20,6 +20,12 @@ psql "$DATABASE_URL" \
   --single-transaction \
   --file "$ROOT_DIR/database/0001_aurora_consolidated.sql"
 
+printf '%s\n' '[SID Deploy] Aplicando catálogos, campos de relatório e pastas...'
+psql "$DATABASE_URL" \
+  --set ON_ERROR_STOP=1 \
+  --single-transaction \
+  --file "$ROOT_DIR/database/002_seed_operational_catalogs.sql"
+
 printf '%s\n' '[SID Deploy] Validando versão e tabelas principais...'
 uv run alembic current
 psql "$DATABASE_URL" \

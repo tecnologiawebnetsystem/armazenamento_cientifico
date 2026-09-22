@@ -13,7 +13,10 @@ O ambiente de execução deve fornecer `DATABASE_URL` por secret/variável prote
 1. Executa `uv run alembic upgrade head` para criar ou atualizar a estrutura.
 2. Executa `0001_aurora_consolidated.sql` dentro de uma transação PostgreSQL.
 3. Aplica perfis, módulos, permissões, `profile_modules`, `profile_permissions`, menus e `menu_permissions` de forma idempotente.
-4. Valida a versão atual do Alembic e a existência das tabelas principais.
+4. Executa `002_seed_operational_catalogs.sql` para áreas responsáveis, tipos/campos de relatórios e pastas raiz dos projetos.
+5. Valida a versão atual do Alembic e a existência das tabelas principais.
+
+A tabela `access_requests` não recebe registros no seed, pois solicitações são dados transacionais criados pelos usuários.
 
 O mesmo script pode ser usado em banco novo, homologação e produção. Em produção, o pipeline deve exigir backup/aprovação antes desta etapa. O script não apaga dados transacionais e não contém credenciais.
 
