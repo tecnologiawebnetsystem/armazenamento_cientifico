@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUser
+from app.api.dependencies import require_capabilities
 from app.db.session import get_session
 
 from .repository import ReportRepository
@@ -21,17 +21,17 @@ def get_service(session: Annotated[AsyncSession, Depends(get_session)]) -> Repor
 
 
 @router.get("/report-fields")
-async def report_fields(service: Annotated[ReportService, Depends(get_service)], _: CurrentUser, report_code: str = Query(min_length=1)):
+async def report_fields(service: Annotated[ReportService, Depends(get_service)], _: Annotated[dict, Depends(require_capabilities("reports"))], report_code: str = Query(min_length=1)):
     return await service.fields(report_code)
 
 
 @router.get("/reports")
-async def reports(service: Annotated[ReportService, Depends(get_service)], _: CurrentUser, status: str | None = None, area: str | None = None, gestorId: str | None = None):
+async def reports(service: Annotated[ReportService, Depends(get_service)], _: Annotated[dict, Depends(require_capabilities("reports"))], status: str | None = None, area: str | None = None, gestorId: str | None = None):
     return await service.projects(status, area, gestorId)
 
 
 @router.get("/reports/export")
-async def export_reports(service: Annotated[ReportService, Depends(get_service)], _: CurrentUser, query: Annotated[ReportExportQuery, Depends()]):
+async def export_reports(service: Annotated[ReportService, Depends(get_service)], _: Annotated[dict, Depends(require_capabilities("reports"))], query: Annotated[ReportExportQuery, Depends()]):
     report = await service.projects(query.status, query.area, query.gestor_id)
     rows = report["projetos"]
     output = io.StringIO()

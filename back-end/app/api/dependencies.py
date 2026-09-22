@@ -37,8 +37,7 @@ async def get_current_user(request: Request):
 
 
 def require_roles(*roles: str):
-    async def dependency(request: Request):
-        user = await get_current_user(request)
+    async def dependency(user: Annotated[dict, Depends(get_current_user)]):
         if roles:
             ensure_role(user, *roles)
         return user
@@ -47,8 +46,7 @@ def require_roles(*roles: str):
 
 
 def require_capabilities(*capabilities: str):
-    async def dependency(request: Request):
-        user = await get_current_user(request)
+    async def dependency(user: Annotated[dict, Depends(get_current_user)]):
         for capability in capabilities:
             require_capability(user, capability)
         return user
