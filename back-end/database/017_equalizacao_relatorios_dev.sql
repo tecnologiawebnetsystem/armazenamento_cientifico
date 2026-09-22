@@ -44,5 +44,5 @@ INSERT INTO report_types (id, code, name, description, formats, active) VALUES
  ('AUDITORIA','auditoria','Logs de Auditoria','Rastreabilidade de ações, usuários, entidades, resultados e datas.','csv,txt,pdf',true)
 ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, description=EXCLUDED.description, formats=EXCLUDED.formats, active=true;
 
-INSERT INTO schema_migrations (version, description) VALUES ('017','Equalização de relatórios, módulos e permissões em desenvolvimento') ON CONFLICT (version) DO NOTHING;
+INSERT INTO schema_migrations (version) VALUES ('017') ON CONFLICT (version) DO NOTHING;
 COMMIT;
