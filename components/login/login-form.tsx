@@ -10,6 +10,7 @@ import { useLogin } from "@/hooks/use-login"
 export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: string; authError?: string }) {
   const [email, setEmail] = useState("")
   const accessError = authError
+  const manualLoginEnabled = process.env.NEXT_PUBLIC_EMAIL_LOGIN_ENABLED === "true"
   const { loading, error, manualLogin, corporateLogin } = useLogin(nextPath)
 
   return (
@@ -60,12 +61,16 @@ export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: s
               )}
 
               <div className="flex flex-col gap-5">
-                <form className="flex flex-col gap-3" onSubmit={(event) => { event.preventDefault(); void manualLogin(email) }}>
-                  <label htmlFor="login-email" className="text-left text-sm font-medium text-foreground">E-mail</label>
-                  <input id="login-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seu.email@empresa.com" required className="h-11 rounded-md border border-input bg-background px-3 text-sm outline-none transition focus:ring-2 focus:ring-ring" />
-                  <Button type="submit" size="lg" disabled={loading !== null} className="w-full">{loading === "manual" ? "Entrando..." : "Entrar com e-mail"}</Button>
-                </form>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true"><span className="h-px flex-1 bg-border" /><span>ou</span><span className="h-px flex-1 bg-border" /></div>
+                {manualLoginEnabled && (
+                  <>
+                    <form className="flex flex-col gap-3" onSubmit={(event) => { event.preventDefault(); void manualLogin(email) }}>
+                      <label htmlFor="login-email" className="text-left text-sm font-medium text-foreground">E-mail</label>
+                      <input id="login-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seu.email@empresa.com" required className="h-11 rounded-md border border-input bg-background px-3 text-sm outline-none transition focus:ring-2 focus:ring-ring" />
+                      <Button type="submit" size="lg" disabled={loading !== null} className="w-full">{loading === "manual" ? "Entrando..." : "Entrar com e-mail"}</Button>
+                    </form>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true"><span className="h-px flex-1 bg-border" /><span>ou</span><span className="h-px flex-1 bg-border" /></div>
+                  </>
+                )}
                 <Button type="button" size="lg" variant="outline" onClick={corporateLogin} disabled={loading !== null} className="w-full border-[#063f58] bg-gradient-to-r from-[#063f58] to-[#fdbb30] text-white shadow-md shadow-[#063f58]/30 transition-all hover:-translate-y-0.5 hover:from-[#042d40] hover:to-[#e8aa19] hover:shadow-lg hover:shadow-[#063f58]/40">
                   Login Corporativo
                 </Button>
