@@ -84,6 +84,7 @@ export interface FileNode {
   parentId: string | null
   tipo: "pasta" | "arquivo"
   nome: string
+  name?: string
   tamanho?: number
   mimeType?: string
   criadoPor: string
