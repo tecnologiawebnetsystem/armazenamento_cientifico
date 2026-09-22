@@ -17,7 +17,6 @@ export type Role = "admin" | "gerente" | "patrocinador" | "auditor" | "solicitan
 /** Papel global ou de participação dentro de um projeto. */
 export type ProjectMemberRole = Role
 
-export type AccessRequestStatus = "pendente" | "aprovado" | "negado"
 
 export type ProjectStatus = "ativo" | "concluido" | "suspenso" | "inativo" | "em_andamento"
 
@@ -90,20 +89,6 @@ export interface FileNode {
   criadoPor: string
   criadoEm: string
   atualizadoEm: string
-}
-
-export interface AccessRequest {
-  id: string
-  usuarioId: string
-  projetoId: string
-  tipo: "novo-acesso" | "alteracao-permissao"
-  papelSolicitado: Role
-  justificativa: string
-  numeroChamadoServiceNow: string
-  status: AccessRequestStatus
-  criadoEm: string
-  atualizadoEm: string
-  analisadoPor?: string
 }
 
 export type SessionUser = User

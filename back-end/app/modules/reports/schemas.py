@@ -28,33 +28,12 @@ class ReportResponse(BaseModel):
 class ReportFieldResponse(BaseModel):
     reportCode: str
     fields: list[dict]
-
-
-class AccessRequestCreate(BaseModel):
-    projetoId: str
-    tipo: str
-    papelSolicitado: str
-    justificativa: str
-
-
-class AccessRequestUpdate(BaseModel):
-    status: str
-
-
 class SettingsUpdate(BaseModel):
     values: dict[str, str | int | bool | None]
 
 
 class SettingsResponse(BaseModel):
     settings: dict[str, str | None]
-
-
-class AccessRequestResponse(BaseModel):
-    request: dict
-
-
-class AccessRequestListResponse(BaseModel):
-    requests: list[dict]
 
 
 class ReportExportResponse(BaseModel):

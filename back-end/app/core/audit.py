@@ -7,7 +7,7 @@ from uuid import uuid4
 
 def audit_event(*, user: Any, action: str, entity: str, entity_id: str, result: str = "sucesso", details: dict[str, Any] | None = None, project_id: str | None = None) -> dict[str, Any]:
     """Monta um evento estruturado; a persistência pode ser conectada ao repositório de auditoria."""
-    user_id = user.get("id") if isinstance(user, dict) else getattr(user, "id", None)
+    user_id = user.get("user_id") or user.get("id") if isinstance(user, dict) else getattr(user, "user_id", None) or getattr(user, "id", None)
     return {
         "id": str(uuid4()),
         "user_id": str(user_id or ""),

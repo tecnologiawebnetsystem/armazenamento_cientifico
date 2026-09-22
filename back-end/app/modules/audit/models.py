@@ -10,7 +10,7 @@ class ActivityLog(Base):
     __tablename__ = "activity_logs"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    user_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     action: Mapped[str] = mapped_column(String(100), index=True)
     entity: Mapped[str] = mapped_column(String(100), index=True)
     entity_id: Mapped[str | None] = mapped_column(String(36), nullable=True)

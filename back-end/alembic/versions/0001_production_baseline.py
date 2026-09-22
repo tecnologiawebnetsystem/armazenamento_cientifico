@@ -25,7 +25,7 @@ def upgrade() -> None:
 
     bind = op.get_bind()
     expected_tables = {
-        "access_requests", "activity_logs", "dashboard_cards", "folders",
+        "activity_logs", "dashboard_cards", "folders",
         "menu_permissions", "menus", "modules", "permissions", "profile_modules",
         "profile_permissions", "profiles", "project_members", "project_statuses",
         "project_types", "projects", "report_fields", "report_types",
@@ -60,6 +60,8 @@ def upgrade() -> None:
     bind.execute(text("ALTER TABLE sessions DROP CONSTRAINT IF EXISTS sessions_user_id_fkey"))
     bind.execute(text("ALTER TABLE sessions ALTER COLUMN user_id TYPE VARCHAR(255) USING user_id::text"))
     bind.execute(text("ALTER TABLE sessions DROP COLUMN IF EXISTS cav4_subject"))
+    bind.execute(text("ALTER TABLE activity_logs DROP CONSTRAINT IF EXISTS activity_logs_user_id_fkey"))
+    bind.execute(text("ALTER TABLE activity_logs ALTER COLUMN user_id TYPE VARCHAR(255) USING user_id::text"))
     bind.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_email ON sessions(email)"))
     bind.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_profile_id ON sessions(profile_id)"))
     bind.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_expires_at ON sessions(expires_at)"))
