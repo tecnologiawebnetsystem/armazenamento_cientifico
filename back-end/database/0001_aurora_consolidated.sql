@@ -148,6 +148,12 @@ ON CONFLICT (id) DO UPDATE SET name=excluded.name, route=excluded.route, icon=ex
 
 INSERT INTO permissions (id,module_id,name,description,active) VALUES
  ('projeto.visualizar','projetos','Visualizar projetos','Visualizar projetos',true),
+ ('projeto.criar','projetos','Criar projetos','Criar projetos',true),
+ ('projeto.editar','projetos','Editar projetos','Editar projetos',true),
+ ('projeto.status','projetos','Alterar status de projetos','Alterar status de projetos',true),
+ ('projeto.excluir','projetos','Excluir projetos','Excluir projetos',true),
+ ('usuario.editar','projetos','Gerenciar usuários','Gerenciar usuários',true),
+ ('administracao.configurar','projetos','Configurar administração','Configurar administração',true),
  ('relatorio.visualizar','relatorios','Visualizar relatórios','Visualizar relatórios',true),
  ('relatorio.exportar','relatorios','Exportar relatórios','Exportar relatórios',true),
  ('auditoria.visualizar','auditoria','Visualizar auditoria','Visualizar logs de auditoria',true),
@@ -170,8 +176,8 @@ INSERT INTO menu_permissions (menu_id, permission_id, allowed) VALUES
 ON CONFLICT (menu_id, permission_id) DO UPDATE SET allowed=excluded.allowed;
 
 INSERT INTO dashboard_cards (id,module_id,key,title,description,metric_key,route,profile_ids,display_order,active) VALUES
- ('dashboard-projetos','projetos','projetos','Projetos','Projetos disponíveis no seu escopo.','total_projetos','/projetos','ADM,GER,AUD,PAT,GES,PAR,VIS',10,true),
- ('dashboard-pendencias','relatorios','pendencias','Pendências','Itens que precisam de atenção.','pendencias','/relatorios','ADM,GER,PAT,GES',20,true),
+ ('dashboard-projetos','projetos','projetos','Projetos','Projetos disponíveis no seu escopo.','total_projetos','/projetos','ADM,GER,AUD,PAT',10,true),
+ ('dashboard-pendencias','relatorios','pendencias','Pendências','Itens que precisam de atenção.','pendencias','/relatorios','ADM,GER,PAT',20,true),
  ('dashboard-auditoria','auditoria','auditoria','Auditoria','Eventos recentes para acompanhamento.','eventos_auditoria','/logs','ADM,AUD',30,true)
 ON CONFLICT (key) DO UPDATE SET module_id=excluded.module_id, title=excluded.title, description=excluded.description, metric_key=excluded.metric_key, route=excluded.route, profile_ids=excluded.profile_ids, display_order=excluded.display_order, active=excluded.active;
 
@@ -196,20 +202,20 @@ INSERT INTO profile_modules (profile_id,module_id,can_view)
 SELECT p.id, m.id,
   CASE WHEN p.id='ADM' THEN true
        WHEN m.id='auditoria' THEN p.id IN ('AUD','ADM')
-       WHEN m.id='relatorios' THEN p.id IN ('GER','AUD','PAT','GES','VIS','ADM')
-       WHEN m.id='pesquisas' THEN p.id IN ('PAR','VIS','GER','AUD','PAT','GES','ADM')
-       ELSE p.id IN ('GER','AUD','PAT','GES','PAR','VIS','ADM') END
+       WHEN m.id='relatorios' THEN p.id IN ('GER','AUD','PAT','ADM')
+       WHEN m.id='pesquisas' THEN p.id IN ('GER','AUD','PAT','ADM')
+       ELSE p.id IN ('GER','AUD','PAT','ADM') END
 FROM profiles p CROSS JOIN modules m
 ON CONFLICT (profile_id,module_id) DO UPDATE SET can_view=excluded.can_view;
 
 INSERT INTO profile_permissions (profile_id,permission_id,allowed)
 SELECT p.id, x.permission_id,
   CASE WHEN p.id='ADM' THEN true
-       WHEN x.permission_id='projeto.visualizar' THEN p.id IN ('GER','AUD','PAT','GES','PAR','VIS')
-       WHEN x.permission_id='relatorio.visualizar' THEN p.id IN ('GER','AUD','PAT','GES','VIS')
-       WHEN x.permission_id='relatorio.exportar' THEN p.id IN ('ADM','GER','AUD','GES')
+       WHEN x.permission_id='projeto.visualizar' THEN p.id IN ('GER','AUD','PAT')
+       WHEN x.permission_id='relatorio.visualizar' THEN p.id IN ('GER','AUD','PAT')
+       WHEN x.permission_id='relatorio.exportar' THEN p.id IN ('ADM','GER')
        WHEN x.permission_id='auditoria.visualizar' THEN p.id IN ('ADM','AUD')
-       WHEN x.permission_id='pesquisa.visualizar' THEN p.id IN ('ADM','GER','AUD','PAT','GES','PAR','VIS')
+       WHEN x.permission_id='pesquisa.visualizar' THEN p.id IN ('ADM','GER','AUD','PAT')
        ELSE false END
 FROM profiles p CROSS JOIN (VALUES
  ('projeto.visualizar'),('projeto.criar'),('projeto.editar'),('projeto.status'),

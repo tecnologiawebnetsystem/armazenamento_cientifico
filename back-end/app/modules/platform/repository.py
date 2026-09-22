@@ -48,18 +48,18 @@ class PlatformRepository:
                 mi.display_order as ordem,
                 mi.parent_id
             from {self.schema}.menus mi
-            join {self.schema}.modules md
+            left join {self.schema}.modules md
                 on md.id = mi.module_id
                and md.active = true
             where mi.active = true
-              and exists (
+              and (mi.module_id is null or exists (
                   select 1
                   from {self.schema}.profile_modules pm
                   where pm.profile_id = :profile_id
                     and pm.module_id = mi.module_id
                     and pm.can_view = true
-              )
-              and exists (
+              ))
+              and (mi.module_id is null or exists (
                   select 1
                   from {self.schema}.menu_permissions mp
                   join {self.schema}.profile_permissions pp
@@ -72,7 +72,7 @@ class PlatformRepository:
                    and p.active = true
                   where mp.menu_id = mi.id
                     and mp.allowed = true
-              )
+              ))
             order by mi.display_order, mi.name
             """,
             {"profile_id": profile_id},
