@@ -77,9 +77,14 @@ class PlatformRepository:
             """,
             {"profile_id": profile_id},
         )
-        is_administrator = str(profile_id).upper() == "ADM" or "admin" in str(user.get("perfil_nome") or "").lower()
+        profile_key = str(profile_id or "").strip().lower()
+        profile_name = str(user.get("perfil_nome") or "").strip().lower()
+        is_administrator = profile_key in {"adm", "admin"} or "admin" in profile_name
+        is_auditor = profile_key in {"aud", "audit", "auditor"} or profile_name in {"auditor", "auditoria"}
         if is_administrator and not any(menu.get("rota") == "/configuracoes" for menu in menus):
             menus.append({"id": "menu-configuracoes", "nome": "Configurações", "rota": "/configuracoes", "icone": "settings", "ordem": 90, "parent_id": None})
+        if is_auditor and not any(menu.get("rota") in {"/logs", "/auditoria"} for menu in menus):
+            menus.append({"id": "menu-auditoria", "nome": "Logs e Auditoria", "rota": "/logs", "icone": "history", "ordem": 50, "parent_id": None})
         cards = await self.rows(f"select id, key, title as titulo, description as descricao, metric_key as metrica, route as rota, display_order as ordem from {self.schema}.dashboard_cards where active = true and (profile_ids = '' or position(',' || :profile_id || ',' in ',' || replace(profile_ids, ' ', '') || ',') > 0) order by display_order, title", {"profile_id": profile_id})
         return {"user": user, "permissions": [row["id"] for row in permissions], "modules": modules, "menus": menus, "dashboardCards": cards}
 

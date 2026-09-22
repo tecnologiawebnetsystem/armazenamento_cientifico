@@ -65,7 +65,7 @@ export function AppSidebar() {
   const { menus, permissions, data } = usePlatformContext()
   const isAdministrator = data?.user?.perfil_id?.toUpperCase() === "ADM" || data?.user?.perfil_nome?.toLowerCase().includes("admin")
   const canManageConfiguration = isAdministrator || permissions.includes("administracao.configuracoes")
-  const role = data?.user?.perfil_nome
+  const role = data?.user?.perfil_id || data?.user?.perfil_nome
   const roleMenus = menus.filter((menu) => isMenuAllowedForRole(role, menu.rota))
   const visibleMenus = canManageConfiguration && !roleMenus.some((menu) => menu.rota === "/configuracoes")
     ? [...roleMenus, { id: "menu-configuracoes", nome: "Configurações", rota: "/configuracoes", icone: "settings", ordem: 90 }]
