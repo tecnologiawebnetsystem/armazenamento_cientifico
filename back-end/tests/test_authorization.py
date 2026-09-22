@@ -33,7 +33,7 @@ def test_sponsor_can_read_but_cannot_audit():
 
 
 def test_auditor_can_audit_but_cannot_manage_projects():
-    user = {"role": "auditor", "permissions": ["projeto.visualizar", "audit"]}
+    user = {"role": "auditor", "permissions": ["projeto.visualizar", "auditoria.visualizar"]}
     assert has_capability(user, "audit") is True
     assert has_capability(user, "create") is False
 

@@ -28,7 +28,7 @@ def test_protected_endpoints_require_session(path: str, method: str):
 @pytest.mark.parametrize(("path", "method"), PROTECTED_ENDPOINTS)
 def test_protected_endpoints_return_success_for_authenticated_user(path: str, method: str):
     async def authenticated_user():
-        return {"id": "user-1", "role": "admin", "permissions": ["projeto.visualizar", "relatorio.exportar", "audit"]}
+        return {"id": "user-1", "role": "admin", "permissions": ["projeto.visualizar", "relatorio.exportar", "pesquisa.visualizar", "auditoria.visualizar"]}
 
     app.dependency_overrides[get_current_user] = authenticated_user
     try:

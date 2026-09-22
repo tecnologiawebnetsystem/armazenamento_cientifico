@@ -119,8 +119,8 @@ INSERT INTO report_fields (id, report_code, field_key, label, source_key, displa
  ('auditoria-detalhes','auditoria','detalhes','Detalhes','detalhes',90,true)
 ON CONFLICT (id) DO UPDATE SET label=EXCLUDED.label, source_key=EXCLUDED.source_key, display_order=EXCLUDED.display_order, active=true;
 
-INSERT INTO schema_migrations (version, description)
-VALUES ('018_equalizacao_parametrizacao_final', 'Equalização final de módulos, menus, permissões, perfis e relatórios')
+INSERT INTO schema_migrations (version)
+VALUES ('018_equalizacao_parametrizacao_final')
 ON CONFLICT (version) DO NOTHING;
 
 COMMIT;
