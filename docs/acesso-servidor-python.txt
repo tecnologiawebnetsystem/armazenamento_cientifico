@@ -1,0 +1,140 @@
+ACESSO A PASTAS DE SERVIDOR COM PYTHON
+
+É possível usar Python para acessar uma pasta em um servidor, listar subpastas e consultar quem possui permissões. A forma correta depende do tipo de servidor e do protocolo usado pela infraestrutura.
+
+1. O QUE PODE SER FEITO
+
+Com Python, a aplicação pode:
+
+- Conectar-se a uma pasta compartilhada do servidor;
+- Listar arquivos e subpastas a partir de uma pasta raiz;
+- Navegar por níveis inferiores da estrutura;
+- Ler metadados dos arquivos e diretórios;
+- Consultar permissões de acesso, quando o protocolo e a conta utilizada permitirem;
+- Identificar usuários e grupos autorizados a ler, alterar ou administrar a pasta;
+- Registrar auditoria das operações realizadas.
+
+2. INFORMAÇÕES QUE DEVEM SER OBTIDAS DA INFRAESTRUTURA
+
+Antes do desenvolvimento, solicitar à equipe de infraestrutura:
+
+- Nome ou endereço IP do servidor;
+- Caminho completo da pasta compartilhada;
+- Tipo de compartilhamento: SMB/CIFS, NFS, SFTP, FTP ou outro;
+- Sistema operacional do servidor;
+- Se o servidor pertence a um domínio Active Directory;
+- Porta e protocolo que devem ser utilizados;
+- Existência de VPN ou rede interna obrigatória;
+- Usuário de serviço exclusivo para a aplicação;
+- Forma de autenticação exigida;
+- Permissão mínima necessária para a conta;
+- Se a conta poderá apenas listar e consultar ou também modificar arquivos;
+- Autorização para consultar ACLs e permissões de usuários e grupos;
+- Limitações de segurança, horários, logs e auditoria;
+- Ambiente separado para testes.
+
+A recomendação é usar uma conta de serviço individual para a aplicação, com o princípio do menor privilégio. Não é recomendável utilizar a conta pessoal de um funcionário nem uma conta com permissão administrativa ampla.
+
+3. ACESSO A COMPARTILHAMENTOS SMB/CIFS
+
+Em servidores Windows ou compartilhamentos compatíveis, normalmente é utilizado SMB/CIFS. O caminho costuma ter formato semelhante a:
+
+\\servidor\\compartilhamento\\pasta-raiz
+
+Em Python, podem ser avaliadas bibliotecas como:
+
+- smbprotocol: acesso SMB com autenticação e operações de arquivo;
+- smbclient: interface de alto nível para listar e manipular caminhos SMB;
+- pywin32: integração com recursos do Windows, incluindo consultas de segurança em determinados cenários.
+
+A infraestrutura precisará liberar o acesso de rede, normalmente à porta TCP 445, e conceder à conta de serviço as permissões adequadas no compartilhamento e no sistema de arquivos.
+
+É importante lembrar que no Windows existem dois níveis de permissão:
+
+- Permissão do compartilhamento;
+- Permissão NTFS da pasta.
+
+Na prática, o acesso efetivo costuma ser limitado pela combinação mais restritiva entre essas permissões.
+
+4. LISTAGEM DE PASTAS E SUBPASTAS
+
+Depois de autenticado, o Python pode percorrer a pasta raiz e seus níveis inferiores usando recursos como pathlib, os.scandir ou os.walk. A aplicação deve:
+
+- Validar o caminho inicial recebido;
+- Impedir que o usuário navegue para fora da raiz autorizada;
+- Tratar erros de acesso negado e caminhos inexistentes;
+- Evitar seguir links simbólicos sem uma regra explícita;
+- Controlar profundidade e quantidade de resultados para evitar sobrecarga;
+- Aplicar paginação ou carregamento sob demanda em estruturas grandes.
+
+5. CONSULTA DE PERMISSÕES
+
+Para descobrir quem pode acessar ou alterar uma pasta, é necessário consultar as ACLs (Access Control Lists) do sistema de arquivos ou do serviço de diretórios.
+
+Em um servidor Windows/Active Directory, normalmente será necessário:
+
+- Permissão para ler a ACL da pasta;
+- Acesso para resolver os identificadores de usuários e grupos;
+- Consulta ao Active Directory, quando for necessário obter detalhes dos grupos;
+- Diferenciar permissões explícitas de permissões herdadas;
+- Identificar permissões como leitura, gravação, alteração e controle total;
+- Considerar permissões de compartilhamento e NTFS;
+- Avaliar associação em grupos, pois um usuário pode receber acesso indiretamente.
+
+No Windows, a consulta pode ser realizada por APIs do sistema, PowerShell ou bibliotecas Python que façam integração com essas APIs. A equipe de infraestrutura deve indicar o método aprovado e se a aplicação terá autorização para consultar os grupos do domínio.
+
+Em servidores Linux, a consulta costuma envolver permissões POSIX, grupos e ACLs. Podem ser utilizados comandos e APIs equivalentes a ls -la e getfacl, desde que a execução seja autorizada. Em servidores NFS, também devem ser consideradas as regras de exportação, UID/GID, mapeamento de identidades e controles do próprio servidor.
+
+6. SEGURANÇA
+
+A solução deve seguir estas práticas:
+
+- Guardar credenciais em variáveis de ambiente ou cofre de segredos;
+- Nunca colocar senhas diretamente no código ou no arquivo TXT;
+- Usar conexão criptografada quando o protocolo suportar;
+- Restringir o acesso somente às pastas necessárias;
+- Validar todos os caminhos recebidos do usuário;
+- Registrar quem consultou, quando consultou e qual caminho foi acessado;
+- Não exibir senhas, tokens ou detalhes sensíveis nos logs;
+- Aplicar timeout e tratamento de falhas de rede;
+- Evitar permitir exclusão ou alteração se a necessidade for apenas consulta;
+- Submeter o acesso à aprovação formal da segurança da informação.
+
+7. ARQUITETURA RECOMENDADA
+
+Uma arquitetura comum seria:
+
+1. Usuário seleciona um projeto e uma pasta raiz na aplicação;
+2. O backend Python recebe o identificador da pasta, e não um caminho arbitrário;
+3. O backend valida se o caminho pertence às raízes autorizadas;
+4. O backend conecta ao servidor usando a conta de serviço;
+5. O backend lista as subpastas e arquivos permitidos;
+6. Quando solicitado, consulta as ACLs da pasta;
+7. O backend transforma os dados em uma resposta segura para a interface;
+8. A aplicação registra a consulta para auditoria.
+
+O acesso ao servidor deve ocorrer no backend, nunca diretamente no navegador. O frontend não deve receber credenciais nem tentar abrir o compartilhamento de rede.
+
+8. O QUE PEDIR FORMALMENTE À INFRAESTRUTURA
+
+Solicitar um documento contendo:
+
+- Servidor e compartilhamento autorizados;
+- Pasta raiz permitida;
+- Protocolo e porta;
+- Conta de serviço;
+- Método de autenticação;
+- Permissões de leitura e consulta de ACL;
+- Grupos ou usuários que podem ser retornados;
+- Regras de VPN e firewall;
+- Certificados, se aplicável;
+- Limites de uso e horários;
+- Forma de auditoria;
+- Responsável técnico pelo suporte;
+- Procedimento para revogar o acesso.
+
+9. CONCLUSÃO
+
+Sim, é possível fazer isso com Python. O ponto principal não é apenas escrever o código: é obter autorização de rede, uma conta de serviço adequada, acesso ao compartilhamento e permissão específica para consultar as ACLs. A implementação deve ser feita no backend, com validação de caminhos, menor privilégio, tratamento de erros e auditoria.
+
+A primeira etapa recomendada é confirmar com a infraestrutura se o ambiente usa SMB/Windows ou NFS/Linux e se a aplicação poderá apenas listar pastas ou também consultar permissões detalhadas de usuários e grupos.

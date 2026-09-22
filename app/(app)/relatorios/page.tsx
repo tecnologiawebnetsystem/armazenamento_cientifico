@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import useSWR from "swr"
-import { BarChart3, Download, Filter, FolderKanban, Map, Search, SlidersHorizontal, Users } from "lucide-react"
+import { BarChart3, Download, Filter, FolderKanban, Map, RefreshCw, Search, SlidersHorizontal, Users, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,7 +18,7 @@ const fetcher = () => getProjectReport()
 type ReportExportFormat = "csv" | "txt" | "pdf"
 
 export default function ReportsPage() {
-  const { data, error, isLoading } = useSWR<ProjectReport>("/api/reports", fetcher)
+  const { data, error, isLoading, mutate } = useSWR<ProjectReport>("/api/reports", fetcher)
   const { data: catalogs } = useSWR("/api/catalogos", getCatalogs)
   const { data: reportTypes } = useSWR("/api/configurations/report_types", () => getConfigurations("report_types"))
   const { data: configuredFields } = useSWR("/api/report-fields?report_code=projetos", () => getReportFields("projetos"))
@@ -53,7 +53,7 @@ export default function ReportsPage() {
   if (isLoading) return <PageLayout back><PageHeader title="Consultas e relatórios" description="Leitura executiva do universo autorizado." /><PetrobrasLoading label="Consolidando o portfólio autorizado..." /></PageLayout>
   if (error || !data) return <PageLayout back><PageHeader title="Consultas e relatórios" /><p className="text-destructive">Não foi possível carregar o relatório.</p></PageLayout>
   return <PageLayout back>
-    <PageHeader eyebrow="Inteligência do portfólio" title="Consultas e relatórios" description="Uma visão clara para explorar projetos autorizados, comparar indicadores e exportar recortes confiáveis." actions={<ExportButton onClick={() => setExportOpen(true)} disabled={!exportFields.length} />} />
+    <PageHeader eyebrow="Inteligência do portfólio" title="Consultas e relatórios" description="Uma visão clara para explorar projetos autorizados, comparar indicadores e exportar recortes confiáveis." actions={<div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => void mutate()}><RefreshCw data-icon="inline-start" />Atualizar</Button><ExportButton onClick={() => setExportOpen(true)} disabled={!exportFields.length} /></div>} />
     <PageSection label="Visão geral"><KpiCards items={cards} /></PageSection>
     <section className="grid gap-4 md:grid-cols-3" aria-label="Tipos de relatório configurados">{(reportTypes ?? []).filter((item) => item.active !== false).map((item) => <Card key={String(item.id)} className="sigac-surface transition-all hover:-translate-y-0.5 hover:shadow-md"><CardHeader><div className="flex items-start justify-between gap-3"><div><CardTitle className="text-base">{String(item.name ?? item.code)}</CardTitle><CardDescription className="mt-1">{String(item.description ?? "Relatório configurado no catálogo")}</CardDescription></div><Badge variant="outline">{String(item.code ?? "")}</Badge></div></CardHeader><CardContent><a className="inline-flex h-8 items-center justify-center rounded-md border border-input bg-background px-3 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground" href={item.code === "acessos" ? "/pesquisas" : item.code === "auditoria" ? "/logs" : "/relatorios"}>{item.code === "acessos" ? "Abrir mapa" : item.code === "auditoria" ? "Abrir auditoria" : "Explorar relatório"}</a></CardContent></Card>)}</section>
     <div className="grid gap-4 lg:grid-cols-2"><Card className="sigac-surface"><CardHeader><CardTitle className="text-base">Distribuição por área</CardTitle><CardDescription>Quantidade de projetos no recorte atual.</CardDescription></CardHeader><CardContent className="flex flex-col gap-3">{data.porArea.length ? data.porArea.map((item) => <div key={item.area} className="flex items-center gap-3"><span className="w-36 truncate text-sm text-muted-foreground">{item.area}</span><div className="h-2 flex-1 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(8, Math.round((item.total / Math.max(data.indicadores.totalProjetos, 1)) * 100))}%` }} /></div><span className="w-8 text-right font-mono text-sm font-semibold">{item.total}</span></div>) : <p className="text-sm text-muted-foreground">Sem distribuição disponível para o recorte.</p>}</CardContent></Card><Card className="sigac-surface"><CardHeader><CardTitle className="text-base">Distribuição por status</CardTitle><CardDescription>Acompanhamento do ciclo de vida dos projetos.</CardDescription></CardHeader><CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-4">{data.porStatus.map((item) => <div key={item.status} className="rounded-xl border border-border/70 bg-muted/20 p-3"><p className="truncate text-xs text-muted-foreground">{item.status}</p><p className="mt-1 font-mono text-xl font-semibold">{item.total}</p></div>)}</CardContent></Card></div>
