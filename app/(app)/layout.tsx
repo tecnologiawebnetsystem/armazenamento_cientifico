@@ -14,7 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <AppSidebar />
       <div className="flex min-h-svh w-full flex-col">
         <AppTopbar />
-        <main className="min-w-0 flex-1 bg-[radial-gradient(circle_at_top_right,color-mix(in_oklch,var(--petrobras-green)_7%,transparent),transparent_32%),linear-gradient(135deg,var(--background),color-mix(in_oklch,var(--petrobras-blue)_3%,var(--background)))] p-3 sm:p-4 md:p-6 lg:p-8"><div className="mx-auto w-full max-w-[1800px]">{children}</div></main>
+        <main className="relative min-w-0 flex-1 overflow-hidden bg-background px-3 py-4 sm:px-5 sm:py-6 lg:px-8 lg:py-8"><div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_80%_0%,color-mix(in_oklch,var(--petrobras-green)_8%,transparent),transparent_52%)]" /><div className="relative mx-auto w-full max-w-[1800px]">{children}</div></main>
         <AppFooter />
       </div>
     </SidebarProvider>
