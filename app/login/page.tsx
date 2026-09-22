@@ -83,7 +83,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             <span className="mx-auto h-1 w-12 rounded-full bg-petrobras-yellow lg:mx-0" />
             <h1 className="text-3xl font-semibold tracking-tight text-white">Acesse sua conta</h1>
             <p className="text-sm leading-6 text-white/75">
-              Entre no SIGAC para consultar seus projetos, pesquisas e permissões.
+              Entre no SIGAC para consultar seus projetos, mapas de acessos e permissões.
             </p>
           </div>
 

@@ -52,7 +52,7 @@ function buildNavGroups(menus: PlatformMenu[]): NavGroup[] {
   )
 
   const items: NavItem[] = uniqueMenus.map((menu) => ({
-    title: menu.nome,
+    title: menu.rota.replace(/\/$/, "") === "/pesquisas" ? "Mapa de Acessos" : menu.nome,
     url: menu.rota,
     icon: getIcon(menu.icone),
   }))
