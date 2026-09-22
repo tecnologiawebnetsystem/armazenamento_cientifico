@@ -62,6 +62,7 @@ def upgrade() -> None:
     bind.execute(text("ALTER TABLE sessions DROP COLUMN IF EXISTS cav4_subject"))
     bind.execute(text("ALTER TABLE project_members DROP CONSTRAINT IF EXISTS project_members_user_id_fkey"))
     bind.execute(text("ALTER TABLE project_members ALTER COLUMN user_id TYPE VARCHAR(255) USING user_id::text"))
+    bind.execute(text("ALTER TABLE project_members DROP COLUMN IF EXISTS role"))
     bind.execute(text("ALTER TABLE activity_logs DROP CONSTRAINT IF EXISTS activity_logs_user_id_fkey"))
     bind.execute(text("ALTER TABLE activity_logs ALTER COLUMN user_id TYPE VARCHAR(255) USING user_id::text"))
     bind.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_email ON sessions(email)"))
