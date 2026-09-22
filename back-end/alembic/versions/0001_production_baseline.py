@@ -54,6 +54,7 @@ def upgrade() -> None:
     # Compatibilidade com bancos que já possuem a tabela sessions legada.
     # As colunas são adicionadas antes dos índices e permanecem nullable para
     # não invalidar sessões históricas sem e-mail/perfil corporativo.
+    bind.execute(text("ALTER TABLE sessions ALTER COLUMN user_id DROP NOT NULL"))
     bind.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS email VARCHAR(320)"))
     bind.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS profile_id VARCHAR(20)"))
     bind.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP"))

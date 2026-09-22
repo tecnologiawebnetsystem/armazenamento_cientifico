@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS sessions (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE sessions ALTER COLUMN user_id DROP NOT NULL;
+
 CREATE INDEX IF NOT EXISTS ix_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS ix_sessions_expires_at ON sessions(expires_at);
 

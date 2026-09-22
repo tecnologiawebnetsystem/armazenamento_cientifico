@@ -4,6 +4,9 @@
 \set ON_ERROR_STOP on
 BEGIN;
 
+-- Sessões CAv4 não dependem de um registro local em users.
+ALTER TABLE sessions ALTER COLUMN user_id DROP NOT NULL;
+
 -- Compatibilidade da tabela transacional com o contrato da API.
 -- Bancos antigos podem ter somente project_id/requester_id/status.
 ALTER TABLE access_requests ADD COLUMN IF NOT EXISTS request_type varchar(40);
