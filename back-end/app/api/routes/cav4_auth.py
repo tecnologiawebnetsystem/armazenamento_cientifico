@@ -231,8 +231,18 @@ async def cav4_callback(request: Request, code: str, state: str):
     except HTTPException:
         raise
     except SQLAlchemyError as exc:
-        logger.exception("cav4_authentication_failed reason=database_unavailable")
-        raise HTTPException(status_code=503, detail="Banco de dados indisponível para concluir o login") from exc
+        error_id = uuid4().hex[:12]
+        original = exc.orig if isinstance(exc, DBAPIError) else exc
+        logger.exception(
+            "cav4_authentication_failed error_id=%s db_error_type=%s db_error=%s",
+            error_id,
+            type(original).__name__,
+            str(original).splitlines()[0][:240],
+        )
+        raise HTTPException(
+            status_code=503,
+            detail=f"Banco de dados indisponível para concluir o login. Consulte o log pelo código {error_id}.",
+        ) from exc
     safe_next = next_path if next_path.startswith("/") and not next_path.startswith("//") else "/dashboard"
     redirect_url = f"{settings.frontend_url}{safe_next}"
     logger.info(
