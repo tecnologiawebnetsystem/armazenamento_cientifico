@@ -12,13 +12,13 @@ class FolderBase(BaseModel):
 
 
 class FolderCreate(FolderBase):
-    created_by: str = Field(..., max_length=36)
+    created_by: str | None = Field(None, max_length=36)
 
 
 class FolderOut(FolderBase):
     id: str
-    size_bytes: int
-    created_by: str
+    size_bytes: int = Field(validation_alias="size", serialization_alias="size_bytes")
+    created_by: str | None = Field(None, max_length=36)
     created_at: datetime
     updated_at: datetime
 
