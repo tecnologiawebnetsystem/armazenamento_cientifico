@@ -130,7 +130,7 @@ INSERT INTO modules (id, name, route, icon, display_order, active) VALUES
  ('projetos','Projetos','/projetos','folder',10,true),
  ('relatorios','Relatórios','/relatorios','chart',30,true),
  ('auditoria','Logs e Auditoria','/logs','history',50,true),
- ('pesquisas','Pesquisa','/pesquisas','search',60,true)
+ ('pesquisas','Mapa de Acessos','/pesquisas','search',60,true)
 ON CONFLICT (id) DO UPDATE SET name=excluded.name, route=excluded.route, icon=excluded.icon, display_order=excluded.display_order, active=excluded.active;
 
 INSERT INTO permissions (id,module_id,name,description,active) VALUES
@@ -144,7 +144,7 @@ INSERT INTO permissions (id,module_id,name,description,active) VALUES
  ('relatorio.visualizar','relatorios','Visualizar relatórios','Visualizar relatórios',true),
  ('relatorio.exportar','relatorios','Exportar relatórios','Exportar relatórios',true),
  ('auditoria.visualizar','auditoria','Visualizar auditoria','Visualizar logs de auditoria',true),
- ('pesquisa.visualizar','pesquisas','Visualizar pesquisas','Visualizar pesquisas',true)
+ ('pesquisa.visualizar','pesquisas','Visualizar mapa de acessos','Consultar projetos, grupos, membros, pastas e níveis de acesso autorizados',true)
 ON CONFLICT (id) DO UPDATE SET module_id=excluded.module_id, name=excluded.name, description=excluded.description, active=excluded.active;
 
 INSERT INTO menus (id,module_id,parent_id,name,route,icon,display_order,active) VALUES
@@ -152,7 +152,7 @@ INSERT INTO menus (id,module_id,parent_id,name,route,icon,display_order,active) 
  ('menu-projetos','projetos',NULL,'Projetos','/projetos','folder',10,true),
  ('menu-relatorios','relatorios',NULL,'Relatórios','/relatorios','chart',30,true),
  ('menu-auditoria','auditoria',NULL,'Logs e Auditoria','/logs','history',50,true),
- ('menu-pesquisas','pesquisas',NULL,'Pesquisa','/pesquisas','search',60,true)
+ ('menu-pesquisas','pesquisas',NULL,'Mapa de Acessos','/pesquisas','search',60,true)
 ON CONFLICT (id) DO UPDATE SET module_id=excluded.module_id, parent_id=excluded.parent_id, name=excluded.name, route=excluded.route, icon=excluded.icon, display_order=excluded.display_order, active=excluded.active;
 
 INSERT INTO menu_permissions (menu_id, permission_id, allowed) VALUES
@@ -179,10 +179,20 @@ INSERT INTO report_fields (id,report_code,field_key,label,source_key,display_ord
  ('projetos-area','projetos','areaResponsavel','Área responsável','areaResponsavel',30,true),
  ('projetos-status','projetos','status','Status','status',40,true),
  ('projetos-criado-em','projetos','criadoEm','Criado em','criadoEm',50,true),
- ('acessos-usuario','acessos','userName','Usuário','userName',10,true),
- ('acessos-email','acessos','userEmail','E-mail','userEmail',20,true),
- ('acessos-projeto','acessos','projectName','Projeto','projectName',30,true),
- ('acessos-nivel','acessos','accessLevel','Nível de acesso','accessLevel',40,true)
+ ('acessos-usuario-id','acessos','userId','Identificador do usuário','userId',10,true),
+ ('acessos-usuario','acessos','userName','Membro','userName',20,true),
+ ('acessos-email','acessos','userEmail','E-mail','userEmail',30,true),
+ ('acessos-perfil','acessos','userRole','Perfil','userRole',40,true),
+ ('acessos-area','acessos','area','Área','area',50,true),
+ ('acessos-projeto-id','acessos','projectId','Identificador do projeto','projectId',60,true),
+ ('acessos-projeto','acessos','projectName','Projeto','projectName',70,true),
+ ('acessos-status-projeto','acessos','projectStatus','Status do projeto','projectStatus',80,true),
+ ('acessos-recurso','acessos','resourceName','Recurso','resourceName',90,true),
+ ('acessos-tipo-recurso','acessos','resourceType','Tipo de recurso','resourceType',100,true),
+ ('acessos-nivel','acessos','accessLevel','Nível de acesso','accessLevel',110,true),
+ ('acessos-pasta','acessos','folderPath','Pasta','folderPath',120,true),
+ ('acessos-ultima-visualizacao','acessos','lastViewedAt','Última visualização','lastViewedAt',130,true),
+ ('acessos-atualizado-em','acessos','updatedAt','Atualizado em','updatedAt',140,true)
 ON CONFLICT (id) DO UPDATE SET label=excluded.label, source_key=excluded.source_key, display_order=excluded.display_order, active=excluded.active;
 
 INSERT INTO profile_modules (profile_id,module_id,can_view)
