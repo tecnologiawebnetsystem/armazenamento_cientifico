@@ -4,6 +4,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import require_capabilities
@@ -32,11 +34,33 @@ async def reports(service: Annotated[ReportService, Depends(get_service)], _: An
 
 @router.get("/reports/export")
 async def export_reports(service: Annotated[ReportService, Depends(get_service)], _: Annotated[dict, Depends(require_capabilities("reports"))], query: Annotated[ReportExportQuery, Depends()]):
-    report = await service.projects(query.status, query.area, query.gestor_id)
-    rows = report["projetos"]
+    rows = await service.rows_for_export(query.report_code, query.status, query.area, query.gestor_id)
+    columns = [column.strip() for column in query.fields.split(",") if column.strip()] or (list(rows[0].keys()) if rows else ["id"])
+    format_name = query.format.lower()
+    if format_name == "pdf":
+        buffer = io.BytesIO()
+        document = canvas.Canvas(buffer, pagesize=A4)
+        _, height = A4
+        y = height - 36
+        document.setFont("Helvetica-Bold", 10)
+        document.drawString(36, y, f"Relatório: {query.report_code}")
+        y -= 20
+        document.setFont("Helvetica", 7)
+        for row in rows:
+            line = " | ".join(str(row.get(column, ""))[:70] for column in columns)
+            document.drawString(36, y, line[:150])
+            y -= 11
+            if y < 36:
+                document.showPage(); y = height - 36
+        document.save(); buffer.seek(0)
+        return StreamingResponse(iter([buffer.getvalue()]), media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=relatorio-{query.report_code}.pdf"})
     output = io.StringIO()
-    columns = [column for column in query.fields.split(",") if column] or (list(rows[0].keys()) if rows else ["id", "nome", "status"])
-    writer = csv.DictWriter(output, fieldnames=columns, extrasaction="ignore")
-    writer.writeheader()
-    writer.writerows(rows)
-    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv" if query.format == "csv" else "text/plain", headers={"Content-Disposition": "attachment; filename=relatorio-projetos.csv"})
+    if format_name == "csv":
+        writer = csv.DictWriter(output, fieldnames=columns, extrasaction="ignore")
+        writer.writeheader(); writer.writerows(rows)
+        media_type, extension = "text/csv", "csv"
+    else:
+        output.write("\t".join(columns) + "\n")
+        for row in rows: output.write("\t".join(str(row.get(column, "")) for column in columns) + "\n")
+        media_type, extension = "text/plain", "txt"
+    return StreamingResponse(iter([output.getvalue()]), media_type=media_type, headers={"Content-Disposition": f"attachment; filename=relatorio-{query.report_code}.{extension}"})

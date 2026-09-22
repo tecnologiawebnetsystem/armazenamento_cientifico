@@ -5,6 +5,8 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, require_capabilities
@@ -115,5 +117,16 @@ async def export_access_map(service: Service, _: Annotated[dict, Depends(require
     writer = csv.DictWriter(output, fieldnames=columns, extrasaction="ignore")
     writer.writeheader()
     writer.writerows(rows)
-    media_type = "text/csv" if format == "csv" else "text/plain"
-    return StreamingResponse(iter([output.getvalue()]), media_type=media_type, headers={"Content-Disposition": "attachment; filename=mapa-de-acessos.csv"})
+    if format == "pdf":
+        buffer = io.BytesIO(); document = canvas.Canvas(buffer, pagesize=A4); _, height = A4; y = height - 36
+        document.setFont("Helvetica-Bold", 10); document.drawString(36, y, "Mapa de Acessos Científico"); y -= 20; document.setFont("Helvetica", 7)
+        for row in rows:
+            document.drawString(36, y, " | ".join(str(row.get(column, ""))[:70] for column in columns)[:150]); y -= 11
+            if y < 36: document.showPage(); y = height - 36
+        document.save(); buffer.seek(0)
+        return StreamingResponse(iter([buffer.getvalue()]), media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=mapa-de-acessos.pdf"})
+    if format == "txt":
+        output = io.StringIO(); output.write("\t".join(columns) + "\n")
+        for row in rows: output.write("\t".join(str(row.get(column, "")) for column in columns) + "\n")
+        return StreamingResponse(iter([output.getvalue()]), media_type="text/plain", headers={"Content-Disposition": "attachment; filename=mapa-de-acessos.txt"})
+    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=mapa-de-acessos.csv"})

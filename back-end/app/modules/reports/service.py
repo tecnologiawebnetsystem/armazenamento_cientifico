@@ -10,6 +10,13 @@ class ReportService:
     async def fields(self, report_code: str) -> dict[str, Any]:
         return {"reportCode": report_code, "fields": await self.repository.fields(report_code)}
 
+    async def rows_for_export(self, report_code: str, status: str | None, area: str | None, gestor_id: str | None) -> list[dict[str, Any]]:
+        if report_code == "acessos":
+            return await self.repository.access_map()
+        if report_code == "auditoria":
+            return await self.repository.audit_logs()
+        return (await self.projects(status, area, gestor_id))["projetos"]
+
     async def projects(self, status: str | None, area: str | None, gestor_id: str | None) -> dict[str, Any]:
         rows = await self.repository.projects(status, area)
         area_totals: dict[str, int] = {}
