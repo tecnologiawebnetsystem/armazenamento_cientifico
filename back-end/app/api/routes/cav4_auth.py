@@ -239,7 +239,7 @@ async def cav4_callback(request: Request, code: str, state: str):
                     "email": identity.email,
                     "profile_id": profile_id,
                     "expires_at": expires_at,
-                    "cav4_subject": identity.subject or identity.email,
+                    "cav4_subject": identity.user_login or identity.subject or identity.email,
                 },
             )
             await database.commit()
