@@ -1,7 +1,6 @@
 "use client"
 
-import Link from "next/link"
-import { ChevronDownIcon, LogOutIcon, MapPinIcon, UserRoundIcon } from "lucide-react"
+import { ChevronDownIcon, KeyRoundIcon, LogOutIcon, MailIcon, MapPinIcon } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { logout } from "@/lib/api-client"
@@ -51,19 +50,20 @@ export function ProfileAvatarMenu({ user, onLogout }: { user: User; onLogout: ()
           {(user.area || user.cargo) && <div className="mt-5 flex items-center gap-2 border-t border-white/20 pt-4 text-sm text-white/85"><MapPinIcon className="size-4 shrink-0" aria-hidden="true" /><span className="truncate">{[user.area, user.cargo].filter(Boolean).join(" · ")}</span></div>}
         </div>
 
-        <div className="px-6 py-4">
+        <div className="grid gap-3 px-6 py-4">
           <div className="flex items-start gap-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"><UserRoundIcon className="size-4" aria-hidden="true" /></span>
-            <div className="min-w-0"><p className="text-xs text-muted-foreground">Perfil de acesso</p><p className="font-semibold text-foreground">{roleDescription(user.role)}</p></div>
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"><MailIcon className="size-4" aria-hidden="true" /></span>
+            <div className="min-w-0"><p className="text-xs text-muted-foreground">E-mail corporativo</p><p className="break-all font-semibold text-foreground">{user.email || "Não informado"}</p></div>
           </div>
+          <div className="flex items-start gap-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"><KeyRoundIcon className="size-4" aria-hidden="true" /></span>
+            <div className="min-w-0"><p className="text-xs text-muted-foreground">User login CAV4</p><p className="break-all font-semibold text-foreground">{user.chaveCav4 || "Não informado"}</p></div>
+          </div>
+          <p className="text-xs text-muted-foreground">{roleDescription(user.role)}</p>
         </div>
 
         <DropdownMenuSeparator className="m-0" />
         <div className="p-2">
-          <DropdownMenuItem render={<Link href="/perfil" />} className="h-12 cursor-pointer gap-3 rounded-xl px-4 text-sm font-semibold">
-            <UserRoundIcon />
-            Meu Perfil
-          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleLogout} variant="destructive" className="h-12 cursor-pointer gap-3 rounded-xl px-4 text-sm font-semibold">
             <LogOutIcon />
             Sair

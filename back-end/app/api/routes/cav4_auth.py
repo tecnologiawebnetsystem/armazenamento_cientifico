@@ -10,6 +10,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 
 from app.api.dependencies import get_current_user
+from app.core.authorization import canonical_role
 from app.core.config import settings
 from app.core.temporary_sessions import delete_session
 from app.db.session import get_session
@@ -207,6 +208,11 @@ async def cav4_callback(request: Request, code: str, state: str):
     profile_id = next((role for role in identity.roles if role), None)
     if not profile_id:
         raise HTTPException(status_code=403, detail="Usuário CAV4 sem perfil corporativo configurado")
+    if canonical_role(profile_id) == "solicitante":
+        raise HTTPException(
+            status_code=403,
+            detail="Seu perfil é Solicitante e não possui acesso ao SIGAC.",
+        )
 
     session_id = str(uuid4())
     expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours)
@@ -239,7 +245,7 @@ async def cav4_callback(request: Request, code: str, state: str):
                     "email": identity.email,
                     "profile_id": profile_id,
                     "expires_at": expires_at,
-                    "cav4_subject": identity.subject or identity.email,
+                    "cav4_subject": identity.user_login or identity.subject or identity.email,
                 },
             )
             await database.commit()

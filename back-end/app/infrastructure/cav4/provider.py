@@ -30,6 +30,7 @@ class CAV4AuthenticationError(RuntimeError):
 class CAV4Identity:
     subject: str
     email: str
+    user_login: str | None = None
     display_name: str | None = None
     roles: tuple[str, ...] = ()
     permissions: tuple[str, ...] = ()
@@ -358,6 +359,7 @@ class CAV4OIDCProvider:
         return CAV4Identity(
             subject=claims.get("sub", ""),
             email=email,
+            user_login=str(claims.get("user_login") or claims.get("userLogin") or "") or None,
             display_name=display_name,
             roles=roles,
             permissions=_claim_values(claims, "permissions", "scp", "scope"),
