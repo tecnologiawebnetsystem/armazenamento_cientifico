@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUser
+from app.api.dependencies import require_capabilities
 from app.db.session import get_session
 
 from .repository import FolderRepository
@@ -21,7 +21,7 @@ def get_service(session: Session) -> FolderService:
 @router.get("", response_model=FolderListOut)
 async def list_folders(
     service: Annotated[FolderService, Depends(get_service)],
-    user: CurrentUser,
+    user: Annotated[dict, Depends(require_capabilities("read"))],
     project_id: str = Query(alias="projectId"),
 ):
     from fastapi import HTTPException

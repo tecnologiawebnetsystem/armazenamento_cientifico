@@ -35,7 +35,14 @@ VALUES
   ('acessos-chave-cav4', 'acessos', 'userId', 'Chave do usuário CAv4', 'userId', 20, true),
   ('acessos-email', 'acessos', 'userEmail', 'E-mail', 'userEmail', 30, true),
   ('acessos-projeto', 'acessos', 'projectName', 'Projeto', 'projectName', 40, true),
-  ('acessos-nivel', 'acessos', 'accessLevel', 'Nível de acesso', 'accessLevel', 50, true)
+  ('acessos-projeto-id', 'acessos', 'projectId', 'Identificador do projeto', 'projectId', 45, true),
+  ('acessos-status-projeto', 'acessos', 'projectStatus', 'Status do projeto', 'projectStatus', 50, true),
+  ('acessos-area', 'acessos', 'area', 'Área responsável', 'area', 55, true),
+  ('acessos-perfil', 'acessos', 'userRole', 'Perfil do usuário', 'userRole', 60, true),
+  ('acessos-recurso', 'acessos', 'resourceName', 'Recurso', 'resourceName', 70, true),
+  ('acessos-tipo-recurso', 'acessos', 'resourceType', 'Tipo de recurso', 'resourceType', 80, true),
+  ('acessos-nivel', 'acessos', 'accessLevel', 'Nível de acesso', 'accessLevel', 90, true),
+  ('acessos-ultima-visualizacao', 'acessos', 'lastViewedAt', 'Última visualização', 'lastViewedAt', 100, true)
 ON CONFLICT (id) DO UPDATE SET
   report_code = EXCLUDED.report_code,
   field_key = EXCLUDED.field_key,

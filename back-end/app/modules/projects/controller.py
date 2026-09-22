@@ -53,7 +53,7 @@ def serialize_members(rows) -> list[ProjectMemberOut]:
 
 
 @router.get("", response_model=dict)
-async def list_projects(service: Annotated[ProjectService, Depends(get_service)], user: CurrentUser):
+async def list_projects(service: Annotated[ProjectService, Depends(get_service)], user: Annotated[dict, Depends(require_capabilities("read"))]):
     role = user["role"] or "solicitante"
     projects = await service.list_projects(str(user["id"]), str(role))
     return {"projects": [serialize_project(project) for project in projects]}
@@ -102,13 +102,13 @@ async def delete_project(
 
 
 @router.get("/areas", response_model=dict)
-async def list_responsible_areas(service: Annotated[ProjectService, Depends(get_service)], _: CurrentUser):
+async def list_responsible_areas(service: Annotated[ProjectService, Depends(get_service)], _: Annotated[dict, Depends(require_capabilities("read"))]):
     areas = await service.list_areas()
     return {"areas": [{"id": area.id, "nome": area.name, "prefixo": area.prefix, "proximoCodigo": area.preview_code()} for area in areas]}
 
 
 @router.get("/{project_id}", response_model=dict)
-async def get_project(project_id: str, service: Annotated[ProjectService, Depends(get_service)], user: CurrentUser):
+async def get_project(project_id: str, service: Annotated[ProjectService, Depends(get_service)], user: Annotated[dict, Depends(require_capabilities("read"))]):
     project = await service.get_project(project_id)
     if not project:
         raise project_not_found()
@@ -119,7 +119,7 @@ async def get_project(project_id: str, service: Annotated[ProjectService, Depend
 
 
 @router.get("/{project_id}/access-map", response_model=AccessMapOut)
-async def get_project_access_map(project_id: str, service: Annotated[ProjectService, Depends(get_service)], user: CurrentUser):
+async def get_project_access_map(project_id: str, service: Annotated[ProjectService, Depends(get_service)], user: Annotated[dict, Depends(require_capabilities("access_map"))]):
     project = await service.get_project(project_id)
     if not project:
         raise project_not_found()

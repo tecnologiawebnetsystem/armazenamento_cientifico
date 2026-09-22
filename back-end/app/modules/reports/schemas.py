@@ -13,6 +13,7 @@ class ReportFieldQuery(BaseModel):
 
 
 class ReportExportQuery(ReportFilters):
+    report_code: str = "projetos"
     format: str = "csv"
     fields: str = ""
 

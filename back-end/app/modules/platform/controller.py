@@ -5,9 +5,11 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUser
+from app.api.dependencies import CurrentUser, require_capabilities
 from app.db.session import get_session
 
 from .repository import PlatformRepository
@@ -26,13 +28,13 @@ ConfigurationPayload = Annotated[dict[str, Any], Body()]
 
 
 @router.get("/platform/context")
-async def platform_context(service: Service, user: CurrentUser):
+async def platform_context(service: Service, user: Annotated[dict, Depends(require_capabilities("read"))]):
     logger.info("platform_context_read profile_id=%s email=%s", user.get("profile_id"), user.get("email"))
     return await service.context(user)
 
 
 @router.get("/catalogos")
-async def catalogs(service: Service, _: CurrentUser):
+async def catalogs(service: Service, _: Annotated[dict, Depends(require_capabilities("read"))]):
     logger.info("platform_catalogs_read")
     return await service.catalogs()
 
@@ -77,37 +79,37 @@ async def delete_configuration(resource: str, identifier: str, service: Service,
 
 
 @router.get("/users")
-async def users(service: Service, _: CurrentUser):
+async def users(service: Service, _: Annotated[dict, Depends(require_capabilities("manage_users"))]):
     logger.info("platform_users_read")
     return {"users": await service.users()}
 
 
 @router.get("/folders")
-async def folders(service: Service, _: CurrentUser, projectId: str = Query(min_length=1)):
+async def folders(service: Service, _: Annotated[dict, Depends(require_capabilities("read"))], projectId: str = Query(min_length=1)):
     logger.info("platform_folders_read project_id=%s", projectId)
     return await service.folders(projectId)
 
 
 @router.get("/dashboard/summary")
-async def dashboard(service: Service, _: CurrentUser):
+async def dashboard(service: Service, _: Annotated[dict, Depends(require_capabilities("read"))]):
     logger.info("platform_dashboard_read")
     return await service.dashboard()
 
 
 @router.get("/activity-logs")
-async def activity_logs(service: Service, _: CurrentUser, page: int = Query(1, ge=1), limit: int = Query(50, ge=1, le=500)):
+async def activity_logs(service: Service, _: Annotated[dict, Depends(require_capabilities("audit"))], page: int = Query(1, ge=1), limit: int = Query(50, ge=1, le=500)):
     logger.info("platform_activity_logs_read page=%s limit=%s", page, limit)
     return await service.activity_logs(page, limit)
 
 
 @router.get("/access-map")
-async def access_map(service: Service, _: CurrentUser):
+async def access_map(service: Service, _: Annotated[dict, Depends(require_capabilities("access_map"))]):
     logger.info("platform_access_map_read")
     return await service.access_map()
 
 
 @router.get("/access-map/export")
-async def export_access_map(service: Service, _: CurrentUser, format: str = Query("csv"), fields: str = ""):
+async def export_access_map(service: Service, _: Annotated[dict, Depends(require_capabilities("access_map"))], format: str = Query("csv"), fields: str = ""):
     data = await service.access_map()
     output = io.StringIO()
     rows = data.get("rows", [])
@@ -115,5 +117,16 @@ async def export_access_map(service: Service, _: CurrentUser, format: str = Quer
     writer = csv.DictWriter(output, fieldnames=columns, extrasaction="ignore")
     writer.writeheader()
     writer.writerows(rows)
-    media_type = "text/csv" if format == "csv" else "text/plain"
-    return StreamingResponse(iter([output.getvalue()]), media_type=media_type, headers={"Content-Disposition": "attachment; filename=mapa-de-acessos.csv"})
+    if format == "pdf":
+        buffer = io.BytesIO(); document = canvas.Canvas(buffer, pagesize=A4); _, height = A4; y = height - 36
+        document.setFont("Helvetica-Bold", 10); document.drawString(36, y, "Mapa de Acessos Científico"); y -= 20; document.setFont("Helvetica", 7)
+        for row in rows:
+            document.drawString(36, y, " | ".join(str(row.get(column, ""))[:70] for column in columns)[:150]); y -= 11
+            if y < 36: document.showPage(); y = height - 36
+        document.save(); buffer.seek(0)
+        return StreamingResponse(iter([buffer.getvalue()]), media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=mapa-de-acessos.pdf"})
+    if format == "txt":
+        output = io.StringIO(); output.write("\t".join(columns) + "\n")
+        for row in rows: output.write("\t".join(str(row.get(column, "")) for column in columns) + "\n")
+        return StreamingResponse(iter([output.getvalue()]), media_type="text/plain", headers={"Content-Disposition": "attachment; filename=mapa-de-acessos.txt"})
+    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=mapa-de-acessos.csv"})
