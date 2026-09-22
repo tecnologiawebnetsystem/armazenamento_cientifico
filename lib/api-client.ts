@@ -135,6 +135,13 @@ export function getCatalogs() {
   return request<PlatformCatalogs>("/api/catalogos")
 }
 
+export type ConfigurationResource = "menus" | "modules" | "permissions" | "menu_permissions" | "profiles" | "profile_permissions" | "profile_modules" | "project_statuses" | "responsible_areas" | "report_types" | "report_fields" | "dashboard_cards"
+export type ConfigurationRow = Record<string, unknown> & { id?: string }
+export function getConfigurations(resource: ConfigurationResource) { return request<ConfigurationRow[]>(`/api/configurations/${resource}`) }
+export function createConfiguration(resource: ConfigurationResource, data: Record<string, unknown>) { return request<ConfigurationRow>(`/api/configurations/${resource}`, { method: "POST", body: JSON.stringify(data) }) }
+export function updateConfiguration(resource: ConfigurationResource, id: string, data: Record<string, unknown>) { return request<ConfigurationRow>(`/api/configurations/${resource}/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(data) }) }
+export function deleteConfiguration(resource: ConfigurationResource, id: string) { return request<void>(`/api/configurations/${resource}/${encodeURIComponent(id)}`, { method: "DELETE" }) }
+
 export function getResponsibleAreas() {
   return request<{ areas: import("@/lib/types").ResponsibleArea[] }>("/api/projects/areas")
 }

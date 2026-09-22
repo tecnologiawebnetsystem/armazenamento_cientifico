@@ -1,9 +1,9 @@
 import csv
 import io
 import logging
-from typing import Annotated
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +22,7 @@ def service_dependency(session: Annotated[AsyncSession, Depends(get_session)]) -
 
 
 Service = Annotated[PlatformService, Depends(service_dependency)]
+ConfigurationPayload = Annotated[dict[str, Any], Body()]
 
 
 @router.get("/platform/context")
@@ -34,6 +35,43 @@ async def platform_context(service: Service, user: CurrentUser):
 async def catalogs(service: Service, _: CurrentUser):
     logger.info("platform_catalogs_read")
     return await service.catalogs()
+
+
+CONFIGURATION_RESOURCES = frozenset(PlatformRepository.CONFIGURATION_TABLES)
+
+
+def require_admin(user: dict[str, Any]) -> None:
+    if str(user.get("profile_id", "")).upper() != "ADM":
+        raise HTTPException(status_code=403, detail="Apenas administradores podem alterar configurações")
+
+
+@router.get("/configurations/{resource}")
+async def configurations(resource: str, service: Service, user: CurrentUser):
+    if resource not in CONFIGURATION_RESOURCES: raise HTTPException(status_code=404, detail="Recurso de configuração inválido")
+    require_admin(user)
+    return await service.configurations(resource)
+
+
+@router.post("/configurations/{resource}")
+async def create_configuration(resource: str, service: Service, user: CurrentUser, payload: ConfigurationPayload):
+    if resource not in CONFIGURATION_RESOURCES: raise HTTPException(status_code=404, detail="Recurso de configuração inválido")
+    require_admin(user)
+    return await service.create_configuration(resource, payload)
+
+
+@router.patch("/configurations/{resource}/{identifier}")
+async def update_configuration(resource: str, identifier: str, service: Service, user: CurrentUser, payload: ConfigurationPayload):
+    if resource not in CONFIGURATION_RESOURCES: raise HTTPException(status_code=404, detail="Recurso de configuração inválido")
+    require_admin(user)
+    return await service.update_configuration(resource, identifier, payload)
+
+
+@router.delete("/configurations/{resource}/{identifier}")
+async def delete_configuration(resource: str, identifier: str, service: Service, user: CurrentUser):
+    if resource not in CONFIGURATION_RESOURCES: raise HTTPException(status_code=404, detail="Recurso de configuração inválido")
+    require_admin(user)
+    await service.delete_configuration(resource, identifier)
+    return {"deleted": True}
 
 
 @router.get("/users")

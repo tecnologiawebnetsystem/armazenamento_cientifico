@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, ClassVar
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -82,6 +82,54 @@ class PlatformRepository:
 
     async def catalogs(self) -> dict[str, list[dict[str, Any]]]:
         return {"areas": await self.rows(f"select id, name as nome, prefix as prefixo, next_number from {self.schema}.responsible_areas where active = true order by name"), "perfis": await self.rows(f"select id, name as nome, description as descricao from {self.schema}.profiles order by name"), "modulos": await self.rows(f"select id, name as nome, route as rota, icon as icone, display_order as ordem, active as ativo from {self.schema}.modules where active = true order by display_order, name"), "permissoes": await self.rows(f"select id, module_id as modulo_id, name as nome, description as descricao, active as ativo from {self.schema}.permissions where active = true order by name"), "statusProjetos": await self.rows(f"select id, code as codigo, name as nome, color as cor, display_order as ordem, active as ativo, allows_edit as permite_edicao from {self.schema}.project_statuses where active = true order by display_order"), "tiposRelatorios": await self.rows(f"select id, code as codigo, name as nome, description as descricao, formats as formatos, active as ativo from {self.schema}.report_types where active = true order by name")}
+
+    CONFIGURATION_TABLES: ClassVar[dict[str, tuple[str, tuple[str, ...], tuple[str, ...]]]] = {
+        "menus": ("menus", ("id", "module_id", "parent_id", "name", "route", "icon", "display_order", "active"), ("id",)),
+        "modules": ("modules", ("id", "name", "route", "icon", "display_order", "active"), ("id",)),
+        "permissions": ("permissions", ("id", "module_id", "name", "description", "active"), ("id",)),
+        "profiles": ("profiles", ("id", "name", "description"), ("id",)),
+        "project_statuses": ("project_statuses", ("id", "code", "name", "color", "display_order", "active", "allows_edit"), ("id",)),
+        "responsible_areas": ("responsible_areas", ("id", "name", "prefix", "next_number", "active"), ("id",)),
+        "report_types": ("report_types", ("id", "code", "name", "description", "formats", "active"), ("id",)),
+        "report_fields": ("report_fields", ("id", "report_code", "field_key", "label", "source_key", "display_order", "active"), ("id",)),
+        "dashboard_cards": ("dashboard_cards", ("id", "module_id", "key", "title", "description", "metric_key", "route", "profile_ids", "display_order", "active"), ("id",)),
+        "menu_permissions": ("menu_permissions", ("menu_id", "permission_id", "allowed"), ("menu_id", "permission_id")),
+        "profile_permissions": ("profile_permissions", ("profile_id", "permission_id", "allowed"), ("profile_id", "permission_id")),
+        "profile_modules": ("profile_modules", ("profile_id", "module_id", "can_view"), ("profile_id", "module_id")),
+    }
+
+    def _configuration_filter(self, keys: tuple[str, ...], identifier: str) -> tuple[str, dict[str, Any]]:
+        values = identifier.split("|")
+        if len(values) != len(keys) or any(not value for value in values):
+            raise ValueError("Identificador de configuração inválido")
+        params = {f"key_{index}": value for index, value in enumerate(values)}
+        return " and ".join(f"{key} = :key_{index}" for index, key in enumerate(keys)), params
+
+    async def configuration_rows(self, resource: str) -> list[dict[str, Any]]:
+        table, columns, _ = self.CONFIGURATION_TABLES[resource]
+        return await self.rows(f"select {', '.join(columns)} from {self.schema}.{table} order by 1")
+
+    async def create_configuration(self, resource: str, data: dict[str, Any]) -> dict[str, Any]:
+        table, columns, keys = self.CONFIGURATION_TABLES[resource]
+        values = {key: data[key] for key in columns if key in data}
+        if any(key not in values for key in keys): raise ValueError("Todos os campos de identificação são obrigatórios")
+        names = tuple(values)
+        await self.execute(f"insert into {self.schema}.{table} ({', '.join(names)}) values ({', '.join(':' + name for name in names)})", values)
+        where = " and ".join(f"{key} = :{key}" for key in keys)
+        return (await self.rows(f"select {', '.join(columns)} from {self.schema}.{table} where {where}", {key: values[key] for key in keys}))[0]
+
+    async def update_configuration(self, resource: str, identifier: str, data: dict[str, Any]) -> dict[str, Any]:
+        table, columns, keys = self.CONFIGURATION_TABLES[resource]
+        where, key_params = self._configuration_filter(keys, identifier)
+        values = {name: data[name] for name in columns if name not in keys and name in data}
+        if not values: raise ValueError("Nenhum campo informado")
+        await self.execute(f"update {self.schema}.{table} set {', '.join(f'{name} = :{name}' for name in values)} where {where}", {**values, **key_params})
+        return (await self.rows(f"select {', '.join(columns)} from {self.schema}.{table} where {where}", key_params))[0]
+
+    async def delete_configuration(self, resource: str, identifier: str) -> None:
+        table, _, keys = self.CONFIGURATION_TABLES[resource]
+        where, params = self._configuration_filter(keys, identifier)
+        await self.execute(f"delete from {self.schema}.{table} where {where}", params)
 
     async def users(self) -> list[dict[str, Any]]:
         return await self.rows(f"select id, name as nome, email, job_title as cargo, area, avatar_url as \"avatarUrl\", last_login_at as \"ultimoLogin\", role, profile_id as \"perfilId\", created_at as \"criadoEm\" from {self.schema}.users order by name")
