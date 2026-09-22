@@ -4,6 +4,9 @@
 
 BEGIN;
 
+-- Normaliza registros antigos antes da recriação.
+UPDATE folders SET kind = 'pasta' WHERE kind = 'folder';
+
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM projects) THEN
