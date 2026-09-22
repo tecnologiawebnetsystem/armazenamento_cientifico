@@ -18,7 +18,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { usePlatformContext } from "@/hooks/use-platform-context"
-import { ClipboardListIcon, FlaskConicalIcon, FolderKanbanIcon, LayoutDashboardIcon, ShieldCheckIcon, BarChart3Icon, type LucideIcon } from "lucide-react"
+import { ClipboardListIcon, FlaskConicalIcon, FolderKanbanIcon, LayoutDashboardIcon, ShieldCheckIcon, BarChart3Icon, Settings2Icon, type LucideIcon } from "lucide-react"
 import type { NavGroup, NavItem } from "@/lib/nav-config"
 import type { PlatformMenu } from "@/lib/types"
 
@@ -34,6 +34,7 @@ const iconMap: Record<string, LucideIcon> = {
   auditoria: ClipboardListIcon,
   logs: ClipboardListIcon,
   shield: ShieldCheckIcon,
+  settings: Settings2Icon,
 }
 
 function getIcon(name: string): LucideIcon {

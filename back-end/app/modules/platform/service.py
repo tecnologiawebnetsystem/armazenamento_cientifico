@@ -17,6 +17,18 @@ class PlatformService:
     async def catalogs(self) -> dict[str, list[dict[str, Any]]]:
         return await self.context_service.catalogs()
 
+    async def configurations(self, resource: str) -> list[dict[str, Any]]:
+        return await self.repository.configuration_rows(resource)
+
+    async def create_configuration(self, resource: str, data: dict[str, Any]) -> dict[str, Any]:
+        return await self.repository.create_configuration(resource, data)
+
+    async def update_configuration(self, resource: str, identifier: str, data: dict[str, Any]) -> dict[str, Any]:
+        return await self.repository.update_configuration(resource, identifier, data)
+
+    async def delete_configuration(self, resource: str, identifier: str) -> None:
+        await self.repository.delete_configuration(resource, identifier)
+
     async def users(self) -> list[dict[str, Any]]:
         return await self.directory_service.users()
 
