@@ -62,6 +62,7 @@ def upgrade() -> None:
     bind.execute(text("ALTER TABLE sessions ALTER COLUMN user_id TYPE VARCHAR(255) USING user_id::text"))
     bind.execute(text("ALTER TABLE sessions DROP COLUMN IF EXISTS cav4_subject"))
     bind.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS display_name VARCHAR(255)"))
+    bind.execute(text("UPDATE sessions s SET display_name = NULLIF(TRIM(u.name), '') FROM users u WHERE s.display_name IS NULL AND u.id = s.user_id AND NULLIF(TRIM(u.name), '') IS NOT NULL"))
     bind.execute(text("ALTER TABLE project_members DROP CONSTRAINT IF EXISTS project_members_user_id_fkey"))
     bind.execute(text("ALTER TABLE project_members ALTER COLUMN user_id TYPE VARCHAR(255) USING user_id::text"))
     bind.execute(text("ALTER TABLE project_members DROP COLUMN IF EXISTS role"))

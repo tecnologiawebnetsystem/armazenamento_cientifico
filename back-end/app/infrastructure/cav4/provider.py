@@ -316,6 +316,22 @@ class CAV4OIDCProvider:
                 display_name = display_name or userinfo.get("name")
                 claims = {**claims, **userinfo}
 
+        display_name = next(
+            (
+                str(claims.get(key)).strip()
+                for key in (
+                    "name", "display_name", "displayName", "full_name", "fullName",
+                    "nome_completo", "nomeCompleto", "preferred_name", "nome",
+                )
+                if claims.get(key)
+            ),
+            None,
+        ) or " ".join(
+            str(part).strip()
+            for part in (claims.get("given_name"), claims.get("family_name"))
+            if part
+        ) or None
+
         if access_token and settings.cav4_resources_url and settings.cav4_base_url:
             # A Admin API do CAV4 identifica o usuário por user_login, não pelo
             # e-mail corporativo. O e-mail continua sendo usado para a sessão.
