@@ -22,51 +22,48 @@ ALTER TABLE folders
     ADD CONSTRAINT folders_created_by_fkey
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL;
 
-CREATE OR REPLACE FUNCTION pg_temp.seed_project_folders()
-RETURNS void
-LANGUAGE plpgsql
-AS $function$
-DECLARE
-    project_row record;
-    root_id varchar(128);
-BEGIN
-    DELETE FROM folders;
+-- O script não cria objetos temporários, pois alguns usuários
+-- de banco não possuem essa permissão.
+DELETE FROM folders;
 
-    FOR project_row IN
-        SELECT id, code, name
-        FROM projects
-        ORDER BY code, id
-    LOOP
-        root_id := md5('sigac-folder:' || project_row.id || ':root');
+-- Pasta raiz de cada projeto.
+INSERT INTO folders (
+    id, project_id, parent_id, kind, name, size_bytes,
+    mime_type, created_by, created_at, updated_at
+)
+SELECT
+    md5('sigac-folder:' || p.id || ':root'),
+    p.id,
+    NULL,
+    'pasta',
+    'Documentos',
+    0,
+    NULL,
+    NULL,
+    current_timestamp,
+    current_timestamp
+FROM projects p;
 
-        INSERT INTO folders (
-            id, project_id, parent_id, kind, name, size_bytes,
-            mime_type, created_by, created_at, updated_at
-        ) VALUES (
-            root_id, project_row.id, NULL, 'pasta', 'Documentos', 0,
-            NULL, NULL, current_timestamp, current_timestamp
-        );
-
-        INSERT INTO folders (
-            id, project_id, parent_id, kind, name, size_bytes,
-            mime_type, created_by, created_at, updated_at
-        ) VALUES
-        (md5('sigac-folder:' || project_row.id || ':contratos'), project_row.id,
-         root_id, 'pasta', 'Contratos', 0, NULL, NULL,
-         current_timestamp, current_timestamp),
-        (md5('sigac-folder:' || project_row.id || ':relatorios'), project_row.id,
-         root_id, 'pasta', 'Relatórios', 0, NULL, NULL,
-         current_timestamp, current_timestamp),
-        (md5('sigac-folder:' || project_row.id || ':documentos'), project_row.id,
-         root_id, 'pasta', 'Documentos do projeto', 0, NULL, NULL,
-         current_timestamp, current_timestamp);
-    END LOOP;
-END;
-$function$;
-
-SELECT pg_temp.seed_project_folders();
-
-DROP FUNCTION pg_temp.seed_project_folders();
+-- Subpastas de cada projeto.
+INSERT INTO folders (
+    id, project_id, parent_id, kind, name, size_bytes,
+    mime_type, created_by, created_at, updated_at
+)
+SELECT
+    md5('sigac-folder:' || p.id || ':' || folder.name),
+    p.id,
+    md5('sigac-folder:' || p.id || ':root'),
+    'pasta',
+    folder.name,
+    0,
+    NULL,
+    NULL,
+    current_timestamp,
+    current_timestamp
+FROM projects p
+CROSS JOIN (
+    VALUES ('Contratos'), ('Relatórios'), ('Documentos do projeto')
+) AS folder(name);
 
 COMMIT;
 
