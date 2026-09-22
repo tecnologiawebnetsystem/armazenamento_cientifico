@@ -4,15 +4,13 @@ from app.modules.catalogs.models import (
     Module,
     Permission,
     ProjectStatusCatalog,
-    ProjectType,
-)
+  )
 from app.modules.catalogs.repository import (
     MenuItemRepository,
     ModuleRepository,
     PermissionRepository,
     ProjectStatusRepository,
-    ProjectTypeRepository,
-    ResponsibleAreaRepository,
+      ResponsibleAreaRepository,
 )
 
 
@@ -52,17 +50,6 @@ class ProjectStatusService:
         return await self.repository.find_by_id(status_id)
 
     async def list_active_statuses(self) -> list[ProjectStatusCatalog]:
-        return await self.repository.list_active()
-
-
-class ProjectTypeService:
-    def __init__(self, repository: ProjectTypeRepository):
-        self.repository = repository
-
-    async def get_type(self, type_id: str) -> ProjectType | None:
-        return await self.repository.find_by_id(type_id)
-
-    async def list_active_types(self) -> list[ProjectType]:
         return await self.repository.list_active()
 
 

@@ -5,7 +5,7 @@ import { BackButton } from "@/components/navigation/back-button"
 
 export default async function ProjetosPage() {
   const user = await getBackendSession()
-  const canCreate = Boolean(user && hasEffectiveCapability(user.permissions, "create"))
+  const canCreate = Boolean(user && (hasEffectiveCapability(user.permissions, "create") || user.role === "admin" || user.role === "administrador"))
 
   return (
     <div className="flex flex-col gap-6">

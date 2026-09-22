@@ -34,16 +34,6 @@ class ProjectStatusOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class ProjectTypeOut(BaseModel):
-    id: str
-    codigo: str
-    nome: str
-    descricao: str
-    ativo: bool
-
-    model_config = {"from_attributes": True}
-
-
 class ResponsibleAreaOut(BaseModel):
     id: str
     name: str

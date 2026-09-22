@@ -49,15 +49,6 @@ class ProjectStatusCatalog(Base):
     permite_edicao: Mapped[bool] = mapped_column("allows_edit", Boolean, default=True, nullable=False)
 
 
-class ProjectType(Base):
-    __tablename__ = "project_types"
-    id: Mapped[str] = mapped_column(String(40), primary_key=True)
-    codigo: Mapped[str] = mapped_column("code", String(40), unique=True, nullable=False)
-    nome: Mapped[str] = mapped_column(String(100), nullable=False)
-    descricao: Mapped[str] = mapped_column("description", Text, default="", nullable=False)
-    ativo: Mapped[bool] = mapped_column("active", Boolean, default=True, nullable=False)
-
-
 class ReportField(Base):
     __tablename__ = "report_fields"
     id: Mapped[str] = mapped_column(String(60), primary_key=True)

@@ -6,7 +6,6 @@ import type {
   FileNode,
   Project,
   ProjectMember,
-  Role,
   User,
   SessionUser,
   PlatformCatalogs,

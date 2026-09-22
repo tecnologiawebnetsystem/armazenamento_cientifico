@@ -15,8 +15,7 @@ from app.modules.catalogs.models import (
     ProfileModule,
     ProfilePermission,
     ProjectStatusCatalog,
-    ProjectType,
-    ReportField,
+      ReportField,
     ReportType,
 )
 from app.modules.files.models import Folder
@@ -28,7 +27,7 @@ from app.modules.users.profile_model import Perfil
 __all__ = [
     "ActivityLog", "DashboardCard", "Folder", "MenuItem", "MenuPermission", "Module", "Perfil",
     "Permission", "ProfileModule", "ProfilePermission",
-    "Project", "ProjectMember", "ProjectStatusCatalog", "ProjectType",
+    "Project", "ProjectMember", "ProjectStatusCatalog",
     "ReportField", "ReportType", "ResponsibleArea", "User",
 ]
 
@@ -36,7 +35,7 @@ __all__ = [
 _ORM_MODELS = (
     ActivityLog, DashboardCard, Folder, MenuItem, MenuPermission, Module, Perfil, Permission,
     ProfileModule, ProfilePermission, Project, ProjectMember,
-    ProjectStatusCatalog, ProjectType, ReportField, ReportType, ResponsibleArea,
+    ProjectStatusCatalog, ReportField, ReportType, ResponsibleArea,
     User,
 )
 

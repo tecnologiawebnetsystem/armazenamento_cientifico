@@ -11,7 +11,6 @@ export function useCatalogs() {
     modulos: data?.modulos ?? [],
     permissoes: data?.permissoes ?? [],
     statusProjetos: data?.statusProjetos ?? [],
-    tiposProjetos: data?.tiposProjetos ?? [],
     areas: data?.areas ?? [],
     tiposRelatorios: data?.tiposRelatorios ?? [],
     error,

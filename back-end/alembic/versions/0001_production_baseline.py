@@ -28,7 +28,7 @@ def upgrade() -> None:
         "activity_logs", "dashboard_cards", "folders",
         "menu_permissions", "menus", "modules", "permissions", "profile_modules",
         "profile_permissions", "profiles", "project_members", "project_statuses",
-        "project_types", "projects", "report_fields", "report_types",
+        "projects", "report_fields", "report_types",
         "responsible_areas", "users",
     }
     registered_tables = set(Base.metadata.tables)
