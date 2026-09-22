@@ -33,7 +33,7 @@ ON CONFLICT (profile_id, module_id) DO UPDATE SET can_view=true;
 
 INSERT INTO profile_permissions (profile_id, permission_id, allowed)
 SELECT p.id, x.permission_id, true FROM profiles p CROSS JOIN (VALUES
- ('reports.read'), ('reports.export'), ('access_map.read'), ('audit.read'), ('audit.export')
+ ('relatorio.visualizar'), ('relatorio.exportar'), ('pesquisa.visualizar'), ('auditoria.visualizar')
 ) AS x(permission_id)
 WHERE p.id IN ('ADM','GER','PAT','AUD')
 ON CONFLICT (profile_id, permission_id) DO UPDATE SET allowed=true;

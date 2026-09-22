@@ -56,7 +56,7 @@ INSERT INTO report_types (id, code, name, description, formats, active)
 VALUES (
   'ACESSOS', 'acessos', 'Mapa de Acessos',
   'Projetos, grupos, membros, pastas e níveis de acesso autorizados.',
-  'csv,xlsx,pdf', true
+  'csv,txt,pdf', true
 )
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
