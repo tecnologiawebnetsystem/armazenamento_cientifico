@@ -11,6 +11,8 @@ import {
   PauseCircleIcon,
   DatabaseIcon,
   Columns3Icon,
+  RefreshCwIcon,
+  XIcon,
 } from "lucide-react"
 import { useProjects } from "@/hooks/use-projects"
 import { useSession } from "@/hooks/use-session"
@@ -195,7 +197,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         onViewChange={setView}
       />
 
-      <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground"><Columns3Icon className="size-4" /><label className="flex items-center gap-2"><input type="checkbox" checked={showMeta} onChange={(event) => setShowMeta(event.target.checked)} />Mostrar detalhes</label></div>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"><span aria-live="polite">Exibindo {filtered.length} de {pagination?.total ?? projects.length} projetos</span><div className="flex items-center gap-3"><Button variant="ghost" size="sm" onClick={() => void refresh()}><RefreshCwIcon data-icon="inline-start" />Atualizar</Button><Button variant="ghost" size="sm" onClick={() => { setSearch(""); setStatus("todos"); setArea("todas") }} disabled={!search && status === "todos" && area === "todas"}><XIcon data-icon="inline-start" />Limpar filtros</Button><label className="flex items-center gap-2"><Columns3Icon className="size-4" /><input type="checkbox" checked={showMeta} onChange={(event) => setShowMeta(event.target.checked)} />Mostrar detalhes</label></div></div>
 
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
