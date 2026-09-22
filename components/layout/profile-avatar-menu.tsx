@@ -42,8 +42,8 @@ export function ProfileAvatarMenu({ user, onLogout }: { user: User; onLogout: ()
               <AvatarFallback className="rounded-full bg-white/15 text-lg font-bold text-white">{initials(user.nome)}</AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1 pt-0.5">
-              <p className="text-lg font-bold leading-tight text-balance">{user.nome}</p>
-              <p className="mt-1 truncate text-sm text-white/80">{user.email || "E-mail não informado"}</p>
+              <p className="text-base font-bold leading-tight text-balance">{user.nome}</p>
+              <p className="mt-1 truncate text-xs text-white/80">{user.email || "E-mail não informado"}</p>
               <span className="mt-3 inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">{roleLabel(user.role)} · {theme.label}</span>
             </div>
           </div>
@@ -53,7 +53,7 @@ export function ProfileAvatarMenu({ user, onLogout }: { user: User; onLogout: ()
         <div className="grid gap-3 px-6 py-4">
           <div className="flex items-start gap-3">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"><MailIcon className="size-4" aria-hidden="true" /></span>
-            <div className="min-w-0"><p className="text-xs text-muted-foreground">E-mail corporativo</p><p className="break-all font-semibold text-foreground">{user.email || "Não informado"}</p></div>
+            <div className="min-w-0"><p className="text-[11px] text-muted-foreground">E-mail corporativo</p><p className="break-all text-sm font-semibold text-foreground">{user.email || "Não informado"}</p></div>
           </div>
           <p className="text-xs text-muted-foreground">{roleDescription(user.role)}</p>
         </div>
