@@ -167,9 +167,9 @@ class CAV4OIDCProvider:
                 "Erro ao conectar com CAV4. Verifique CA_SSL_VERIFY e reinicie o backend."
             ) from e
 
-    async def _fetch_jwks(self) -> dict[str, Any]:
-        """Busca JWKS público para validar assinaturas JWT."""
-        if self._jwks_cache:
+    async def _fetch_jwks(self, *, refresh: bool = False) -> dict[str, Any]:
+        """Busca JWKS público e atualiza o cache quando houver rotação de chave."""
+        if self._jwks_cache and not refresh:
             return self._jwks_cache
         discovery = await self._fetch_discovery()
         jwks_uri = discovery.get("jwks_uri") or settings.cav4_jwks_url
@@ -179,9 +179,12 @@ class CAV4OIDCProvider:
             async with _build_httpx_client() as client:
                 resp = await client.get(jwks_uri, timeout=10.0)
                 resp.raise_for_status()
-                self._jwks_cache = resp.json()
-                logger.info("[CAV4] JWKS público carregado com sucesso")
-                return self._jwks_cache
+                jwks = resp.json()
+                if not isinstance(jwks, dict) or not isinstance(jwks.get("keys"), list):
+                    raise CAV4AuthenticationError("JWKS CAV4 inválido: lista de chaves ausente")
+                self._jwks_cache = jwks
+                logger.info("[CAV4] JWKS público carregado com sucesso refresh=%s keys=%s", refresh, len(jwks["keys"]))
+                return jwks
         except httpx.HTTPError as e:
             logger.error(f"[CAV4] Erro ao buscar JWKS: {e}")
             raise CAV4AuthenticationError(f"Erro ao validar certificado CAV4: {e}") from e
@@ -262,22 +265,28 @@ class CAV4OIDCProvider:
             raise CAV4AuthenticationError("id_token não retornado pelo servidor")
 
         try:
-            jwks = await self._fetch_jwks()
             unverified_header = jwt.get_unverified_header(id_token)
             kid = unverified_header.get("kid")
+            algorithm = unverified_header.get("alg")
+            if algorithm != "RS256":
+                raise CAV4AuthenticationError(f"Algoritmo JWT CAV4 não suportado: {algorithm}")
 
-            signing_key = None
-            if kid and "keys" in jwks:
-                for key in jwks["keys"]:
-                    if key.get("kid") == kid:
-                        signing_key = key
-                        break
+            jwks = await self._fetch_jwks()
+            signing_key = next(
+                (key for key in jwks["keys"] if key.get("kid") == kid),
+                None,
+            )
+            if signing_key is None and kid:
+                logger.info("[CAV4] kid=%s ausente no JWKS em cache; atualizando chaves", kid)
+                jwks = await self._fetch_jwks(refresh=True)
+                signing_key = next(
+                    (key for key in jwks["keys"] if key.get("kid") == kid),
+                    None,
+                )
+            if not isinstance(signing_key, dict):
+                raise CAV4AuthenticationError(f"Chave pública CAV4 não encontrada para kid={kid}")
 
-            if not signing_key and "keys" in jwks:
-                signing_key = jwks["keys"][0]
-
-            if isinstance(signing_key, dict):
-                signing_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(signing_key))
+            signing_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(signing_key))
             claims = jwt.decode(
                 id_token,
                 signing_key,
