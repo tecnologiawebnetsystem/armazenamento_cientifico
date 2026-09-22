@@ -25,7 +25,7 @@ export function ProjectFileExplorer({ projectId }: { projectId: string }) {
     const folders = data?.folders ?? []
     const q = search.trim().toLowerCase()
     if (!q) return folders
-    return folders.filter((folder) => folder.nome.toLowerCase().includes(q))
+    return folders.filter((folder) => (folder.nome ?? folder.name ?? "").toLowerCase().includes(q))
   }, [data?.folders, search])
 
   return (
@@ -77,7 +77,7 @@ export function ProjectFileExplorer({ projectId }: { projectId: string }) {
               {visibleFolders.map((folder) => (
                 <div key={folder.id} className="flex items-center gap-3 rounded-xl border border-border/80 bg-card px-4 py-4 transition-colors hover:border-petrobras-green/40 hover:bg-petrobras-green/5">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-petrobras-green/10"><FolderIconBadge /></div>
-                  <span className="min-w-0 truncate text-sm font-medium text-foreground">{folder.nome}</span>
+                  <span className="min-w-0 truncate text-sm font-medium text-foreground">{folder.nome ?? folder.name ?? "Pasta sem nome"}</span>
                 </div>
               ))}
             </div>
