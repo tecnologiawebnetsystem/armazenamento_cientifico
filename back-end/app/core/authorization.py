@@ -15,8 +15,8 @@ LEGACY_ROLE_MAP: Final = {
 
 ROLE_CAPABILITIES: Final[dict[str, frozenset[str]]] = {
     "admin": frozenset({"read", "create", "update", "delete", "manage_users", "manage_members", "approve_access", "revoke_access", "audit", "reports", "access_map", "all_projects", "all_folders"}),
-    "gerente": frozenset({"read", "approve_access", "revoke_access", "access_map", "project_scope", "folder_scope"}),
-    "patrocinador": frozenset({"read", "audit", "reports", "access_map", "all_projects", "all_folders"}),
+    "gerente": frozenset({"read", "update", "delete", "approve_access", "revoke_access", "audit", "reports", "access_map", "all_projects", "all_folders", "project_scope", "folder_scope"}),
+    "patrocinador": frozenset({"read", "project_scope", "all_projects"}),
     "auditor": frozenset({"read", "audit"}),
     "solicitante": frozenset({"read", "project_scope", "folder_scope"}),
 } 
@@ -39,12 +39,14 @@ def has_capability(user: Any, capability: str) -> bool:
     # Quando a sessão traz permissões do banco, elas são a fonte efetiva
     # de autorização. O papel só funciona como fallback para sessões legadas
     # que ainda não possuem a lista de permissões carregada.
+    normalized_role = canonical_role(raw_role)
+    role_capabilities = ROLE_CAPABILITIES.get(normalized_role)
+    if role_capabilities is not None and capability not in role_capabilities:
+        return False
     if permissions is not None:
         required_permission = CAPABILITY_PERMISSION_MAP.get(capability, capability)
         return required_permission in permissions
-
-    role_capabilities = ROLE_CAPABILITIES.get(canonical_role(raw_role), frozenset())
-    return capability in role_capabilities
+    return capability in (role_capabilities or frozenset())
 
 
 def require_capability(user: Any, capability: str) -> Any:

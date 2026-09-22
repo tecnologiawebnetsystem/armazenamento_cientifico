@@ -10,7 +10,12 @@ import { useLogin } from "@/hooks/use-login"
 export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: string; authError?: string }) {
   const [email, setEmail] = useState("")
   const accessError = authError
-  const manualLoginEnabled = process.env.NEXT_PUBLIC_EMAIL_LOGIN_ENABLED === "true"
+  const manualLoginEnabled = [
+    process.env.NEXT_PUBLIC_EMAIL_LOGIN_ENABLED,
+    process.env.NEXT_PUBLIC_EMAIL_LOGIN_ENABLE,
+    process.env.NEST_PUBLIC_EMAIL_LOGIN_ENABLED,
+    process.env.NEST_PUBLIC_EMAIL_LOGIN_ENABLE,
+  ].some((value) => value?.trim().toLowerCase() === "true")
   const { loading, error, manualLogin, corporateLogin } = useLogin(nextPath)
 
   return (

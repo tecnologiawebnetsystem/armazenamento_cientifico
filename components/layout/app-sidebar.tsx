@@ -17,6 +17,7 @@ import {
   SidebarRail,
   SidebarSeparator,
 } from "@/components/ui/sidebar"
+import { isMenuAllowedForRole } from "@/hooks/use-permissions"
 import { usePlatformContext } from "@/hooks/use-platform-context"
 import { ClipboardListIcon, FlaskConicalIcon, FolderKanbanIcon, LayoutDashboardIcon, ShieldCheckIcon, BarChart3Icon, Settings2Icon, type LucideIcon } from "lucide-react"
 import type { NavGroup, NavItem } from "@/lib/nav-config"
@@ -64,9 +65,11 @@ export function AppSidebar() {
   const { menus, permissions, data } = usePlatformContext()
   const isAdministrator = data?.user?.perfil_id?.toUpperCase() === "ADM" || data?.user?.perfil_nome?.toLowerCase().includes("admin")
   const canManageConfiguration = isAdministrator || permissions.includes("administracao.configuracoes")
-  const visibleMenus = canManageConfiguration && !menus.some((menu) => menu.rota === "/configuracoes")
-    ? [...menus, { id: "menu-configuracoes", nome: "Configurações", rota: "/configuracoes", icone: "settings", ordem: 90 }]
-    : menus
+  const role = data?.user?.perfil_nome
+  const roleMenus = menus.filter((menu) => isMenuAllowedForRole(role, menu.rota))
+  const visibleMenus = canManageConfiguration && !roleMenus.some((menu) => menu.rota === "/configuracoes")
+    ? [...roleMenus, { id: "menu-configuracoes", nome: "Configurações", rota: "/configuracoes", icone: "settings", ordem: 90 }]
+    : roleMenus
   const groups = buildNavGroups(visibleMenus)
 
   return (
