@@ -53,7 +53,7 @@ export function roleDescription(role: Role) {
     case "gerente": return "Aprova ou revoga acessos e consulta apenas seu escopo."
     case "patrocinador": return "Consulta projetos, relatórios, logs e mapas de acessos."
     case "auditor": return "Somente leitura, com acesso à trilha de auditoria."
-    case "solicitante": return "Visualiza somente projetos e pastas autorizados."
+    case "solicitante": return "Não possui acesso ao SIGAC."
     default: return ""
   }
 }
