@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { CheckIcon, DownloadIcon, FileTextIcon, FileSpreadsheetIcon, FileType2Icon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -29,7 +29,8 @@ const formats: { key: ExportFormat; label: string; description: string; icon: ty
 ]
 
 export function ExportFieldsDialog({ open, onOpenChange, title, fields, defaultFields, defaultFormats = ["csv"] , onConfirm }: Props) {
-  const [selectedFields, setSelectedFields] = useState<string[]>(defaultFields ?? fields.map((field) => field.key))
+  const uniqueFields = useMemo(() => Array.from(new Map(fields.map((field) => [field.key, field])).values()), [fields])
+  const [selectedFields, setSelectedFields] = useState<string[]>(defaultFields ?? uniqueFields.map((field) => field.key))
   const [selectedFormats, setSelectedFormats] = useState<ExportFormat[]>(defaultFormats)
   const toggleField = (key: string, checked: boolean) => setSelectedFields((current) => checked ? [...new Set([...current, key])] : current.filter((item) => item !== key))
   const toggleFormat = (key: ExportFormat) => setSelectedFormats((current) => current.includes(key) ? current.filter((item) => item !== key) : [...current, key])
@@ -71,7 +72,7 @@ export function ExportFieldsDialog({ open, onOpenChange, title, fields, defaultF
         <section className="flex flex-col gap-3" aria-labelledby="export-fields-title">
           <div><h3 id="export-fields-title" className="font-semibold">Campos incluídos</h3><p className="text-sm text-muted-foreground">Selecione pelo menos um campo para cada arquivo.</p></div>
           <div className="grid max-h-80 gap-2 overflow-y-auto rounded-lg border p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {fields.map((field) => <label key={field.key} className="flex cursor-pointer items-center gap-3 rounded-md p-2 text-sm hover:bg-muted/50"><Checkbox checked={selectedFields.includes(field.key)} onCheckedChange={(checked) => toggleField(field.key, checked === true)} /><span>{field.label}</span></label>)}
+            {uniqueFields.map((field) => <label key={field.key} className="flex cursor-pointer items-center gap-3 rounded-md p-2 text-sm hover:bg-muted/50"><Checkbox checked={selectedFields.includes(field.key)} onCheckedChange={(checked) => toggleField(field.key, checked === true)} /><span>{field.label}</span></label>)}
           </div>
         </section>
         </div>
