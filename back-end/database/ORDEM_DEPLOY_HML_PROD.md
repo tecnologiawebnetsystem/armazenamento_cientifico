@@ -1,36 +1,30 @@
-# Ordem de execução — Homologação e Produção
+# SID Deploy — Homologação e Produção
 
-O banco de Desenvolvimento não faz parte deste procedimento.
-
-## 1. Backup
-
-Executar backup completo do banco alvo e confirmar o schema PostgreSQL utilizado pela aplicação.
-
-## 2. Migration consolidada
-
-Na pasta `back-end`, executar:
+O deploy automatizado do banco deve ser executado pelo entrypoint:
 
 ```bash
-alembic upgrade 0001_production_baseline
+./back-end/database/SID_DEPLOY.sh
 ```
 
-Essa é a única migration ativa. As revisions anteriores foram removidas do projeto.
+O ambiente de execução deve fornecer `DATABASE_URL` por secret/variável protegida. Nenhuma credencial deve ser gravada no repositório.
 
-## 3. Seed idempotente
+## Etapas automáticas
 
-Após a migration, executar o bootstrap/seed da aplicação conforme o entrypoint operacional do ambiente. O seed deve preencher parâmetros sem recriar ou apagar dados transacionais.
+1. Executa `uv run alembic upgrade head` para criar ou atualizar a estrutura.
+2. Executa `0001_aurora_consolidated.sql` dentro de uma transação PostgreSQL.
+3. Aplica perfis, módulos, permissões, `profile_modules`, `profile_permissions`, menus e `menu_permissions` de forma idempotente.
+4. Valida a versão atual do Alembic e a existência das tabelas principais.
 
-## 4. Validação
+O mesmo script pode ser usado em banco novo, homologação e produção. Em produção, o pipeline deve exigir backup/aprovação antes desta etapa. O script não apaga dados transacionais e não contém credenciais.
 
-Confirmar:
+## Configuração do pipeline
 
-- `alembic current` aponta para `0001_production_baseline`;
-- tabelas de perfis, módulos, permissões, menus, cards e relatórios existem;
-- o seed não gerou duplicidades;
-- login por e-mail e CAV4 permanecem disponíveis;
-- endpoints de contexto da plataforma retornam menus e permissões;
-- somente `0001_production_baseline.py` está presente na pasta ativa de migrations.
+O job de deploy deve:
 
-## Observação sobre banco já existente
+```bash
+cd back-end
+uv sync --frozen
+../back-end/database/SID_DEPLOY.sh
+```
 
-Se Homologação ou Produção já possuírem a tabela `alembic_version` com o histórico antigo, não executar a baseline diretamente sem alinhar o versionamento. O DBA deve registrar o banco como `0001_production_baseline` somente após confirmar que o schema existente corresponde ao metadata ORM final.
+Para bancos existentes com histórico Alembic antigo, o DBA deve alinhar a versão registrada em `alembic_version` antes de executar o deploy, conforme a compatibilidade do schema.
