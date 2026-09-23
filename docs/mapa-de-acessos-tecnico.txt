@@ -1,0 +1,484 @@
+MAPA DE ACESSOS — DOCUMENTAÇÃO TÉCNICA
+========================================
+
+1. OBJETIVO
+-----------
+O Mapa de Acessos apresenta quem possui acesso aos projetos e recursos científicos, agrupando usuários, projetos, grupos de leitura/escrita, níveis de acesso e última visualização. A tela é voltada para gestores, administradores, diretores e auditoria.
+
+A solução possui dois escopos relacionados:
+
+- Mapa geral: consulta consolidada de todos os acessos autorizados.
+- Mapa por projeto: consulta dos grupos e membros vinculados a um projeto específico.
+
+O frontend não acessa o banco nem o ServiceNow diretamente. Ele chama o backend, que aplica autenticação, autorização e regras de negócio.
+
+2. ARQUIVOS PRINCIPAIS DO FRONTEND
+-----------------------------------
+
+Tela principal do mapa geral:
+
+- app/(app)/pesquisas/page.tsx
+
+Responsabilidades:
+
+- carregar os dados com SWR;
+- exibir o cabeçalho e o panorama do escopo;
+- exibir usuários, projetos, pastas e arquivos;
+- apresentar a data/hora da consulta;
+- pesquisar por projeto, usuário, e-mail ou recurso;
+- filtrar por tipo de recurso, nível de acesso, área, perfil e status;
+- alternar entre visão por projeto e visão por usuário;
+- agrupar membros por projeto e nível de acesso;
+- exibir estados de carregamento, erro e ausência de dados;
+- iniciar exportações CSV, TXT e PDF.
+
+Cliente HTTP do frontend:
+
+- lib/api-client.ts
+
+Funções relacionadas:
+
+- getAccessMap()
+  Consulta o mapa geral em /api/access-map.
+
+- getAccessMapExportUrl(params)
+  Monta a URL de exportação em /api/access-map/export.
+
+- getProjectAccessMap(projectId)
+  Consulta o mapa de acessos de um projeto em /api/projects/{projectId}/access-map.
+
+- getProjectMembers(projectId)
+  Consulta os membros de um projeto em /api/projects/{projectId}/members.
+
+Componentes relacionados:
+
+- components/export-fields-dialog.tsx
+  Permite escolher os campos e os formatos de exportação.
+
+- components/dashboard/kpi-cards.tsx
+  Renderiza os cartões de resumo usados no panorama do mapa.
+
+- components/shared/page-layout.tsx
+  Fornece layout, cabeçalho, navegação de retorno e estrutura visual da página.
+
+- components/petrobras-loading.tsx
+  Exibe o estado de carregamento enquanto a API responde.
+
+Tipos TypeScript:
+
+- lib/types.ts
+
+Esse arquivo contém os tipos de AccessMapResponse, linhas do mapa, projetos, usuários e membros. Se o backend alterar o formato JSON, o tipo deve ser atualizado junto com o frontend.
+
+3. COMO A TELA FUNCIONA
+------------------------
+
+Ao abrir a tela geral:
+
+1. O componente chama getAccessMap().
+2. O cliente envia GET /api/access-map.
+3. O backend valida a sessão e a permissão do usuário.
+4. O backend consulta projetos, membros, recursos e última visualização.
+5. O frontend recebe summary, rows, source e consultedAt.
+6. Os dados são exibidos nos cards e na tabela/grupos.
+
+Campos normalmente utilizados no frontend:
+
+- userId: identificador do usuário;
+- userName: nome do usuário;
+- userEmail: e-mail;
+- userRole: perfil do usuário;
+- projectId: identificador do projeto;
+- projectName: nome do projeto;
+- projectStatus: status do projeto;
+- area: área responsável;
+- resourceId: identificador do recurso;
+- resourceName: nome do recurso;
+- resourceType: tipo do recurso;
+- accessLevel: nível de acesso;
+- lastViewedAt: última visualização;
+- source: origem dos dados;
+- consultedAt: data/hora da consulta.
+
+O frontend usa a data consultedAt para mostrar a atualidade da consulta. A função safeDate evita que uma data inválida quebre a página.
+
+4. ROTAS DO BACKEND
+--------------------
+
+As rotas ficam principalmente em:
+
+- back-end/app/modules/platform/controller.py
+- back-end/app/modules/projects/controller.py
+- back-end/app/modules/reports/controller.py
+
+Mapa geral:
+
+GET /api/access-map
+
+Local:
+
+- back-end/app/modules/platform/controller.py
+
+Proteção:
+
+- exige require_capabilities("access_map");
+- a capacidade access_map é associada à permissão pesquisa.visualizar;
+- usuários sem a permissão recebem HTTP 403.
+
+Esse endpoint retorna o panorama geral e as linhas de acesso usadas na tela.
+
+Exportação geral:
+
+GET /api/access-map/export
+
+Parâmetros principais:
+
+- format: csv, txt ou pdf;
+- fields: campos selecionados;
+- q: busca textual;
+- type: tipo de recurso;
+- level: nível de acesso;
+- view: projeto ou usuário.
+
+O endpoint aplica a mesma proteção de access_map e gera o arquivo no backend.
+
+Mapa por projeto:
+
+GET /api/projects/{project_id}/access-map
+
+Local:
+
+- back-end/app/modules/projects/controller.py
+
+Proteção:
+
+- exige require_capabilities("access_map");
+- verifica se o projeto existe;
+- verifica se o usuário pode visualizar aquele projeto;
+- retorna HTTP 403 se o usuário não tiver acesso ao projeto.
+
+A resposta contém:
+
+- projectId;
+- groups;
+- members;
+- source;
+- consultedAt;
+- gaps.
+
+O campo groups contém grupos de leitura e escrita configurados no projeto. O campo gaps informa problemas como grupo não configurado ou projeto sem membros.
+
+Membros por projeto:
+
+GET /api/projects/{project_id}/members
+
+Local:
+
+- back-end/app/modules/projects/controller.py
+
+Retorna os membros vinculados ao projeto.
+
+Pastas:
+
+GET /api/folders?projectId={project_id}
+
+Local:
+
+- back-end/app/modules/platform/controller.py
+
+Exige a capacidade read e retorna as pastas relacionadas ao projeto.
+
+Relatórios:
+
+GET /api/reports
+GET /api/report-fields?report_code=acessos
+GET /api/configurations/report_types
+
+Essas rotas fornecem os campos configuráveis e dados auxiliares utilizados pela exportação e pelo catálogo de relatórios.
+
+5. CAMADA DE SERVIÇO E REPOSITÓRIO
+-----------------------------------
+
+A regra de negócio do mapa está principalmente em:
+
+- back-end/app/modules/platform/service.py
+- back-end/app/modules/platform/repository.py
+- back-end/app/modules/projects/service.py
+- back-end/app/modules/projects/repository.py
+
+O controller recebe a requisição e aplica autorização. O service organiza a regra de negócio. O repository consulta o banco.
+
+Ao alterar uma consulta, deve-se verificar os três níveis:
+
+1. controller: rota, parâmetros e permissão;
+2. service: regra, agrupamento e validação;
+3. repository: SQL, joins, filtros e aliases retornados.
+
+Não é recomendado colocar SQL diretamente no controller.
+
+6. AUTORIZAÇÃO
+--------------
+
+A autorização fica em:
+
+- back-end/app/api/dependencies.py
+- back-end/app/core/authorization.py
+
+A capacidade access_map é convertida para a permissão do banco:
+
+access_map -> pesquisa.visualizar
+
+a proteção funciona assim:
+
+1. a sessão é identificada;
+2. o usuário e as permissões são carregados;
+3. require_capabilities("access_map") verifica a capacidade;
+4. se não autorizado, a API retorna HTTP 403;
+5. se autorizado, o controller continua a execução.
+
+Se o menu aparecer, mas a API retornar 403, deve-se verificar o perfil e a permissão pesquisa.visualizar no banco.
+
+7. DADOS E ESTRUTURA DO BANCO
+-----------------------------
+
+As tabelas relacionadas normalmente incluem:
+
+- users;
+- projects;
+- project_members;
+- folders;
+- activity_logs;
+- profiles;
+- permissions;
+- profile_permissions;
+- report_types;
+- report_fields.
+
+Os scripts consolidados ficam em:
+
+- back-end/database/001_estrutura_completa.sql
+- back-end/database/002_inserts_completos.sql
+- back-end/database/003_inserts_projetos_acessos_logs.sql
+
+A estrutura cria tabelas, PKs, FKs e índices. Os inserts criam parametrizações, perfis, permissões, módulos, menus, usuários de desenvolvimento e dados operacionais.
+
+8. COMO ALTERAR A TELA
+-----------------------
+
+Para alterar textos, filtros ou layout:
+
+- editar app/(app)/pesquisas/page.tsx.
+
+Para alterar o formato esperado da resposta:
+
+1. alterar o backend;
+2. atualizar os schemas Pydantic, quando aplicável;
+3. atualizar os tipos em lib/types.ts;
+4. ajustar lib/api-client.ts;
+5. ajustar a tela;
+6. executar typecheck, testes e build.
+
+Para adicionar um novo filtro:
+
+1. criar o estado no componente;
+2. obter as opções da resposta ou catálogo;
+3. aplicar o filtro na lista rows;
+4. incluir o parâmetro na exportação;
+5. se o filtro precisar reduzir dados no servidor, adicionar parâmetro na rota e no repository.
+
+Para adicionar um campo exportável:
+
+1. incluir o campo no retorno da API;
+2. cadastrar o campo em report_fields;
+3. atualizar o tipo TypeScript;
+4. confirmar que o exportador aceita o novo nome;
+5. testar CSV, TXT e PDF.
+
+9. COMO ALTERAR A API
+---------------------
+
+Para mudar o endpoint geral:
+
+- editar o controller de platform;
+- ajustar service e repository;
+- atualizar o modelo/schema de resposta;
+- revisar autorização;
+- verificar impacto no frontend.
+
+Para mudar o mapa por projeto:
+
+- editar projects/controller.py;
+- revisar can_view();
+- revisar list_members();
+- revisar a montagem dos grupos;
+- atualizar AccessMapOut se o contrato mudar.
+
+Toda alteração de contrato deve manter nomes consistentes entre:
+
+- SQL/repository;
+- service;
+- schema Pydantic;
+- api-client.ts;
+- lib/types.ts;
+- page.tsx.
+
+10. DIAGNÓSTICO DE PROBLEMAS
+----------------------------
+
+HTTP 401:
+
+- sessão ausente, expirada ou inválida;
+- verificar cookies e integração CAV4.
+
+HTTP 403:
+
+- usuário autenticado sem pesquisa.visualizar;
+- usuário autenticado sem acesso ao projeto específico;
+- verificar authorization.py, dependencies.py e permissões do perfil.
+
+HTTP 404:
+
+- projeto inexistente;
+- verificar project_id e consulta do repository.
+
+Tela sem dados:
+
+- conferir resposta de /api/access-map;
+- conferir data.rows e data.summary;
+- verificar filtros ativos;
+- confirmar se o backend retornou rows vazias.
+
+Data não aparece:
+
+- conferir consultedAt;
+- conferir lastViewedAt;
+- validar formato ISO retornado pelo backend.
+
+Erro de toLowerCase ou map:
+
+- verificar valores nulos ou undefined;
+- normalizar o valor antes de executar métodos de string;
+- manter fallback como “Não definido”.
+
+Erro de chave duplicada no React:
+
+- conferir as propriedades key usadas nos .map();
+- usar identificador estável e único;
+- não usar apenas um campo que possa se repetir.
+
+11. TESTES E VALIDAÇÃO
+----------------------
+
+Após alterações no frontend:
+
+- executar typecheck;
+- executar build;
+- verificar a tela no navegador;
+- testar carregamento, erro, vazio, busca, filtros e exportação.
+
+Após alterações no backend:
+
+- executar ruff;
+- executar pytest;
+- testar HTTP 401;
+- testar HTTP 403;
+- testar usuário autorizado;
+- testar projeto sem membros;
+- testar grupo de leitura/escrita ausente;
+- testar exportações.
+
+Testar sempre com pelo menos:
+
+- administrador;
+- gestor;
+- auditor;
+- usuário sem pesquisa.visualizar;
+- projeto com membros;
+- projeto sem membros;
+- projeto sem grupo de leitura;
+- projeto sem grupo de escrita.
+
+12. RESUMO DO FLUXO COMPLETO
+-----------------------------
+
+Usuário abre a página
+        |
+        v
+app/(app)/pesquisas/page.tsx
+        |
+        v
+lib/api-client.ts -> GET /api/access-map
+        |
+        v
+platform/controller.py
+        |
+        v
+require_capabilities("access_map")
+        |
+        v
+platform/service.py
+        |
+        v
+platform/repository.py
+        |
+        v
+Banco de dados
+        |
+        v
+summary + rows + source + consultedAt
+        |
+        v
+Cards, filtros, grupos, membros e exportação
+
+Para o mapa específico de um projeto, o fluxo passa por:
+
+lib/api-client.ts
+        |
+        v
+GET /api/projects/{project_id}/access-map
+        |
+        v
+projects/controller.py
+        |
+        v
+can_view(project_id, user_id, role)
+        |
+        v
+projects/service.py / repository.py
+        |
+        v
+groups + members + gaps + consultedAt
+
+13. REGRAS IMPORTANTES
+----------------------
+
+- Nunca expor token, credencial ou acesso direto ao banco no frontend.
+- Toda rota de acesso deve permanecer protegida pelo CAV4.
+- Toda alteração de resposta precisa atualizar frontend e backend juntos.
+- Usar paginação ou filtros server-side quando o volume crescer muito.
+- Evitar carregar milhares de projetos em uma única resposta.
+- Manter consultedAt para transparência da atualidade dos dados.
+- Manter gaps para que problemas de parametrização sejam visíveis.
+- Registrar alterações relevantes em auditoria.
+- Validar permissões antes de liberar exportações.
+- Não remover validação de can_view() para facilitar a tela.
+
+14. CHECKLIST PARA UMA ALTERAÇÃO
+--------------------------------
+
+[ ] Identificar se a alteração é visual, de contrato ou de banco.
+[ ] Localizar page.tsx e api-client.ts.
+[ ] Localizar controller, service e repository correspondentes.
+[ ] Confirmar a permissão exigida.
+[ ] Atualizar tipos e schemas.
+[ ] Atualizar report_fields, se for campo exportável.
+[ ] Validar PKs, FKs e joins se houver mudança SQL.
+[ ] Testar usuário autorizado.
+[ ] Testar usuário sem permissão.
+[ ] Testar dados vazios e nulos.
+[ ] Executar typecheck/build/testes.
+[ ] Verificar no navegador.
+[ ] Registrar a alteração e o impacto no contrato.
+
+Documento técnico do projeto — Mapa de Acessos.
+Atualizado conforme a implementação atual do frontend e backend.
