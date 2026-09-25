@@ -3,8 +3,8 @@
 \set ON_ERROR_STOP on
 BEGIN;
 
-INSERT INTO profiles (id,name,description) VALUES
-('ADM','administrador','Administra a plataforma, configura parâmetros e gerencia acessos.'),('GER','gerente','Coordena projetos, equipes e atividades operacionais.'),('AUD','auditor','Consulta informações e acompanha registros de auditoria.'),('PAT','patrocinador','Acompanha resultados e aprova solicitações.'),('SOL','solicitante','Solicita acessos e acompanha solicitações.') ON CONFLICT (id) DO UPDATE SET name=excluded.name,description=excluded.description;
+INSERT INTO profiles (id,name,description,created_at) VALUES
+('ADM','administrador','Administra a plataforma, configura parâmetros e gerencia acessos.',now()),('GER','gerente','Coordena projetos, equipes e atividades operacionais.',now()),('AUD','auditor','Consulta informações e acompanha registros de auditoria.',now()),('PAT','patrocinador','Acompanha resultados e aprova solicitações.',now()),('SOL','solicitante','Solicita acessos e acompanha solicitações.',now()) ON CONFLICT (id) DO UPDATE SET name=excluded.name,description=excluded.description;
 
 -- Usuários técnicos de desenvolvimento; autenticação e senha são gerenciadas pelo CAV4.
 INSERT INTO users (id,name,email,job_title,area,role,profile_id) VALUES
