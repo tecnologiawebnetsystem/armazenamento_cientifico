@@ -1,0 +1,323 @@
+GUIA DE INTEGRAÇÃO COM SERVICENOW
+=================================
+
+Objetivo
+--------
+Integrar o projeto com o ServiceNow para consultar informações por GET em endpoints REST, mantendo autenticação, autorização, paginação, tratamento de erros e segurança.
+
+1. Formato básico da URL
+-------------------------
+https://SUA_INSTANCIA.service-now.com/api/now/table/NOME_DA_TABELA
+
+Exemplos:
+https://empresa.service-now.com/api/now/table/incident
+https://empresa.service-now.com/api/now/table/incident/SYS_ID
+
+O sys_id é o identificador interno único de um registro no ServiceNow.
+
+2. Principais endpoints
+-----------------------
+Incidentes:
+GET /api/now/table/incident
+
+Requisições de serviço:
+GET /api/now/table/sc_request
+
+Itens de requisição:
+GET /api/now/table/sc_req_item
+
+Tarefas de catálogo:
+GET /api/now/table/sc_task
+
+Mudanças:
+GET /api/now/table/change_request
+
+Problemas:
+GET /api/now/table/problem
+
+Usuários:
+GET /api/now/table/sys_user
+
+Grupos:
+GET /api/now/table/sys_user_group
+
+Membros de grupos:
+GET /api/now/table/sys_user_grmember
+
+Empresas:
+GET /api/now/table/core_company
+
+Locais:
+GET /api/now/table/cmn_location
+
+Departamentos:
+GET /api/now/table/cmn_department
+
+Itens de catálogo:
+GET /api/now/table/sc_cat_item
+
+3. Parâmetros mais importantes
+------------------------------
+Limitar resultados:
+sysparm_limit=100
+
+Paginação:
+sysparm_limit=100&sysparm_offset=100
+
+Selecionar campos:
+sysparm_fields=number,short_description,state,priority
+
+Ordenar:
+sysparm_orderby=number
+sysparm_orderbyDESC=sys_created_on
+
+Valores legíveis de referências:
+sysparm_display_value=true
+
+Valor e identificador da referência:
+sysparm_display_value=all
+
+4. Filtros com sysparm_query
+----------------------------
+Igualdade:
+active=true
+
+Diferente:
+state!=7
+
+Contém:
+short_descriptionLIKErede
+
+Começa com:
+numberSTARTSWITHINC
+
+Maior que:
+priority>2
+
+Menor ou igual:
+priority<=3
+
+E lógico:
+active=true^priority<=2
+
+Ou lógico:
+priority=1^ORpriority=2
+
+Exemplo completo:
+GET /api/now/table/incident?sysparm_query=active=true^priority<=2^short_descriptionLIKErede&sysparm_fields=number,short_description,state,priority&sysparm_limit=50
+
+5. Campos comuns de incidentes
+-------------------------------
+number
+short_description
+description
+state
+priority
+urgency
+impact
+assignment_group
+assigned_to
+caller_id
+opened_at
+closed_at
+sys_created_on
+sys_updated_on
+
+6. Exemplos de autenticação
+----------------------------
+Basic Authentication:
+
+curl --request GET \
+  'https://empresa.service-now.com/api/now/table/incident?sysparm_limit=10' \
+  --user 'usuario:senha' \
+  --header 'Accept: application/json'
+
+OAuth 2.0:
+
+curl --request GET \
+  'https://empresa.service-now.com/api/now/table/incident?sysparm_limit=10' \
+  --header 'Authorization: Bearer SEU_ACCESS_TOKEN' \
+  --header 'Accept: application/json'
+
+7. Exemplo em Python
+---------------------
+import os
+import requests
+
+base_url = os.environ["SERVICENOW_BASE_URL"]
+token = os.environ["SERVICENOW_ACCESS_TOKEN"]
+
+url = f"{base_url}/api/now/table/incident"
+params = {
+    "sysparm_query": "active=true^priority<=2",
+    "sysparm_fields": "number,short_description,state,priority,assignment_group",
+    "sysparm_display_value": "true",
+    "sysparm_limit": "100",
+    "sysparm_orderbyDESC": "sys_created_on",
+}
+
+response = requests.get(
+    url,
+    params=params,
+    headers={
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json",
+    },
+    timeout=30,
+)
+response.raise_for_status()
+
+payload = response.json()
+for incident in payload.get("result", []):
+    print(incident["number"], incident.get("short_description"))
+
+8. Exemplo em TypeScript/Next.js
+--------------------------------
+As credenciais devem ficar somente no servidor, nunca no navegador.
+
+const response = await fetch(
+  `${process.env.SERVICENOW_BASE_URL}/api/now/table/incident?${new URLSearchParams({
+    sysparm_query: "active=true^priority<=2",
+    sysparm_fields: "number,short_description,state,priority",
+    sysparm_display_value: "true",
+    sysparm_limit: "100",
+  })}`,
+  {
+    headers: {
+      Authorization: `Bearer ${process.env.SERVICENOW_ACCESS_TOKEN}`,
+      Accept: "application/json",
+    },
+    cache: "no-store",
+  },
+)
+
+if (!response.ok) {
+  throw new Error(`ServiceNow retornou HTTP ${response.status}`)
+}
+
+const data = await response.json()
+return data.result
+
+9. Arquitetura recomendada
+---------------------------
+Frontend
+   |
+   v
+Endpoint interno do nosso Backend
+   |
+   v
+ServiceNow
+
+O frontend não deve chamar o ServiceNow diretamente porque isso exporia tokens, criaria problemas de CORS e dificultaria o controle de autorização.
+
+Criar um módulo isolado:
+
+back-end/app/integrations/servicenow/
+├── client.py
+├── config.py
+├── exceptions.py
+├── schemas.py
+└── service.py
+
+Responsabilidades:
+- client.py: comunicação HTTP;
+- config.py: URL, timeout e configurações;
+- exceptions.py: erros da integração;
+- schemas.py: validação das respostas;
+- service.py: regras de negócio e transformação dos dados.
+
+Endpoints internos sugeridos:
+GET /api/integrations/servicenow/incidents
+GET /api/integrations/servicenow/incidents/{number}
+GET /api/integrations/servicenow/groups
+GET /api/integrations/servicenow/requests
+GET /api/integrations/servicenow/changes
+
+Esses endpoints devem exigir autenticação CAV4, validar permissões, filtros e paginação, limitar os campos retornados, tratar timeouts e nunca expor tokens.
+
+10. Variáveis de ambiente
+-------------------------
+SERVICENOW_BASE_URL=https://empresa.service-now.com
+SERVICENOW_CLIENT_ID=...
+SERVICENOW_CLIENT_SECRET=...
+SERVICENOW_TOKEN_URL=https://empresa.service-now.com/oauth_token.do
+SERVICENOW_TIMEOUT_SECONDS=30
+
+Nunca colocar segredos no frontend, commits, banco de dados ou logs.
+
+11. Erros comuns
+----------------
+401 Unauthorized: token ausente, inválido ou expirado.
+403 Forbidden: usuário autenticado sem role/permissão.
+404 Not Found: tabela, registro ou endpoint incorreto.
+429 Too Many Requests: limite de requisições excedido.
+500: erro interno no ServiceNow.
+502/504: problema de comunicação ou timeout.
+
+12. APIs além da Table API
+--------------------------
+Table API:
+/api/now/table/{tableName}
+
+Import Set API:
+/api/now/import/{import_set_table}
+
+Attachment API:
+/api/now/attachment
+
+Aggregate API:
+Usada para contagens, agrupamentos e agregações sem trazer todos os registros.
+
+Scripted REST API:
+/api/{namespace}/{api_id}/{resource}
+
+13. Boas práticas
+-----------------
+- Usar OAuth 2.0 em produção.
+- Utilizar usuário técnico com o menor conjunto de roles necessário.
+- Nunca usar uma conta administrativa ampla sem necessidade.
+- Sempre usar sysparm_limit.
+- Implementar paginação.
+- Buscar somente os campos necessários.
+- Filtrar por sys_updated_on em sincronizações incrementais.
+- Configurar timeout.
+- Evitar chamadas repetidas.
+- Considerar cache local para dashboards.
+- Armazenar sys_id e sys_updated_on quando houver persistência local.
+- Registrar logs sem tokens ou dados sensíveis.
+- Proteger os endpoints internos com as regras de autorização do CAV4.
+
+14. O que definir antes da implementação
+-----------------------------------------
+Para cada rotina, definir:
+1. processo do ServiceNow consultado;
+2. tabela ou Scripted REST API;
+3. campos necessários;
+4. filtros permitidos;
+5. perfil SIGAC autorizado;
+6. consulta em tempo real ou sincronização;
+7. volume esperado;
+8. tratamento de indisponibilidade;
+9. ambientes de desenvolvimento, homologação e produção;
+10. necessidade de persistência local.
+
+15. Sugestão para começar
+-------------------------
+Começar com uma integração somente leitura de incidentes:
+
+GET /api/now/table/incident
+
+Parâmetros sugeridos:
+sysparm_query=active=true
+sysparm_fields=number,short_description,state,priority,assignment_group,assigned_to,sys_updated_on
+sysparm_display_value=all
+sysparm_limit=50
+sysparm_orderbyDESC=sys_updated_on
+
+Depois evoluir para requisições, mudanças, usuários e grupos.
+
+Observação
+----------
+Os nomes de tabelas e campos acima são padrões comuns do ServiceNow. A instância da empresa pode possuir customizações, plugins, tabelas próprias, Scripted REST APIs e regras de acesso diferentes. Antes do desenvolvimento, confirmar com o administrador do ServiceNow quais tabelas, campos, roles e endpoints estão liberados.
+
+Documento criado para planejamento da integração ServiceNow.
