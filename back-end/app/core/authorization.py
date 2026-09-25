@@ -45,7 +45,11 @@ def has_capability(user: Any, capability: str) -> bool:
     role_capabilities = ROLE_CAPABILITIES.get(normalized_role)
     if role_capabilities is not None and capability not in role_capabilities:
         return False
-    if permissions is not None:
+    # Sessões com permissões carregadas usam a matriz persistida como fonte
+    # efetiva. Quando o perfil ainda não possui vínculos persistidos (lista
+    # vazia), usamos as capacidades oficiais do perfil para manter o acesso
+    # básico do CAV4, especialmente durante a configuração inicial do banco.
+    if permissions:
         required_permission = CAPABILITY_PERMISSION_MAP.get(capability, capability)
         return required_permission in permissions
     return capability in (role_capabilities or frozenset())
