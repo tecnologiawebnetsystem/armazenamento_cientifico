@@ -30,8 +30,8 @@ def upgrade() -> None:
         "profiles",
         sa.Column("id", sa.String(length=20), nullable=False),
         sa.Column("name", sa.String(length=80), nullable=False),
-        sa.Column("description", sa.String(length=255), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("description", sa.String(length=255), nullable=False, server_default=""),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("name"),
     )
@@ -50,11 +50,11 @@ def upgrade() -> None:
         "project_statuses",
         sa.Column("id", sa.String(length=40), nullable=False),
         sa.Column("code", sa.String(length=40), nullable=False),
-        sa.Column("nome", sa.String(length=100), nullable=False),
-        sa.Column("color", sa.String(length=20), nullable=False),
-        sa.Column("display_order", sa.Integer(), nullable=False),
-        sa.Column("active", sa.Boolean(), nullable=False),
-        sa.Column("allows_edit", sa.Boolean(), nullable=False),
+        sa.Column("name", sa.String(length=100), nullable=False),
+        sa.Column("color", sa.String(length=20), nullable=False, server_default="slate"),
+        sa.Column("display_order", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("active", sa.Boolean(), nullable=False, server_default=sa.true()),
+        sa.Column("allows_edit", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("code"),
     )
@@ -83,17 +83,30 @@ def upgrade() -> None:
     )
     op.create_table(
         "users",
-        sa.Column("id", sa.String(length=36), nullable=False),
+        sa.Column("id", sa.String(length=255), nullable=False),
         sa.Column("name", sa.String(length=200), nullable=False),
         sa.Column("email", sa.String(length=320), nullable=False),
         sa.Column("job_title", sa.String(length=120), nullable=True),
         sa.Column("area", sa.String(length=120), nullable=True),
         sa.Column("avatar_url", sa.String(length=500), nullable=True),
         sa.Column("last_login_at", sa.DateTime(), nullable=True),
-        sa.Column("role", sa.String(length=40), nullable=False),
+        sa.Column("role", sa.String(length=40), nullable=False, server_default="solicitante"),
         sa.Column("profile_id", sa.String(length=20), nullable=True),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.ForeignKeyConstraint(["profile_id"], ["profiles.id"], ondelete="SET NULL"),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table(
+        "sessions",
+        sa.Column("id", sa.String(length=128), nullable=False),
+        sa.Column("user_id", sa.String(length=255), nullable=True),
+        sa.Column("email", sa.String(length=320), nullable=False),
+        sa.Column("display_name", sa.String(length=255), nullable=True),
+        sa.Column("profile_id", sa.String(length=20), nullable=True),
+        sa.Column("expires_at", sa.DateTime(), nullable=False),
+        sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("current_timestamp")),
+        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["profile_id"], ["profiles.id"], ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -147,8 +160,9 @@ def upgrade() -> None:
         sa.Column("route", sa.String(length=180), nullable=False),
         sa.Column("icon", sa.String(length=80), nullable=False),
         sa.Column("display_order", sa.Integer(), nullable=False),
-        sa.Column("active", sa.Boolean(), nullable=False),
+        sa.Column("active", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.ForeignKeyConstraint(["module_id"], ["modules.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["parent_id"], ["menus.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -157,12 +171,12 @@ def upgrade() -> None:
         sa.Column("module_id", sa.String(length=80), nullable=True),
         sa.Column("key", sa.String(length=80), nullable=False),
         sa.Column("title", sa.String(length=140), nullable=False),
-        sa.Column("description", sa.Text(), nullable=False),
+        sa.Column("description", sa.Text(), nullable=False, server_default=""),
         sa.Column("metric_key", sa.String(length=80), nullable=False),
-        sa.Column("route", sa.String(length=180), nullable=False),
-        sa.Column("profile_ids", sa.Text(), nullable=False),
-        sa.Column("display_order", sa.Integer(), nullable=False),
-        sa.Column("active", sa.Boolean(), nullable=False),
+        sa.Column("route", sa.String(length=180), nullable=False, server_default=""),
+        sa.Column("profile_ids", sa.Text(), nullable=False, server_default=""),
+        sa.Column("display_order", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("active", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.ForeignKeyConstraint(["module_id"], ["modules.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("key"),
@@ -171,9 +185,10 @@ def upgrade() -> None:
         "project_members",
         sa.Column("project_id", sa.String(length=36), nullable=False),
         sa.Column("user_id", sa.String(length=255), nullable=False),
-        sa.Column("role", sa.String(length=40), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("role", sa.String(length=40), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("project_id", "user_id"),
     )
     op.create_table(
@@ -181,16 +196,18 @@ def upgrade() -> None:
         sa.Column("id", sa.String(length=36), nullable=False),
         sa.Column("project_id", sa.String(length=36), nullable=False),
         sa.Column("parent_id", sa.String(length=36), nullable=True),
-        sa.Column("kind", sa.String(length=20), nullable=False),
+        sa.Column("kind", sa.String(length=20), nullable=False, server_default="pasta"),
         sa.Column("name", sa.String(length=500), nullable=False),
-        sa.Column("size_bytes", sa.Integer(), nullable=False),
+        sa.Column("size_bytes", sa.BigInteger(), nullable=False, server_default="0"),
         sa.Column("mime_type", sa.String(length=160), nullable=True),
-        sa.Column("created_by", sa.String(length=36), nullable=True),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
-        sa.ForeignKeyConstraint(["project_id"], ["projects.id"]),
+        sa.Column("created_by", sa.String(length=255), nullable=False),
+        sa.Column("last_viewed_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.CheckConstraint("kind = 'pasta'", name="ck_folders_kind_pasta"),
+        sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["parent_id"], ["folders.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["created_by"], ["users.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["created_by"], ["users.id"], ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -200,11 +217,9 @@ def upgrade() -> None:
         sa.Column("action", sa.String(length=100), nullable=False),
         sa.Column("entity", sa.String(length=100), nullable=False),
         sa.Column("entity_id", sa.String(length=36), nullable=True),
-        sa.Column("details", sa.Text(), nullable=False),
-        sa.Column("result", sa.String(length=30), nullable=False),
-        sa.Column("project_id", sa.String(length=36), nullable=True),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="SET NULL"),
+        sa.Column("details", sa.Text(), nullable=False, server_default=""),
+        sa.Column("result", sa.String(length=40), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -251,7 +266,6 @@ def upgrade() -> None:
     op.create_index("ix_activity_logs_user_id", "activity_logs", ["user_id"])
     op.create_index("ix_activity_logs_action", "activity_logs", ["action"])
     op.create_index("ix_activity_logs_entity", "activity_logs", ["entity"])
-    op.create_index("ix_activity_logs_project_id", "activity_logs", ["project_id"])
     op.create_index("ix_activity_logs_created_at", "activity_logs", ["created_at"])
 
     # Perfis oficiais da produção; perfis legados não fazem parte da baseline.
