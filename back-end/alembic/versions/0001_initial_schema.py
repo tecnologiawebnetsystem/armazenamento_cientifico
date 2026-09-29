@@ -97,6 +97,19 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
+        "sessions",
+        sa.Column("id", sa.String(length=128), nullable=False),
+        sa.Column("user_id", sa.String(length=255), nullable=True),
+        sa.Column("email", sa.String(length=320), nullable=False),
+        sa.Column("display_name", sa.String(length=255), nullable=True),
+        sa.Column("profile_id", sa.String(length=20), nullable=True),
+        sa.Column("expires_at", sa.DateTime(), nullable=False),
+        sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("current_timestamp")),
+        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["profile_id"], ["profiles.id"], ondelete="RESTRICT"),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table(
         "projects",
         sa.Column("id", sa.String(length=36), nullable=False),
         sa.Column("name", sa.String(length=200), nullable=False),
