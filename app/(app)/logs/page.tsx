@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react"
 import useSWR from "swr"
 import { ActivityIcon, DownloadIcon, FilterIcon, RefreshCwIcon, SearchIcon, ShieldCheckIcon, UserRoundIcon, XIcon, type LucideIcon } from "lucide-react"
-import { BackButton } from "@/components/navigation/back-button"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -51,10 +50,9 @@ export default function LogsPage() {
   ]
 
   if (isLoading) return <main className="flex flex-col gap-6"><h1 className="text-2xl font-semibold">Central de auditoria</h1><PetrobrasLoading label="Carregando trilha de auditoria..." /></main>
-  if (error || !data) return <main className="flex flex-col gap-6"><BackButton /><p className="text-destructive">Não foi possível carregar os logs.</p></main>
+  if (error || !data) return <main className="flex flex-col gap-6"><p className="text-destructive">Não foi possível carregar os logs.</p></main>
 
   return <main className="flex flex-col gap-6">
-    <BackButton />
     <section className="relative overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm">
       <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-primary/[0.04] [clip-path:polygon(35%_0,100%_0,100%_100%,0_100%)] md:block" />
       <div className="relative flex flex-col gap-6 p-5 sm:p-7 lg:flex-row lg:items-end lg:justify-between">

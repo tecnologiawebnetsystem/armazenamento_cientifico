@@ -39,11 +39,10 @@ export function AppTopbar() {
         <div className="hidden items-center gap-2 text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase sm:flex">
           <span>Governança de acesso</span>
           <span className="text-border" aria-hidden="true">/</span>
-          <span className="text-petrobras-green">Ambiente corporativo</span>
         </div>
         <div className="flex min-w-0 items-center gap-3"><AppBreadcrumbs /><span className="hidden truncate text-sm font-semibold text-foreground md:inline">{pageTitle}</span></div>
       </div>
-      <Badge variant="outline" className="hidden h-7 items-center gap-1.5 rounded-full border-petrobras-green/25 bg-petrobras-green/5 px-2.5 text-[10px] font-semibold text-petrobras-green lg:inline-flex"><ShieldCheckIcon aria-hidden="true" />Sessão protegida</Badge>
+      <Badge variant="outline" aria-label="Sessão protegida" title="Sessão protegida" className="hidden size-9 items-center justify-center rounded-full border-petrobras-green/25 bg-petrobras-green/5 p-0 text-petrobras-green lg:inline-flex"><ShieldCheckIcon aria-hidden="true" className="size-4" /></Badge>
       <div className="ml-auto flex items-center gap-2 md:gap-3">
         <ThemeToggle />
         {isLoading ? (

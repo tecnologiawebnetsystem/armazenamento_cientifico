@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/sidebar"
 import { isMenuAllowedForRole } from "@/hooks/use-permissions"
 import { usePlatformContext } from "@/hooks/use-platform-context"
-import { ClipboardListIcon, FlaskConicalIcon, FolderKanbanIcon, LayoutDashboardIcon, ShieldCheckIcon, BarChart3Icon, Settings2Icon, type LucideIcon } from "lucide-react"
+import { ChartNoAxesCombinedIcon, FolderKanbanIcon, LayoutDashboardIcon, NetworkIcon, SettingsIcon, ShieldCheckIcon, type LucideIcon } from "lucide-react"
 import type { NavGroup, NavItem } from "@/lib/nav-config"
 import type { PlatformMenu } from "@/lib/types"
 
@@ -27,15 +27,15 @@ const iconMap: Record<string, LucideIcon> = {
   dashboard: LayoutDashboardIcon,
   folder: FolderKanbanIcon,
   projetos: FolderKanbanIcon,
-  pesquisa: FlaskConicalIcon,
-  pesquisas: FlaskConicalIcon,
-  relatorio: BarChart3Icon,
-  relatorios: BarChart3Icon,
-  chart: BarChart3Icon,
-  auditoria: ClipboardListIcon,
-  logs: ClipboardListIcon,
+  relatorio: ChartNoAxesCombinedIcon,
+  relatorios: ChartNoAxesCombinedIcon,
+  chart: ChartNoAxesCombinedIcon,
+  auditoria: ShieldCheckIcon,
+  logs: ShieldCheckIcon,
   shield: ShieldCheckIcon,
-  settings: Settings2Icon,
+  network: NetworkIcon,
+  pesquisas: NetworkIcon,
+  settings: SettingsIcon,
 }
 
 function getIcon(name: string): LucideIcon {
@@ -112,7 +112,7 @@ export function AppSidebar() {
                   return (
                     <SidebarMenuItem key={item.url} className="relative">
                       {isActive ? <span aria-hidden className="absolute top-1/2 left-0 h-6 w-0.5 -translate-y-1/2 rounded-r-full bg-sidebar-primary shadow-[0_0_8px_color-mix(in_oklch,var(--sidebar-primary)_55%,transparent)] group-data-[collapsible=icon]:hidden" /> : null}
-                      <SidebarMenuButton render={<Link href={item.url} />} isActive={isActive} tooltip={item.title} className="h-10 gap-3 rounded-lg px-3 text-[13px] font-medium text-sidebar-foreground/78 transition-colors duration-200 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring/70 data-active:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-foreground data-active:shadow-[inset_3px_0_0_var(--sidebar-primary)] [&_svg]:text-sidebar-foreground/60 data-active:[&_svg]:text-sidebar-primary">
+                      <SidebarMenuButton render={<Link href={item.url} />} isActive={isActive} tooltip={item.title} className="h-10 gap-3 rounded-lg px-3 text-[13px] font-medium text-sidebar-foreground transition-colors duration-200 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring/70 data-active:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-foreground data-active:shadow-[inset_3px_0_0_var(--sidebar-primary)] [&_svg]:text-sidebar-foreground data-active:[&_svg]:text-sidebar-foreground">
                         <item.icon />
                         <span className="truncate">{item.title}</span>
                       </SidebarMenuButton>
