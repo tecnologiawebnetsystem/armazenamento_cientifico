@@ -44,12 +44,12 @@ export default function AccessMapPage() {
   }, [data?.rows, search])
   const clearFilters = () => { setSearch(""); setType("todos"); setLevel("todos"); setArea("todos"); setRole("todos"); setProjectStatus("todos"); setView("projeto") }
   const exportRows = async (fields: string[], formats: ("csv" | "txt" | "pdf")[]) => { for (const format of formats) { const path = getAccessMapExportUrl({ format, fields: fields.join(","), q: search, type, level, view }).replace(/^https?:\/\/[^/]+/, ""); const blob = await downloadFile(path); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `mapa-de-acessos.${format}`; link.click(); URL.revokeObjectURL(url) } }
-  if (isLoading) return <PageLayout back><PageHeader title="Mapa de Acessos" description="Consulte grupos, membros e recursos autorizados por projeto." /><PetrobrasLoading label="Carregando mapa de acessos..." /></PageLayout>
-  if (error || !data) return <PageLayout back><PageHeader title="Mapa de acessos" /><p className="text-destructive">Não foi possível carregar o mapa de acessos.</p></PageLayout>
+  if (isLoading) return <PageLayout><PageHeader title="Mapa de Acessos" description="Consulte grupos, membros e recursos autorizados por projeto." /><PetrobrasLoading label="Carregando mapa de acessos..." /></PageLayout>
+  if (error || !data) return <PageLayout><PageHeader title="Mapa de acessos" /><p className="text-destructive">Não foi possível carregar o mapa de acessos.</p></PageLayout>
   const cards: KpiItem[] = [
     { icon: Users, label: "Usuários no escopo", value: String(data.summary.users), tone: "teal" }, { icon: FolderKanban, label: "Projetos", value: String(data.summary.projects), tone: "green" }, { icon: FolderOpen, label: "Pastas", value: String(data.summary.folders), tone: "blue" }, { icon: Files, label: "Arquivos", value: String(data.summary.files), tone: "yellow" },
   ]
-  return <PageLayout back>
+  return <PageLayout>
     <PageHeader eyebrow="Governança de acesso" title="Mapa de acessos científicos" description="Consulte os grupos vinculados a cada projeto, seus membros e os recursos autorizados em uma visão pronta para auditoria." actions={<ExportButton onClick={() => setExportOpen(true)} disabled={!exportFields.length} />} />
     <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground"><span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-petrobras-green" />Fonte: {data.source}</span><span>Atualizado em {safeDate(data.consultedAt)}</span></div>
     <PageSection label="Panorama do escopo"><KpiCards items={cards} /></PageSection>
