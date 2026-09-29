@@ -25,7 +25,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             <span className="max-w-[18rem] text-[10px] leading-4 text-white/75">Sistema de Gestão de Acesso ao Armazenamento Científico</span>
           </div>
         </div>
-        <div className="relative z-10 max-w-2xl py-12 lg:translate-y-4 lg:py-0">
+        <div className="relative z-10 max-w-2xl py-10 lg:translate-y-0 lg:py-0">
           <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-petrobras-yellow/40 bg-petrobras-yellow/10 px-3 py-1.5 text-xs font-medium tracking-wide text-petrobras-yellow">
             <span className="size-1.5 rounded-full bg-petrobras-yellow" /> Plataforma corporativa Petrobras
           </span>
