@@ -81,9 +81,9 @@ export function AppSidebar() {
   const groups = buildNavGroups(visibleMenus)
 
   return (
-    <Sidebar collapsible="icon" className="border-sidebar-border/70 bg-sidebar shadow-2xl shadow-sidebar/25 transition-[width] duration-200 md:flex">
+    <Sidebar collapsible="icon" className="border-sidebar-border/55 bg-sidebar shadow-xl shadow-sidebar/20 transition-[width] duration-200 md:flex">
       <SidebarHeader className="gap-0 p-0">
-        <div className="h-1.5 w-full bg-gradient-to-r from-sidebar-primary via-petrobras-yellow to-petrobras-green" />
+        <div className="h-1 w-full bg-gradient-to-r from-sidebar-primary via-petrobras-yellow to-sidebar-primary" />
         <SidebarMenu className="p-3">
           <SidebarMenuItem>
             <div className="flex items-center gap-2 px-3 pb-2 text-[10px] font-semibold tracking-[0.18em] text-sidebar-foreground/50 uppercase group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
@@ -103,7 +103,7 @@ export function AppSidebar() {
 
       <SidebarContent className="gap-1 px-1 py-2">
         {groups.map((group) => (
-          <SidebarGroup key={group.label} className="border-b border-sidebar-border/40 px-2 py-3 last:border-b-0">
+          <SidebarGroup key={group.label} className="border-b border-sidebar-border/30 px-2 py-3 last:border-b-0">
             <SidebarGroupLabel className="h-8 px-2 text-[10px] font-semibold tracking-[0.16em] text-sidebar-primary/80 uppercase group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">{group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu className="gap-0.5">
@@ -112,7 +112,7 @@ export function AppSidebar() {
                   return (
                     <SidebarMenuItem key={item.url} className="relative">
                       {isActive ? <span aria-hidden className="absolute top-1/2 left-0 h-6 w-0.5 -translate-y-1/2 rounded-r-full bg-sidebar-primary shadow-[0_0_8px_color-mix(in_oklch,var(--sidebar-primary)_55%,transparent)] group-data-[collapsible=icon]:hidden" /> : null}
-                      <SidebarMenuButton render={<Link href={item.url} />} isActive={isActive} tooltip={item.title} className="h-10 gap-3 rounded-lg px-3 text-[13px] font-medium text-sidebar-foreground/78 transition-all duration-200 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground data-active:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-foreground data-active:shadow-[inset_0_1px_0_0_var(--sidebar-border),0_4px_12px_color-mix(in_oklch,var(--sidebar)_24%,transparent)] [&_svg]:text-sidebar-foreground/60 data-active:[&_svg]:text-sidebar-primary">
+                      <SidebarMenuButton render={<Link href={item.url} />} isActive={isActive} tooltip={item.title} className="h-10 gap-3 rounded-lg px-3 text-[13px] font-medium text-sidebar-foreground/78 transition-colors duration-200 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring/70 data-active:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-foreground data-active:shadow-[inset_3px_0_0_var(--sidebar-primary)] [&_svg]:text-sidebar-foreground/60 data-active:[&_svg]:text-sidebar-primary">
                         <item.icon />
                         <span className="truncate">{item.title}</span>
                       </SidebarMenuButton>
