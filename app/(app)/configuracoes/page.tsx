@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { ArrowRightIcon, BellIcon, DatabaseIcon, PaletteIcon, ShieldCheckIcon, UserRoundIcon } from "lucide-react"
 import { ConfigurationPanel } from "@/components/configuration/configuration-panel"
+import { PageHeader, PageSection } from "@/components/shared/page-layout"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -15,13 +16,14 @@ const settingAreas = [
 export default function ConfiguracoesPage() {
   return (
     <main className="flex flex-col gap-8 p-4 md:p-8">
-      <div>
-        <p className="text-sm font-medium text-primary">Administração</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight">Configurações</h1>
-        <p className="mt-2 max-w-2xl text-muted-foreground">Centralize preferências, segurança e parâmetros operacionais em um único espaço.</p>
-      </div>
+      <PageHeader
+        eyebrow="Administração"
+        title="Configurações"
+        description="Centralize preferências, segurança e parâmetros operacionais em um único espaço."
+      />
 
-      <section aria-labelledby="areas-configuracao">
+      <PageSection label="Áreas de configuração">
+        <div>
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
             <h2 id="areas-configuracao" className="text-lg font-semibold">Áreas de configuração</h2>
@@ -46,7 +48,8 @@ export default function ConfiguracoesPage() {
             </Card>
           ))}
         </div>
-      </section>
+        </div>
+      </PageSection>
 
       <Card className="border-primary/20 bg-primary/5">
         <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
