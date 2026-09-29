@@ -245,8 +245,76 @@
     background-clip: padding-box;
   }
 
+  .sigac-data-flow {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 7.5rem;
+    justify-content: center;
+  }
+
+  .sigac-data-flow__node {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 999px;
+    background: var(--petrobras-green);
+    opacity: 0.48;
+    animation: sigac-flow-node 1.8s ease-in-out infinite;
+  }
+
+  .sigac-data-flow__node--active {
+    background: var(--petrobras-yellow);
+    opacity: 1;
+    animation-delay: 180ms;
+  }
+
+  .sigac-data-flow__line {
+    width: 1.5rem;
+    height: 1px;
+    background: color-mix(in oklch, var(--petrobras-green) 42%, var(--border));
+    transform-origin: left center;
+    animation: sigac-flow-line 1.8s ease-in-out infinite;
+  }
+
+  .sigac-skeleton {
+    position: relative;
+    overflow: hidden;
+    background: color-mix(in oklch, var(--muted) 88%, var(--petrobras-green) 12%);
+  }
+
+  .sigac-skeleton::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, color-mix(in oklch, var(--card) 48%, transparent), transparent);
+    animation: sigac-skeleton-shimmer 1.8s ease-in-out infinite;
+  }
+
   .sw-motion {
     animation: sw-fade-up 420ms ease-out both;
+  }
+
+  @keyframes sigac-flow-node {
+    0%, 100% { transform: scale(0.85); opacity: 0.42; }
+    45% { transform: scale(1.12); opacity: 0.9; }
+  }
+
+  @keyframes sigac-flow-line {
+    0%, 100% { opacity: 0.35; transform: scaleX(0.72); }
+    45% { opacity: 0.8; transform: scaleX(1); }
+  }
+
+  @keyframes sigac-skeleton-shimmer {
+    100% { transform: translateX(100%); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sigac-data-flow__node,
+    .sigac-data-flow__line,
+    .sigac-skeleton::after {
+      animation: none;
+    }
   }
 
   @keyframes sw-fade-up {
