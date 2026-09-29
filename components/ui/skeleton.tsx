@@ -10,4 +10,8 @@ function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-export { Skeleton }
+function SigacSkeleton({ className, ...props }: React.ComponentProps<"div">) {
+  return <Skeleton className={className} {...props} />
+}
+
+export { Skeleton, SigacSkeleton }

@@ -2,9 +2,12 @@ import { cn } from "@/lib/utils"
 
 export type PetrobrasLoadingVariant = "page" | "content" | "action" | "overlay"
 
-interface PetrobrasLoadingProps {
+export interface SigacLoaderProps {
   label?: string
   className?: string
+}
+
+interface PetrobrasLoadingProps extends SigacLoaderProps {
   variant?: PetrobrasLoadingVariant
 }
 
@@ -42,13 +45,30 @@ export function PetrobrasLoading({
       aria-live="polite"
       aria-busy="true"
     >
-      <div className={cn("flex items-center justify-center", !isPage && !isOverlay && "size-12 rounded-xl border border-primary/15 bg-primary/5")}> 
+      {variant !== "action" && <span className="text-xs font-semibold uppercase tracking-[0.22em] text-petrobras-green">SIGAC</span>}
+      <div className={cn("flex items-center justify-center", !isPage && !isOverlay && "size-12 rounded-xl border border-primary/15 bg-primary/5")}>
         <DataFlow />
       </div>
-      <div className={cn("flex flex-col items-center gap-1.5", variant === "action" && "items-start")}> 
+      <div className={cn("flex flex-col items-center gap-1.5", variant === "action" && "items-start")}>
         <span className="text-sm font-semibold text-foreground">{label}</span>
-        {variant !== "action" && <span className="text-xs text-muted-foreground">Fluxo de dados SIGAC em processamento</span>}
+        {variant !== "action" && <span className="text-xs text-muted-foreground">Fluxo de dados em processamento</span>}
       </div>
     </div>
   )
+}
+
+export function SigacPageLoader(props: SigacLoaderProps) {
+  return <PetrobrasLoading {...props} variant="page" />
+}
+
+export function SigacContentLoader(props: SigacLoaderProps) {
+  return <PetrobrasLoading {...props} variant="content" />
+}
+
+export function SigacOverlayLoader(props: SigacLoaderProps) {
+  return <PetrobrasLoading {...props} variant="overlay" />
+}
+
+export function SigacActionLoader(props: SigacLoaderProps) {
+  return <PetrobrasLoading {...props} variant="action" />
 }
