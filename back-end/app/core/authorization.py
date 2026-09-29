@@ -28,6 +28,7 @@ CAPABILITY_PERMISSION_MAP: Final[dict[str, str]] = {
     "update": "projeto.editar",
     "manage_users": "usuario.editar",
     "reports": "relatorio.exportar",
+    "audit": "auditoria.visualizar",
     "configure": "administracao.configurar",
     "delete": "projeto.excluir",
 }
