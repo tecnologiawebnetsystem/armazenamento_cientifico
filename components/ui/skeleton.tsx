@@ -4,10 +4,14 @@ function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="skeleton"
-      className={cn("animate-pulse rounded-md bg-muted", className)}
+      className={cn("sigac-skeleton rounded-md", className)}
       {...props}
     />
   )
 }
 
-export { Skeleton }
+function SigacSkeleton({ className, ...props }: React.ComponentProps<"div">) {
+  return <Skeleton className={className} {...props} />
+}
+
+export { Skeleton, SigacSkeleton }
