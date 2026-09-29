@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.users.models import Perfil, User
+from app.modules.users.models import Profile, User
 
 
 class UserRepository:
@@ -38,23 +38,23 @@ class UserRepository:
         return False
 
 
-class PerfilRepository:
+class ProfileRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def find_by_id(self, perfil_id: str) -> Perfil | None:
-        return await self.session.scalar(select(Perfil).where(Perfil.id == perfil_id))
+    async def find_by_id(self, profile_id: str) -> Profile | None:
+        return await self.session.scalar(select(Profile).where(Profile.id == profile_id))
 
-    async def list_all(self) -> list[Perfil]:
-        result = await self.session.scalars(select(Perfil).order_by(Perfil.nome))
+    async def list_all(self) -> list[Profile]:
+        result = await self.session.scalars(select(Profile).order_by(Profile.name))
         return list(result)
 
-    async def create(self, perfil: Perfil) -> Perfil:
-        self.session.add(perfil)
+    async def create(self, profile: Profile) -> Profile:
+        self.session.add(profile)
         await self.session.flush()
-        return perfil
+        return profile
 
-    async def update(self, perfil: Perfil) -> Perfil:
-        await self.session.merge(perfil)
+    async def update(self, profile: Profile) -> Profile:
+        await self.session.merge(profile)
         await self.session.flush()
-        return perfil
+        return profile

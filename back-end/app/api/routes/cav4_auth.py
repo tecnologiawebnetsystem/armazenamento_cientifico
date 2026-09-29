@@ -17,6 +17,7 @@ from app.core.temporary_sessions import delete_session
 from app.db.session import get_session
 from app.infrastructure.cav4 import CAV4AuthenticationError, decode_state_nonce, get_cav4_provider
 from app.modules.auth.repository import AuthRepository
+from app.modules.auth.schemas import EmailLoginRequest
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ def _schema_name() -> str:
 
 
 @email_router.post("/login")
-async def email_login(request: Request):
+async def email_login(payload: EmailLoginRequest):
     """Login auxiliar por e-mail (botão "Entrar com e-mail").
 
     Controlado por EMAIL_LOGIN_ENABLED (padrão: ligado fora de produção). A
@@ -41,10 +42,7 @@ async def email_login(request: Request):
     """
     if not settings.email_login_enabled:
         raise HTTPException(status_code=404, detail="Login por e-mail não está habilitado neste ambiente")
-    payload = await request.json()
-    email = str(payload.get("email", "")).strip().lower()
-    if not email:
-        raise HTTPException(status_code=422, detail="Informe um e-mail válido")
+    email = payload.email.strip().lower()
     session_id = str(uuid4())
     expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours)
     async for database in get_session():
@@ -228,40 +226,6 @@ async def cav4_callback(request: Request, code: str, state: str):
             profile = profile_result.mappings().first()
             if not profile:
                 raise HTTPException(status_code=403, detail=f"Perfil CAV4 não cadastrado no SIGAC: {profile_id}")
-            display_name = identity.display_name or identity.email.split("@", 1)[0]
-            user_result = await database.execute(
-                text(f"select id from {schema}.users where lower(email)=lower(:email)"),
-                {"email": identity.email},
-            )
-            local_user = user_result.mappings().first()
-            if local_user:
-                user_id = str(local_user["id"])
-                await database.execute(
-                    text(f"""update {schema}.users
-                        set name=:name, profile_id=:profile_id, last_login_at=now()
-                        where id=:user_id"""),
-                    {"user_id": user_id, "name": display_name, "profile_id": str(profile_id)},
-                )
-            else:
-                user_id = identity.user_login or identity.subject or identity.email
-                id_result = await database.execute(
-                    text(f"select id from {schema}.users where id=:user_id"),
-                    {"user_id": user_id},
-                )
-                if id_result.first():
-                    user_id = str(uuid4())
-                await database.execute(
-                    text(f"""insert into {schema}.users
-                        (id,name,email,role,profile_id,last_login_at)
-                        values(:user_id,:name,:email,:role,:profile_id,now())"""),
-                    {
-                        "user_id": user_id,
-                        "name": display_name,
-                        "email": identity.email,
-                        "role": canonical_role(profile_id),
-                        "profile_id": str(profile_id),
-                    },
-                )
             await database.execute(
                 text(f"delete from {schema}.sessions where lower(email)=lower(:email)"),
                 {"email": identity.email},
@@ -272,9 +236,9 @@ async def cav4_callback(request: Request, code: str, state: str):
                     values(:id,:user_id,:email,:display_name,:profile_id,:expires_at)"""),
                 {
                     "id": session_id,
-                    "user_id": user_id,
+                    "user_id": identity.user_login or identity.subject or identity.email,
                     "email": identity.email,
-                    "display_name": display_name,
+                    "display_name": identity.display_name or identity.email.split("@", 1)[0],
                     "profile_id": str(profile_id),
                     "expires_at": expires_at,
                 },

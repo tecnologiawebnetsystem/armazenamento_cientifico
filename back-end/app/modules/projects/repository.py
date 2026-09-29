@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.catalogs.area_model import ResponsibleArea
+from app.modules.catalogs.project_catalog_models import ResponsibleArea
 from app.modules.projects.member_model import ProjectMember
 from app.modules.projects.models import Project
 from app.modules.users.models import User

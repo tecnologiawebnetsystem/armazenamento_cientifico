@@ -26,7 +26,7 @@ async def health_ready():
             "status": "ok",
             "service": "fastapi",
             "database": "connected",
-            "database_engine": "postgresql",
+            "database_engine": settings.database_engine,
             "database_probe": "SELECT 1",
             "alembic_revision": revision,
         }

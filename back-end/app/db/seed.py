@@ -1,20 +1,14 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from app.modules.catalogs.area_model import ResponsibleArea
-from app.modules.catalogs.models import (
-    MenuItem,
-    Module,
-    Permission,
-    ProfilePermission,
-    ProjectStatusCatalog,
-      ReportField,
-    ReportType,
-)
+from app.modules.catalogs.authorization_models import Permission, ProfilePermission
+from app.modules.catalogs.navigation_models import MenuItem, Module
+from app.modules.catalogs.project_catalog_models import ProjectStatus, ResponsibleArea
+from app.modules.catalogs.reporting_models import ReportField, ReportType
 from app.modules.projects.member_model import ProjectMember
 from app.modules.projects.models import Project
 from app.modules.users.models import User
-from app.modules.users.profile_model import Perfil
+from app.modules.users.profile_model import Profile
 
 SEED_PERFIS = [
     ("ADM", "administrador", "Administra a plataforma, configura parâmetros e gerencia acessos."),
@@ -87,12 +81,12 @@ async def initialize_database(engine) -> None:
     async with factory() as session:
         existing_users = {row.email: row for row in (await session.scalars(select(User))).all()}
         now = datetime.now(UTC).replace(tzinfo=None)
-        existing_perfis = {row.id for row in (await session.scalars(select(Perfil))).all()}
+        existing_profiles = {row.id for row in (await session.scalars(select(Profile))).all()}
         for perfil_id, nome, descricao in SEED_PERFIS:
-            if perfil_id not in existing_perfis:
-                session.add(Perfil(id=perfil_id, nome=nome, descricao=descricao, criado_em=now))
+            if perfil_id not in existing_profiles:
+                session.add(Profile(id=perfil_id, name=nome, description=descricao, created_at=now))
         await session.flush()
-        perfil_ids = {row.nome: row.id for row in (await session.scalars(select(Perfil))).all()}
+        profile_ids = {row.name: row.id for row in (await session.scalars(select(Profile))).all()}
         existing_areas = {row.id for row in (await session.scalars(select(ResponsibleArea))).all()}
         for area_id, name, prefix in SEED_AREAS:
             if area_id not in existing_areas:
@@ -100,43 +94,43 @@ async def initialize_database(engine) -> None:
         await session.flush()
         for item in SEED_MODULES:
             if not await session.get(Module, item[0]):
-                session.add(Module(id=item[0], nome=item[1], rota=item[2], icone=item[3], ordem=item[4], ativo=True))
+                session.add(Module(id=item[0], name=item[1], route=item[2], icon=item[3], display_order=item[4], active=True))
         await session.flush()
         for permission_id, module_id, name in SEED_PERMISSIONS:
             if not await session.get(Permission, permission_id):
-                session.add(Permission(id=permission_id, modulo_id=module_id, nome=name, descricao=name, ativo=True))
+                session.add(Permission(id=permission_id, module_id=module_id, name=name, description=name, active=True))
         for status_id, code, name, color, order, editable in SEED_STATUS:
-            if not await session.get(ProjectStatusCatalog, status_id):
-                session.add(ProjectStatusCatalog(id=status_id, codigo=code, nome=name, cor=color, ordem=order, ativo=True, permite_edicao=editable))
+            if not await session.get(ProjectStatus, status_id):
+                session.add(ProjectStatus(id=status_id, code=code, name=name, color=color, display_order=order, active=True, allows_edit=editable))
 
         for report_id, code, name, formats in SEED_REPORTS:
             if not await session.get(ReportType, report_id):
-                session.add(ReportType(id=report_id, codigo=code, nome=name, descricao=name, formatos=formats, ativo=True))
+                session.add(ReportType(id=report_id, code=code, name=name, description=name, formats=formats, active=True))
         for field_id, report_code, field_key, label, source_key, display_order in SEED_REPORT_FIELDS:
             if not await session.get(ReportField, field_id):
                 session.add(ReportField(id=field_id, report_code=report_code, field_key=field_key, label=label, source_key=source_key, display_order=display_order, active=True))
 
         for menu_id, module_id, name, route, icon, order in SEED_MENUS:
             if not await session.get(MenuItem, menu_id):
-                session.add(MenuItem(id=menu_id, modulo_id=module_id, nome=name, rota=route, icone=icon, ordem=order, ativo=True))
+                session.add(MenuItem(id=menu_id, module_id=module_id, name=name, route=route, icon=icon, display_order=order, active=True))
         await session.flush()
-        for profile_id in perfil_ids.values():
+        for profile_id in profile_ids.values():
             for permission_id, _, _ in SEED_PERMISSIONS:
-                if not await session.get(ProfilePermission, {"perfil_id": profile_id, "permissao_id": permission_id}):
-                    session.add(ProfilePermission(perfil_id=profile_id, permissao_id=permission_id, permitido=(profile_id == "ADM" or permission_id.endswith(".visualizar"))) )
+                    if not await session.get(ProfilePermission, {"profile_id": profile_id, "permission_id": permission_id}):
+                        session.add(ProfilePermission(profile_id=profile_id, permission_id=permission_id, allowed=(profile_id == "ADM" or permission_id.endswith(".visualizar"))) )
         users = []
         seed_users = SEED_USERS
         for name, email, role in seed_users:
-            perfil_id = perfil_ids.get(role, "PAR")
+            profile_id = profile_ids.get(role, "PAR")
             user = existing_users.get(email)
             if user is None:
-                users.append(User(id=str(uuid4()), name=name, email=email, role=role, perfil_id=perfil_id, created_at=now))
+                users.append(User(id=str(uuid4()), name=name, email=email, role=role, profile_id=profile_id, created_at=now))
             else:
                 # O seed é idempotente e também aplica alterações de função/perfil
                 # em usuários que já existem no banco.
                 user.name = name
                 user.role = role
-                user.perfil_id = perfil_id
+                user.profile_id = profile_id
         session.add_all(users)
         await session.flush()
 

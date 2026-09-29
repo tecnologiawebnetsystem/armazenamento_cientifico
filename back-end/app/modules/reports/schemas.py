@@ -13,7 +13,6 @@ class ReportFieldQuery(BaseModel):
 
 
 class ReportExportQuery(ReportFilters):
-    report_code: str = "projetos"
     format: str = "csv"
     fields: str = ""
 
@@ -29,14 +28,6 @@ class ReportResponse(BaseModel):
 class ReportFieldResponse(BaseModel):
     reportCode: str
     fields: list[dict]
-class SettingsUpdate(BaseModel):
-    values: dict[str, str | int | bool | None]
-
-
-class SettingsResponse(BaseModel):
-    settings: dict[str, str | None]
-
-
 class ReportExportResponse(BaseModel):
     content_type: str
     filename: str
@@ -146,10 +137,6 @@ class AccessMapOut(BaseModel):
 
 class AccessRequestOut(BaseModel):
     request: dict
-
-
-class SettingsOut(BaseModel):
-    settings: dict[str, str | None]
 
 
 class ErrorOut(BaseModel):

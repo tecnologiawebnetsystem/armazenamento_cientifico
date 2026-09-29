@@ -34,17 +34,17 @@ class UserOut(UserBase):
     model_config = {"from_attributes": True}
 
 
-class PerfilBase(BaseModel):
-    nome: str = Field(..., min_length=1, max_length=80)
-    descricao: str | None = Field(None, max_length=500)
+class ProfileBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=80)
+    description: str | None = Field(None, max_length=500)
 
 
-class PerfilCreate(PerfilBase):
+class ProfileCreate(ProfileBase):
     pass
 
 
-class PerfilOut(PerfilBase):
+class ProfileOut(ProfileBase):
     id: str
-    criado_em: datetime
+    created_at: datetime
 
     model_config = {"from_attributes": True}

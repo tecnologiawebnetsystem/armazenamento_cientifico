@@ -9,6 +9,10 @@ import app.db.models  # noqa: F401 - registra todos os modelos no metadata
 
 
 def _async_database_url(url: str) -> str:
+    if url.startswith("sqlite://") or url.startswith("sqlite+aiosqlite://"):
+        # SQLite não usa querystring de sslmode/channel_binding; evita que
+        # urlsplit/urlunsplit colapse a barra tripla do caminho do arquivo.
+        return url
     if url.startswith("postgresql://"):
         url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
     elif url.startswith("postgres://"):
@@ -50,7 +54,12 @@ async def run_async_migrations() -> None:
         poolclass=pool.NullPool,
     )
     async with connectable.connect() as connection:
-        await connection.execute(text(f'SET search_path TO "{settings.db_schema}"'))
+        if connection.dialect.name == "postgresql":
+            await connection.execute(text(f'SET search_path TO "{settings.db_schema}"'))
+            # Sem commit aqui, o autobegin do SQLAlchemy 2.0 deixa essa transação
+            # aberta e o rollback implícito no fechamento da conexão desfaz as
+            # migrations (que rodam como SAVEPOINT dentro dela).
+            await connection.commit()
         await connection.run_sync(do_run_migrations)
     await connectable.dispose()
 

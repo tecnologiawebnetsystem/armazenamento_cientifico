@@ -1,13 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.catalogs.area_model import ResponsibleArea
-from app.modules.catalogs.models import (
-    MenuItem,
-    Module,
-    Permission,
-    ProjectStatusCatalog,
-)
+from app.modules.catalogs.navigation_models import MenuItem, Module, Permission
+from app.modules.catalogs.project_catalog_models import ProjectStatus, ResponsibleArea
 
 
 class ModuleRepository:
@@ -19,12 +14,12 @@ class ModuleRepository:
 
     async def list_active(self) -> list[Module]:
         result = await self.session.scalars(
-            select(Module).where(Module.ativo.is_(True)).order_by(Module.ordem)
+            select(Module).where(Module.active.is_(True)).order_by(Module.display_order)
         )
         return list(result)
 
     async def list_all(self) -> list[Module]:
-        result = await self.session.scalars(select(Module).order_by(Module.ordem))
+        result = await self.session.scalars(select(Module).order_by(Module.display_order))
         return list(result)
 
 
@@ -38,14 +33,12 @@ class PermissionRepository:
         )
 
     async def list_by_module(self, module_id: str) -> list[Permission]:
-        result = await self.session.scalars(
-            select(Permission).where(Permission.modulo_id == module_id)
-        )
+        result = await self.session.scalars(select(Permission).where(Permission.module_id == module_id))
         return list(result)
 
     async def list_all(self) -> list[Permission]:
         result = await self.session.scalars(
-            select(Permission).where(Permission.ativo.is_(True))
+            select(Permission).where(Permission.active.is_(True))
         )
         return list(result)
 
@@ -54,16 +47,16 @@ class ProjectStatusRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def find_by_id(self, status_id: str) -> ProjectStatusCatalog | None:
+    async def find_by_id(self, status_id: str) -> ProjectStatus | None:
         return await self.session.scalar(
-            select(ProjectStatusCatalog).where(ProjectStatusCatalog.id == status_id)
+            select(ProjectStatus).where(ProjectStatus.id == status_id)
         )
 
-    async def list_active(self) -> list[ProjectStatusCatalog]:
+    async def list_active(self) -> list[ProjectStatus]:
         result = await self.session.scalars(
-            select(ProjectStatusCatalog)
-            .where(ProjectStatusCatalog.ativo.is_(True))
-            .order_by(ProjectStatusCatalog.ordem)
+            select(ProjectStatus)
+            .where(ProjectStatus.active.is_(True))
+            .order_by(ProjectStatus.display_order)
         )
         return list(result)
 
@@ -100,7 +93,7 @@ class MenuItemRepository:
     async def list_active(self) -> list[MenuItem]:
         result = await self.session.scalars(
             select(MenuItem)
-            .where(MenuItem.ativo.is_(True))
-            .order_by(MenuItem.ordem)
+            .where(MenuItem.active.is_(True))
+            .order_by(MenuItem.display_order)
         )
         return list(result)

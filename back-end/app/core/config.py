@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     aurora_host: str = Field(default="", validation_alias=AliasChoices("RDS_AURORA_POSTGRES_HOST", "POSTGRES_HOST", "PGHOST"))
     aurora_user: str = Field(default="", validation_alias=AliasChoices("RDS_AURORA_POSTGRES_USERNAME", "RDS_AURORA_POSTGRES_USER", "POSTGRES_USER", "PGUSER"))
     aurora_password: str = Field(default="", validation_alias=AliasChoices("RDS_AURORA_POSTGRES_PASSWORD", "POSTGRES_PASSWORD", "PGPASSWORD"))
-    aurora_database: str = Field(default="", validation_alias=AliasChoices("RDS_AURORA_POSTGRES_DATABASE", "RDS_AURORA_POSTGRES_DB", "POSTGRES_DATABASE", "PGDATABASE"))
+    aurora_database: str = Field(default="", validation_alias=AliasChoices("RDS_AURORA_POSTGRES_DATABASE", "RDS_AURORA_POSTGRES_DB", "RDS_AURORA_POSTGRES_DBNAME", "POSTGRES_DATABASE", "PGDATABASE"))
     cors_origins: Annotated[list[str], NoDecode] = Field(default_factory=lambda: ["http://localhost:3000"])
     frontend_url: str = "http://localhost:3000"
     cookie_name: str = "wayon_session_id"
@@ -81,6 +81,10 @@ class Settings(BaseSettings):
     cav4_issuer: str = Field(default="", validation_alias=AliasChoices("CA_ISSUER", "CAV4_ISSUER"))
     cav4_jwks_url: str = ""
 
+    @property
+    def is_sqlite(self) -> bool:
+        return self.database_engine == "sqlite"
+
     @model_validator(mode="before")
     @classmethod
     def normalize_environment_values(cls, values: dict) -> dict:
@@ -94,7 +98,7 @@ class Settings(BaseSettings):
             host = data.get("RDS_AURORA_POSTGRES_HOST") or data.get("POSTGRES_HOST") or data.get("PGHOST")
             user = data.get("RDS_AURORA_POSTGRES_USERNAME") or data.get("RDS_AURORA_POSTGRES_USER") or data.get("POSTGRES_USER") or data.get("PGUSER")
             password = data.get("RDS_AURORA_POSTGRES_PASSWORD") or data.get("POSTGRES_PASSWORD") or data.get("PGPASSWORD")
-            database = data.get("RDS_AURORA_POSTGRES_DATABASE") or data.get("RDS_AURORA_POSTGRES_DB") or data.get("POSTGRES_DATABASE") or data.get("PGDATABASE")
+            database = data.get("RDS_AURORA_POSTGRES_DATABASE") or data.get("RDS_AURORA_POSTGRES_DB") or data.get("RDS_AURORA_POSTGRES_DBNAME") or data.get("POSTGRES_DATABASE") or data.get("PGDATABASE")
             if host and user and password and database:
                 data["database_url"] = f"postgresql://{quote(user, safe='')}:{quote(password, safe='')}@{host}:5432/{quote(database, safe='')}"
         data.setdefault("cookie_secure", env == "production")
@@ -106,13 +110,25 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_settings(self) -> "Settings":
+        if self.database_url and "://" not in self.database_url:
+            if self.aurora_user and self.aurora_password and self.aurora_database:
+                self.database_url = (
+                    f"postgresql://{quote(self.aurora_user, safe='')}:{quote(self.aurora_password, safe='')}"
+                    f"@{self.database_url}:5432/{quote(self.aurora_database, safe='')}"
+                )
+            else:
+                raise ValueError("DATABASE_URL sem esquema requer usuário, senha e banco RDS_AURORA_POSTGRES_*.")
         if not self.database_url and self.aurora_host and self.aurora_user and self.aurora_password and self.aurora_database:
             self.database_url = f"postgresql://{quote(self.aurora_user, safe='')}:{quote(self.aurora_password, safe='')}@{self.aurora_host}:5432/{quote(self.aurora_database, safe='')}"
-        if self.database_url and not self.database_url.startswith(("postgresql://", "postgres://", "postgresql+asyncpg://", "postgresql+psycopg://")):
-            raise ValueError("DATABASE_URL/RDS_AURORA_POSTGRES_URL deve usar o esquema PostgreSQL/Aurora")
+        postgres_schemes = ("postgresql://", "postgres://", "postgresql+asyncpg://", "postgresql+psycopg://")
+        sqlite_schemes = ("sqlite://", "sqlite+aiosqlite://")
+        if self.database_url and not self.database_url.startswith((*postgres_schemes, *sqlite_schemes)):
+            raise ValueError("DATABASE_URL/RDS_AURORA_POSTGRES_URL deve usar o esquema PostgreSQL/Aurora (padrão) ou SQLite (sqlite+aiosqlite://)")
         if not self.database_url and not self.temporary_cav4_session:
             raise ValueError("Configuração PostgreSQL ausente. Defina RDS_AURORA_POSTGRES_URL ou as variáveis PG/RDS_AURORA_POSTGRES_*.")
-        if not self.db_schema or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", self.db_schema):
+        # PostgreSQL é o padrão do projeto; SQLite é uma alternativa opcional só para desenvolvimento local.
+        self.database_engine = "sqlite" if self.database_url.startswith(sqlite_schemes) else "postgresql"
+        if not self.is_sqlite and (not self.db_schema or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", self.db_schema)):
             raise ValueError("DB_SCHEMA é obrigatório e deve conter um identificador PostgreSQL válido")
         if self.db_min_size < 1 or self.db_max_size < self.db_min_size:
             raise ValueError("DB_MIN_SIZE e DB_MAX_SIZE possuem valores inválidos")

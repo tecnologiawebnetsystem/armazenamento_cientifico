@@ -1,10 +1,5 @@
-from app.modules.catalogs.area_model import ResponsibleArea
-from app.modules.catalogs.models import (
-    MenuItem,
-    Module,
-    Permission,
-    ProjectStatusCatalog,
-  )
+from app.modules.catalogs.navigation_models import MenuItem, Module, Permission
+from app.modules.catalogs.project_catalog_models import ProjectStatus, ResponsibleArea
 from app.modules.catalogs.repository import (
     MenuItemRepository,
     ModuleRepository,
@@ -46,10 +41,10 @@ class ProjectStatusService:
     def __init__(self, repository: ProjectStatusRepository):
         self.repository = repository
 
-    async def get_status(self, status_id: str) -> ProjectStatusCatalog | None:
+    async def get_status(self, status_id: str) -> ProjectStatus | None:
         return await self.repository.find_by_id(status_id)
 
-    async def list_active_statuses(self) -> list[ProjectStatusCatalog]:
+    async def list_active_statuses(self) -> list[ProjectStatus]:
         return await self.repository.list_active()
 
 

@@ -37,6 +37,11 @@ def configure_engine() -> None:
     global engine, session_factory
     if engine is not None or not settings.database_url:
         return
+    if settings.is_sqlite:
+        # SQLite não usa TLS, schema/search_path nem pool assíncrono baseado em fila.
+        engine = create_async_engine(settings.database_url, echo=False)
+        session_factory = async_sessionmaker(engine, expire_on_commit=False)
+        return
     ssl_context: ssl.SSLContext | bool
     # Aurora exige TLS neste ambiente. `DB_SSL_VERIFY=false` desativa apenas
     # a validação do certificado; não desativa a criptografia da conexão.

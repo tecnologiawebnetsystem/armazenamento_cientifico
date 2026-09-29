@@ -37,7 +37,6 @@ TABLE_USAGE = {
     "project_statuses": ("Catálogo de status", "components/projects/new-project-form.tsx; app/(app)/relatorios/page.tsx", "GET /api/catalogos; GET /api/reports"),
     "project_types": ("Catálogo de tipos de projeto", "components/project-form.tsx; hooks/use-catalogs.ts", "GET /api/catalogos"),
     "responsible_areas": ("Áreas e geração de códigos", "components/projects/new-project-form.tsx; components/project-form.tsx", "GET /api/projects/areas; POST /api/projects"),
-    "system_settings": ("Configurações da plataforma", "hooks/use-settings.ts", "GET /api/settings; PATCH /api/settings"),
     "report_types": ("Tipos de relatório", "app/(app)/relatorios/page.tsx", "GET /api/reports; GET /api/report-fields"),
     "report_fields": ("Campos configuráveis de relatórios", "app/(app)/relatorios/page.tsx; components/export-fields-dialog.tsx", "GET /api/report-fields"),
     "menus": ("Itens de menu e rotas", "components/layout/app-sidebar.tsx; lib/nav-config.ts", "GET /api/auth/session; GET /api/permissions"),

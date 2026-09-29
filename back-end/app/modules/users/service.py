@@ -1,9 +1,9 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from app.modules.users.models import Perfil, User
-from app.modules.users.repository import PerfilRepository, UserRepository
-from app.modules.users.schemas import PerfilCreate, UserCreate, UserUpdate
+from app.modules.users.models import Profile, User
+from app.modules.users.repository import ProfileRepository, UserRepository
+from app.modules.users.schemas import ProfileCreate, UserCreate, UserUpdate
 
 
 class UserService:
@@ -24,11 +24,11 @@ class UserService:
             id=str(uuid4()),
             name=data.name,
             email=data.email,
-            cargo=data.cargo,
+            job_title=data.cargo,
             area=data.area,
             avatar_url=data.avatar_url,
             role=data.role,
-            perfil_id=data.perfil_id,
+            profile_id=data.perfil_id,
             created_at=datetime.now(UTC).replace(tzinfo=None),
         )
         return await self.repository.create(user)
@@ -41,7 +41,7 @@ class UserService:
         if data.name is not None:
             user.name = data.name
         if data.cargo is not None:
-            user.cargo = data.cargo
+            user.job_title = data.cargo
         if data.area is not None:
             user.area = data.area
         if data.avatar_url is not None:
@@ -49,7 +49,7 @@ class UserService:
         if data.role is not None:
             user.role = data.role
         if data.perfil_id is not None:
-            user.perfil_id = data.perfil_id
+            user.profile_id = data.perfil_id
 
         return await self.repository.update(user)
 
@@ -57,32 +57,32 @@ class UserService:
         return await self.repository.delete(user_id)
 
 
-class PerfilService:
-    def __init__(self, repository: PerfilRepository):
+class ProfileService:
+    def __init__(self, repository: ProfileRepository):
         self.repository = repository
 
-    async def get_perfil(self, perfil_id: str) -> Perfil | None:
+    async def get_profile(self, profile_id: str) -> Profile | None:
         return await self.repository.find_by_id(perfil_id)
 
-    async def list_perfis(self) -> list[Perfil]:
+    async def list_profiles(self) -> list[Profile]:
         return await self.repository.list_all()
 
-    async def create_perfil(self, data: PerfilCreate) -> Perfil:
+    async def create_profile(self, data: ProfileCreate) -> Profile:
         now = datetime.now(UTC).replace(tzinfo=None)
-        perfil = Perfil(
-            id=data.nome[:3].upper(),
-            nome=data.nome,
-            descricao=data.descricao,
-            criado_em=now,
+        profile = Profile(
+            id=data.name[:3].upper(),
+            name=data.name,
+            description=data.description,
+            created_at=now,
         )
-        return await self.repository.create(perfil)
+        return await self.repository.create(profile)
 
-    async def update_perfil(self, perfil_id: str, data: PerfilCreate) -> Perfil | None:
-        perfil = await self.repository.find_by_id(perfil_id)
-        if not perfil:
+    async def update_profile(self, profile_id: str, data: ProfileCreate) -> Profile | None:
+        profile = await self.repository.find_by_id(profile_id)
+        if not profile:
             return None
 
-        perfil.nome = data.nome
-        perfil.descricao = data.descricao
+        profile.name = data.name
+        profile.description = data.description
 
-        return await self.repository.update(perfil)
+        return await self.repository.update(profile)
