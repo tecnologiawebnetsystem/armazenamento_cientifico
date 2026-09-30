@@ -45,9 +45,7 @@ export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, a
 
   return (
     <div className="sw-motion flex flex-col gap-8">
-      <header className="sigac-grid sigac-surface relative isolate overflow-hidden rounded-2xl p-6 sm:p-8 lg:p-10">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-24 size-64 rounded-full border-[18px] border-petrobras-yellow/10" />
-        <div aria-hidden="true" className="pointer-events-none absolute -bottom-24 right-24 size-52 rounded-full border-[14px] border-petrobras-green/8" />
+      <header className="sigac-grid sigac-surface relative isolate overflow-hidden rounded-2xl border-l-4 border-l-primary p-6 sm:p-8 lg:p-10">
         <div className="relative flex max-w-3xl flex-col gap-4">
           <div className="flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-2 rounded-sm border border-primary/20 bg-primary/8 px-2.5 py-1 text-[10px] font-bold tracking-[0.18em] text-primary uppercase"><span className="size-1.5 rounded-full bg-primary" />SIGAC</span>
