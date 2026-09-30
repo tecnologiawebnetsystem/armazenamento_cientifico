@@ -105,7 +105,10 @@ def create_app() -> FastAPI:
         message = "Erro interno do servidor" if settings.environment.lower() == "production" else str(exc)
         return JSONResponse(status_code=500, content={"error": "InternalError", "message": message, "details": {}})
 
+    # Health endpoints are intentionally available both at the public root and
+    # under the versioned API prefix for load balancers and existing clients.
     application.include_router(health_router)
+    application.include_router(health_router, prefix=settings.api_prefix)
     application.include_router(cav4_auth_router)
     application.include_router(email_auth_router)
 
