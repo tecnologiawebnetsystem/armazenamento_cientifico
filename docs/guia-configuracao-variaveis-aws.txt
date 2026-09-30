@@ -1,0 +1,298 @@
+GUIA — CONFIGURAÇÃO DAS VARIÁVEIS DE AMBIENTE NA AWS
+SIGAC — armazenamento_cientifico
+
+1. OBJETIVO
+
+Este guia mostra como cadastrar na AWS as variáveis usadas pelos arquivos:
+
+- .env.example                 -> variáveis do frontend Next.js
+- back-end/.env.example        -> variáveis da API FastAPI
+
+As variáveis devem ser cadastradas no serviço que executa cada container. Para ECS/Fargate, elas ficam na Task Definition, em Container definitions > Environment variables. Não coloque os arquivos .env reais no GitHub nem dentro da imagem Docker.
+
+A aplicação possui dois containers:
+
+- web       -> frontend Next.js
+- back-end  -> API FastAPI
+
+O banco recomendado para produção é o Amazon Aurora PostgreSQL.
+
+
+2. ANTES DE COMEÇAR
+
+Tenha em mãos:
+
+- Região AWS utilizada pelo projeto;
+- Cluster ECS e serviços web/back-end;
+- Endpoint do Aurora PostgreSQL;
+- Usuário, senha e nome do banco;
+- URL pública do frontend;
+- URL pública da API, se ela ficar exposta separadamente;
+- Dados do CAV4/OIDC, caso o login corporativo seja habilitado;
+- Permissão IAM para atualizar ECS Task Definitions e Services.
+
+Atenção: nunca envie senhas, tokens ou client secrets por e-mail ou Git. Para produção, prefira AWS Secrets Manager ou Systems Manager Parameter Store. As variáveis públicas NEXT_PUBLIC_* não devem conter segredos.
+
+
+3. CONFIGURAR O BANCO AURORA
+
+3.1 Acesse o console da AWS.
+3.2 Abra RDS > Databases.
+3.3 Selecione o cluster/instância Aurora PostgreSQL.
+3.4 Copie o endpoint correto para a aplicação.
+3.5 Confirme a porta, normalmente 5432.
+3.6 Confirme o nome do banco, usuário e senha.
+3.7 No Security Group do Aurora, permita a porta 5432 somente a partir do Security Group dos containers ECS.
+3.8 Não libere a porta 5432 para 0.0.0.0/0.
+
+A aplicação aceita uma URL completa ou os campos separados. Recomenda-se usar a URL completa:
+
+RDS_AURORA_POSTGRES_URL=postgresql+asyncpg://USUARIO:SENHA@ENDPOINT_AURORA:5432/NOME_BANCO?ssl=require
+
+Se a senha tiver caracteres especiais, ela deve ser codificada na URL. Exemplo: @ vira %40.
+
+
+4. CADASTRAR VARIÁVEIS NO ECS/FARGATE
+
+Repita estes passos para cada serviço/container:
+
+4.1 Abra AWS Console > ECS.
+4.2 Entre em Task Definitions.
+4.3 Selecione a Task Definition usada pelo serviço.
+4.4 Clique em Create new revision.
+4.5 Na seção Container definitions, selecione o container web ou back-end.
+4.6 Em Environment variables, clique em Add environment variable.
+4.7 Informe Name e Value exatamente como aparecem neste guia.
+4.8 Para senhas e tokens, use Secrets Manager/Parameter Store e o campo Secrets, não Environment variables.
+4.9 Salve a nova revisão da Task Definition.
+4.10 Abra ECS > Clusters > seu cluster > Services.
+4.11 Selecione o serviço correspondente.
+4.12 Clique em Update.
+4.13 Marque Force new deployment quando necessário.
+4.14 Selecione a nova revisão da Task Definition.
+4.15 Atualize o serviço e aguarde as tasks ficarem HEALTHY.
+
+Importante: alterar a Task Definition não altera tasks antigas. O serviço precisa ser atualizado para iniciar tasks com as novas variáveis.
+
+
+5. VARIÁVEIS DO CONTAINER WEB (FRONTEND NEXT.JS)
+
+Cadastre no container web:
+
+NODE_ENV=production
+NEXT_PUBLIC_API_BASE_URL=https://URL_PUBLICA_DA_API
+BACKEND_INTERNAL_URL=http://NOME_DO_SERVICO_BACK-END:8080
+NEXT_PUBLIC_APP_ENV=production
+NEXT_PUBLIC_EMAIL_LOGIN_ENABLED=false
+
+Como preencher:
+
+- NODE_ENV: use production.
+- NEXT_PUBLIC_API_BASE_URL: URL pública da API, sem /api no final. Exemplo: https://api.exemplo.com
+- BACKEND_INTERNAL_URL: endereço interno usado pelo rewrite do Next.js. Em ECS Service Connect ou Cloud Map, use o nome DNS interno do back-end e a porta 8080. Exemplo: http://back-end:8080
+- NEXT_PUBLIC_APP_ENV: production em produção; staging em homologação.
+- NEXT_PUBLIC_EMAIL_LOGIN_ENABLED: false quando o CAV4 for o único login. Use true somente se o login manual por e-mail estiver aprovado.
+
+Se frontend e backend estiverem atrás do mesmo domínio/reverse proxy, a configuração pode ser:
+
+NEXT_PUBLIC_API_BASE_URL=
+BACKEND_INTERNAL_URL=http://back-end:8080
+
+Nesse cenário, as requisições /api/* passam pelo rewrite do Next.js.
+
+
+6. VARIÁVEIS DO CONTAINER BACK-END (FASTAPI)
+
+6.1 Banco de dados — obrigatório
+
+RDS_AURORA_POSTGRES_URL=postgresql+asyncpg://USUARIO:SENHA@ENDPOINT_AURORA:5432/NOME_BANCO?ssl=require
+DB_SCHEMA=public
+DB_SSL_VERIFY=true
+DB_MIN_SIZE=1
+DB_MAX_SIZE=10
+DB_COMMAND_TIMEOUT=30
+
+Não cadastre simultaneamente RDS_AURORA_POSTGRES_URL e uma configuração conflitante de banco separado.
+
+6.2 Aplicação, CORS e sessão
+
+ENVIRONMENT=production
+FRONTEND_URL=https://URL_PUBLICA_DO_FRONTEND
+CORS_ORIGINS=https://URL_PUBLICA_DO_FRONTEND
+COOKIE_NAME=wayon_session_id
+COOKIE_SECURE=true
+SESSION_HOURS=8
+LOG_LEVEL=INFO
+LOG_FORMAT=json
+EXPOSE_API_DOCS=false
+SECURITY_HEADERS_ENABLED=true
+AUDIT_RETENTION_DAYS=365
+
+Não use localhost em FRONTEND_URL ou CORS_ORIGINS em produção.
+
+6.3 Login por e-mail e sessão temporária
+
+EMAIL_LOGIN_ENABLED=false
+TEMPORARY_CAV4_SESSION=false
+
+TEMPORARY_CAV4_SESSION deve permanecer false em homologação e produção.
+
+6.4 CAV4 / OIDC corporativo
+
+Se o CAV4 estiver habilitado, cadastre:
+
+CAV4_ENABLED=true
+CA_CLIENT_ID=valor-do-client-id
+CA_CLIENT_SECRET=valor-secreto
+CA_REDIRECT_URI=https://URL_PUBLICA_DA_API/api/auth/cav4/callback
+CA_SCOPES=openid profile email
+OIDC_DISCOVERY_URL=https://URL_DO_DISCOVERY_OIDC
+CA_SSL_VERIFY=true
+CA_SSL_USE_TRUSTSTORE=false
+CAV4_JWT_LEEWAY_SECONDS=120
+
+CA_CLIENT_SECRET deve ser armazenado no AWS Secrets Manager ou Parameter Store como valor secreto.
+
+A CA_REDIRECT_URI precisa estar cadastrada exatamente no provedor CAV4/OIDC. O protocolo, domínio, caminho e barra final devem coincidir.
+
+Se o discovery não fornecer os endpoints, informe também os overrides:
+
+CA_AUTHORIZATION_URL=https://...
+CA_TOKEN_URL=https://...
+CA_ISSUER=https://...
+CA_JWKS_URL=https://...
+CA_USERINFO_URL=https://...
+CA_API_BASE_URL=https://...
+CA_RESOURCES_URL=/api/admin/users/{userLogin}/roles
+
+
+7. TABELA CONSOLIDADA — FRONTEND
+
+Variável                         Obrigatória   Valor de produção
+NODE_ENV                         Sim           production
+NEXT_PUBLIC_API_BASE_URL         Não           https://api.seudominio.com
+BACKEND_INTERNAL_URL             Sim           http://back-end:8080
+NEXT_PUBLIC_APP_ENV              Sim           production
+NEXT_PUBLIC_EMAIL_LOGIN_ENABLED  Sim           false
+
+
+8. TABELA CONSOLIDADA — BACKEND
+
+Variável                         Obrigatória   Valor de produção
+RDS_AURORA_POSTGRES_URL          Sim           URL do Aurora PostgreSQL
+DB_SCHEMA                        Sim           public
+DB_SSL_VERIFY                    Sim           true
+DB_MIN_SIZE                      Não           1
+DB_MAX_SIZE                      Não           10
+DB_COMMAND_TIMEOUT              Não           30
+ENVIRONMENT                      Sim           production
+FRONTEND_URL                     Sim           URL pública do frontend
+CORS_ORIGINS                     Sim           URL pública do frontend
+COOKIE_NAME                      Não           wayon_session_id
+COOKIE_SECURE                    Sim           true
+SESSION_HOURS                    Não           8
+LOG_LEVEL                        Não           INFO
+LOG_FORMAT                       Não           json
+EXPOSE_API_DOCS                  Sim           false
+SECURITY_HEADERS_ENABLED         Não           true
+AUDIT_RETENTION_DAYS             Não           365
+EMAIL_LOGIN_ENABLED              Sim           false
+TEMPORARY_CAV4_SESSION           Sim           false
+CAV4_ENABLED                     Conforme      true se usar CAV4
+CA_CLIENT_ID                     Conforme      Client ID do CAV4
+CA_CLIENT_SECRET                 Conforme      Secret no Secrets Manager
+CA_REDIRECT_URI                  Conforme      callback público da API
+CA_SCOPES                        Conforme      openid profile email
+OIDC_DISCOVERY_URL               Conforme      URL discovery OIDC
+CA_SSL_VERIFY                    Conforme      true
+CA_SSL_USE_TRUSTSTORE            Não           false
+CAV4_JWT_LEEWAY_SECONDS          Não           120
+
+
+9. ONDE GUARDAR SEGREDOS
+
+Use AWS Secrets Manager para:
+
+- RDS_AURORA_POSTGRES_URL;
+- RDS_AURORA_POSTGRES_PASSWORD, se usar campos separados;
+- CA_CLIENT_SECRET;
+- JFROG_TOKEN, quando aplicável.
+
+No ECS Task Definition, em Container definitions > Environment variables > Secrets:
+
+1. Selecione o nome da variável.
+2. Selecione o ARN do segredo no Secrets Manager.
+3. Salve uma nova revisão.
+4. Atualize o serviço ECS.
+
+A Task Execution Role precisa ter permissão para ler os segredos, normalmente secretsmanager:GetSecretValue, e kms:Decrypt quando o segredo usar uma chave KMS própria.
+
+
+10. DEPLOY E VALIDAÇÃO
+
+Depois de atualizar os serviços:
+
+10.1 Confirme que as tasks estão RUNNING.
+10.2 Verifique os logs no CloudWatch.
+10.3 Teste o health check:
+
+https://api.seudominio.com/health
+
+10.4 Teste a documentação somente se EXPOSE_API_DOCS=true:
+
+https://api.seudominio.com/docs
+https://api.seudominio.com/openapi.json
+
+Em produção, o padrão recomendado é EXPOSE_API_DOCS=false. Para validar temporariamente, habilite a variável, faça novo deploy e depois desabilite novamente.
+
+10.5 Acesse o frontend:
+
+https://app.seudominio.com
+
+10.6 Teste o login e confirme nos logs se a API recebeu a requisição.
+10.7 Se ocorrer erro de CORS, revise FRONTEND_URL e CORS_ORIGINS, sem espaços e com o protocolo correto.
+10.8 Se ocorrer erro de banco, revise endpoint, porta, credenciais, Security Group e SSL.
+
+
+11. ERROS COMUNS
+
+- Alterei a variável, mas nada mudou:
+  crie uma nova revisão da Task Definition e faça Force new deployment.
+
+- API retorna erro de CORS:
+  CORS_ORIGINS deve conter a URL exata do frontend, incluindo https:// e sem barra final.
+
+- Backend não conecta ao Aurora:
+  confirme Security Group, subnet, route table, endpoint, porta 5432 e DB_SSL_VERIFY.
+
+- Swagger retorna Not Found:
+  confirme que a API está usando a rota /docs e que o proxy do frontend encaminha /api/docs para /docs. O endpoint direto da API é https://api.seudominio.com/docs.
+
+- Login CAV4 retorna para endereço errado:
+  confirme CA_REDIRECT_URI e o redirect cadastrado no provedor OIDC.
+
+- Cookie não é enviado:
+  em HTTPS, COOKIE_SECURE=true. Confirme também domínio, HTTPS e configuração do load balancer.
+
+
+12. CHECKLIST FINAL
+
+[ ] Aurora acessível somente pelo Security Group da aplicação.
+[ ] Segredos estão no Secrets Manager/Parameter Store.
+[ ] Nenhum segredo foi colocado no frontend.
+[ ] NODE_ENV=production.
+[ ] ENVIRONMENT=production.
+[ ] COOKIE_SECURE=true.
+[ ] DB_SSL_VERIFY=true.
+[ ] CORS_ORIGINS contém somente o frontend oficial.
+[ ] TEMPORARY_CAV4_SESSION=false.
+[ ] EXPOSE_API_DOCS=false em produção.
+[ ] Task Definition foi criada em nova revisão.
+[ ] Serviço ECS recebeu Force new deployment.
+[ ] Health check /health respondeu com sucesso.
+[ ] Logs estão chegando ao CloudWatch.
+[ ] Login foi testado no ambiente correto.
+
+Fim do guia.
+
+Observação: este arquivo descreve o cadastro das variáveis do projeto. Os valores reais devem ser preenchidos conforme os domínios, endpoints, banco e configuração CAV4 do ambiente AWS específico.
