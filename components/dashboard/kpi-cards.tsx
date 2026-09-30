@@ -66,7 +66,7 @@ export function KpiCards({ items }: { items: KpiItem[] }) {
         <Card
           key={item.label}
           className={cn(
-            "relative overflow-hidden border shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
+            "sigac-surface relative overflow-hidden border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--sigac-shadow-hover)]",
             item.tone === "yellow" && "border-petrobras-yellow/40 !bg-petrobras-yellow/15 bg-gradient-to-br from-petrobras-yellow/20 via-petrobras-yellow/10 to-card",
             item.tone === "blue" && "border-petrobras-blue/35 !bg-petrobras-blue/15 bg-gradient-to-br from-petrobras-blue/20 via-petrobras-blue/10 to-card",
             item.tone === "teal" && "border-petrobras-teal/35 !bg-petrobras-teal/15 bg-gradient-to-br from-petrobras-teal/20 via-petrobras-teal/10 to-card",

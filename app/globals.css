@@ -87,7 +87,11 @@
     --chart-3: oklch(0.68 0.13 160);
     --chart-4: oklch(0.42 0.08 155);
     --chart-5: oklch(0.72 0.05 150);
-    --radius: 0.625rem;
+    --radius: 0.75rem;
+    --sigac-space-page: 1.5rem;
+    --sigac-space-section: 2rem;
+    --sigac-shadow-surface: 0 1px 2px color-mix(in oklch, var(--foreground) 3%, transparent), 0 10px 24px color-mix(in oklch, var(--foreground) 4%, transparent);
+    --sigac-shadow-hover: 0 2px 4px color-mix(in oklch, var(--foreground) 4%, transparent), 0 16px 30px color-mix(in oklch, var(--foreground) 7%, transparent);
     --petrobras-green: oklch(0.575 0.155 151);
     --petrobras-yellow: oklch(0.82 0.17 82);
     --petrobras-blue: oklch(0.48 0.13 245);
@@ -204,14 +208,19 @@
 
 @layer utilities {
   .sigac-surface {
-    border: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
-    background: color-mix(in oklch, var(--card) 96%, transparent);
-    box-shadow: 0 10px 28px color-mix(in oklch, var(--foreground) 5%, transparent), 0 1px 4px color-mix(in oklch, var(--foreground) 3%, transparent);
+    border: 1px solid color-mix(in oklch, var(--border) 88%, transparent);
+    background: color-mix(in oklch, var(--card) 98%, transparent);
+    box-shadow: var(--sigac-shadow-surface);
+    transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  }
+
+  .sigac-surface:hover {
+    border-color: color-mix(in oklch, var(--petrobras-green) 22%, var(--border));
   }
 
   .sigac-section-header {
     border-bottom: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
-    background: linear-gradient(90deg, color-mix(in oklch, var(--petrobras-green) 7%, var(--background)), var(--background) 58%, color-mix(in oklch, var(--petrobras-yellow) 8%, var(--background)));
+    background: color-mix(in oklch, var(--petrobras-green) 4%, var(--card));
   }
 
   .sigac-grid {
