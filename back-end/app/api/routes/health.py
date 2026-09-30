@@ -51,4 +51,9 @@ async def health_database():
 @legacy_router.get("/health")
 @router.get("/health")
 async def health():
-    return await health_ready()
+    """Endpoint compatível com o health check fixo da infraestrutura.
+
+    Deve responder rapidamente e não depende do banco ou das migrations.
+    A verificação de dependências fica em /health/ready.
+    """
+    return await health_live()
