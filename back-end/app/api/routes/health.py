@@ -6,13 +6,16 @@ from app.core.config import settings
 from app.db import session as db_session
 
 router = APIRouter(prefix="/api", tags=["Health", "health"])
+legacy_router = APIRouter(tags=["Health", "health"])
 
 
+@legacy_router.get("/health/live")
 @router.get("/health/live")
 async def health_live():
     return {"status": "ok", "service": "fastapi", "version": settings.app_version}
 
 
+@legacy_router.get("/health/ready")
 @router.get("/health/ready")
 async def health_ready():
     try:
@@ -39,11 +42,13 @@ async def health_ready():
         return JSONResponse(status_code=503, content={"status": "degradado", "service": "fastapi", "database": "unavailable", "database_engine": settings.database_engine})
 
 
+@legacy_router.get("/health/database")
 @router.get("/health/database")
 async def health_database():
     return await health_ready()
 
 
+@legacy_router.get("/health")
 @router.get("/health")
 async def health():
     return await health_ready()
