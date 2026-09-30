@@ -53,7 +53,7 @@ function StatCard({
   accent?: string
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-petrobras-blue/15 bg-card p-4 shadow-md shadow-petrobras-blue/5 transition-all hover:-translate-y-0.5 hover:shadow-lg">
+    <div className="sigac-surface flex items-center gap-3 rounded-xl p-4 transition-all hover:-translate-y-0.5 hover:shadow-[var(--sigac-shadow-hover)]">
       <div className={`flex size-10 items-center justify-center rounded-lg ${accent ?? "bg-primary/10 text-primary"}`}>
         <Icon className="size-5" />
       </div>
@@ -160,7 +160,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="sigac-surface overflow-hidden rounded-2xl p-6">
+      <div className="sigac-surface overflow-hidden rounded-2xl p-6 sm:p-7">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-petrobras-green">Gestão científica</p>

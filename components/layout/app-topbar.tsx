@@ -30,7 +30,7 @@ export function AppTopbar() {
   const pageTitle = pageTitleFor(pathname)
 
   return (
-    <header className="relative flex min-h-16 shrink-0 items-center gap-2 border-b border-border/70 bg-card/95 px-3 shadow-[0_4px_18px_color-mix(in_oklch,var(--foreground)_5%,transparent)] backdrop-blur-sm sm:gap-3 sm:px-4 md:min-h-18 md:px-6">
+    <header className="relative flex min-h-16 shrink-0 items-center gap-2 border-b border-border/80 bg-card px-3 shadow-[0_4px_18px_color-mix(in_oklch,var(--foreground)_4%,transparent)] sm:gap-3 sm:px-4 md:min-h-18 md:px-6">
       <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-petrobras-green via-petrobras-yellow to-petrobras-green" aria-hidden="true" />
       <SidebarTrigger className="size-9 rounded-lg border border-petrobras-green/20 bg-petrobras-green/5 text-petrobras-blue shadow-sm transition-all hover:-translate-y-0.5 hover:border-petrobras-green/45 hover:bg-petrobras-green/10 hover:text-petrobras-green focus-visible:ring-2 focus-visible:ring-petrobras-yellow/70" />
       <Separator orientation="vertical" className="mx-1 h-7 bg-petrobras-green/20" />

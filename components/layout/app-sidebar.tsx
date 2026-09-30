@@ -81,7 +81,7 @@ export function AppSidebar() {
   const groups = buildNavGroups(visibleMenus)
 
   return (
-    <Sidebar collapsible="icon" className="border-sidebar-border/55 bg-sidebar shadow-xl shadow-sidebar/20 transition-[width] duration-200 md:flex">
+    <Sidebar collapsible="icon" className="border-sidebar-border/55 bg-sidebar shadow-[8px_0_28px_color-mix(in_oklch,var(--sidebar)_24%,transparent)] transition-[width] duration-200 md:flex">
       <SidebarHeader className="gap-0 p-0">
         <div className="h-1 w-full bg-gradient-to-r from-sidebar-primary via-petrobras-yellow to-sidebar-primary" />
         <SidebarMenu className="p-3">
