@@ -15,7 +15,7 @@ const settingAreas = [
 
 export default function ConfiguracoesPage() {
   return (
-    <main className="flex flex-col gap-8 p-4 md:p-8">
+    <PageSection label="Configurações SIGAC" className="gap-8">
       <PageHeader
         eyebrow="Administração"
         title="Configurações"
@@ -59,6 +59,6 @@ export default function ConfiguracoesPage() {
       </Card>
 
       <ConfigurationPanel />
-    </main>
+    </PageSection>
   )
 }
