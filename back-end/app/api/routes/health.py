@@ -5,7 +5,7 @@ from sqlalchemy import text
 from app.core.config import settings
 from app.db import session as db_session
 
-router = APIRouter(tags=["Health"])
+router = APIRouter(prefix="/api", tags=["Health", "health"])
 
 
 @router.get("/health/live")
