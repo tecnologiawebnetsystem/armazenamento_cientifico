@@ -53,7 +53,7 @@ export default function LogsPage() {
   if (error || !data) return <main className="flex flex-col gap-6"><p className="text-destructive">Não foi possível carregar os logs.</p></main>
 
   return <main className="flex flex-col gap-6">
-    <section className="relative overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm">
+    <section className="sigac-surface relative overflow-hidden rounded-xl border-l-4 border-l-primary shadow-sm">
       <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-primary/[0.04] [clip-path:polygon(35%_0,100%_0,100%_100%,0_100%)] md:block" />
       <div className="relative flex flex-col gap-6 p-5 sm:p-7 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
