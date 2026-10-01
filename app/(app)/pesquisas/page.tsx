@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { downloadFile, getAccessMap, getAccessMapExportUrl, getCatalogs, getReportFields } from '@/lib/api-client'
+import { downloadFile, getAccessMap, getAccessMapExportUrl, getReportFields } from '@/lib/api-client'
 import type { AccessMapResponse } from '@/lib/types'
 import { PetrobrasLoading } from '@/components/petrobras-loading'
 import { KpiCards, type KpiItem } from '@/components/dashboard/kpi-cards'
@@ -32,7 +32,6 @@ function accessLabel(value?: string | null) {
 
 export default function AccessMapPage() {
   const { data, error, isLoading } = useSWR<AccessMapResponse>('access-map', fetcher)
-  const { data: catalogs } = useSWR('platform-catalogs', getCatalogs)
   const { data: configuredFields } = useSWR('/api/report-fields?report_code=acessos', () => getReportFields('acessos'))
   const [search, setSearch] = useState('')
   const [type, setType] = useState('todos')
@@ -43,10 +42,13 @@ export default function AccessMapPage() {
   const [view, setView] = useState('projeto')
   const [exportOpen, setExportOpen] = useState(false)
 
-  const resourceTypes = useMemo(() => Array.from(new Set((data?.rows ?? []).map((row) => row.resourceType).filter(Boolean))), [data?.rows])
-  const accessLevels = useMemo(() => Array.from(new Set((data?.rows ?? []).map((row) => row.accessLevel).filter(Boolean))), [data?.rows])
-  const roles = useMemo(() => Array.from(new Set((data?.rows ?? []).map((row) => row.userRole).filter(Boolean))), [data?.rows])
-  const projectStatuses = useMemo(() => Array.from(new Set((data?.rows ?? []).map((row) => row.projectStatus).filter(Boolean))), [data?.rows])
+  const filterValues = (values: Array<string | null | undefined>) => Array.from(new Set(values.filter((value): value is string => Boolean(value?.trim())).map((value) => value.trim()))).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  const resourceTypes = useMemo(() => filterValues((data?.rows ?? []).map((row) => row.resourceType)), [data?.rows])
+  const accessLevels = useMemo(() => filterValues((data?.rows ?? []).map((row) => row.accessLevel)), [data?.rows])
+  const areas = useMemo(() => filterValues((data?.rows ?? []).map((row) => row.area)), [data?.rows])
+  const roles = useMemo(() => filterValues((data?.rows ?? []).map((row) => row.userRole)), [data?.rows])
+  const projectStatuses = useMemo(() => filterValues((data?.rows ?? []).map((row) => row.projectStatus)), [data?.rows])
+  const matchesFilter = (selected: string, current: string | null | undefined) => selected === 'todos' || current?.trim().toLocaleLowerCase('pt-BR') === selected.trim().toLocaleLowerCase('pt-BR')
   const exportFields: ExportField[] = (configuredFields?.fields ?? []).map((field) => ({ key: field.field_key, label: field.label }))
   const hasFilters = Boolean(search.trim()) || [type, level, area, role, projectStatus].some((value) => value !== 'todos')
 
@@ -55,11 +57,11 @@ export default function AccessMapPage() {
     return (data?.rows ?? []).filter((row) => {
       const text = `${row.userName} ${row.userEmail} ${row.projectName} ${row.resourceName}`.toLowerCase()
       return (!normalizedSearch || text.includes(normalizedSearch)) &&
-        (type === 'todos' || row.resourceType === type) &&
-        (level === 'todos' || row.accessLevel === level) &&
-        (area === 'todos' || row.area === area) &&
-        (role === 'todos' || row.userRole === role) &&
-        (projectStatus === 'todos' || row.projectStatus === projectStatus)
+        matchesFilter(type, row.resourceType) &&
+        matchesFilter(level, row.accessLevel) &&
+        matchesFilter(area, row.area) &&
+        matchesFilter(role, row.userRole) &&
+        matchesFilter(projectStatus, row.projectStatus)
     })
   }, [data?.rows, search, type, level, area, role, projectStatus])
 
@@ -115,13 +117,13 @@ export default function AccessMapPage() {
           <p className="text-xs text-muted-foreground">A busca é aplicada automaticamente em todos os resultados.</p>
         </div>
         <div className="flex flex-col gap-3">
-          <p className="text-sm font-medium">Refine por filtros</p>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <Select value={type} onValueChange={(value) => setType(value ?? 'todos')}><SelectTrigger aria-label="Filtrar por recurso"><SelectValue placeholder="Recurso" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os recursos</SelectItem>{resourceTypes.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select>
-            <Select value={level} onValueChange={(value) => setLevel(value ?? 'todos')}><SelectTrigger aria-label="Filtrar por nível"><SelectValue placeholder="Nível de acesso" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os níveis</SelectItem>{accessLevels.map((item) => <SelectItem key={item} value={item}>{accessLabel(item)}</SelectItem>)}</SelectContent></Select>
-            <Select value={area} onValueChange={(value) => setArea(value ?? 'todos')}><SelectTrigger aria-label="Filtrar por área"><SelectValue placeholder="Área responsável" /></SelectTrigger><SelectContent><SelectItem value="todos">Todas as áreas</SelectItem>{(catalogs?.areas ?? []).map((item) => <SelectItem key={item.id} value={item.nome}>{item.nome}</SelectItem>)}</SelectContent></Select>
-            <Select value={role} onValueChange={(value) => setRole(value ?? 'todos')}><SelectTrigger aria-label="Filtrar por perfil"><SelectValue placeholder="Perfil do usuário" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os perfis</SelectItem>{roles.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select>
-            <Select value={projectStatus} onValueChange={(value) => setProjectStatus(value ?? 'todos')}><SelectTrigger aria-label="Filtrar por status"><SelectValue placeholder="Status do projeto" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os status</SelectItem>{projectStatuses.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select>
+          <div><p className="text-sm font-medium">Filtros da consulta</p><p className="mt-1 text-xs text-muted-foreground">Cada campo abaixo filtra imediatamente a lista de relações autorizadas.</p></div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="flex flex-col gap-1.5"><label htmlFor="filter-resource" className="text-xs font-semibold text-foreground">Tipo de recurso</label><Select value={type} onValueChange={(value) => setType(value ?? 'todos')}><SelectTrigger id="filter-resource" className="h-10 w-full bg-background" aria-label="Filtrar por tipo de recurso"><SelectValue placeholder="Todos os recursos" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os recursos</SelectItem>{resourceTypes.map((item) => <SelectItem key={item} value={item}>{item === 'pasta' ? 'Pastas' : item === 'arquivo' ? 'Arquivos' : item}</SelectItem>)}</SelectContent></Select></div>
+            <div className="flex flex-col gap-1.5"><label htmlFor="filter-level" className="text-xs font-semibold text-foreground">Nível de acesso</label><Select value={level} onValueChange={(value) => setLevel(value ?? 'todos')}><SelectTrigger id="filter-level" className="h-10 w-full bg-background" aria-label="Filtrar por nível de acesso"><SelectValue placeholder="Todos os níveis" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os níveis</SelectItem>{accessLevels.map((item) => <SelectItem key={item} value={item}>{accessLabel(item)}</SelectItem>)}</SelectContent></Select></div>
+            <div className="flex flex-col gap-1.5"><label htmlFor="filter-area" className="text-xs font-semibold text-foreground">Área responsável</label><Select value={area} onValueChange={(value) => setArea(value ?? 'todos')}><SelectTrigger id="filter-area" className="h-10 w-full bg-background" aria-label="Filtrar por área responsável"><SelectValue placeholder="Todas as áreas" /></SelectTrigger><SelectContent><SelectItem value="todos">Todas as áreas</SelectItem>{areas.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select></div>
+            <div className="flex flex-col gap-1.5"><label htmlFor="filter-role" className="text-xs font-semibold text-foreground">Perfil do usuário</label><Select value={role} onValueChange={(value) => setRole(value ?? 'todos')}><SelectTrigger id="filter-role" className="h-10 w-full bg-background" aria-label="Filtrar por perfil do usuário"><SelectValue placeholder="Todos os perfis" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os perfis</SelectItem>{roles.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select></div>
+            <div className="flex flex-col gap-1.5"><label htmlFor="filter-status" className="text-xs font-semibold text-foreground">Status do projeto</label><Select value={projectStatus} onValueChange={(value) => setProjectStatus(value ?? 'todos')}><SelectTrigger id="filter-status" className="h-10 w-full bg-background" aria-label="Filtrar por status do projeto"><SelectValue placeholder="Todos os status" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os status</SelectItem>{projectStatuses.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select></div>
           </div>
         </div>
         <div className="flex flex-col gap-2 rounded-lg border border-border/70 bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-medium">Organizar resultados</p><p className="text-xs text-muted-foreground">Escolha como deseja visualizar a mesma lista de acessos.</p></div><div className="flex w-full gap-1 rounded-md border border-input bg-background p-1 sm:w-auto"><Button variant={view === 'projeto' ? 'secondary' : 'ghost'} className="flex-1" size="sm" onClick={() => setView('projeto')}>Por projeto</Button><Button variant={view === 'usuario' ? 'secondary' : 'ghost'} className="flex-1" size="sm" onClick={() => setView('usuario')}>Por usuário</Button></div></div>
