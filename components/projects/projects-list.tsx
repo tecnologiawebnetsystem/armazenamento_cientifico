@@ -169,7 +169,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-petrobras-blue">Projetos</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Acompanhe projetos, áreas responsáveis, acessos e armazenamento em um só lugar.</p>
           </div>
-          {canCreate && <Button render={<Link href="/projetos/novo" />} className="bg-petrobras-green text-primary-foreground shadow-sm shadow-petrobras-green/20 hover:-translate-y-0.5 hover:bg-petrobras-green/90 hover:shadow-md"><FolderPlusIcon data-icon="inline-start" />Novo projeto</Button>}
+          {canCreate && <Button nativeButton={false} render={<Link href="/projetos/novo" />} className="bg-petrobras-green text-primary-foreground shadow-sm shadow-petrobras-green/20 hover:-translate-y-0.5 hover:bg-petrobras-green/90 hover:shadow-md"><FolderPlusIcon data-icon="inline-start" />Novo projeto</Button>}
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Resumo dos projetos">
@@ -231,7 +231,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
           </EmptyHeader>
           {canCreate && projects.length === 0 && (
             <EmptyContent>
-              <Button render={<Link href="/projetos/novo" />}>
+              <Button nativeButton={false} render={<Link href="/projetos/novo" />}>
                 <FolderPlusIcon data-icon="inline-start" />
                 Criar primeiro projeto
               </Button>
