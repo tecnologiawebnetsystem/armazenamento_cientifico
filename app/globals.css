@@ -108,42 +108,52 @@
 }
 
 .dark {
-    --background: oklch(0 0 0);
-    --foreground: oklch(0.96 0 0);
-    --card: oklch(0.07 0 0);
-    --card-foreground: oklch(0.96 0 0);
-    --popover: oklch(0.07 0 0);
-    --popover-foreground: oklch(0.96 0 0);
-    --primary: oklch(0.68 0.16 151);
+    color-scheme: dark;
+    /* Preto como base, branco para leitura e dois acentos funcionais. */
+    --background: oklch(0.055 0 0);
+    --foreground: oklch(0.97 0 0);
+    --card: oklch(0.09 0.008 145);
+    --card-foreground: oklch(0.97 0 0);
+    --popover: oklch(0.1 0.008 145);
+    --popover-foreground: oklch(0.97 0 0);
+    --primary: oklch(0.72 0.18 151);
     --primary-foreground: oklch(0.08 0 0);
-    --secondary: oklch(0.12 0 0);
-    --secondary-foreground: oklch(0.96 0 0);
-    --muted: oklch(0.12 0 0);
-    --muted-foreground: oklch(0.68 0 0);
-    --accent: oklch(0.82 0.17 82);
-    --accent-foreground: oklch(0.12 0 0);
-    --destructive: oklch(0.704 0.19 22);
-    --border: oklch(1 0 0 / 12%);
-    --input: oklch(1 0 0 / 16%);
-    --ring: oklch(0.68 0.16 151);
-    --success: oklch(0.68 0.16 151);
+    --secondary: oklch(0.14 0.008 145);
+    --secondary-foreground: oklch(0.95 0 0);
+    --muted: oklch(0.14 0.008 145);
+    --muted-foreground: oklch(0.72 0.01 145);
+    --accent: oklch(0.86 0.18 84);
+    --accent-foreground: oklch(0.1 0.02 80);
+    --destructive: oklch(0.7 0.19 22);
+    --border: oklch(1 0 0 / 15%);
+    --input: oklch(1 0 0 / 19%);
+    --ring: oklch(0.86 0.18 84);
+    --success: oklch(0.72 0.18 151);
     --success-foreground: oklch(0.08 0 0);
-    --warning: oklch(0.82 0.17 82);
-    --warning-foreground: oklch(0.12 0 0);
-    --chart-1: oklch(0.68 0.16 151);
-    --chart-2: oklch(0.82 0.17 82);
-    --chart-3: oklch(0.6 0.12 160);
-    --chart-4: oklch(0.52 0.08 155);
-    --chart-5: oklch(0.75 0.05 150);
-    /* Menu preto no modo escuro, com os acentos institucionais preservados. */
-    --sidebar: #000000;
-    --sidebar-foreground: #ffffff;
-    --sidebar-primary: #fdbb30;
-    --sidebar-primary-foreground: #17324d;
-    --sidebar-accent: #171717;
-    --sidebar-accent-foreground: #ffffff;
-    --sidebar-border: #303030;
-    --sidebar-ring: #fdbb30;
+    --warning: oklch(0.86 0.18 84);
+    --warning-foreground: oklch(0.1 0.02 80);
+    --chart-1: oklch(0.72 0.18 151);
+    --chart-2: oklch(0.86 0.18 84);
+    --chart-3: oklch(0.62 0.14 151);
+    --chart-4: oklch(0.5 0.1 151);
+    --chart-5: oklch(0.92 0.02 145);
+    --sidebar: oklch(0.025 0 0);
+    --sidebar-foreground: oklch(0.97 0 0);
+    --sidebar-primary: oklch(0.86 0.18 84);
+    --sidebar-primary-foreground: oklch(0.1 0.02 80);
+    --sidebar-accent: oklch(0.12 0.012 145);
+    --sidebar-accent-foreground: oklch(0.97 0 0);
+    --sidebar-border: oklch(1 0 0 / 14%);
+    --sidebar-ring: oklch(0.86 0.18 84);
+}
+
+.dark body {
+    background-image: linear-gradient(135deg, color-mix(in oklch, var(--primary) 3%, transparent), transparent 38%);
+}
+
+.dark ::selection {
+    background: color-mix(in oklch, var(--accent) 38%, transparent);
+    color: var(--foreground);
 }
 
 /* O menu lateral acompanha explicitamente o tema aplicado pelo next-themes. */
