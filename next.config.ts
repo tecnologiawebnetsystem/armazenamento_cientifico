@@ -23,6 +23,12 @@ const nextConfig: NextConfig = {
         source: "/api/openapi.json",
         destination: `${backendUrl}/openapi.json`,
       },
+      // O Swagger UI servido em /api/docs solicita o schema neste caminho
+      // absoluto. Mantemos o proxy também sem /api para a UI funcionar.
+      {
+        source: "/openapi.json",
+        destination: `${backendUrl}/openapi.json`,
+      },
       {
         source: "/api/:path*",
         destination: `${backendUrl}/api/:path*`,

@@ -28,16 +28,18 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_ENGINE: postgresql
-      RDS_AURORA_POSTGRES_HOST: postgres
-      RDS_AURORA_POSTGRES_USERNAME: armazenamento
-      RDS_AURORA_POSTGRES_PASSWORD: armazenamento
-      RDS_AURORA_POSTGRES_URL: postgresql+asyncpg://armazenamento:armazenamento@postgres:5432/armazenamento_cientifico
+      RDS_AURORA_POSTGRES_HOST: ${RDS_AURORA_POSTGRES_HOST:?Defina o host PostgreSQL/Aurora}
+      RDS_AURORA_POSTGRES_USERNAME: ${RDS_AURORA_POSTGRES_USERNAME:?Defina o usuário PostgreSQL/Aurora}
+      RDS_AURORA_POSTGRES_PASSWORD: ${RDS_AURORA_POSTGRES_PASSWORD:?Defina a senha PostgreSQL/Aurora}
+      RDS_AURORA_POSTGRES_URL: ${RDS_AURORA_POSTGRES_URL:?Defina a URL PostgreSQL/Aurora}
       DB_SCHEMA: public
       PYTHONPATH: /app
       SEED_DATABASE: ${SEED_DATABASE:-false}
-    depends_on:
-      postgres:
-        condition: service_healthy
+      EXPOSE_API_DOCS: ${EXPOSE_API_DOCS:-true}
+    # O banco não é iniciado pelo Compose por enquanto.
+    # Quando o banco estiver provisionado na AWS, informe as variáveis abaixo
+    # no ambiente de execução e remova este comentário se precisar de uma
+    # dependência local explícita.
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"]
       interval: 10s
@@ -46,20 +48,23 @@ services:
     ports:
       - "8080:8080"
 
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: armazenamento_cientifico
-      POSTGRES_USER: armazenamento
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-armazenamento}
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U armazenamento -d armazenamento_cientifico"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-    volumes:
-      - armazenamento_postgres_data:/var/lib/postgresql/data
+# Banco local opcional — não é iniciado pelo Compose por enquanto.
+# Quando necessário para desenvolvimento, remova o comentário deste serviço
+# e do volume abaixo.
+#  postgres:
+#    image: postgres:16-alpine
+#    restart: unless-stopped
+#    environment:
+#      POSTGRES_DB: armazenamento_cientifico
+#      POSTGRES_USER: armazenamento
+#      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-armazenamento}
+#    healthcheck:
+#      test: ["CMD-SHELL", "pg_isready -U armazenamento -d armazenamento_cientifico"]
+#      interval: 5s
+#      timeout: 5s
+#      retries: 12
+#    volumes:
+#      - armazenamento_postgres_data:/var/lib/postgresql/data
 
-volumes:
-  armazenamento_postgres_data:
+#volumes:
+#  armazenamento_postgres_data:

@@ -58,6 +58,8 @@ class Settings(BaseSettings):
     api_prefix: str = "/api"
     log_level: str = "INFO"
     environment: str = "development"
+    # A documentação fica disponível por padrão; pode ser desativada na AWS
+    # com EXPOSE_API_DOCS=false quando houver uma política de segurança para isso.
     expose_api_docs: bool = True
     security_headers_enabled: bool = True
     cookie_domain: str | None = None
@@ -131,7 +133,7 @@ class Settings(BaseSettings):
         if not self.is_sqlite and (not self.db_schema or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", self.db_schema)):
             raise ValueError("DB_SCHEMA é obrigatório e deve conter um identificador PostgreSQL válido")
         if self.db_min_size < 1 or self.db_max_size < self.db_min_size:
-            raise ValueError("DB_MIN_SIZE e DB_MAX_SIZE possuem valores inválidos")
+            raise ValueError("DB_MIN_SIZE e DB_MAX_SIZE possuem valores inv��lidos")
         if self.environment.lower() == "production" and (
             self.temporary_cav4_session or self.email_login_enabled or not self.cookie_secure or not self.cors_origins
         ):

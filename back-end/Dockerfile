@@ -20,5 +20,8 @@ COPY --chown=app:app . .
 USER app
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=5s --retries=12 CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"
-CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8080"]
+# As migrations não são executadas no startup da imagem.
+# Execute manualmente quando o banco estiver provisionado:
+#   docker compose run --rm back-end alembic upgrade head
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
 
