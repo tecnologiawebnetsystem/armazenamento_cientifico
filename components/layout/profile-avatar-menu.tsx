@@ -23,7 +23,7 @@ export function ProfileAvatarMenu({ user, onLogout }: { user: User; onLogout: ()
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger aria-label={`Abrir perfil de ${user.nome}`} className="group flex items-center gap-2 rounded-xl border-l border-border/70 pl-2 outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-primary/40 md:pl-3">
+      <DropdownMenuTrigger aria-label={`Abrir perfil de ${user.nome}`} className="group flex items-center gap-2 rounded-xl border border-transparent px-1.5 py-1 outline-none transition-all hover:border-petrobras-green/25 hover:bg-petrobras-green/10 focus-visible:ring-2 focus-visible:ring-petrobras-yellow/60 md:pl-2">
         <Avatar className="size-10 rounded-full ring-2 ring-[var(--profile-primary)]/25 ring-offset-2 ring-offset-card" style={profileStyle}>
           <AvatarImage src={user.avatarUrl || "/images/default-avatar.png"} alt={user.avatarUrl ? `Foto de ${user.nome}` : `Avatar padrão de ${user.nome}`} />
           <AvatarFallback className="rounded-full bg-[var(--profile-primary)] text-xs font-bold text-white">{initials(user.nome)}</AvatarFallback>
