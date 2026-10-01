@@ -6,8 +6,10 @@ import { getBackendSession } from "@/lib/session"
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ auth_error?: string; error?: string; error_description?: string; message?: string; reason?: string; next?: string }> }) {
   const params = await searchParams
-  const authError = params.auth_error || params.error_description || params.error || params.message || params.reason
+  const returnedError = params.auth_error || params.error_description || params.error || params.message || params.reason
   const user = await getBackendSession()
+  const isSolicitante = user?.role === "solicitante" || user?.perfilNome?.toLowerCase().includes("solicitante")
+  const authError = returnedError || (isSolicitante ? "Perfil Solicitante do CAV4 sem permissão" : undefined)
   const nextPath = params.next?.startsWith("/") && !params.next.startsWith("//") ? params.next : "/dashboard"
   if (user && !authError) redirect(nextPath)
 
