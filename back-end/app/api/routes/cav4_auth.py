@@ -209,8 +209,10 @@ async def cav4_callback(request: Request, code: str, state: str):
         raise HTTPException(status_code=403, detail="Usuário CAV4 sem perfil corporativo configurado")
     if canonical_role(profile_id) == "solicitante":
         message = "Seu perfil é Solicitante e não possui permissão para acessar o SIGAC."
+        login_url = f"{settings.frontend_url.rstrip('/')}/login?auth_error={quote(message)}&next={quote(next_path or '/dashboard', safe='')}"
+        logger.info("cav4_access_denied_redirect role=%s frontend=%s", profile_id, settings.frontend_url)
         return RedirectResponse(
-            url=f"/login?auth_error={quote(message)}",
+            url=login_url,
             status_code=status.HTTP_303_SEE_OTHER,
         )
 
