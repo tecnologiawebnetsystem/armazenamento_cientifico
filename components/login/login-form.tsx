@@ -5,13 +5,11 @@ import { ShieldCheckIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useLogin } from "@/hooks/use-login"
 
 export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: string; authError?: string }) {
   const [email, setEmail] = useState("")
   const accessError = authError
-  const [showAccessModal, setShowAccessModal] = useState(Boolean(authError))
   const manualLoginEnabled = [
     process.env.NEXT_PUBLIC_EMAIL_LOGIN_ENABLED,
     process.env.NEXT_PUBLIC_EMAIL_LOGIN_ENABLE,
@@ -20,25 +18,13 @@ export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: s
   ].some((value) => value?.trim().toLowerCase() === "true")
   const { loading, error, manualLogin, corporateLogin } = useLogin(nextPath)
   const rawError = accessError || error
-  const isSolicitanteCav4Error = typeof rawError === "string" && /solicitante|requester|cav4.*perfil|perfil.*cav4|access[_ -]?denied|forbidden|sem permiss[aã]o|n[aã]o autorizado|unauthorized/i.test(rawError)
+  const isSolicitanteCav4Error = typeof rawError === "string" && /solicitante|requester|\bsol\b|cav4.*perfil|perfil.*cav4|access[_ -]?denied|forbidden|sem permiss[aã]o|n[aã]o autorizado|unauthorized/i.test(rawError)
   const visibleError = isSolicitanteCav4Error
     ? "Seu perfil de Solicitante no CAV4 não tem permissão para acessar o Dashboard SIGAC."
     : rawError
 
   return (
-    <>
-      <Dialog open={showAccessModal} onOpenChange={setShowAccessModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Acesso não autorizado</DialogTitle>
-            <DialogDescription className="pt-2 text-base leading-6 text-foreground">
-              Seu perfil de Solicitante no CAV4 não tem permissão para acessar o Dashboard SIGAC.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter showCloseButton />
-        </DialogContent>
-      </Dialog>
-      <div className="relative">
+    <div className="relative">
       {/* Brilho discreto inspirado no degradê institucional da referência */}
       <div
         aria-hidden
@@ -78,9 +64,23 @@ export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: s
           ) : (
             <>
               {visibleError && (
-                <Alert variant="destructive" className="border-destructive/30 shadow-sm" role="alert">
-                  <AlertTitle>{isSolicitanteCav4Error || accessError ? "Acesso não autorizado" : "Falha na autenticação"}</AlertTitle>
-                  <AlertDescription>{visibleError}</AlertDescription>
+                <Alert
+                  variant={isSolicitanteCav4Error || accessError ? "default" : "destructive"}
+                  className={isSolicitanteCav4Error || accessError
+                    ? "border-petrobras-yellow/50 bg-petrobras-yellow/10 px-4 py-3 text-foreground shadow-sm"
+                    : "border-destructive/30 shadow-sm"}
+                  role="alert"
+                >
+                  <div className="flex flex-col gap-1">
+                    <AlertTitle className="text-sm font-semibold">
+                      {isSolicitanteCav4Error || accessError ? "Acesso restrito" : "Não foi possível concluir o login"}
+                    </AlertTitle>
+                    <AlertDescription className="text-sm leading-6 text-foreground/80">
+                      {isSolicitanteCav4Error
+                        ? "Seu perfil de Solicitante no CAV4 não possui permissão para acessar o Dashboard SIGAC. Se precisar de acesso, procure o administrador responsável pelo seu perfil."
+                        : visibleError}
+                    </AlertDescription>
+                  </div>
                 </Alert>
               )}
 
@@ -107,7 +107,6 @@ export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: s
 
       </div>
 
-      </div>
-    </>
+    </div>
   )
 }
