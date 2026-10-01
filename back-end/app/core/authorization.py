@@ -11,6 +11,7 @@ LEGACY_ROLE_MAP: Final = {
   "viewer": "auditor",
     "sponsor": "patrocinador",
     "requester": "solicitante",
+    "sol": "solicitante",
 }
 
 ROLE_CAPABILITIES: Final[dict[str, frozenset[str]]] = {
