@@ -82,12 +82,6 @@ async def users(service: Service, _: CurrentUser):
     return {"users": await service.users()}
 
 
-@router.get("/folders")
-async def folders(service: Service, _: CurrentUser, projectId: str = Query(min_length=1)):
-    logger.info("platform_folders_read project_id=%s", projectId)
-    return await service.folders(projectId)
-
-
 @router.get("/dashboard/summary")
 async def dashboard(service: Service, _: CurrentUser):
     logger.info("platform_dashboard_read")
