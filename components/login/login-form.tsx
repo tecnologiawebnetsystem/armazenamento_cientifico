@@ -5,11 +5,13 @@ import { ShieldCheckIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useLogin } from "@/hooks/use-login"
 
 export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: string; authError?: string }) {
   const [email, setEmail] = useState("")
   const accessError = authError
+  const [showAccessModal, setShowAccessModal] = useState(Boolean(authError))
   const manualLoginEnabled = [
     process.env.NEXT_PUBLIC_EMAIL_LOGIN_ENABLED,
     process.env.NEXT_PUBLIC_EMAIL_LOGIN_ENABLE,
@@ -24,7 +26,19 @@ export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: s
     : rawError
 
   return (
-    <div className="relative">
+    <>
+      <Dialog open={showAccessModal} onOpenChange={setShowAccessModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Acesso não autorizado</DialogTitle>
+            <DialogDescription className="pt-2 text-base leading-6 text-foreground">
+              Seu perfil de Solicitante no CAV4 não tem permissão para acessar o Dashboard SIGAC.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter showCloseButton />
+        </DialogContent>
+      </Dialog>
+      <div className="relative">
       {/* Brilho discreto inspirado no degradê institucional da referência */}
       <div
         aria-hidden
@@ -93,6 +107,7 @@ export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: s
 
       </div>
 
-    </div>
+      </div>
+    </>
   )
 }
