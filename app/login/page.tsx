@@ -4,10 +4,11 @@ import { LoginForm } from "@/components/login/login-form"
 import { LogoFull } from "@/components/brand/logo-mark"
 import { getBackendSession } from "@/lib/session"
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ auth_error?: string; next?: string }> }) {
-  const { auth_error: authError, next } = await searchParams
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ auth_error?: string; error?: string; error_description?: string; message?: string; reason?: string; next?: string }> }) {
+  const params = await searchParams
+  const authError = params.auth_error || params.error_description || params.error || params.message || params.reason
   const user = await getBackendSession()
-  const nextPath = next?.startsWith("/") && !next.startsWith("//") ? next : "/dashboard"
+  const nextPath = params.next?.startsWith("/") && !params.next.startsWith("//") ? params.next : "/dashboard"
   if (user && !authError) redirect(nextPath)
 
   return (

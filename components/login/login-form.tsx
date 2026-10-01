@@ -18,7 +18,7 @@ export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: s
   ].some((value) => value?.trim().toLowerCase() === "true")
   const { loading, error, manualLogin, corporateLogin } = useLogin(nextPath)
   const rawError = accessError || error
-  const isSolicitanteCav4Error = typeof rawError === "string" && /solicitante|cav4.*perfil|perfil.*cav4/i.test(rawError)
+  const isSolicitanteCav4Error = typeof rawError === "string" && /solicitante|requester|cav4.*perfil|perfil.*cav4|access[_ -]?denied|forbidden|sem permiss[aã]o|n[aã]o autorizado|unauthorized/i.test(rawError)
   const visibleError = isSolicitanteCav4Error
     ? "Seu perfil de Solicitante no CAV4 não tem permissão para acessar o Dashboard SIGAC."
     : rawError
