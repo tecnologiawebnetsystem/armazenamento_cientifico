@@ -233,6 +233,11 @@
     background: color-mix(in oklch, var(--petrobras-green) 4%, var(--card));
   }
 
+  .sigac-focus-ring:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+
   .sigac-grid {
     background-image: linear-gradient(color-mix(in oklch, var(--petrobras-green) 7%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklch, var(--petrobras-green) 7%, transparent) 1px, transparent 1px);
     background-size: 28px 28px;
