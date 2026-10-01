@@ -1,64 +1,133 @@
-"use client"
+'use client'
 
-import { useMemo, useState } from "react"
-import useSWR from "swr"
-import { Clock3, Download, Files, FolderKanban, FolderOpen, Search, ShieldCheck, Users } from "lucide-react"
-import { ExportButton, ExportFieldsDialog, type ExportField } from "@/components/export-fields-dialog"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { downloadFile, getAccessMap, getAccessMapExportUrl, getCatalogs, getReportFields } from "@/lib/api-client"
-import type { AccessMapResponse } from "@/lib/types"
-import { PetrobrasLoading } from "@/components/petrobras-loading"
-import { KpiCards, type KpiItem } from "@/components/dashboard/kpi-cards"
-import { PageHeader, PageLayout, PageSection } from "@/components/shared/page-layout"
+import { useMemo, useState } from 'react'
+import useSWR from 'swr'
+import { Clock3, Download, Files, FolderKanban, FolderOpen, Search, ShieldCheck, Users, X } from 'lucide-react'
+import { ExportButton, ExportFieldsDialog, type ExportField } from '@/components/export-fields-dialog'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { downloadFile, getAccessMap, getAccessMapExportUrl, getCatalogs, getReportFields } from '@/lib/api-client'
+import type { AccessMapResponse } from '@/lib/types'
+import { PetrobrasLoading } from '@/components/petrobras-loading'
+import { KpiCards, type KpiItem } from '@/components/dashboard/kpi-cards'
+import { PageHeader, PageLayout, PageSection } from '@/components/shared/page-layout'
 
 const fetcher = () => getAccessMap()
-const dateFormat = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" })
-function safeDate(value?: string | null) { if (!value) return "Não informado"; const parsed = new Date(value); return Number.isNaN(parsed.getTime()) ? "Não informado" : dateFormat.format(parsed) }
+const dateFormat = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+
+function safeDate(value?: string | null) {
+  if (!value) return 'Não informado'
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? 'Não informado' : dateFormat.format(parsed)
+}
+
+function accessLabel(value?: string | null) {
+  const key = (value ?? '').trim()
+  if (!key) return 'Não definido'
+  return ({ gerente: 'Gestão', editor: 'Edição', leitor: 'Leitura', viewer: 'Leitura' }[key.toLowerCase()] ?? key)
+}
 
 export default function AccessMapPage() {
-  const { data, error, isLoading } = useSWR<AccessMapResponse>("access-map", fetcher)
-  const { data: catalogs } = useSWR("platform-catalogs", getCatalogs)
-  const { data: configuredFields } = useSWR("/api/report-fields?report_code=acessos", () => getReportFields("acessos"))
-  const [search, setSearch] = useState(""); const [type, setType] = useState("todos"); const [level, setLevel] = useState("todos"); const [area, setArea] = useState("todos"); const [role, setRole] = useState("todos"); const [projectStatus, setProjectStatus] = useState("todos"); const [view, setView] = useState("projeto"); const [exportOpen, setExportOpen] = useState(false)
-  const hasCriteria = Boolean(search.trim()) || [type, level, area, role, projectStatus].some((value) => value !== "todos")
-  const accessLabel = (value?: string | null) => { const key = (value ?? "").toString().trim(); if (!key) return "Não definido"; return ({ gerente: "Gestão", editor: "Edição", leitor: "Leitura", viewer: "Leitura" }[key.toLowerCase()] ?? key) }
+  const { data, error, isLoading } = useSWR<AccessMapResponse>('access-map', fetcher)
+  const { data: catalogs } = useSWR('platform-catalogs', getCatalogs)
+  const { data: configuredFields } = useSWR('/api/report-fields?report_code=acessos', () => getReportFields('acessos'))
+  const [search, setSearch] = useState('')
+  const [type, setType] = useState('todos')
+  const [level, setLevel] = useState('todos')
+  const [area, setArea] = useState('todos')
+  const [role, setRole] = useState('todos')
+  const [projectStatus, setProjectStatus] = useState('todos')
+  const [view, setView] = useState('projeto')
+  const [exportOpen, setExportOpen] = useState(false)
+
   const resourceTypes = useMemo(() => Array.from(new Set((data?.rows ?? []).map((row) => row.resourceType).filter(Boolean))), [data?.rows])
   const accessLevels = useMemo(() => Array.from(new Set((data?.rows ?? []).map((row) => row.accessLevel).filter(Boolean))), [data?.rows])
   const roles = useMemo(() => Array.from(new Set((data?.rows ?? []).map((row) => row.userRole).filter(Boolean))), [data?.rows])
   const projectStatuses = useMemo(() => Array.from(new Set((data?.rows ?? []).map((row) => row.projectStatus).filter(Boolean))), [data?.rows])
   const exportFields: ExportField[] = (configuredFields?.fields ?? []).map((field) => ({ key: field.field_key, label: field.label }))
-  const rows = useMemo(() => (data?.rows ?? []).filter((row) => { const text = `${row.userName} ${row.userEmail} ${row.projectName} ${row.resourceName}`.toLowerCase(); return text.includes(search.toLowerCase()) && (type === "todos" || row.resourceType === type) && (level === "todos" || row.accessLevel === level) && (area === "todos" || row.area === area) && (role === "todos" || row.userRole === role) && (projectStatus === "todos" || row.projectStatus === projectStatus) }), [data?.rows, search, type, level, area, role, projectStatus])
-  const groups = useMemo(() => {
-    const grouped = new Map<string, { projectName: string; projectId: string; level: string; members: Map<string, { name: string; email: string }> }>()
-    for (const row of data?.rows ?? []) {
-      const key = `${row.projectId}:${row.accessLevel}`
-      const group = grouped.get(key) ?? { projectName: row.projectName, projectId: row.projectId, level: row.accessLevel, members: new Map() }
-      group.members.set(row.userId, { name: row.userName, email: row.userEmail })
-      grouped.set(key, group)
+  const hasFilters = Boolean(search.trim()) || [type, level, area, role, projectStatus].some((value) => value !== 'todos')
+
+  const rows = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase()
+    return (data?.rows ?? []).filter((row) => {
+      const text = `${row.userName} ${row.userEmail} ${row.projectName} ${row.resourceName}`.toLowerCase()
+      return (!normalizedSearch || text.includes(normalizedSearch)) &&
+        (type === 'todos' || row.resourceType === type) &&
+        (level === 'todos' || row.accessLevel === level) &&
+        (area === 'todos' || row.area === area) &&
+        (role === 'todos' || row.userRole === role) &&
+        (projectStatus === 'todos' || row.projectStatus === projectStatus)
+    })
+  }, [data?.rows, search, type, level, area, role, projectStatus])
+
+  const clearFilters = () => {
+    setSearch('')
+    setType('todos')
+    setLevel('todos')
+    setArea('todos')
+    setRole('todos')
+    setProjectStatus('todos')
+    setView('projeto')
+  }
+
+  const exportRows = async (fields: string[], formats: ('csv' | 'txt' | 'pdf')[]) => {
+    for (const format of formats) {
+      const path = getAccessMapExportUrl({ format, fields: fields.join(','), q: search, type, level, view }).replace(/^https?:\/\/[^/]+/, '')
+      const blob = await downloadFile(path)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `mapa-de-acessos.${format}`
+      link.click()
+      URL.revokeObjectURL(url)
     }
-    return Array.from(grouped.values()).filter((group) => group.projectName.toLowerCase().includes(search.toLowerCase()) || Array.from(group.members.values()).some((member) => `${member.name} ${member.email}`.toLowerCase().includes(search.toLowerCase())))
-  }, [data?.rows, search])
-  const clearFilters = () => { setSearch(""); setType("todos"); setLevel("todos"); setArea("todos"); setRole("todos"); setProjectStatus("todos"); setView("projeto") }
-  const exportRows = async (fields: string[], formats: ("csv" | "txt" | "pdf")[]) => { for (const format of formats) { const path = getAccessMapExportUrl({ format, fields: fields.join(","), q: search, type, level, view }).replace(/^https?:\/\/[^/]+/, ""); const blob = await downloadFile(path); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `mapa-de-acessos.${format}`; link.click(); URL.revokeObjectURL(url) } }
-  if (isLoading) return <PageLayout><PageHeader title="Mapa de Acessos" description="Consulte grupos, membros e recursos autorizados por projeto." /><PetrobrasLoading label="Carregando mapa de acessos..." /></PageLayout>
+  }
+
+  if (isLoading) return <PageLayout><PageHeader title="Mapa de acessos" description="Consulte grupos, membros e recursos autorizados por projeto." /><PetrobrasLoading label="Carregando mapa de acessos..." /></PageLayout>
   if (error || !data) return <PageLayout><PageHeader title="Mapa de acessos" /><p className="text-destructive">Não foi possível carregar o mapa de acessos.</p></PageLayout>
+
   const cards: KpiItem[] = [
-    { icon: Users, label: "Usuários no escopo", value: String(data.summary.users), tone: "teal" }, { icon: FolderKanban, label: "Projetos", value: String(data.summary.projects), tone: "green" }, { icon: FolderOpen, label: "Pastas", value: String(data.summary.folders), tone: "blue" }, { icon: Files, label: "Arquivos", value: String(data.summary.files), tone: "yellow" },
+    { icon: Users, label: 'Usuários no escopo', value: String(data.summary.users), tone: 'teal' },
+    { icon: FolderKanban, label: 'Projetos', value: String(data.summary.projects), tone: 'green' },
+    { icon: FolderOpen, label: 'Pastas', value: String(data.summary.folders), tone: 'blue' },
+    { icon: Files, label: 'Arquivos', value: String(data.summary.files), tone: 'yellow' },
   ]
+
   return <PageLayout>
-    <PageHeader eyebrow="Governança de acesso" title="Mapa de acessos científicos" description="Consulte os grupos vinculados a cada projeto, seus membros e os recursos autorizados em uma visão pronta para auditoria." actions={<ExportButton onClick={() => setExportOpen(true)} disabled={!exportFields.length} />} />
+    <PageHeader eyebrow="Governança de acesso" title="Mapa de acessos científicos" description="Use uma única consulta para encontrar quem acessa cada projeto, recurso ou área." actions={<ExportButton onClick={() => setExportOpen(true)} disabled={!exportFields.length || !rows.length} />} />
     <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground"><span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-petrobras-green" />Fonte: {data.source}</span><span>Atualizado em {safeDate(data.consultedAt)}</span></div>
     <PageSection label="Panorama do escopo"><KpiCards items={cards} /></PageSection>
-    <Card className="border-petrobras-blue/15 shadow-sm"><CardHeader className="border-b border-border/70 bg-muted/20"><div className="flex items-start gap-3"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-petrobras-green/10 text-petrobras-green"><Search className="size-5" /></div><div><CardTitle className="text-base">Consultar acessos</CardTitle><CardDescription className="mt-1">Use a busca ou os filtros abaixo para localizar um projeto, uma pessoa ou um grupo específico. Nenhum projeto é listado antes da consulta.</CardDescription></div></div></CardHeader><CardContent className="p-4"><div className="grid gap-3 md:grid-cols-[minmax(280px,1.7fr)_repeat(2,minmax(170px,1fr))]"><div className="relative"><Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" /><Input className="bg-background pl-9" placeholder="Buscar projeto, usuário ou e-mail" value={search} onChange={(e) => setSearch(e.target.value)} /></div><Select value={projectStatus} onValueChange={(value) => setProjectStatus(value ?? "todos")}><SelectTrigger><SelectValue placeholder="Status do projeto" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os status</SelectItem>{projectStatuses.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select><Select value={level} onValueChange={(value) => setLevel(value ?? "todos")}><SelectTrigger><SelectValue placeholder="Nível de acesso" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os níveis</SelectItem>{accessLevels.map((item) => <SelectItem key={item} value={item}>{accessLabel(item)}</SelectItem>)}</SelectContent></Select></div><div className="mt-3 flex flex-wrap items-center gap-2"><Button variant={view === "projeto" ? "secondary" : "outline"} size="sm" onClick={() => setView("projeto")}>Por projeto</Button><Button variant={view === "usuario" ? "secondary" : "outline"} size="sm" onClick={() => setView("usuario")}>Por usuário</Button><Button variant="ghost" size="sm" onClick={clearFilters}>Limpar consulta</Button><span className="ml-auto text-xs text-muted-foreground">{hasCriteria ? `${rows.length} relações encontradas` : "Aguardando consulta"}</span></div></CardContent></Card>
-    {hasCriteria ? <Card className="border-petrobras-blue/15 shadow-sm"><CardHeader className="border-b border-border/70"><CardTitle className="text-base">Resultados da consulta</CardTitle><CardDescription>Os resultados abaixo refletem exatamente os critérios selecionados.</CardDescription></CardHeader><CardContent className="grid gap-3 p-4 md:grid-cols-2">{groups.length ? groups.map((group) => <div key={`${group.projectId}-${group.level}`} className="rounded-xl border border-border/70 bg-muted/20 p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{group.projectName}</p><p className="font-mono text-xs text-muted-foreground">{group.projectId}</p></div><Badge variant="secondary">Nível: {accessLabel(group.level)}</Badge></div><div className="mt-3 flex flex-col gap-2">{Array.from(group.members.values()).map((member) => <div key={member.email || member.name} className="flex items-center justify-between gap-3 text-sm"><span className="truncate">{member.name}</span><span className="truncate text-xs text-muted-foreground">{member.email || "E-mail não informado"}</span></div>)}</div><p className="mt-3 text-xs text-muted-foreground">{group.members.size} membro(s) no grupo</p></div>) : <p className="col-span-full py-8 text-center text-sm text-muted-foreground">Nenhum acesso encontrado para esta consulta.</p>}</CardContent></Card> : <Card className="border-dashed border-petrobras-blue/20 bg-muted/10"><CardContent className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center"><div className="flex size-12 items-center justify-center rounded-full bg-petrobras-green/10 text-petrobras-green"><ShieldCheck className="size-6" /></div><p className="font-semibold">Pronto para consultar</p><p className="max-w-lg text-sm text-muted-foreground">Comece digitando um projeto, usuário ou e-mail. Você também pode selecionar um filtro para abrir somente o recorte necessário.</p></CardContent></Card>}
-    {hasCriteria && <Card className="sigac-surface overflow-hidden border-l-4 border-l-primary shadow-sm"><CardHeader className="border-b border-border/70 bg-muted/15"><div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-petrobras-green"><ShieldCheck className="size-4" />Mapa de acessos</div><CardTitle>Grupos e membros com acesso</CardTitle><CardDescription className="mt-1">Cruze filtros e encontre rapidamente quem possui acesso a cada recurso.</CardDescription></div><Badge variant="outline" className="w-fit bg-background/70">{rows.length} relações</Badge></div>
-      <div className="grid gap-3 pt-2 md:grid-cols-2 lg:grid-cols-[minmax(240px,1.5fr)_repeat(3,minmax(150px,1fr))]"><div className="relative"><Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" /><Input className="bg-background/80 pl-9" placeholder="Usuário, projeto ou recurso" value={search} onChange={(e) => setSearch(e.target.value)} /></div><Select value={type} onValueChange={(value) => setType(value ?? "todos")}><SelectTrigger><SelectValue placeholder="Tipo de recurso" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os recursos</SelectItem>{resourceTypes.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select><Select value={projectStatus} onValueChange={(value) => setProjectStatus(value ?? "todos")}><SelectTrigger><SelectValue placeholder="Status do projeto" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os status</SelectItem>{projectStatuses.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select><Select value={area} onValueChange={(value) => setArea(value ?? "todos")}><SelectTrigger><SelectValue placeholder="Área responsável" /></SelectTrigger><SelectContent><SelectItem value="todos">Todas as áreas</SelectItem>{(catalogs?.areas ?? []).map((item) => <SelectItem key={item.id} value={item.nome}>{item.nome}</SelectItem>)}</SelectContent></Select><Select value={level} onValueChange={(value) => setLevel(value ?? "todos")}><SelectTrigger><SelectValue placeholder="Nível de acesso" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os níveis</SelectItem>{accessLevels.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select><Select value={role} onValueChange={(value) => setRole(value ?? "todos")}><SelectTrigger><SelectValue placeholder="Perfil do usuário" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os perfis</SelectItem>{roles.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select></div>
-      <div className="flex flex-wrap items-center gap-2 pt-1"><Button variant={view === "projeto" ? "secondary" : "outline"} size="sm" onClick={() => setView("projeto")}>Visão por projeto</Button><Button variant={view === "usuario" ? "secondary" : "outline"} size="sm" onClick={() => setView("usuario")}>Visão por usuário</Button><Button variant="ghost" size="sm" onClick={clearFilters}>Limpar filtros</Button><span className="text-xs text-muted-foreground">A exportação usará este recorte</span></div>
-    </CardHeader><CardContent className="p-0"><div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-muted/45 text-left text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-6 py-3 font-medium">Usuário</th><th className="px-4 py-3 font-medium">Projeto</th><th className="px-4 py-3 font-medium">Recurso</th><th className="px-4 py-3 font-medium">Acesso</th><th className="px-4 py-3 font-medium">Última visualização</th></tr></thead><tbody className="divide-y divide-border/60">{rows.map((row) => <tr key={`${row.userId}-${row.resourceId}`} className="transition-colors hover:bg-petrobras-green/5"><td className="px-6 py-4"><p className="font-semibold">{row.userName}</p><p className="text-xs text-muted-foreground">{row.userEmail || "E-mail não informado"}</p></td><td className="px-4 py-4"><p>{row.projectName}</p><p className="font-mono text-xs text-muted-foreground">{row.projectId}</p></td><td className="px-4 py-4"><div className="flex items-center gap-2"><span className="size-2 rounded-full bg-petrobras-teal" />{row.resourceName}<span className="text-xs text-muted-foreground">({row.resourceType})</span></div></td><td className="px-4 py-4"><Badge variant={row.accessLevel === "gerente" ? "default" : "secondary"}>{row.accessLevel}</Badge></td><td className="px-4 py-4 text-muted-foreground"><span className="flex items-center gap-2 whitespace-nowrap"><Clock3 className="size-4" />{safeDate(row.lastViewedAt)}</span></td></tr>)}</tbody></table></div>{!rows.length && <p className="px-6 py-12 text-center text-sm text-muted-foreground">Nenhuma relação encontrada para os filtros selecionados.</p>}<div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 px-6 py-4 text-xs text-muted-foreground"><span>Exibindo {rows.length} relações autorizadas</span><span className="inline-flex items-center gap-2"><Download className="size-3.5" />Exportação filtrada disponível no cabeçalho</span></div></CardContent></Card>}
+
+    <Card className="sigac-surface overflow-hidden">
+      <CardHeader className="sigac-section-header gap-2 px-5 py-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div><CardTitle className="text-base">Consultar acessos</CardTitle><CardDescription className="mt-1">Digite uma palavra ou escolha filtros. Os resultados aparecem logo abaixo.</CardDescription></div>
+          {hasFilters ? <Button variant="ghost" size="sm" className="w-fit" onClick={clearFilters}><X className="mr-2 size-4" />Limpar filtros</Button> : null}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4 p-5">
+        <div className="grid gap-3 lg:grid-cols-[minmax(260px,1.6fr)_repeat(3,minmax(150px,1fr))]">
+          <div className="relative lg:col-span-1"><Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" /><Input aria-label="Buscar acessos" className="bg-background pl-9" placeholder="Projeto, usuário, e-mail ou recurso" value={search} onChange={(event) => setSearch(event.target.value)} /></div>
+          <Select value={type} onValueChange={(value) => setType(value ?? 'todos')}><SelectTrigger aria-label="Filtrar por recurso"><SelectValue placeholder="Recurso" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os recursos</SelectItem>{resourceTypes.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select>
+          <Select value={level} onValueChange={(value) => setLevel(value ?? 'todos')}><SelectTrigger aria-label="Filtrar por nível"><SelectValue placeholder="Nível de acesso" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os níveis</SelectItem>{accessLevels.map((item) => <SelectItem key={item} value={item}>{accessLabel(item)}</SelectItem>)}</SelectContent></Select>
+          <Select value={projectStatus} onValueChange={(value) => setProjectStatus(value ?? 'todos')}><SelectTrigger aria-label="Filtrar por status"><SelectValue placeholder="Status do projeto" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os status</SelectItem>{projectStatuses.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <Select value={area} onValueChange={(value) => setArea(value ?? 'todos')}><SelectTrigger aria-label="Filtrar por área"><SelectValue placeholder="Área responsável" /></SelectTrigger><SelectContent><SelectItem value="todos">Todas as áreas</SelectItem>{(catalogs?.areas ?? []).map((item) => <SelectItem key={item.id} value={item.nome}>{item.nome}</SelectItem>)}</SelectContent></Select>
+          <Select value={role} onValueChange={(value) => setRole(value ?? 'todos')}><SelectTrigger aria-label="Filtrar por perfil"><SelectValue placeholder="Perfil do usuário" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos os perfis</SelectItem>{roles.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select>
+          <div className="flex items-center gap-2 rounded-md border border-input bg-background p-1 md:col-span-2"><Button variant={view === 'projeto' ? 'secondary' : 'ghost'} className="flex-1" size="sm" onClick={() => setView('projeto')}>Ver por projeto</Button><Button variant={view === 'usuario' ? 'secondary' : 'ghost'} className="flex-1" size="sm" onClick={() => setView('usuario')}>Ver por usuário</Button></div>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/70 pt-3 text-xs text-muted-foreground"><span>{hasFilters ? 'Filtros aplicados automaticamente' : 'Mostrando todos os acessos'}</span><span>Consulta atual: <strong className="font-medium text-foreground">{rows.length} relações</strong></span></div>
+      </CardContent>
+    </Card>
+
+    <Card className="sigac-surface overflow-hidden">
+      <CardHeader className="sigac-section-header flex flex-row items-center justify-between gap-3 px-5 py-4"><div><CardTitle className="text-base">Resultados</CardTitle><CardDescription className="mt-1">Lista única de relações autorizadas, sem duplicar a consulta.</CardDescription></div><Badge variant="outline">{rows.length} relações</Badge></CardHeader>
+      <CardContent className="p-0"><div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-muted/45 text-left text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-5 py-3 font-medium">Usuário</th><th className="px-4 py-3 font-medium">Projeto</th><th className="px-4 py-3 font-medium">Recurso</th><th className="px-4 py-3 font-medium">Acesso</th><th className="px-4 py-3 font-medium">Última visualização</th></tr></thead><tbody className="divide-y divide-border/60">{rows.map((row) => <tr key={`${row.userId}-${row.resourceId}`} className="transition-colors hover:bg-petrobras-green/5"><td className="px-5 py-4"><p className="font-semibold">{row.userName}</p><p className="text-xs text-muted-foreground">{row.userEmail || 'E-mail não informado'}</p></td><td className="px-4 py-4"><p>{row.projectName}</p><p className="font-mono text-xs text-muted-foreground">{row.projectId}</p></td><td className="px-4 py-4"><div className="flex items-center gap-2"><span className="size-2 rounded-full bg-petrobras-teal" />{row.resourceName}<span className="text-xs text-muted-foreground">({row.resourceType})</span></div></td><td className="px-4 py-4"><Badge variant={row.accessLevel === 'gerente' ? 'default' : 'secondary'}>{accessLabel(row.accessLevel)}</Badge></td><td className="px-4 py-4 text-muted-foreground"><span className="flex items-center gap-2 whitespace-nowrap"><Clock3 className="size-4" />{safeDate(row.lastViewedAt)}</span></td></tr>)}</tbody></table></div>{!rows.length ? <div className="flex flex-col items-center gap-2 px-6 py-12 text-center"><ShieldCheck className="size-8 text-muted-foreground" /><p className="font-semibold">Nenhum acesso encontrado</p><p className="text-sm text-muted-foreground">Ajuste os filtros ou limpe a consulta para ver outros resultados.</p></div> : null}<div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 px-5 py-4 text-xs text-muted-foreground"><span>Visão atual: {view === 'projeto' ? 'por projeto' : 'por usuário'}</span><span className="inline-flex items-center gap-2"><Download className="size-3.5" />A exportação usa os filtros atuais</span></div></CardContent>
+    </Card>
     <ExportFieldsDialog open={exportOpen} onOpenChange={setExportOpen} title="mapa de acessos" fields={exportFields} onConfirm={exportRows} />
   </PageLayout>
 }
