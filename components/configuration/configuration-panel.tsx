@@ -45,6 +45,8 @@ export function ConfigurationPanel() {
   const [loading, setLoading] = useState(false)
   const config = resources[resource]
   const load = useCallback(async (next: ConfigurationResource = resource) => { setLoading(true); try { setRows(await getConfigurations(next)) } catch (error) { toast.error(error instanceof Error ? error.message : "Não foi possível carregar os registros") } finally { setLoading(false) } }, [resource])
+  // A troca de recurso precisa sincronizar a tabela com a API na montagem e nas mudanças de seleção.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load() }, [load])
   const filteredRows = useMemo(() => rows.filter((row) => JSON.stringify(row).toLowerCase().includes(search.toLowerCase())), [rows, search])
   const activeRows = rows.filter((row) => row.active !== false)
