@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ActivityIcon, ArrowRightIcon, DatabaseIcon, FolderKanbanIcon, MapIcon, ShieldAlertIcon, UsersIcon } from "lucide-react"
+import { ActivityIcon, ArrowRightIcon, DatabaseIcon, FolderKanbanIcon, MapIcon, PlusIcon, ShieldAlertIcon, UsersIcon } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { ActivityLog, Project, Role } from "@/lib/types"
@@ -58,6 +58,13 @@ export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, a
           </div>
         </div>
       </header>
+
+      <section aria-label="Ações rápidas" className="flex flex-wrap items-center gap-2 rounded-xl border border-border/70 bg-card/70 p-3">
+        <span className="mr-1 text-xs font-semibold text-muted-foreground">Comece por aqui</span>
+        <Link href="/projetos" className="sigac-focus-ring inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-primary/5"><FolderKanbanIcon className="size-4 text-primary" />Consultar projetos</Link>
+        {role === "admin" || role === "gerente" ? <Link href="/projetos/novo" className="sigac-focus-ring inline-flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/8 px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/15"><PlusIcon className="size-4" />Criar projeto</Link> : null}
+        <Link href={role === "auditor" ? "/logs" : "/pesquisas"} className="sigac-focus-ring inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-primary/5"><ActivityIcon className="size-4 text-primary" />{role === "auditor" ? "Consultar auditoria" : "Consultar acessos"}</Link>
+      </section>
 
       <section aria-label="Indicadores essenciais" className="grid gap-3 sm:grid-cols-3">
         {indicators.map((item) => (
