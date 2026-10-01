@@ -17,6 +17,11 @@ export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: s
     process.env.NEST_PUBLIC_EMAIL_LOGIN_ENABLE,
   ].some((value) => value?.trim().toLowerCase() === "true")
   const { loading, error, manualLogin, corporateLogin } = useLogin(nextPath)
+  const rawError = accessError || error
+  const isSolicitanteCav4Error = typeof rawError === "string" && /solicitante|cav4.*perfil|perfil.*cav4/i.test(rawError)
+  const visibleError = isSolicitanteCav4Error
+    ? "Seu perfil de Solicitante no CAV4 não tem permissão para acessar o Dashboard SIGAC."
+    : rawError
 
   return (
     <div className="relative">
@@ -58,10 +63,10 @@ export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: s
             </div>
           ) : (
             <>
-              {(error || accessError) && (
-                <Alert variant="destructive" className="border-destructive/30 shadow-sm">
-                  <AlertTitle>{accessError ? "Acesso não autorizado" : "Falha na autenticação"}</AlertTitle>
-                  <AlertDescription>{accessError || error}</AlertDescription>
+              {visibleError && (
+                <Alert variant="destructive" className="border-destructive/30 shadow-sm" role="alert">
+                  <AlertTitle>{isSolicitanteCav4Error || accessError ? "Acesso não autorizado" : "Falha na autenticação"}</AlertTitle>
+                  <AlertDescription>{visibleError}</AlertDescription>
                 </Alert>
               )}
 
