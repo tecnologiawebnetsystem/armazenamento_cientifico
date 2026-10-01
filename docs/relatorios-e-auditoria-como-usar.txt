@@ -1,0 +1,37 @@
+GUIA RÁPIDO — RELATÓRIOS, EXPORTAÇÃO E AUDITORIA
+
+1. RELATÓRIOS E EXPORTAÇÃO
+
+A tela de Relatórios segue um fluxo simples:
+
+1) Leia a orientação "Como usar esta tela".
+2) Use a área "Filtre os projetos". Não há uma segunda pesquisa escondida: todos os filtros ficam neste único painel.
+3) Comece pela busca livre, se necessário. Ela procura por nome, código ou área.
+4) Refinar aos poucos é opcional: use Status, Área e ID do gestor somente quando precisar.
+5) A tabela é o resultado oficial da consulta. A contagem mostra quantos projetos atendem ao recorte.
+6) Confira os projetos exibidos e use a paginação para navegar.
+7) Clique em "Limpar filtros" para voltar à lista completa.
+8) Clique em "Exportar" somente depois de conferir o resultado. A exportação respeita os filtros aplicados.
+9) Na janela de exportação, escolha o formato (CSV, TXT ou PDF) e os campos desejados. Depois clique em "Gerar arquivos".
+
+A ordenação A–Z/Z–A altera somente a visualização e não remove registros.
+
+2. AUDITORIA E LOGS
+
+A auditoria é uma consulta de rastreabilidade e não precisa dos mesmos filtros dos relatórios.
+
+1) Use a busca livre para localizar usuário, ação, entidade, identificador ou detalhe.
+2) Use os filtros de Ação, Entidade e Resultado para restringir a consulta.
+3) A lista mostra somente os eventos recentes carregados, com usuário, resultado e data/hora.
+4) Os indicadores no topo ajudam a entender o volume, mas não substituem os registros.
+5) Use "Limpar filtros" para retornar ao recorte inicial.
+6) "Exportar CSV" gera somente os registros atualmente exibidos após os filtros.
+7) Use "Atualizar" para carregar novamente os eventos mais recentes.
+
+IMPORTANTE
+
+Os filtros alteram a visualização e a exportação, mas não alteram nem excluem dados do sistema. Se nenhum registro for encontrado, remova um filtro por vez ou use "Limpar filtros".
+
+Última revisão: 01/10/2026
+
+                                                                                  
