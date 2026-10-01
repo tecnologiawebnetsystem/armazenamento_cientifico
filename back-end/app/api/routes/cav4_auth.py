@@ -204,11 +204,17 @@ async def cav4_callback(request: Request, code: str, state: str):
     # o perfil local para carregar menus e permissões; não exige um usuário local.
     if not identity.email:
         raise HTTPException(status_code=401, detail="E-mail ausente na autenticação corporativa")
-    profile_id = next((role for role in identity.roles if role), None)
+    logger.info(
+        "cav4_roles_received email=%s roles=%s",
+        identity.email,
+        [str(role) for role in identity.roles if role],
+    )
+    solicitante_role = next((role for role in identity.roles if canonical_role(role) == "solicitante"), None)
+    profile_id = solicitante_role or next((role for role in identity.roles if canonical_role(role)), None)
     if not profile_id:
         raise HTTPException(status_code=403, detail="Usuário CAV4 sem perfil corporativo configurado")
-    if canonical_role(profile_id) == "solicitante":
-        message = "Seu perfil é Solicitante e não possui permissão para acessar o SIGAC."
+    if solicitante_role:
+        message = "Seu perfil de Solicitante no CAV4 não tem permissão para acessar o Dashboard SIGAC."
         login_url = f"{settings.frontend_url.rstrip('/')}/login?auth_error={quote(message)}&next={quote(next_path or '/dashboard', safe='')}"
         logger.info("cav4_access_denied_redirect role=%s frontend=%s", profile_id, settings.frontend_url)
         return RedirectResponse(
