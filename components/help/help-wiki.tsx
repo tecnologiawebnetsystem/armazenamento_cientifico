@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { normalizeRole } from "@/hooks/use-permissions"
 import { useSession } from "@/hooks/use-session"
 import type { Role } from "@/lib/types"
 
@@ -65,7 +66,7 @@ export function HelpWiki() {
   const [open, setOpen] = useState(false)
   const [selectedId, setSelectedId] = useState("inicio")
   const [query, setQuery] = useState("")
-  const role = (user?.role ?? "solicitante") as Role
+  const role = normalizeRole(user?.role ?? "solicitante") as Role
   const visibleTopics = useMemo(() => topics.filter((topic) => topic.roles.includes(role)).filter((topic) => `${topic.title} ${topic.summary} ${topic.controls.join(" ")}`.toLowerCase().includes(query.toLowerCase())), [query, role])
   const selected = visibleTopics.find((topic) => topic.id === selectedId) ?? visibleTopics[0]
 
