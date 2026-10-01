@@ -85,7 +85,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
   const [status, setStatus] = useState<StatusFilter>(initialStatus)
   const [area, setArea] = useState(initialArea)
   const [sort, setSort] = useState<SortOption>("recentes")
-  const [view, setView] = useState<ViewMode>("lista")
+  const [view, setView] = useState<ViewMode>("grade")
   const [showMeta, setShowMeta] = useState(true)
   const [target, setTarget] = useState<Project | null>(null)
   const [pending, setPending] = useState(false)
@@ -266,13 +266,54 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
       )}
 
       {pagination && pagination.totalPages > 1 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+        <nav className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between" aria-label="Paginação de projetos">
           <p className="text-sm text-muted-foreground">Página {pagination.page} de {pagination.totalPages} · {pagination.total} projetos</p>
-          <div className="flex gap-2">
-            <Button nativeButton variant="outline" size="sm" disabled={pagination.page <= 1} onClick={() => { const next = new URLSearchParams(searchParams.toString()); next.set("page", String(pagination.page - 1)); router.push(`${pathname}?${next}`) }}>Anterior</Button>
-            <Button nativeButton variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages} onClick={() => { const next = new URLSearchParams(searchParams.toString()); next.set("page", String(pagination.page + 1)); router.push(`${pathname}?${next}`) }}>Próxima</Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              nativeButton
+              variant="outline"
+              size="sm"
+              disabled={pagination.page <= 1}
+              onClick={() => {
+                const next = new URLSearchParams(searchParams.toString())
+                next.set("page", String(pagination.page - 1))
+                router.push(`${pathname}?${next}`)
+              }}
+            >
+              Anterior
+            </Button>
+            {Array.from({ length: pagination.totalPages }, (_, index) => index + 1).map((pageNumber) => (
+              <Button
+                key={pageNumber}
+                nativeButton
+                variant={pageNumber === pagination.page ? "default" : "outline"}
+                size="sm"
+                aria-current={pageNumber === pagination.page ? "page" : undefined}
+                aria-label={`Ir para a página ${pageNumber}`}
+                onClick={() => {
+                  const next = new URLSearchParams(searchParams.toString())
+                  next.set("page", String(pageNumber))
+                  router.push(`${pathname}?${next}`)
+                }}
+              >
+                {pageNumber}
+              </Button>
+            ))}
+            <Button
+              nativeButton
+              variant="outline"
+              size="sm"
+              disabled={pagination.page >= pagination.totalPages}
+              onClick={() => {
+                const next = new URLSearchParams(searchParams.toString())
+                next.set("page", String(pagination.page + 1))
+                router.push(`${pathname}?${next}`)
+              }}
+            >
+              Próxima
+            </Button>
           </div>
-        </div>
+        </nav>
       )}
 
       <AlertDialog open={!!target} onOpenChange={(open) => !open && setTarget(null)}>
