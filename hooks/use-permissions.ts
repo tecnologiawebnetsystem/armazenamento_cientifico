@@ -6,7 +6,6 @@ export type Capability = string
 export function normalizeRole(role: Role | string | null | undefined): string {
   const aliases: Record<string, string> = {
     administrador: "admin",
-    mixer: "admin",
     administrator: "admin",
     manager: "gerente",
     viewer: "auditor",
