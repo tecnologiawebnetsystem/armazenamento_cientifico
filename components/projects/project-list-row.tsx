@@ -76,7 +76,7 @@ export function ProjectListRow({ project, canManage = false, showMeta = true, on
           <DropdownMenu>
             <DropdownMenuTrigger
               render={<Button variant="ghost" size="icon-sm" aria-label="Ações do projeto" />}
-              nativeButton={false}
+              nativeButton
             >
               <MoreVerticalIcon className="size-4" />
             </DropdownMenuTrigger>
