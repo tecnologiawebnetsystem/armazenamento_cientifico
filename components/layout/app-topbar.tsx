@@ -12,6 +12,7 @@ import { ProfileAvatarMenu } from "@/components/layout/profile-avatar-menu"
 import { navGroups } from "@/lib/nav-config"
 import { AppBreadcrumbs } from "@/components/navigation/app-breadcrumbs"
 import { LogoMark } from "@/components/brand/logo-mark"
+import { HelpWiki } from "@/components/help/help-wiki"
 
 function pageTitleFor(pathname: string) {
   for (const group of navGroups) {
@@ -41,6 +42,7 @@ export function AppTopbar() {
         <div className="flex min-w-0 items-center gap-3"><AppBreadcrumbs /></div>
       </div>
       <Badge variant="outline" aria-label="Sessão protegida" title="Sessão protegida" className="relative hidden size-9 items-center justify-center rounded-xl border-petrobras-green/30 bg-petrobras-green/10 p-0 text-petrobras-green shadow-sm lg:inline-flex"><ShieldCheckIcon aria-hidden="true" className="size-4" /></Badge>
+      <div className="relative flex items-center rounded-xl border border-petrobras-yellow/25 bg-petrobras-yellow/5 p-0.5 text-petrobras-yellow shadow-sm"><HelpWiki /></div>
       <div className="relative ml-auto flex items-center gap-2 rounded-2xl border border-border/70 bg-background/45 p-1.5 shadow-sm md:gap-2.5"><ThemeToggle />{isLoading ? <div className="size-9 animate-pulse rounded-xl bg-petrobras-green/10 ring-1 ring-petrobras-green/15" aria-label="Carregando perfil" /> : user ? <ProfileAvatarMenu user={user} onLogout={() => { router.push("/login"); router.refresh() }} /> : null}</div>
     </header>
   )
