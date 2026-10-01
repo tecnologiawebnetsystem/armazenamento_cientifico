@@ -148,7 +148,7 @@ export function getResponsibleAreas() {
 
 /* -------------------------------- Projects -------------------------------- */
 
-export function getProjects(params: { nome?: string; status?: string; page?: number; limit?: number } = {}) {
+export function getProjects(params: { nome?: string; status?: string; area?: string; page?: number; limit?: number } = {}) {
   const query = new URLSearchParams()
   Object.entries(params).forEach(([key, value]) => value !== undefined && value !== "" && query.set(key, String(value)))
   return request<{ projects: Project[]; pagination?: { page: number; limit: number; total: number; totalPages: number } }>(`/api/projects${query.size ? `?${query}` : ""}`)

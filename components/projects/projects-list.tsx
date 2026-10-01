@@ -15,6 +15,7 @@ import {
   XIcon,
 } from "lucide-react"
 import { useProjects } from "@/hooks/use-projects"
+import { useCatalogs } from "@/hooks/use-catalogs"
 import { useSession } from "@/hooks/use-session"
 import { updateProject } from "@/lib/api-client"
 import { ProjectCard } from "@/components/projects/project-card"
@@ -77,13 +78,14 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
   const initialSearch = searchParams.get("nome") ?? ""
   const initialStatus = (searchParams.get("status") as StatusFilter) || "todos"
   const initialArea = searchParams.get("area") ?? "todas"
-  const { projects, pagination, isLoading, refresh } = useProjects({ nome: initialSearch, status: initialStatus, page: Number(searchParams.get("page") ?? "1") || 1, limit: 12 })
+  const { projects, pagination, isLoading, refresh } = useProjects({ nome: initialSearch, status: initialStatus, area: initialArea === "todas" ? undefined : initialArea, page: Number(searchParams.get("page") ?? "1") || 1, limit: 10 })
+  const { areas: catalogAreas } = useCatalogs()
   const { user } = useSession()
   const [search, setSearch] = useState(initialSearch)
   const [status, setStatus] = useState<StatusFilter>(initialStatus)
   const [area, setArea] = useState(initialArea)
   const [sort, setSort] = useState<SortOption>("recentes")
-  const [view, setView] = useState<ViewMode>("grade")
+  const [view, setView] = useState<ViewMode>("lista")
   const [showMeta, setShowMeta] = useState(true)
   const [target, setTarget] = useState<Project | null>(null)
   const [pending, setPending] = useState(false)
@@ -106,8 +108,8 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
   }, [search, status, area, pathname, router, searchParams])
 
   const areas = useMemo(
-    () => Array.from(new Set(projects.map((p) => p.areaResponsavel).filter(Boolean))).sort(),
-    [projects],
+    () => catalogAreas.map((area) => area.nome).filter(Boolean).sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [catalogAreas],
   )
 
   const canManage = () => user?.perfilId === "ADM" || user?.role === "admin"
@@ -206,7 +208,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         onViewChange={setView}
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"><span aria-live="polite">Exibindo {filtered.length} de {pagination?.total ?? projects.length} projetos</span><div className="flex items-center gap-3"><Button variant="ghost" size="sm" onClick={() => void refresh()}><RefreshCwIcon data-icon="inline-start" />Atualizar</Button><Button variant="ghost" size="sm" onClick={() => { setSearch(""); setStatus("todos"); setArea("todas") }} disabled={!search && status === "todos" && area === "todas"}><XIcon data-icon="inline-start" />Limpar filtros</Button><label className="flex items-center gap-2"><Columns3Icon className="size-4" /><input type="checkbox" checked={showMeta} onChange={(event) => setShowMeta(event.target.checked)} />Mostrar detalhes</label></div></div>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"><span aria-live="polite">Exibindo {filtered.length} nesta página de {pagination?.total ?? projects.length} projetos</span><div className="flex items-center gap-3"><Button variant="ghost" size="sm" onClick={() => void refresh()}><RefreshCwIcon data-icon="inline-start" />Atualizar</Button><Button variant="ghost" size="sm" onClick={() => { setSearch(""); setStatus("todos"); setArea("todas") }} disabled={!search && status === "todos" && area === "todas"}><XIcon data-icon="inline-start" />Limpar filtros</Button><label className="flex items-center gap-2"><Columns3Icon className="size-4" /><input type="checkbox" checked={showMeta} onChange={(event) => setShowMeta(event.target.checked)} />Mostrar detalhes</label></div></div>
 
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
