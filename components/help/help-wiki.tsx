@@ -31,19 +31,31 @@ const topics: HelpTopic[] = [
 
 const roleLabels: Record<string, string> = { admin: "Administrador", gerente: "Gerente", patrocinador: "Patrocinador", auditor: "Editor / Auditor", solicitante: "Solicitante" }
 
+const previewByTopic: Record<string, { search: string; filters: string[]; columns: string[] }> = {
+  inicio: { search: "Acesso rápido", filters: ["Resumo", "Atalhos"], columns: ["Indicadores", "Pendências", "Últimas atividades"] },
+  projetos: { search: "Nome, código ou responsável", filters: ["Status", "Área", "Atualização"], columns: ["Projeto", "Responsável", "Status"] },
+  relatorios: { search: "Escolha um relatório", filters: ["Período", "Área", "Status"], columns: ["Prévia", "Registros", "Exportação"] },
+  logs: { search: "Usuário, ação ou módulo", filters: ["Período", "Ação", "Módulo"], columns: ["Data", "Usuário", "Evento"] },
+  acessos: { search: "Projeto ou usuário", filters: ["Perfil", "Área", "Acesso"], columns: ["Recurso", "Perfil", "Permissão"] },
+  configuracoes: { search: "Buscar registro", filters: ["Tabela selecionada", "Status"], columns: ["Registro", "Descrição", "Ações CRUD"] },
+}
+
 function ScreenPreview({ topic }: { topic: HelpTopic }) {
+  const preview = previewByTopic[topic.id] ?? previewByTopic.inicio
+
   return (
     <div className="rounded-xl border border-border/70 bg-background/80 p-3 shadow-inner" aria-label={`Prévia ilustrativa da tela ${topic.title}`}>
       <div className="mb-3 flex items-center justify-between border-b border-border/60 pb-2">
         <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-petrobras-green" /><span className="text-xs font-semibold text-foreground">SIGAC / {topic.title}</span></div>
-        <span className="text-[10px] text-muted-foreground">Prévia da tela</span>
+        <span className="text-[10px] text-muted-foreground">Prévia ilustrativa</span>
       </div>
       <div className="flex flex-wrap gap-2">
-        <div className="flex min-w-32 flex-1 items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-2 py-1.5 text-[11px] text-muted-foreground"><SearchIcon className="size-3.5" /> Pesquisar</div>
-        <div className="flex items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-2 py-1.5 text-[11px] text-muted-foreground"><FilterIcon className="size-3.5" /> Filtros</div>
-        <div className="flex items-center gap-2 rounded-md border border-petrobras-yellow/40 bg-petrobras-yellow/10 px-2 py-1.5 text-[11px] text-petrobras-yellow"><FileDownIcon className="size-3.5" /> Exportar</div>
+        <div className="flex min-w-32 flex-1 items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-2 py-1.5 text-[11px] text-muted-foreground"><SearchIcon className="size-3.5" /> {preview.search}</div>
+        {preview.filters.map((filter) => <div key={filter} className="rounded-md border border-border/60 bg-muted/30 px-2 py-1.5 text-[11px] text-muted-foreground">{filter}</div>)}
+        {topic.id === "relatorios" || topic.id === "acessos" || topic.id === "logs" ? <div className="flex items-center gap-2 rounded-md border border-petrobras-yellow/40 bg-petrobras-yellow/10 px-2 py-1.5 text-[11px] text-petrobras-yellow"><FileDownIcon className="size-3.5" /> Exportar</div> : null}
       </div>
-      <div className="mt-2 grid grid-cols-3 gap-2">{["Resultado", "Detalhes", "Ações"].map((label) => <div key={label} className="rounded-md bg-muted/35 px-2 py-2 text-[10px] text-muted-foreground">{label}</div>)}</div>
+      <div className="mt-2 grid grid-cols-3 gap-2">{preview.columns.map((label, index) => <div key={label} className={`rounded-md px-2 py-2 text-[10px] ${index === 0 ? "bg-petrobras-green/10 text-petrobras-green" : "bg-muted/35 text-muted-foreground"}`}>{label}</div>)}</div>
+      <p className="mt-2 text-[10px] text-muted-foreground">A imagem é uma representação didática; os dados reais aparecem conforme seu perfil e seus filtros.</p>
     </div>
   )
 }
