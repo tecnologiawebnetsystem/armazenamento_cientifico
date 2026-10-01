@@ -208,7 +208,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         onViewChange={setView}
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"><span aria-live="polite">Exibindo {filtered.length} nesta página de {pagination?.total ?? projects.length} projetos</span><div className="flex items-center gap-3"><Button variant="ghost" size="sm" onClick={() => void refresh()}><RefreshCwIcon data-icon="inline-start" />Atualizar</Button><Button variant="ghost" size="sm" onClick={() => { setSearch(""); setStatus("todos"); setArea("todas") }} disabled={!search && status === "todos" && area === "todas"}><XIcon data-icon="inline-start" />Limpar filtros</Button><label className="flex items-center gap-2"><Columns3Icon className="size-4" /><input type="checkbox" checked={showMeta} onChange={(event) => setShowMeta(event.target.checked)} />Mostrar detalhes</label></div></div>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"><span aria-live="polite">Exibindo {filtered.length} nesta página de {pagination?.total ?? projects.length} projetos</span><div className="flex items-center gap-3"><Button nativeButton variant="ghost" size="sm" onClick={() => void refresh()}><RefreshCwIcon data-icon="inline-start" />Atualizar</Button><Button nativeButton variant="ghost" size="sm" onClick={() => { setSearch(""); setStatus("todos"); setArea("todas") }} disabled={!search && status === "todos" && area === "todas"}><XIcon data-icon="inline-start" />Limpar filtros</Button><label className="flex items-center gap-2"><Columns3Icon className="size-4" /><input type="checkbox" checked={showMeta} onChange={(event) => setShowMeta(event.target.checked)} />Mostrar detalhes</label></div></div>
 
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -269,8 +269,8 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
           <p className="text-sm text-muted-foreground">Página {pagination.page} de {pagination.totalPages} · {pagination.total} projetos</p>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={pagination.page <= 1} onClick={() => { const next = new URLSearchParams(searchParams.toString()); next.set("page", String(pagination.page - 1)); router.push(`${pathname}?${next}`) }}>Anterior</Button>
-            <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages} onClick={() => { const next = new URLSearchParams(searchParams.toString()); next.set("page", String(pagination.page + 1)); router.push(`${pathname}?${next}`) }}>Próxima</Button>
+            <Button nativeButton variant="outline" size="sm" disabled={pagination.page <= 1} onClick={() => { const next = new URLSearchParams(searchParams.toString()); next.set("page", String(pagination.page - 1)); router.push(`${pathname}?${next}`) }}>Anterior</Button>
+            <Button nativeButton variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages} onClick={() => { const next = new URLSearchParams(searchParams.toString()); next.set("page", String(pagination.page + 1)); router.push(`${pathname}?${next}`) }}>Próxima</Button>
           </div>
         </div>
       )}
