@@ -76,8 +76,8 @@ def upgrade() -> None:
         sa.Column("prefix", sa.String(length=20), nullable=False),
         sa.Column("next_number", sa.Integer(), nullable=False),
         sa.Column("active", sa.Boolean(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("prefix"),
     )
@@ -125,8 +125,8 @@ def upgrade() -> None:
         sa.Column("description", sa.Text(), nullable=False),
         sa.Column("status", sa.String(length=30), nullable=False),
         sa.Column("participants_ids", sa.JSON(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -150,6 +150,7 @@ def upgrade() -> None:
         sa.Column("active", sa.Boolean(), nullable=False),
         sa.ForeignKeyConstraint(["report_code"], ["report_types.code"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("report_code", "field_key"),
     )
     op.create_table(
         "menus",
