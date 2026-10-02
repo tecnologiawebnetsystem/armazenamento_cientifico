@@ -22,6 +22,7 @@ class UserService:
     async def create_user(self, data: UserCreate) -> User:
         user = User(
             id=str(uuid4()),
+            user_id=data.user_id,
             name=data.name,
             email=data.email,
             job_title=data.cargo,

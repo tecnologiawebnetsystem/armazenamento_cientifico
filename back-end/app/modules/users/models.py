@@ -12,7 +12,8 @@ __all__ = ["Profile", "User"]
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    user_id: Mapped[str | None] = mapped_column(String(255), unique=True, index=True, nullable=True)
     name: Mapped[str] = mapped_column(String(200))
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
     job_title: Mapped[str | None] = mapped_column("job_title", String(120), nullable=True)

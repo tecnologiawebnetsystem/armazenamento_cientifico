@@ -82,6 +82,7 @@ def upgrade() -> None:
     op.create_table(
         "users",
         sa.Column("id", sa.String(length=255), nullable=False),
+        sa.Column("user_id", sa.String(length=255), nullable=True),
         sa.Column("name", sa.String(length=200), nullable=False),
         sa.Column("email", sa.String(length=320), nullable=False),
         sa.Column("job_title", sa.String(length=120), nullable=True),
@@ -297,11 +298,11 @@ def upgrade() -> None:
     # permitir que a baseline seja aplicada em bancos já parcialmente povoados.
     execute_sql_script(
         """
-        INSERT INTO users (id, name, email, job_title, area, role, profile_id) VALUES
-        ('Kleber Goncalves', 'Administrador de Desenvolvimento', 'kleber.goncalves.prestserv@petrobras.com.br', 'Administrador', 'Governança e Compliance', 'administrador', 'ADM'),
-        ('Fabio Junio', 'Administrador de Desenvolvimento', 'fabio.j.lima.prestserv@petrobras.com.br', 'Administrador', 'Governança e Compliance', 'administrador', 'ADM'),
-        ('Jefferson Breno', 'Administrador de Desenvolvimento', 'jefferson.breno.prestserv@petrobras.com.br', 'Administrador', 'Governança e Compliance', 'administrador', 'ADM')
-        ON CONFLICT (id) DO UPDATE SET name = excluded.name, email = excluded.email,
+        INSERT INTO users (id, user_id, name, email, job_title, area, role, profile_id) VALUES
+        ('Kleber Goncalves', 'KLEBER.GONCALVES', 'Administrador de Desenvolvimento', 'kleber.goncalves.prestserv@petrobras.com.br', 'Administrador', 'Governança e Compliance', 'administrador', 'ADM'),
+        ('Fabio Junio', 'FABIO.JUNIO', 'Administrador de Desenvolvimento', 'fabio.j.lima.prestserv@petrobras.com.br', 'Administrador', 'Governança e Compliance', 'administrador', 'ADM'),
+        ('Jefferson Breno', 'JEFFERSON.BRENO', 'Administrador de Desenvolvimento', 'jefferson.breno.prestserv@petrobras.com.br', 'Administrador', 'Governança e Compliance', 'administrador', 'ADM')
+        ON CONFLICT (id) DO UPDATE SET user_id = excluded.user_id, name = excluded.name, email = excluded.email,
             job_title = excluded.job_title, area = excluded.area, role = excluded.role, profile_id = excluded.profile_id;
 
         INSERT INTO modules (id, name, route, icon, display_order, active) VALUES

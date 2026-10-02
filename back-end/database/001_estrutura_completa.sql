@@ -152,8 +152,9 @@ CREATE TABLE report_fields (
 );
 
 CREATE TABLE users (
-	id varchar(255) NOT NULL,
-	"name" varchar(200) NOT NULL,
+  id varchar(255) NOT NULL,
+  user_id varchar(255) NULL,
+  "name" varchar(200) NOT NULL,
 	email varchar(320) NOT NULL,
 	job_title varchar(120) NULL,
 	area varchar(120) NULL,
@@ -232,6 +233,7 @@ CREATE TABLE sessions (
 	CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE UNIQUE INDEX ix_users_user_id ON users USING btree (user_id);
 CREATE INDEX ix_users_email ON users USING btree (email);
 CREATE INDEX ix_users_profile_id ON users USING btree (profile_id);
 CREATE INDEX ix_projects_code ON projects USING btree (code);

@@ -6,13 +6,14 @@
 BEGIN;
 
 -- Usuários de homologação usados nas telas de dashboard, projetos e auditoria.
-INSERT INTO users (id, name, email, job_title, area, role, profile_id, last_login_at)
+INSERT INTO users (id, user_id, name, email, job_title, area, role, profile_id, last_login_at)
 VALUES
-  ('seed-admin', 'Administrador de Desenvolvimento', 'admin.dev@sigac.local', 'Administrador', 'Governança e Compliance', 'administrador', 'ADM', NULL),
-  ('seed-gerente', 'Gerente de Desenvolvimento', 'gerente.dev@sigac.local', 'Gerente de Projetos', 'Tecnologia', 'gerente', 'GER', NULL),
-  ('seed-auditor', 'Auditor de Desenvolvimento', 'auditor.dev@sigac.local', 'Auditor', 'Auditoria', 'auditor', 'AUD', NULL),
-  ('GFZ3', 'Kleber de Oliveira Gonçalves - PrestServ', 'kleber.goncalves.prestserv@petrobras.com.br', NULL, NULL, 'administrador', 'ADM', '2026-09-25 16:50:57.382-03')
+  ('seed-admin', 'SEED.ADMIN', 'Administrador de Desenvolvimento', 'admin.dev@sigac.local', 'Administrador', 'Governança e Compliance', 'administrador', 'ADM', NULL),
+  ('seed-gerente', 'SEED.GERENTE', 'Gerente de Desenvolvimento', 'gerente.dev@sigac.local', 'Gerente de Projetos', 'Tecnologia', 'gerente', 'GER', NULL),
+  ('seed-auditor', 'SEED.AUDITOR', 'Auditor de Desenvolvimento', 'auditor.dev@sigac.local', 'Auditor', 'Auditoria', 'auditor', 'AUD', NULL),
+  ('GFZ3', 'GFZ3', 'Kleber de Oliveira Gonçalves - PrestServ', 'kleber.goncalves.prestserv@petrobras.com.br', NULL, NULL, 'administrador', 'ADM', '2026-09-25 16:50:57.382-03')
 ON CONFLICT (id) DO UPDATE SET
+  user_id = EXCLUDED.user_id,
   name = EXCLUDED.name,
   email = EXCLUDED.email,
   job_title = EXCLUDED.job_title,

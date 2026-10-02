@@ -4,6 +4,7 @@ from pydantic import BaseModel, EmailStr, Field
 
 
 class UserBase(BaseModel):
+    user_id: str | None = Field(None, min_length=1, max_length=255)
     name: str = Field(..., min_length=1, max_length=200)
     email: EmailStr
     cargo: str | None = Field(None, max_length=120)
