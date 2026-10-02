@@ -93,7 +93,7 @@ INSERT INTO permissions (id, module_id, name, description, active) VALUES
 ('relatorio.exportar', 'relatorios', 'Exportar relatórios', 'Exportar CSV, TXT e PDF', true),
 ('auditoria.visualizar', 'auditoria', 'Visualizar auditoria', 'Visualizar logs de auditoria', true),
 ('pesquisa.visualizar', 'pesquisas', 'Visualizar mapa de acessos', 'Consultar projetos, grupos, membros, pastas e níveis', true),
-('administracao.configurar', 'configuracoes', 'Configurar plataforma', 'Gerenciar configurações da plataforma', true),
+('administracao.configurar', 'configuracoes', 'Configurar administração', 'Editar módulos, menus, permissões, perfis e relatórios', true),
 ('dashboard.visualizar', 'dashboard', 'Visualizar Dashboard', 'Acessar o Dashboard da plataforma', true)
 ON CONFLICT (id) DO UPDATE SET module_id = excluded.module_id, name = excluded.name, description = excluded.description, active = excluded.active;
 
@@ -143,4 +143,5 @@ COMMIT;
 -- profiles -> modules -> responsible_areas -> project_statuses -> report_types
 -- -> report_fields -> permissions -> menus -> menu_permissions
 -- -> profile_modules -> profile_permissions.
--- Usuários, projetos e demais dados operacionais devem ser inseridos em script posterior.
+-- Usuários administrativos iniciais podem ser inseridos pela migration Alembic;
+-- projetos, pastas, membros e logs de homologação ficam no script 003.

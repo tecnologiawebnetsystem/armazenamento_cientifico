@@ -181,8 +181,6 @@ CREATE TABLE activity_logs (
 	CONSTRAINT activity_logs_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL,
 	CONSTRAINT activity_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
-CREATE INDEX ix_activity_logs_project_id ON activity_logs USING btree (project_id);
-
 CREATE TABLE folders (
 	id varchar(36) NOT NULL,
 	project_id varchar(36) NOT NULL,
@@ -233,3 +231,21 @@ CREATE TABLE sessions (
 	CONSTRAINT sessions_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE RESTRICT,
 	CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE INDEX ix_users_email ON users USING btree (email);
+CREATE INDEX ix_users_profile_id ON users USING btree (profile_id);
+CREATE INDEX ix_projects_code ON projects USING btree (code);
+CREATE INDEX ix_projects_status ON projects USING btree (status);
+CREATE INDEX ix_permissions_module_id ON permissions USING btree (module_id);
+CREATE INDEX ix_report_fields_report_code ON report_fields USING btree (report_code);
+CREATE INDEX ix_responsible_areas_name ON responsible_areas USING btree (name);
+CREATE INDEX ix_responsible_areas_active ON responsible_areas USING btree (active);
+CREATE INDEX ix_project_members_project_id ON project_members USING btree (project_id);
+CREATE INDEX ix_folders_project_id ON folders USING btree (project_id);
+CREATE INDEX ix_folders_parent_id ON folders USING btree (parent_id);
+CREATE INDEX ix_folders_created_by ON folders USING btree (created_by);
+CREATE INDEX ix_activity_logs_user_id ON activity_logs USING btree (user_id);
+CREATE INDEX ix_activity_logs_project_id ON activity_logs USING btree (project_id);
+CREATE INDEX ix_activity_logs_action ON activity_logs USING btree (action);
+CREATE INDEX ix_activity_logs_entity ON activity_logs USING btree (entity);
+CREATE INDEX ix_activity_logs_created_at ON activity_logs USING btree (created_at);
