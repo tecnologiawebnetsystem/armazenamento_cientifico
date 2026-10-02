@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from app.core.authorization import ensure_role, has_capability, require_capability
+from app.core.authorization import ensure_role, has_capability, require_capability, require_operator
 
 
 def test_manager_is_allowed_to_manage():
@@ -42,3 +42,15 @@ def test_missing_capability_returns_403():
     with pytest.raises(HTTPException) as error:
         require_capability({"role": "solicitante", "permissions": []}, "reports")
     assert error.value.status_code == 403
+
+
+def test_operator_can_manage_configuration_by_profile_id():
+    user = {"profile_id": "OPR", "profile_name": "operador", "role": "operador"}
+    assert require_operator(user) is user
+
+
+def test_only_operator_can_manage_configuration():
+    with pytest.raises(HTTPException) as error:
+        require_operator({"profile_id": "ADM", "profile_name": "admin", "role": "admin"})
+    assert error.value.status_code == 403
+    assert error.value.detail == "Apenas operadores podem alterar Configurações."
