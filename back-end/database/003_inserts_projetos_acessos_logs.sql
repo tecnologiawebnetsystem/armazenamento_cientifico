@@ -5,6 +5,39 @@
 \set ON_ERROR_STOP on
 BEGIN;
 
+-- Usuários de homologação usados nas telas de dashboard, projetos e auditoria.
+INSERT INTO users (id, name, email, job_title, area, role, profile_id, last_login_at)
+VALUES
+  ('seed-admin', 'Administrador de Desenvolvimento', 'admin.dev@sigac.local', 'Administrador', 'Governança e Compliance', 'administrador', 'ADM', NULL),
+  ('seed-gerente', 'Gerente de Desenvolvimento', 'gerente.dev@sigac.local', 'Gerente de Projetos', 'Tecnologia', 'gerente', 'GER', NULL),
+  ('seed-auditor', 'Auditor de Desenvolvimento', 'auditor.dev@sigac.local', 'Auditor', 'Auditoria', 'auditor', 'AUD', NULL),
+  ('GFZ3', 'Kleber de Oliveira Gonçalves - PrestServ', 'kleber.goncalves.prestserv@petrobras.com.br', NULL, NULL, 'administrador', 'ADM', '2026-09-25 16:50:57.382-03')
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  email = EXCLUDED.email,
+  job_title = EXCLUDED.job_title,
+  area = EXCLUDED.area,
+  role = EXCLUDED.role,
+  profile_id = EXCLUDED.profile_id,
+  last_login_at = EXCLUDED.last_login_at;
+
+-- Cards de dashboard usados para homologar as visões por perfil.
+INSERT INTO dashboard_cards (id, module_id, key, title, description, metric_key, route, profile_ids, display_order, active)
+VALUES
+  ('dashboard-projetos', 'projetos', 'projetos', 'Projetos', 'Projetos disponíveis no seu escopo.', 'total_projetos', '/projetos', 'ADM,GER,AUD,PAT', 10, true),
+  ('dashboard-pendencias', 'relatorios', 'pendencias', 'Pendências', 'Itens que precisam de atenção.', 'pendencias', '/relatorios', 'ADM,GER,PAT', 20, true),
+  ('dashboard-auditoria', 'auditoria', 'auditoria', 'Auditoria', 'Eventos recentes para acompanhamento.', 'eventos_auditoria', '/logs', 'ADM,AUD', 30, true)
+ON CONFLICT (id) DO UPDATE SET
+  module_id = EXCLUDED.module_id,
+  key = EXCLUDED.key,
+  title = EXCLUDED.title,
+  description = EXCLUDED.description,
+  metric_key = EXCLUDED.metric_key,
+  route = EXCLUDED.route,
+  profile_ids = EXCLUDED.profile_ids,
+  display_order = EXCLUDED.display_order,
+  active = EXCLUDED.active;
+
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM users) THEN

@@ -76,8 +76,8 @@ def upgrade() -> None:
         sa.Column("prefix", sa.String(length=20), nullable=False),
         sa.Column("next_number", sa.Integer(), nullable=False),
         sa.Column("active", sa.Boolean(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("prefix"),
     )
@@ -125,8 +125,8 @@ def upgrade() -> None:
         sa.Column("description", sa.Text(), nullable=False),
         sa.Column("status", sa.String(length=30), nullable=False),
         sa.Column("participants_ids", sa.JSON(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -150,6 +150,7 @@ def upgrade() -> None:
         sa.Column("active", sa.Boolean(), nullable=False),
         sa.ForeignKeyConstraint(["report_code"], ["report_types.code"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("report_code", "field_key"),
     )
     op.create_table(
         "menus",
@@ -218,8 +219,11 @@ def upgrade() -> None:
         sa.Column("entity", sa.String(length=100), nullable=False),
         sa.Column("entity_id", sa.String(length=36), nullable=True),
         sa.Column("details", sa.Text(), nullable=False, server_default=""),
-        sa.Column("result", sa.String(length=40), nullable=True),
+        sa.Column("result", sa.String(length=30), nullable=False, server_default="success"),
+        sa.Column("project_id", sa.String(length=36), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -264,6 +268,7 @@ def upgrade() -> None:
     op.create_index("ix_folders_parent_id", "folders", ["parent_id"])
     op.create_index("ix_folders_created_by", "folders", ["created_by"])
     op.create_index("ix_activity_logs_user_id", "activity_logs", ["user_id"])
+    op.create_index("ix_activity_logs_project_id", "activity_logs", ["project_id"])
     op.create_index("ix_activity_logs_action", "activity_logs", ["action"])
     op.create_index("ix_activity_logs_entity", "activity_logs", ["entity"])
     op.create_index("ix_activity_logs_created_at", "activity_logs", ["created_at"])
@@ -277,6 +282,12 @@ def upgrade() -> None:
         from sqlalchemy.dialects.sqlite import insert
     else:
         from sqlalchemy.dialects.postgresql import insert
+
+    def execute_sql_script(script: str) -> None:
+        for statement in script.split(";"):
+            statement = statement.strip()
+            if statement:
+                bind.execute(sa.text(statement))
 
     seeded_at = datetime.now(UTC).replace(tzinfo=None)
     bind.execute(
@@ -292,7 +303,7 @@ def upgrade() -> None:
 
     # Catálogos e relações iniciais da aplicação. O seed é idempotente para
     # permitir que a baseline seja aplicada em bancos já parcialmente povoados.
-    bind.execute(sa.text(
+    execute_sql_script(
         """
         INSERT INTO users (id, name, email, job_title, area, role, profile_id) VALUES
         ('Kleber Goncalves', 'Administrador de Desenvolvimento', 'kleber.goncalves.prestserv@petrobras.com.br', 'Administrador', 'Governança e Compliance', 'administrador', 'ADM'),
@@ -302,6 +313,7 @@ def upgrade() -> None:
             job_title = excluded.job_title, area = excluded.area, role = excluded.role, profile_id = excluded.profile_id;
 
         INSERT INTO modules (id, name, route, icon, display_order, active) VALUES
+        ('dashboard', 'Dashboard', '/dashboard', 'layout-dashboard', 1, true),
         ('projetos', 'Projetos', '/projetos', 'folder', 10, true),
         ('relatorios', 'Relatórios', '/relatorios', 'chart', 30, true),
         ('auditoria', 'Logs e Auditoria', '/logs', 'history', 50, true),
@@ -310,6 +322,7 @@ def upgrade() -> None:
         ON CONFLICT (id) DO UPDATE SET name = excluded.name, route = excluded.route, icon = excluded.icon, display_order = excluded.display_order, active = excluded.active;
 
         INSERT INTO permissions (id, module_id, name, description, active) VALUES
+        ('dashboard.visualizar', 'dashboard', 'Visualizar Dashboard', 'Acessar o Dashboard da plataforma', true),
         ('projeto.visualizar', 'projetos', 'Visualizar projetos', 'Visualizar projetos', true),
         ('projeto.criar', 'projetos', 'Criar projetos', 'Criar projetos', true),
         ('projeto.editar', 'projetos', 'Editar projetos', 'Editar projetos', true),
@@ -323,7 +336,7 @@ def upgrade() -> None:
         ON CONFLICT (id) DO UPDATE SET module_id = excluded.module_id, name = excluded.name, description = excluded.description, active = excluded.active;
 
         INSERT INTO menus (id, module_id, name, route, icon, display_order, active) VALUES
-        ('menu-dashboard', NULL, 'Dashboard', '/dashboard', 'layout-dashboard', 1, true),
+        ('menu-dashboard', 'dashboard', 'Dashboard', '/dashboard', 'layout-dashboard', 1, true),
         ('menu-projetos', 'projetos', 'Projetos', '/projetos', 'folder', 10, true),
         ('menu-relatorios', 'relatorios', 'Relatórios', '/relatorios', 'chart', 30, true),
         ('menu-auditoria', 'auditoria', 'Logs e Auditoria', '/logs', 'history', 50, true),
@@ -332,6 +345,7 @@ def upgrade() -> None:
         ON CONFLICT (id) DO UPDATE SET module_id = excluded.module_id, name = excluded.name, route = excluded.route, icon = excluded.icon, display_order = excluded.display_order, active = excluded.active;
 
         INSERT INTO menu_permissions (menu_id, permission_id, allowed) VALUES
+        ('menu-dashboard', 'dashboard.visualizar', true),
         ('menu-projetos', 'projeto.visualizar', true), ('menu-relatorios', 'relatorio.visualizar', true),
         ('menu-auditoria', 'auditoria.visualizar', true), ('menu-pesquisas', 'pesquisa.visualizar', true),
         ('menu-configuracoes', 'administracao.configurar', true)
@@ -361,7 +375,7 @@ def upgrade() -> None:
         ('projetos-codigo', 'projetos', 'codigo', 'Código', 'codigo', 10, true), ('projetos-nome', 'projetos', 'nome', 'Projeto', 'nome', 20, true),
         ('projetos-area', 'projetos', 'areaResponsavel', 'Área responsável', 'areaResponsavel', 30, true), ('projetos-status', 'projetos', 'status', 'Status', 'status', 40, true),
         ('projetos-gestores', 'projetos', 'gestoresIds', 'Gestores', 'gestoresIds', 50, true), ('projetos-membros', 'projetos', 'totalMembros', 'Total de membros', 'totalMembros', 60, true),
-        ('projetos-criado', 'projetos', 'criadoEm', 'Criado em', 'criadoEm', 70, true), ('projetos-atualizado', 'projetos', 'atualizadoEm', 'Atualizado em', 80, true),
+        ('projetos-criado', 'projetos', 'criadoEm', 'Criado em', 'criadoEm', 70, true), ('projetos-atualizado', 'projetos', 'atualizadoEm', 'Atualizado em', 'atualizadoEm', 80, true),
         ('acessos-usuario-id', 'acessos', 'userId', 'Identificador do usuário', 'userId', 10, true), ('acessos-usuario', 'acessos', 'userName', 'Membro', 'userName', 20, true),
         ('acessos-email', 'acessos', 'userEmail', 'E-mail', 'userEmail', 30, true), ('acessos-perfil', 'acessos', 'userRole', 'Perfil', 'userRole', 40, true),
         ('acessos-area', 'acessos', 'area', 'Área', 'area', 50, true), ('acessos-projeto-id', 'acessos', 'projectId', 'Identificador do projeto', 'projectId', 60, true),
@@ -380,13 +394,13 @@ def upgrade() -> None:
         ('dashboard-auditoria', 'auditoria', 'auditoria', 'Auditoria', 'Eventos recentes para acompanhamento.', 'eventos_auditoria', '/logs', 'ADM,AUD', 30)
         ON CONFLICT (key) DO UPDATE SET module_id = excluded.module_id, title = excluded.title, description = excluded.description, metric_key = excluded.metric_key, route = excluded.route, profile_ids = excluded.profile_ids, active = true;
         """
-    ))
+    )
 
-    bind.execute(sa.text(
+    execute_sql_script(
         """
         INSERT INTO profile_modules (profile_id, module_id, can_view)
         SELECT p.id, m.id,
-            CASE WHEN p.id = 'ADM' THEN true WHEN p.id = 'OPR' THEN m.id = 'configuracoes' WHEN m.id = 'configuracoes' THEN false
+            CASE WHEN p.id = 'ADM' THEN true WHEN m.id = 'dashboard' THEN p.id IN ('ADM', 'GER', 'AUD', 'PAT') WHEN p.id = 'OPR' THEN m.id = 'configuracoes' WHEN m.id = 'configuracoes' THEN false
             WHEN m.id = 'auditoria' THEN p.id IN ('AUD', 'ADM')
             WHEN m.id IN ('relatorios', 'pesquisas') THEN p.id IN ('GER', 'AUD', 'PAT', 'ADM')
             ELSE p.id IN ('GER', 'AUD', 'PAT', 'ADM') END
@@ -395,18 +409,18 @@ def upgrade() -> None:
 
         INSERT INTO profile_permissions (profile_id, permission_id, allowed)
         SELECT p.id, x.permission_id,
-            CASE WHEN p.id = 'ADM' THEN true WHEN p.id = 'OPR' THEN x.permission_id = 'administracao.configurar' WHEN x.permission_id = 'projeto.visualizar' THEN p.id IN ('GER', 'AUD', 'PAT')
+            CASE WHEN p.id = 'ADM' THEN true WHEN x.permission_id = 'dashboard.visualizar' THEN p.id IN ('ADM', 'GER', 'AUD', 'PAT') WHEN p.id = 'OPR' THEN x.permission_id = 'administracao.configurar' WHEN x.permission_id = 'projeto.visualizar' THEN p.id IN ('GER', 'AUD', 'PAT')
             WHEN x.permission_id = 'relatorio.visualizar' THEN p.id IN ('GER', 'AUD', 'PAT')
             WHEN x.permission_id = 'relatorio.exportar' THEN p.id IN ('ADM', 'GER')
             WHEN x.permission_id = 'auditoria.visualizar' THEN p.id IN ('ADM', 'AUD')
             WHEN x.permission_id = 'pesquisa.visualizar' THEN p.id IN ('ADM', 'GER', 'AUD', 'PAT') ELSE false END
         FROM profiles p CROSS JOIN (VALUES
-            ('projeto.visualizar'), ('projeto.criar'), ('projeto.editar'), ('projeto.status'), ('projeto.excluir'),
+            ('dashboard.visualizar'), ('projeto.visualizar'), ('projeto.criar'), ('projeto.editar'), ('projeto.status'), ('projeto.excluir'),
             ('relatorio.visualizar'), ('relatorio.exportar'), ('auditoria.visualizar'), ('pesquisa.visualizar'), ('administracao.configurar')
         ) AS x(permission_id)
         ON CONFLICT (profile_id, permission_id) DO UPDATE SET allowed = excluded.allowed;
         """
-    ))
+    )
 
 
 def downgrade() -> None:
