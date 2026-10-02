@@ -24,6 +24,7 @@ const profileView: Record<Role, { label: string; description: string; focus: str
   gerente: { label: "Operação dos projetos", description: "Acompanhe os projetos e acessos que precisam da sua atenção.", focus: "Acompanhamento" },
   patrocinador: { label: "Acompanhamento executivo", description: "Consulte o andamento e o alcance dos projetos patrocinados.", focus: "Visão executiva" },
   auditor: { label: "Conformidade e rastreabilidade", description: "Consulte o escopo auditável e os mapas de acesso registrados.", focus: "Conformidade" },
+  operador: { label: "Configurações da plataforma", description: "Acesse as configurações e os recursos administrativos do ambiente.", focus: "Administração" },
   solicitante: { label: "Acesso ao repositório", description: "Consulte as informações disponíveis para o seu escopo.", focus: "Consulta" },
 }
 
@@ -32,7 +33,7 @@ function formatActivityDate(value: string) {
 }
 
 export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, armazenamentoMb, pendencias, activity, consultedAt }: Props) {
-  const view = profileView[role]
+  const view = profileView[role] ?? profileView.solicitante
   const activeProjects = projects.filter((project) => project.status === "ativo").length
   const attention = projects.filter((project) => project.status === "suspenso").length
   const featuredProjects = projects.filter((project) => project.status === "ativo").slice(0, 3)
