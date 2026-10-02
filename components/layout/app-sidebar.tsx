@@ -17,7 +17,6 @@ import {
   SidebarRail,
   SidebarSeparator,
 } from "@/components/ui/sidebar"
-import { isMenuAllowedForRole } from "@/hooks/use-permissions"
 import { usePlatformContext } from "@/hooks/use-platform-context"
 import { ChartNoAxesCombinedIcon, FolderKanbanIcon, LayoutDashboardIcon, NetworkIcon, SettingsIcon, ShieldCheckIcon, type LucideIcon } from "lucide-react"
 import type { NavGroup, NavItem } from "@/lib/nav-config"
@@ -62,22 +61,18 @@ function buildNavGroups(menus: PlatformMenu[]): NavGroup[] {
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { menus, permissions, data } = usePlatformContext()
-  const isAdministrator = data?.user?.perfil_id?.toUpperCase() === "ADM" || data?.user?.perfil_nome?.toLowerCase().includes("admin")
-  const canManageConfiguration = isAdministrator || permissions.includes("administracao.configuracoes")
-  const role = data?.user?.perfil_id || data?.user?.perfil_nome
-  const normalizedRole = String(role ?? "").trim().toLowerCase()
-  const roleMenus = menus.filter((menu) => isMenuAllowedForRole(role, menu.rota))
-  const fallbackMenus: PlatformMenu[] = normalizedRole.includes("pat") || normalizedRole === "pat"
+  const { menus, data } = usePlatformContext()
+  const normalizedRole = String(data?.user?.perfil_id || data?.user?.perfil_nome || "").trim().toLowerCase()
+  // O backend já entrega somente os menus autorizados pelo perfil. Não aplique
+  // uma segunda regra ampla no cliente: ela fazia o gerente enxergar menus de
+  // outros perfis, mesmo quando a matriz de acesso estava correta.
+  const fallbackMenus: PlatformMenu[] = menus.length === 0 && (normalizedRole.includes("pat") || normalizedRole === "pat")
     ? [{ id: "menu-projetos", nome: "Projetos", rota: "/projetos", icone: "folder", ordem: 10 }]
-    : normalizedRole.includes("aud") || normalizedRole === "aud"
+    : menus.length === 0 && (normalizedRole.includes("aud") || normalizedRole === "aud")
       ? [{ id: "menu-logs", nome: "Logs e Auditoria", rota: "/logs", icone: "logs", ordem: 50 }]
       : []
-  const fallbackRoutes = new Set(roleMenus.map((menu) => menu.rota.replace(/\/$/, "") || "/"))
-  const mergedMenus = [...roleMenus, ...fallbackMenus.filter((menu) => !fallbackRoutes.has(menu.rota))]
-  const visibleMenus = canManageConfiguration && !mergedMenus.some((menu) => menu.rota === "/configuracoes")
-    ? [...mergedMenus, { id: "menu-configuracoes", nome: "Configurações", rota: "/configuracoes", icone: "settings", ordem: 90 }]
-    : mergedMenus
+  const visibleMenus = [...menus, ...fallbackMenus]
+
   const groups = buildNavGroups(visibleMenus)
 
   return (
