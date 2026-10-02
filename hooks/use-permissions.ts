@@ -25,7 +25,8 @@ export function normalizeRole(role: Role | string | null | undefined): string {
 export function isMenuAllowedForRole(role: Role | string | null | undefined, route: string): boolean {
   const normalized = normalizeRole(role)
   const path = route.replace(/\/$/, "") || "/"
-  if (normalized === "admin") return true
+  if (normalized === "admin") return path !== "/configuracoes"
+  if (normalized === "operador") return path === "/configuracoes" || path.startsWith("/configuracoes/")
   if (normalized === "gerente") return path !== "/configuracoes"
   if (normalized === "patrocinador") return path === "/projetos" || path.startsWith("/projetos/")
   if (normalized === "auditor") return path === "/auditoria" || path.startsWith("/auditoria/") || path === "/logs" || path.startsWith("/logs/")
