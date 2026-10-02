@@ -283,6 +283,12 @@ def upgrade() -> None:
     else:
         from sqlalchemy.dialects.postgresql import insert
 
+    def execute_sql_script(script: str) -> None:
+        for statement in script.split(";"):
+            statement = statement.strip()
+            if statement:
+                bind.execute(sa.text(statement))
+
     seeded_at = datetime.now(UTC).replace(tzinfo=None)
     bind.execute(
         insert(Profile).values([
@@ -297,7 +303,7 @@ def upgrade() -> None:
 
     # Catálogos e relações iniciais da aplicação. O seed é idempotente para
     # permitir que a baseline seja aplicada em bancos já parcialmente povoados.
-    bind.execute(sa.text(
+    execute_sql_script(
         """
         INSERT INTO users (id, name, email, job_title, area, role, profile_id) VALUES
         ('Kleber Goncalves', 'Administrador de Desenvolvimento', 'kleber.goncalves.prestserv@petrobras.com.br', 'Administrador', 'Governança e Compliance', 'administrador', 'ADM'),
@@ -369,7 +375,7 @@ def upgrade() -> None:
         ('projetos-codigo', 'projetos', 'codigo', 'Código', 'codigo', 10, true), ('projetos-nome', 'projetos', 'nome', 'Projeto', 'nome', 20, true),
         ('projetos-area', 'projetos', 'areaResponsavel', 'Área responsável', 'areaResponsavel', 30, true), ('projetos-status', 'projetos', 'status', 'Status', 'status', 40, true),
         ('projetos-gestores', 'projetos', 'gestoresIds', 'Gestores', 'gestoresIds', 50, true), ('projetos-membros', 'projetos', 'totalMembros', 'Total de membros', 'totalMembros', 60, true),
-        ('projetos-criado', 'projetos', 'criadoEm', 'Criado em', 'criadoEm', 70, true), ('projetos-atualizado', 'projetos', 'atualizadoEm', 'Atualizado em', 80, true),
+        ('projetos-criado', 'projetos', 'criadoEm', 'Criado em', 'criadoEm', 70, true), ('projetos-atualizado', 'projetos', 'atualizadoEm', 'Atualizado em', 'atualizadoEm', 80, true),
         ('acessos-usuario-id', 'acessos', 'userId', 'Identificador do usuário', 'userId', 10, true), ('acessos-usuario', 'acessos', 'userName', 'Membro', 'userName', 20, true),
         ('acessos-email', 'acessos', 'userEmail', 'E-mail', 'userEmail', 30, true), ('acessos-perfil', 'acessos', 'userRole', 'Perfil', 'userRole', 40, true),
         ('acessos-area', 'acessos', 'area', 'Área', 'area', 50, true), ('acessos-projeto-id', 'acessos', 'projectId', 'Identificador do projeto', 'projectId', 60, true),
@@ -388,9 +394,9 @@ def upgrade() -> None:
         ('dashboard-auditoria', 'auditoria', 'auditoria', 'Auditoria', 'Eventos recentes para acompanhamento.', 'eventos_auditoria', '/logs', 'ADM,AUD', 30)
         ON CONFLICT (key) DO UPDATE SET module_id = excluded.module_id, title = excluded.title, description = excluded.description, metric_key = excluded.metric_key, route = excluded.route, profile_ids = excluded.profile_ids, active = true;
         """
-    ))
+    )
 
-    bind.execute(sa.text(
+    execute_sql_script(
         """
         INSERT INTO profile_modules (profile_id, module_id, can_view)
         SELECT p.id, m.id,
@@ -414,7 +420,7 @@ def upgrade() -> None:
         ) AS x(permission_id)
         ON CONFLICT (profile_id, permission_id) DO UPDATE SET allowed = excluded.allowed;
         """
-    ))
+    )
 
 
 def downgrade() -> None:
