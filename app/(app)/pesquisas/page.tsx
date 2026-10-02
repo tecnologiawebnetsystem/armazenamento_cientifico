@@ -27,7 +27,7 @@ function safeDate(value?: string | null) {
 function accessLabel(value?: string | null) {
   const key = (value ?? '').trim()
   if (!key) return 'Não definido'
-  return ({ gerente: 'Gestão', editor: 'Edição', leitor: 'Leitura', viewer: 'Leitura' }[key.toLowerCase()] ?? key)
+  return ({ admin: 'Administrador', gerente: 'Gestão', patrocinador: 'Patrocinador', auditor: 'Auditoria', solicitante: 'Solicitante', editor: 'Edição', leitor: 'Leitura', viewer: 'Leitura' }[key.toLowerCase()] ?? key)
 }
 
 export default function AccessMapPage() {
