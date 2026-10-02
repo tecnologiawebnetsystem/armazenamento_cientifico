@@ -13,8 +13,6 @@ A carga de parâmetros é executada separadamente pelo seed idempotente.
 """
 
 from collections.abc import Sequence
-from datetime import UTC, datetime
-
 import sqlalchemy as sa
 
 from alembic import op
@@ -274,14 +272,7 @@ def upgrade() -> None:
     op.create_index("ix_activity_logs_created_at", "activity_logs", ["created_at"])
 
     # Perfis oficiais da produção; perfis legados não fazem parte da baseline.
-    from app.modules.users.profile_model import Profile
-
     bind = op.get_bind()
-    # PostgreSQL é o padrão; SQLite é aceito apenas como alternativa de desenvolvimento local.
-    if bind.dialect.name == "sqlite":
-        from sqlalchemy.dialects.sqlite import insert
-    else:
-        from sqlalchemy.dialects.postgresql import insert
 
     def execute_sql_script(script: str) -> None:
         for statement in script.split(";"):
@@ -289,16 +280,17 @@ def upgrade() -> None:
             if statement:
                 bind.execute(sa.text(statement))
 
-    seeded_at = datetime.now(UTC).replace(tzinfo=None)
-    bind.execute(
-        insert(Profile).values([
-            {"id": "ADM", "name": "administrador", "description": "Administra a plataforma, configura parâmetros e gerencia acessos.", "created_at": seeded_at},
-            {"id": "GER", "name": "gerente", "description": "Coordena projetos, equipes e atividades operacionais.", "created_at": seeded_at},
-            {"id": "AUD", "name": "auditor", "description": "Consulta informações e acompanha os registros de auditoria.", "created_at": seeded_at},
-            {"id": "PAT", "name": "patrocinador", "description": "Acompanha resultados e aprova solicitações sob sua responsabilidade.", "created_at": seeded_at},
-            {"id": "SOL", "name": "solicitante", "description": "Solicita acessos e acompanha o andamento das solicitações.", "created_at": seeded_at},
-            {"id": "OPR", "name": "operador", "description": "Acessa exclusivamente o menu Configurações.", "created_at": seeded_at},
-        ]).on_conflict_do_nothing(index_elements=["id"])
+    execute_sql_script(
+        """
+        INSERT INTO profiles (id, name, description) VALUES
+        ('ADM', 'administrador', 'Administra a plataforma, configura parâmetros e gerencia acessos.'),
+        ('GER', 'gerente', 'Coordena projetos, equipes e atividades operacionais.'),
+        ('AUD', 'auditor', 'Consulta informações e acompanha os registros de auditoria.'),
+        ('PAT', 'patrocinador', 'Acompanha resultados e aprova solicitações sob sua responsabilidade.'),
+        ('SOL', 'solicitante', 'Solicita acessos e acompanha o andamento das solicitações.'),
+        ('OPR', 'operador', 'Acessa exclusivamente o menu Configurações.')
+        ON CONFLICT (id) DO UPDATE SET name = excluded.name, description = excluded.description;
+        """
     )
 
     # Catálogos e relações iniciais da aplicação. O seed é idempotente para
