@@ -1,33 +1,146 @@
 -- SIGAC / Aurora PostgreSQL
--- Seeds completos e idempotentes. Execute após 001_estrutura_completa.sql.
+-- Inserts completos de parâmetros e configurações.
+-- Execute após 001_estrutura_completa.sql, nesta ordem.
+-- O script é idempotente e pode ser reaplicado com segurança.
 \set ON_ERROR_STOP on
 BEGIN;
 
-INSERT INTO profiles (id,name,description,created_at) VALUES
-('ADM','administrador','Administra a plataforma, configura parâmetros e gerencia acessos.',now()),('GER','gerente','Coordena projetos, equipes e atividades operacionais.',now()),('AUD','auditor','Consulta informações e acompanha registros de auditoria.',now()),('PAT','patrocinador','Acompanha resultados e aprova solicitações.',now()),('SOL','solicitante','Solicita acessos e acompanha solicitações.',now()),('OPR','operador','Acessa exclusivamente o menu Configurações.',now()) ON CONFLICT (id) DO UPDATE SET name=excluded.name,description=excluded.description;
+-- 1. Perfis
+INSERT INTO profiles (id, name, description, created_at) VALUES
+('ADM', 'administrador', 'Administra a plataforma, configura parâmetros e gerencia acessos.', '2026-09-25 16:19:00.534-03'),
+('GER', 'gerente', 'Coordena projetos, equipes e atividades operacionais.', '2026-09-25 16:19:00.534-03'),
+('AUD', 'auditor', 'Consulta informações e acompanha registros de auditoria.', '2026-09-25 16:19:00.534-03'),
+('PAT', 'patrocinador', 'Acompanha resultados e aprova solicitações.', '2026-09-25 16:19:00.534-03'),
+('SOL', 'solicitante', 'Solicita acessos e acompanha solicitações.', '2026-09-25 16:19:00.534-03'),
+('OPR', 'operador', 'Acessa exclusivamente o menu Configurações.', '2026-10-02 11:25:51.173-03')
+ON CONFLICT (id) DO UPDATE SET name = excluded.name, description = excluded.description;
 
--- Usuários técnicos de desenvolvimento; autenticação e senha são gerenciadas pelo CAV4.
-INSERT INTO users (id,name,email,job_title,area,role,profile_id) VALUES
-('Kleber Goncalves','Administrador de Desenvolvimento','kleber.goncalves.prestserv@petrobras.com.br','Administrador','Governança e Compliance','administrador','ADM'),
-('Fabio Junio','Administrador de Desenvolvimento','fabio.j.lima.prestserv@petrobras.com.br','Administrador','Governança e Compliance','administrador','ADM'),
-('Jefferson Breno','Administrador de Desenvolvimento','jefferson.breno.prestserv@petrobras.com.br','Administrador','Governança e Compliance','administrador','ADM')
-ON CONFLICT (id) DO UPDATE SET name=excluded.name, email=excluded.email, job_title=excluded.job_title, area=excluded.area, role=excluded.role, profile_id=excluded.profile_id;
+-- 2. Módulos
+INSERT INTO modules (id, name, route, icon, display_order, active) VALUES
+('dashboard', 'Dashboard', '/dashboard', 'layout-dashboard', 1, true),
+('projetos', 'Projetos', '/projetos', 'folder', 10, true),
+('relatorios', 'Relatórios', '/relatorios', 'chart', 30, true),
+('auditoria', 'Logs e Auditoria', '/logs', 'history', 50, true),
+('pesquisas', 'Mapa de Acessos', '/pesquisas', 'search', 60, true),
+('configuracoes', 'Configurações', '/configuracoes', 'settings', 70, true)
+ON CONFLICT (id) DO UPDATE SET name = excluded.name, route = excluded.route, icon = excluded.icon, display_order = excluded.display_order, active = excluded.active;
 
-INSERT INTO modules (id,name,route,icon,display_order,active) VALUES
-('projetos','Projetos','/projetos','folder',10,true),('relatorios','Relatórios','/relatorios','chart',30,true),('auditoria','Logs e Auditoria','/logs','history',50,true),('pesquisas','Mapa de Acessos','/pesquisas','search',60,true),('configuracoes','Configurações','/configuracoes','settings',70,true) ON CONFLICT(id) DO UPDATE SET name=excluded.name,route=excluded.route,icon=excluded.icon,display_order=excluded.display_order,active=excluded.active;
-INSERT INTO permissions (id,module_id,name,description,active) VALUES
-('projeto.visualizar','projetos','Visualizar projetos','Visualizar projetos',true),('projeto.criar','projetos','Criar projetos','Criar projetos',true),('projeto.editar','projetos','Editar projetos','Editar projetos',true),('projeto.status','projetos','Alterar status','Alterar status de projetos',true),('projeto.excluir','projetos','Excluir projetos','Excluir projetos',true),('relatorio.visualizar','relatorios','Visualizar relatórios','Visualizar relatórios',true),('relatorio.exportar','relatorios','Exportar relatórios','Exportar CSV, TXT e PDF',true),('auditoria.visualizar','auditoria','Visualizar auditoria','Visualizar logs de auditoria',true),('pesquisa.visualizar','pesquisas','Visualizar mapa de acessos','Consultar projetos, grupos, membros, pastas e níveis',true),('administracao.configurar','configuracoes','Configurar administração','Editar módulos, menus, permissões, perfis e relatórios',true) ON CONFLICT(id) DO UPDATE SET module_id=excluded.module_id,name=excluded.name,description=excluded.description,active=excluded.active;
-INSERT INTO menus (id,module_id,name,route,icon,display_order,active) VALUES
-('menu-dashboard',NULL,'Dashboard','/dashboard','layout-dashboard',1,true),('menu-projetos','projetos','Projetos','/projetos','folder',10,true),('menu-relatorios','relatorios','Relatórios','/relatorios','chart',30,true),('menu-auditoria','auditoria','Logs e Auditoria','/logs','history',50,true),('menu-pesquisas','pesquisas','Mapa de Acessos','/pesquisas','search',60,true),('menu-configuracoes','configuracoes','Configurações','/configuracoes','settings',70,true) ON CONFLICT(id) DO UPDATE SET module_id=excluded.module_id,name=excluded.name,route=excluded.route,icon=excluded.icon,display_order=excluded.display_order,active=excluded.active;
-INSERT INTO menu_permissions(menu_id,permission_id,allowed) VALUES ('menu-projetos','projeto.visualizar',true),('menu-relatorios','relatorio.visualizar',true),('menu-auditoria','auditoria.visualizar',true),('menu-pesquisas','pesquisa.visualizar',true),('menu-configuracoes','administracao.configurar',true) ON CONFLICT (menu_id,permission_id) DO UPDATE SET allowed=excluded.allowed;
-INSERT INTO project_statuses(id,code,name,color,display_order,active) VALUES ('ativo','ativo','Ativo','green',10,true),('em-implantacao','em_implantacao','Em implantação','blue',20,true),('pausado','pausado','Pausado','amber',30,true),('encerrado','encerrado','Encerrado','slate',40,true) ON CONFLICT(id) DO UPDATE SET code=excluded.code,name=excluded.name,color=excluded.color,display_order=excluded.display_order,active=excluded.active;
-INSERT INTO responsible_areas(id,name,prefix,next_number) VALUES ('tecnologia','Tecnologia','TEC',1),('pesquisa','Pesquisa','PES',1),('engenharia','Engenharia','ENG',1),('operacoes','Operações','OP',1),('governanca-compliance','Governança e Compliance','GC',1),('documentacao','Documentação','DOC',1) ON CONFLICT(id) DO UPDATE SET name=excluded.name,prefix=excluded.prefix,active=true;
-INSERT INTO report_types(id,code,name,description,formats) VALUES ('PROJETOS','projetos','Relatório Executivo de Projetos','Portfólio, status, áreas, gestores e indicadores.','csv,txt,pdf'),('ACESSOS','acessos','Mapa de Acessos Científico','Projetos, grupos, membros, pastas e níveis de acesso.','csv,txt,pdf'),('AUDITORIA','auditoria','Logs de Auditoria','Rastreabilidade de ações, usuários, entidades e resultados.','csv,txt,pdf') ON CONFLICT(id) DO UPDATE SET code=excluded.code,name=excluded.name,description=excluded.description,formats=excluded.formats,active=true;
-INSERT INTO report_fields(id,report_code,field_key,label,source_key,display_order) VALUES
-('projetos-codigo','projetos','codigo','Código','codigo',10),('projetos-nome','projetos','nome','Projeto','nome',20),('projetos-area','projetos','areaResponsavel','Área responsável','areaResponsavel',30),('projetos-status','projetos','status','Status','status',40),('projetos-gestores','projetos','gestoresIds','Gestores','gestoresIds',50),('projetos-membros','projetos','totalMembros','Total de membros','totalMembros',60),('projetos-criado','projetos','criadoEm','Criado em','criadoEm',70),('projetos-atualizado','projetos','atualizadoEm','Atualizado em','atualizadoEm',80),
-('acessos-usuario-id','acessos','userId','Identificador do usuário','userId',10),('acessos-usuario','acessos','userName','Membro','userName',20),('acessos-email','acessos','userEmail','E-mail','userEmail',30),('acessos-perfil','acessos','userRole','Perfil','userRole',40),('acessos-area','acessos','area','Área','area',50),('acessos-projeto-id','acessos','projectId','Identificador do projeto','projectId',60),('acessos-projeto','acessos','projectName','Projeto','projectName',70),('acessos-status','acessos','projectStatus','Status do projeto','projectStatus',80),('acessos-recurso','acessos','resourceName','Recurso','resourceName',90),('acessos-tipo','acessos','resourceType','Tipo de recurso','resourceType',100),('acessos-atualizacao','acessos','lastViewedAt','Último acesso','lastViewedAt',110),
-('auditoria-id','auditoria','id','Identificador','id',10),('auditoria-data','auditoria','criadoEm','Data e hora','criadoEm',20),('auditoria-usuario','auditoria','userName','Usuário','userName',30),('auditoria-email','auditoria','userEmail','E-mail','userEmail',40),('auditoria-acao','auditoria','acao','Ação','acao',50),('auditoria-entidade','auditoria','entidade','Entidade','entidade',60),('auditoria-entidade-id','auditoria','entidadeId','Identificador da entidade','entidadeId',70),('auditoria-resultado','auditoria','resultado','Resultado','resultado',80),('auditoria-detalhes','auditoria','detalhes','Detalhes','detalhes',90) ON CONFLICT(id) DO UPDATE SET report_code=excluded.report_code,field_key=excluded.field_key,label=excluded.label,source_key=excluded.source_key,display_order=excluded.display_order,active=true;
-INSERT INTO dashboard_cards(id,module_id,key,title,description,metric_key,route,profile_ids,display_order) VALUES ('dashboard-projetos','projetos','projetos','Projetos','Projetos disponíveis no seu escopo.','total_projetos','/projetos','ADM,GER,AUD,PAT',10),('dashboard-pendencias','relatorios','pendencias','Pendências','Itens que precisam de atenção.','pendencias','/relatorios','ADM,GER,PAT',20),('dashboard-auditoria','auditoria','auditoria','Auditoria','Eventos recentes para acompanhamento.','eventos_auditoria','/logs','ADM,AUD',30) ON CONFLICT(key) DO UPDATE SET module_id=excluded.module_id,title=excluded.title,description=excluded.description,metric_key=excluded.metric_key,route=excluded.route,profile_ids=excluded.profile_ids,active=true;
-INSERT INTO profile_modules(profile_id,module_id,can_view) SELECT p.id,m.id,CASE WHEN p.id='OPR' THEN m.id='configuracoes' WHEN m.id='configuracoes' THEN false WHEN p.id='ADM' THEN true WHEN m.id='auditoria' THEN p.id IN('AUD','ADM') WHEN m.id IN('relatorios','pesquisas') THEN p.id IN('GER','AUD','PAT','ADM') ELSE p.id IN('GER','AUD','PAT','ADM') END FROM profiles p CROSS JOIN modules m ON CONFLICT(profile_id,module_id) DO UPDATE SET can_view=excluded.can_view;
-INSERT INTO profile_permissions(profile_id,permission_id,allowed) SELECT p.id,x.permission_id,CASE WHEN p.id='OPR' THEN x.permission_id='administracao.configurar' WHEN p.id='ADM' THEN x.permission_id <> 'administracao.configurar' WHEN x.permission_id='projeto.visualizar' THEN p.id IN('GER','AUD','PAT') WHEN x.permission_id='relatorio.visualizar' THEN p.id IN('GER','AUD','PAT') WHEN x.permission_id='relatorio.exportar' THEN p.id IN('ADM','GER') WHEN x.permission_id='auditoria.visualizar' THEN p.id IN('ADM','AUD') WHEN x.permission_id='pesquisa.visualizar' THEN p.id IN('ADM','GER','AUD','PAT') ELSE false END FROM profiles p CROSS JOIN (VALUES ('projeto.visualizar'),('projeto.criar'),('projeto.editar'),('projeto.status'),('projeto.excluir'),('relatorio.visualizar'),('relatorio.exportar'),('auditoria.visualizar'),('pesquisa.visualizar'),('administracao.configurar')) x(permission_id) ON CONFLICT(profile_id,permission_id) DO UPDATE SET allowed=excluded.allowed;
+-- 3. Áreas responsáveis
+INSERT INTO responsible_areas (id, name, prefix, next_number, active, created_at, updated_at) VALUES
+('tecnologia', 'Tecnologia', 'TEC', 1, true, '2026-09-25 16:20:25.992-03', '2026-09-25 16:20:25.992-03'),
+('pesquisa', 'Pesquisa', 'PES', 1, true, '2026-09-25 16:20:25.992-03', '2026-09-25 16:20:25.992-03'),
+('engenharia', 'Engenharia', 'ENG', 1, true, '2026-09-25 16:20:25.992-03', '2026-09-25 16:20:25.992-03'),
+('operacoes', 'Operações', 'OP', 1, true, '2026-09-25 16:20:25.992-03', '2026-09-25 16:20:25.992-03'),
+('governanca-compliance', 'Governança e Compliance', 'GC', 1, true, '2026-09-25 16:20:25.992-03', '2026-09-25 16:20:25.992-03'),
+('documentacao', 'Documentação', 'DOC', 1, true, '2026-09-25 16:20:25.992-03', '2026-09-25 16:20:25.992-03')
+ON CONFLICT (id) DO UPDATE SET name = excluded.name, prefix = excluded.prefix, next_number = excluded.next_number, active = excluded.active, updated_at = excluded.updated_at;
+
+-- 4. Status de projetos
+INSERT INTO project_statuses (id, code, name, color, display_order, active, allows_edit) VALUES
+('ativo', 'ativo', 'Ativo', 'green', 10, true, true),
+('em-implantacao', 'em_implantacao', 'Em implantação', 'blue', 20, true, true),
+('pausado', 'pausado', 'Pausado', 'amber', 30, true, true),
+('encerrado', 'encerrado', 'Encerrado', 'slate', 40, true, true)
+ON CONFLICT (id) DO UPDATE SET code = excluded.code, name = excluded.name, color = excluded.color, display_order = excluded.display_order, active = excluded.active, allows_edit = excluded.allows_edit;
+
+-- 5. Tipos de relatório
+INSERT INTO report_types (id, code, name, description, formats, active) VALUES
+('PROJETOS', 'projetos', 'Relatório Executivo de Projetos', 'Portfólio, status, áreas, gestores e indicadores.', 'csv,txt,pdf', true),
+('ACESSOS', 'acessos', 'Mapa de Acessos Científico', 'Projetos, grupos, membros, pastas e níveis de acesso.', 'csv,txt,pdf', true),
+('AUDITORIA', 'auditoria', 'Logs de Auditoria', 'Rastreabilidade de ações, usuários, entidades e resultados.', 'csv,txt,pdf', true)
+ON CONFLICT (id) DO UPDATE SET code = excluded.code, name = excluded.name, description = excluded.description, formats = excluded.formats, active = excluded.active;
+
+-- 6. Campos dos relatórios
+INSERT INTO report_fields (id, report_code, field_key, label, source_key, display_order, active) VALUES
+('projetos-codigo', 'projetos', 'codigo', 'Código', 'codigo', 10, true),
+('projetos-nome', 'projetos', 'nome', 'Projeto', 'nome', 20, true),
+('projetos-area', 'projetos', 'areaResponsavel', 'Área responsável', 'areaResponsavel', 30, true),
+('projetos-status', 'projetos', 'status', 'Status', 'status', 40, true),
+('projetos-gestores', 'projetos', 'gestoresIds', 'Gestores', 'gestoresIds', 50, true),
+('projetos-membros', 'projetos', 'totalMembros', 'Total de membros', 'totalMembros', 60, true),
+('projetos-criado', 'projetos', 'criadoEm', 'Criado em', 'criadoEm', 70, true),
+('projetos-atualizado', 'projetos', 'atualizadoEm', 'Atualizado em', 'atualizadoEm', 80, true),
+('acessos-usuario-id', 'acessos', 'userId', 'Identificador do usuário', 'userId', 10, true),
+('acessos-usuario', 'acessos', 'userName', 'Membro', 'userName', 20, true),
+('acessos-email', 'acessos', 'userEmail', 'E-mail', 'userEmail', 30, true),
+('acessos-perfil', 'acessos', 'userRole', 'Perfil', 'userRole', 40, true),
+('acessos-area', 'acessos', 'area', 'Área', 'area', 50, true),
+('acessos-projeto-id', 'acessos', 'projectId', 'Identificador do projeto', 'projectId', 60, true),
+('acessos-projeto', 'acessos', 'projectName', 'Projeto', 'projectName', 70, true),
+('acessos-status', 'acessos', 'projectStatus', 'Status do projeto', 'projectStatus', 80, true),
+('acessos-recurso', 'acessos', 'resourceName', 'Recurso', 'resourceName', 90, true),
+('acessos-tipo', 'acessos', 'resourceType', 'Tipo de recurso', 'resourceType', 100, true),
+('acessos-atualizacao', 'acessos', 'lastViewedAt', 'Último acesso', 'lastViewedAt', 110, true),
+('auditoria-id', 'auditoria', 'id', 'Identificador', 'id', 10, true),
+('auditoria-data', 'auditoria', 'criadoEm', 'Data e hora', 'criadoEm', 20, true),
+('auditoria-usuario', 'auditoria', 'userName', 'Usuário', 'userName', 30, true),
+('auditoria-email', 'auditoria', 'userEmail', 'E-mail', 'userEmail', 40, true),
+('auditoria-acao', 'auditoria', 'acao', 'Ação', 'acao', 50, true),
+('auditoria-entidade', 'auditoria', 'entidade', 'Entidade', 'entidade', 60, true),
+('auditoria-entidade-id', 'auditoria', 'entidadeId', 'Identificador da entidade', 'entidadeId', 70, true),
+('auditoria-resultado', 'auditoria', 'resultado', 'Resultado', 'resultado', 80, true),
+('auditoria-detalhes', 'auditoria', 'detalhes', 'Detalhes', 'detalhes', 90, true)
+ON CONFLICT (id) DO UPDATE SET report_code = excluded.report_code, field_key = excluded.field_key, label = excluded.label, source_key = excluded.source_key, display_order = excluded.display_order, active = excluded.active;
+
+-- 7. Permissões
+INSERT INTO permissions (id, module_id, name, description, active) VALUES
+('projeto.visualizar', 'projetos', 'Visualizar projetos', 'Visualizar projetos', true),
+('projeto.criar', 'projetos', 'Criar projetos', 'Criar projetos', true),
+('projeto.editar', 'projetos', 'Editar projetos', 'Editar projetos', true),
+('projeto.status', 'projetos', 'Alterar status', 'Alterar status de projetos', true),
+('projeto.excluir', 'projetos', 'Excluir projetos', 'Excluir projetos', true),
+('relatorio.visualizar', 'relatorios', 'Visualizar relatórios', 'Visualizar relatórios', true),
+('relatorio.exportar', 'relatorios', 'Exportar relatórios', 'Exportar CSV, TXT e PDF', true),
+('auditoria.visualizar', 'auditoria', 'Visualizar auditoria', 'Visualizar logs de auditoria', true),
+('pesquisa.visualizar', 'pesquisas', 'Visualizar mapa de acessos', 'Consultar projetos, grupos, membros, pastas e níveis', true),
+('administracao.configurar', 'configuracoes', 'Configurar plataforma', 'Gerenciar configurações da plataforma', true),
+('dashboard.visualizar', 'dashboard', 'Visualizar Dashboard', 'Acessar o Dashboard da plataforma', true)
+ON CONFLICT (id) DO UPDATE SET module_id = excluded.module_id, name = excluded.name, description = excluded.description, active = excluded.active;
+
+-- 8. Menus
+INSERT INTO menus (id, module_id, parent_id, name, route, icon, display_order, active) VALUES
+('menu-projetos', 'projetos', NULL, 'Projetos', '/projetos', 'folder', 10, true),
+('menu-relatorios', 'relatorios', NULL, 'Relatórios', '/relatorios', 'chart', 30, true),
+('menu-auditoria', 'auditoria', NULL, 'Logs e Auditoria', '/logs', 'history', 50, true),
+('menu-pesquisas', 'pesquisas', NULL, 'Mapa de Acessos', '/pesquisas', 'search', 60, true),
+('menu-configuracoes', 'configuracoes', NULL, 'Configurações', '/configuracoes', 'settings', 70, true),
+('menu-dashboard', 'dashboard', NULL, 'Dashboard', '/dashboard', 'layout-dashboard', 1, true)
+ON CONFLICT (id) DO UPDATE SET module_id = excluded.module_id, parent_id = excluded.parent_id, name = excluded.name, route = excluded.route, icon = excluded.icon, display_order = excluded.display_order, active = excluded.active;
+
+-- 9. Vínculos entre menus e permissões
+INSERT INTO menu_permissions (menu_id, permission_id, allowed) VALUES
+('menu-projetos', 'projeto.visualizar', true),
+('menu-relatorios', 'relatorio.visualizar', true),
+('menu-auditoria', 'auditoria.visualizar', true),
+('menu-pesquisas', 'pesquisa.visualizar', true),
+('menu-configuracoes', 'administracao.configurar', true),
+('menu-dashboard', 'dashboard.visualizar', true)
+ON CONFLICT (menu_id, permission_id) DO UPDATE SET allowed = excluded.allowed;
+
+-- 10. Visibilidade dos módulos por perfil
+INSERT INTO profile_modules (profile_id, module_id, can_view) VALUES
+('ADM', 'projetos', true), ('ADM', 'relatorios', true), ('ADM', 'auditoria', true), ('ADM', 'pesquisas', true), ('ADM', 'configuracoes', false), ('ADM', 'dashboard', true),
+('GER', 'projetos', true), ('GER', 'relatorios', true), ('GER', 'auditoria', false), ('GER', 'pesquisas', true), ('GER', 'configuracoes', false), ('GER', 'dashboard', true),
+('AUD', 'projetos', true), ('AUD', 'relatorios', true), ('AUD', 'auditoria', true), ('AUD', 'pesquisas', true), ('AUD', 'configuracoes', false), ('AUD', 'dashboard', true),
+('PAT', 'projetos', true), ('PAT', 'relatorios', true), ('PAT', 'auditoria', false), ('PAT', 'pesquisas', true), ('PAT', 'configuracoes', false), ('PAT', 'dashboard', true),
+('SOL', 'projetos', false), ('SOL', 'relatorios', false), ('SOL', 'auditoria', false), ('SOL', 'pesquisas', false), ('SOL', 'configuracoes', false), ('SOL', 'dashboard', false),
+('OPR', 'projetos', false), ('OPR', 'relatorios', false), ('OPR', 'auditoria', false), ('OPR', 'pesquisas', false), ('OPR', 'configuracoes', true), ('OPR', 'dashboard', false)
+ON CONFLICT (profile_id, module_id) DO UPDATE SET can_view = excluded.can_view;
+
+-- 11. Permissões por perfil
+INSERT INTO profile_permissions (profile_id, permission_id, allowed) VALUES
+('ADM', 'projeto.visualizar', true), ('ADM', 'projeto.criar', true), ('ADM', 'projeto.editar', true), ('ADM', 'projeto.status', true), ('ADM', 'projeto.excluir', true), ('ADM', 'relatorio.visualizar', true), ('ADM', 'relatorio.exportar', true), ('ADM', 'auditoria.visualizar', true), ('ADM', 'pesquisa.visualizar', true), ('ADM', 'administracao.configurar', false), ('ADM', 'dashboard.visualizar', true),
+('GER', 'projeto.visualizar', true), ('GER', 'projeto.criar', false), ('GER', 'projeto.editar', false), ('GER', 'projeto.status', false), ('GER', 'projeto.excluir', false), ('GER', 'relatorio.visualizar', true), ('GER', 'relatorio.exportar', true), ('GER', 'auditoria.visualizar', false), ('GER', 'pesquisa.visualizar', true), ('GER', 'administracao.configurar', false), ('GER', 'dashboard.visualizar', true),
+('AUD', 'projeto.visualizar', true), ('AUD', 'projeto.criar', false), ('AUD', 'projeto.editar', false), ('AUD', 'projeto.status', false), ('AUD', 'projeto.excluir', false), ('AUD', 'relatorio.visualizar', true), ('AUD', 'relatorio.exportar', false), ('AUD', 'auditoria.visualizar', true), ('AUD', 'pesquisa.visualizar', true), ('AUD', 'administracao.configurar', false), ('AUD', 'dashboard.visualizar', true),
+('PAT', 'projeto.visualizar', true), ('PAT', 'projeto.criar', false), ('PAT', 'projeto.editar', false), ('PAT', 'projeto.status', false), ('PAT', 'projeto.excluir', false), ('PAT', 'relatorio.visualizar', true), ('PAT', 'relatorio.exportar', false), ('PAT', 'auditoria.visualizar', false), ('PAT', 'pesquisa.visualizar', true), ('PAT', 'administracao.configurar', false), ('PAT', 'dashboard.visualizar', true),
+('SOL', 'projeto.visualizar', false), ('SOL', 'projeto.criar', false), ('SOL', 'projeto.editar', false), ('SOL', 'projeto.status', false), ('SOL', 'projeto.excluir', false), ('SOL', 'relatorio.visualizar', false), ('SOL', 'relatorio.exportar', false), ('SOL', 'auditoria.visualizar', false), ('SOL', 'pesquisa.visualizar', false), ('SOL', 'administracao.configurar', false), ('SOL', 'dashboard.visualizar', false),
+('OPR', 'projeto.visualizar', false), ('OPR', 'projeto.criar', false), ('OPR', 'projeto.editar', false), ('OPR', 'projeto.status', false), ('OPR', 'projeto.excluir', false), ('OPR', 'relatorio.visualizar', false), ('OPR', 'relatorio.exportar', false), ('OPR', 'auditoria.visualizar', false), ('OPR', 'pesquisa.visualizar', false), ('OPR', 'administracao.configurar', true), ('OPR', 'dashboard.visualizar', false)
+ON CONFLICT (profile_id, permission_id) DO UPDATE SET allowed = excluded.allowed;
+
 COMMIT;
+
+-- Ordem de execução:
+-- profiles -> modules -> responsible_areas -> project_statuses -> report_types
+-- -> report_fields -> permissions -> menus -> menu_permissions
+-- -> profile_modules -> profile_permissions.
+-- Usuários, projetos e demais dados operacionais devem ser inseridos em script posterior.
