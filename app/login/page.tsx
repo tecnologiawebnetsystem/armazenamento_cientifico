@@ -3,7 +3,6 @@ import { redirect } from "next/navigation"
 import { LoginForm } from "@/components/login/login-form"
 import { LogoFull } from "@/components/brand/logo-mark"
 import { getBackendSession } from "@/lib/session"
-import { isOperatorRole } from "@/lib/role-access"
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ auth_error?: string; error?: string; error_description?: string; message?: string; reason?: string; next?: string }> }) {
   const params = await searchParams
@@ -11,9 +10,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const user = await getBackendSession()
   const isSolicitante = user?.role === "solicitante" || user?.perfilNome?.toLowerCase().includes("solicitante")
   const authError = returnedError || (isSolicitante ? "Perfil Solicitante do CAV4 sem permissão" : undefined)
-  const nextPath = isOperatorRole(user?.role, user?.perfilId, user?.perfilNome)
-    ? "/configuracoes"
-    : params.next?.startsWith("/") && !params.next.startsWith("//") ? params.next : "/dashboard"
+  const nextPath = params.next?.startsWith("/") && !params.next.startsWith("//") ? params.next : "/dashboard"
   if (user && !authError) redirect(nextPath)
 
   return (

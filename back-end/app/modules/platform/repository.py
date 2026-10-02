@@ -52,6 +52,7 @@ class PlatformRepository:
                 on md.id = mi.module_id
                and md.active = true
             where mi.active = true
+              and (mi.module_id is null or md.id is not null)
               and (mi.module_id is null or exists (
                   select 1
                   from {self.schema}.profile_modules pm

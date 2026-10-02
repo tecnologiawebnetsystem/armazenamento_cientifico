@@ -18,7 +18,6 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { usePlatformContext } from "@/hooks/use-platform-context"
-import { isOperatorRole } from "@/lib/role-access"
 import { ChartNoAxesCombinedIcon, FolderKanbanIcon, LayoutDashboardIcon, NetworkIcon, SettingsIcon, ShieldCheckIcon, type LucideIcon } from "lucide-react"
 import type { NavGroup, NavItem } from "@/lib/nav-config"
 import type { PlatformMenu } from "@/lib/types"
@@ -62,14 +61,10 @@ function buildNavGroups(menus: PlatformMenu[]): NavGroup[] {
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { menus, data } = usePlatformContext()
-  const operator = isOperatorRole(undefined, data?.user?.perfil_id, data?.user?.perfil_nome)
-  // O perfil Operador atua exclusivamente nas configurações, mesmo que a matriz
-  // do banco ainda contenha um menu antigo para o Dashboard.
-  const visibleMenus = operator ? menus.filter((menu) => menu.rota === "/configuracoes") : menus
-  const homeHref = operator ? "/configuracoes" : "/dashboard"
+  const { menus } = usePlatformContext()
+  const homeHref = menus[0]?.rota ?? "/forbidden"
 
-  const groups = buildNavGroups(visibleMenus)
+  const groups = buildNavGroups(menus)
 
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border/55 bg-sidebar shadow-[8px_0_28px_color-mix(in_oklch,var(--sidebar)_24%,transparent)] transition-[width] duration-200 md:flex">
