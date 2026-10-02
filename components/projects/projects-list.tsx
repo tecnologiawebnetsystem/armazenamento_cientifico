@@ -78,7 +78,9 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
   const initialSearch = searchParams.get("nome") ?? ""
   const initialStatus = (searchParams.get("status") as StatusFilter) || "todos"
   const initialArea = searchParams.get("area") ?? "todas"
-  const { projects, pagination, isLoading, refresh } = useProjects({ nome: initialSearch, status: initialStatus, area: initialArea === "todas" ? undefined : initialArea, page: Number(searchParams.get("page") ?? "1") || 1, limit: 10 })
+  const pageSize = 15
+  const currentPage = Math.max(1, Number(searchParams.get("page") ?? "1") || 1)
+  const { projects, refresh, isLoading } = useProjects({ nome: initialSearch, status: initialStatus, area: initialArea === "todas" ? undefined : initialArea, limit: 500 })
   const { areas: catalogAreas } = useCatalogs()
   const { user } = useSession()
   const [search, setSearch] = useState(initialSearch)
@@ -99,8 +101,6 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
     else next.delete("status")
     if (area !== "todas") next.set("area", area)
     else next.delete("area")
-    next.set("page", "1")
-
     // Evita substituir a mesma URL em toda renderização e causar um loop de navegação.
     if (next.toString() !== current) {
       router.replace(`${pathname}?${next.toString()}`, { scroll: false })
@@ -143,6 +143,16 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
       return (b.criadoEm ?? "").localeCompare(a.criadoEm ?? "")
     })
   }, [projects, search, status, area, sort])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const page = Math.min(currentPage, totalPages)
+  const visibleProjects = filtered.slice((page - 1) * pageSize, page * pageSize)
+
+  function goToPage(nextPage: number) {
+    const next = new URLSearchParams(searchParams.toString())
+    next.set("page", String(Math.min(Math.max(1, nextPage), totalPages)))
+    router.push(`${pathname}?${next.toString()}`, { scroll: false })
+  }
 
   async function confirmToggle() {
     if (!target) return
@@ -196,11 +206,11 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
 
       <ProjectFilters
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={(value) => { setSearch(value); goToPage(1) }}
         status={status}
-        onStatusChange={setStatus}
+        onStatusChange={(value) => { setStatus(value); goToPage(1) }}
         area={area}
-        onAreaChange={setArea}
+        onAreaChange={(value) => { setArea(value); goToPage(1) }}
         areas={areas}
         sort={sort}
         onSortChange={setSort}
@@ -208,7 +218,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         onViewChange={setView}
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"><span aria-live="polite">Exibindo {filtered.length} nesta página de {pagination?.total ?? projects.length} projetos</span><div className="flex items-center gap-3"><Button nativeButton variant="ghost" size="sm" onClick={() => void refresh()}><RefreshCwIcon data-icon="inline-start" />Atualizar</Button><Button nativeButton variant="ghost" size="sm" onClick={() => { setSearch(""); setStatus("todos"); setArea("todas") }} disabled={!search && status === "todos" && area === "todas"}><XIcon data-icon="inline-start" />Limpar filtros</Button><label className="flex items-center gap-2"><Columns3Icon className="size-4" /><input type="checkbox" checked={showMeta} onChange={(event) => setShowMeta(event.target.checked)} />Mostrar detalhes</label></div></div>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"><span aria-live="polite">Exibindo {visibleProjects.length} de {filtered.length} projetos</span><div className="flex items-center gap-3"><Button nativeButton variant="ghost" size="sm" onClick={() => void refresh()}><RefreshCwIcon data-icon="inline-start" />Atualizar</Button><Button nativeButton variant="ghost" size="sm" onClick={() => { setSearch(""); setStatus("todos"); setArea("todas") }} disabled={!search && status === "todos" && area === "todas"}><XIcon data-icon="inline-start" />Limpar filtros</Button><label className="flex items-center gap-2"><Columns3Icon className="size-4" /><input type="checkbox" checked={showMeta} onChange={(event) => setShowMeta(event.target.checked)} />Mostrar detalhes</label></div></div>
 
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -240,7 +250,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         </Empty>
       ) : view === "grade" ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((project) => (
+          {visibleProjects.map((project) => (
             <ProjectCard
               key={project.id}
               project={project}
@@ -252,7 +262,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border">
-          {filtered.map((project, i) => (
+          {visibleProjects.map((project, i) => (
             <ProjectListRow
               key={project.id}
               project={project}
@@ -265,53 +275,17 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         </div>
       )}
 
-      {pagination && pagination.totalPages > 1 && (
+      {totalPages > 1 && (
         <nav className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between" aria-label="Paginação de projetos">
-          <p className="text-sm text-muted-foreground">Página {pagination.page} de {pagination.totalPages} · {pagination.total} projetos</p>
+          <p className="text-sm text-muted-foreground">Página {page} de {totalPages} · {filtered.length} projetos</p>
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              nativeButton
-              variant="outline"
-              size="sm"
-              disabled={pagination.page <= 1}
-              onClick={() => {
-                const next = new URLSearchParams(searchParams.toString())
-                next.set("page", String(pagination.page - 1))
-                router.push(`${pathname}?${next}`)
-              }}
-            >
-              Anterior
-            </Button>
-            {Array.from({ length: pagination.totalPages }, (_, index) => index + 1).map((pageNumber) => (
-              <Button
-                key={pageNumber}
-                nativeButton
-                variant={pageNumber === pagination.page ? "default" : "outline"}
-                size="sm"
-                aria-current={pageNumber === pagination.page ? "page" : undefined}
-                aria-label={`Ir para a página ${pageNumber}`}
-                onClick={() => {
-                  const next = new URLSearchParams(searchParams.toString())
-                  next.set("page", String(pageNumber))
-                  router.push(`${pathname}?${next}`)
-                }}
-              >
+            <Button nativeButton variant="outline" size="sm" disabled={page <= 1} onClick={() => goToPage(page - 1)}>Anterior</Button>
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+              <Button key={pageNumber} nativeButton variant={pageNumber === page ? "default" : "outline"} size="sm" aria-current={pageNumber === page ? "page" : undefined} aria-label={`Ir para a página ${pageNumber}`} onClick={() => goToPage(pageNumber)}>
                 {pageNumber}
               </Button>
             ))}
-            <Button
-              nativeButton
-              variant="outline"
-              size="sm"
-              disabled={pagination.page >= pagination.totalPages}
-              onClick={() => {
-                const next = new URLSearchParams(searchParams.toString())
-                next.set("page", String(pagination.page + 1))
-                router.push(`${pathname}?${next}`)
-              }}
-            >
-              Próxima
-            </Button>
+            <Button nativeButton variant="outline" size="sm" disabled={page >= totalPages} onClick={() => goToPage(page + 1)}>Próxima</Button>
           </div>
         </nav>
       )}
