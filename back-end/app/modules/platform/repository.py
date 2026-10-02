@@ -82,6 +82,9 @@ class PlatformRepository:
         is_administrator = profile_key in {"adm", "admin"} or "admin" in profile_name
         is_auditor = profile_key in {"aud", "audit", "auditor"} or profile_name in {"auditor", "auditoria"}
         is_sponsor = profile_key in {"pat", "sponsor", "patrocinador"} or "patrocin" in profile_name or "sponsor" in profile_name
+        is_operator = profile_key in {"opr", "operador", "operator"} or profile_name in {"operador", "operator"}
+        if is_operator and not any(menu.get("rota") == "/configuracoes" for menu in menus):
+            menus.append({"id": "menu-configuracoes", "nome": "Configurações", "rota": "/configuracoes", "icone": "settings", "ordem": 70, "parent_id": None})
         if is_administrator and not any(menu.get("rota") == "/configuracoes" for menu in menus):
             menus.append({"id": "menu-configuracoes", "nome": "Configurações", "rota": "/configuracoes", "icone": "settings", "ordem": 90, "parent_id": None})
         if is_auditor and not any(menu.get("rota") in {"/logs", "/auditoria"} for menu in menus):

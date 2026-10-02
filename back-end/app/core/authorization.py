@@ -3,12 +3,11 @@ from typing import Any, Final
 
 from fastapi import HTTPException
 
-OFFICIAL_ROLES: Final = {"admin", "gerente", "patrocinador", "auditor", "solicitante"}
+OFFICIAL_ROLES: Final = {"admin", "gerente", "patrocinador", "auditor", "solicitante", "operador"}
 LEGACY_ROLE_MAP: Final = {
     "administrador": "admin",
-    "administrator": "admin",
-  "manager": "gerente",
-  "viewer": "auditor",
+    "manager": "gerente",
+    "viewer": "auditor",
     "sponsor": "patrocinador",
     "requester": "solicitante",
     "sol": "solicitante",
@@ -20,6 +19,7 @@ ROLE_CAPABILITIES: Final[dict[str, frozenset[str]]] = {
     "patrocinador": frozenset({"read", "project_scope", "all_projects"}),
     "auditor": frozenset({"read", "audit"}),
     "solicitante": frozenset({"read", "project_scope", "folder_scope"}),
+    "operador": frozenset({"read", "configure"}),
 } 
 
 
@@ -63,7 +63,7 @@ def resolve_cav4_role(roles: list[str] | tuple[str, ...] | None) -> str | None:
     A ordem evita que a ordem dos claims do provedor altere a autorização.
     Papéis desconhecidos não recebem acesso por fallback.
     """
-    priority = ("admin", "gerente", "patrocinador", "auditor", "solicitante")
+    priority = ("admin", "gerente", "patrocinador", "auditor", "operador", "solicitante")
     canonical = {canonical_role(role) for role in (roles or [])}
     return next((role for role in priority if role in canonical), None)
 
