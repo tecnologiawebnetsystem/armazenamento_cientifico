@@ -11,6 +11,8 @@ export function normalizeRole(role: Role | string | null | undefined): string {
     viewer: "auditor",
     sponsor: "patrocinador",
     requester: "solicitante",
+    opr: "operador",
+    operator: "operador",
     adm: "admin",
     ger: "gerente",
     pat: "patrocinador",
@@ -49,7 +51,9 @@ export function roleLabel(role: Role | string | null | undefined) {
     case "patrocinador": return "Patrocinador"
     case "auditor": return "Auditor"
     case "solicitante": return "Solicitante"
+    case "operador": return "Operador"
     default: return String(role ?? "Permissão não informada")
+
   }
 }
 
@@ -60,11 +64,12 @@ export function roleDescription(role: Role) {
     case "patrocinador": return "Consulta projetos, relatórios, logs e mapas de acessos."
     case "auditor": return "Somente leitura, com acesso à trilha de auditoria."
     case "solicitante": return "Não possui acesso ao SIGAC."
+    case "operador": return "Acesso exclusivo às configurações da plataforma."
     default: return ""
   }
 }
 
-export const allRoles: Role[] = ["admin", "patrocinador", "auditor", "gerente", "solicitante"]
+export const allRoles: Role[] = ["admin", "patrocinador", "auditor", "gerente", "solicitante", "operador"]
 
 export function useCan(capability: Capability) {
   const { hasCapability } = usePermissions()

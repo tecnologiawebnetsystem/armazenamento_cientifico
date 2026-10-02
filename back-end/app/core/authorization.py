@@ -11,6 +11,8 @@ LEGACY_ROLE_MAP: Final = {
     "sponsor": "patrocinador",
     "requester": "solicitante",
     "sol": "solicitante",
+    "opr": "operador",
+    "operator": "operador",
 }
 
 ROLE_CAPABILITIES: Final[dict[str, frozenset[str]]] = {
@@ -121,6 +123,27 @@ def ensure_role(user: Any, *allowed_roles: str) -> Any:
 
 
 def require_read(user: Any) -> Any:
+    return user
+
+
+def is_operator_user(user: Any) -> bool:
+    if isinstance(user, Mapping):
+        profile_id = user.get("profile_id") or user.get("perfilId")
+        profile_name = user.get("profile_name") or user.get("perfilNome")
+        role = user.get("role")
+    else:
+        profile_id = getattr(user, "profile_id", None) or getattr(user, "perfilId", None)
+        profile_name = getattr(user, "profile_name", None) or getattr(user, "perfilNome", None)
+        role = getattr(user, "role", None)
+
+    if profile_id:
+        return str(profile_id).strip().upper() == "OPR"
+    return canonical_role(profile_name or role) == "operador"
+
+
+def require_operator(user: Any) -> Any:
+    if not is_operator_user(user):
+        raise HTTPException(status_code=403, detail="Apenas operadores podem alterar Configurações.")
     return user
 
 

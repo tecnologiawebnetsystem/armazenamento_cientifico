@@ -18,6 +18,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { usePlatformContext } from "@/hooks/use-platform-context"
+import { isOperatorRole } from "@/lib/role-access"
 import { ChartNoAxesCombinedIcon, FolderKanbanIcon, LayoutDashboardIcon, NetworkIcon, SettingsIcon, ShieldCheckIcon, type LucideIcon } from "lucide-react"
 import type { NavGroup, NavItem } from "@/lib/nav-config"
 import type { PlatformMenu } from "@/lib/types"
@@ -61,10 +62,12 @@ function buildNavGroups(menus: PlatformMenu[]): NavGroup[] {
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { menus } = usePlatformContext()
-  // A matriz persistida no backend é a única fonte de verdade para os menus.
-  // Sem fallback por perfil, nenhum usuário recebe acesso fora das tabelas.
-  const visibleMenus = menus
+  const { menus, data } = usePlatformContext()
+  const operator = isOperatorRole(undefined, data?.user?.perfil_id, data?.user?.perfil_nome)
+  // O perfil Operador atua exclusivamente nas configurações, mesmo que a matriz
+  // do banco ainda contenha um menu antigo para o Dashboard.
+  const visibleMenus = operator ? menus.filter((menu) => menu.rota === "/configuracoes") : menus
+  const homeHref = operator ? "/configuracoes" : "/dashboard"
 
   const groups = buildNavGroups(visibleMenus)
 
@@ -80,7 +83,7 @@ export function AppSidebar() {
             </div>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" tooltip="SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico" render={<Link href="/dashboard" />}>
+            <SidebarMenuButton size="lg" tooltip="SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico" render={<Link href={homeHref} />}>
               <div className="flex size-9 items-center justify-center rounded-xl bg-sidebar-primary/15 ring-1 ring-sidebar-primary/40 shadow-[0_0_20px_color-mix(in_oklch,var(--sidebar-primary)_18%,transparent)]"><LogoMark className="size-5" /></div>
               <div className="flex min-w-0 flex-col gap-1 leading-none"><span className="truncate text-sm font-semibold tracking-wide">SIGAC</span><span className="hidden truncate text-[10px] text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden">Gestão de acesso ao armazenamento científico</span></div>
             </SidebarMenuButton>
