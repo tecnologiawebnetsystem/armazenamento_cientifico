@@ -10,7 +10,7 @@ INSERT INTO profiles (id,name,description,created_at) VALUES
 INSERT INTO users (id,name,email,job_title,area,role,profile_id) VALUES
 ('Kleber Goncalves','Administrador de Desenvolvimento','kleber.goncalves.prestserv@petrobras.com.br','Administrador','Governança e Compliance','administrador','ADM'),
 ('Fabio Junio','Administrador de Desenvolvimento','fabio.j.lima.prestserv@petrobras.com.br','Administrador','Governança e Compliance','administrador','ADM'),
-('Jefferson Breno','Administrador de Desenvolvimento','jefferson.breno.prestserv@petrobras.com.br','Administrador','Governança e Compliance','administrador','ADM'),
+('Jefferson Breno','Administrador de Desenvolvimento','jefferson.breno.prestserv@petrobras.com.br','Administrador','Governança e Compliance','administrador','ADM')
 ON CONFLICT (id) DO UPDATE SET name=excluded.name, email=excluded.email, job_title=excluded.job_title, area=excluded.area, role=excluded.role, profile_id=excluded.profile_id;
 
 INSERT INTO modules (id,name,route,icon,display_order,active) VALUES

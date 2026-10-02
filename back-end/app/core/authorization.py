@@ -6,9 +6,8 @@ from fastapi import HTTPException
 OFFICIAL_ROLES: Final = {"admin", "gerente", "patrocinador", "auditor", "solicitante", "operador"}
 LEGACY_ROLE_MAP: Final = {
     "administrador": "admin",
-    "administrator": "admin",
-  "manager": "gerente",
-  "viewer": "auditor",
+    "manager": "gerente",
+    "viewer": "auditor",
     "sponsor": "patrocinador",
     "requester": "solicitante",
     "sol": "solicitante",
