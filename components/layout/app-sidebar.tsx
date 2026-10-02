@@ -61,17 +61,10 @@ function buildNavGroups(menus: PlatformMenu[]): NavGroup[] {
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { menus, data } = usePlatformContext()
-  const normalizedRole = String(data?.user?.perfil_id || data?.user?.perfil_nome || "").trim().toLowerCase()
-  // O backend já entrega somente os menus autorizados pelo perfil. Não aplique
-  // uma segunda regra ampla no cliente: ela fazia o gerente enxergar menus de
-  // outros perfis, mesmo quando a matriz de acesso estava correta.
-  const fallbackMenus: PlatformMenu[] = menus.length === 0 && (normalizedRole.includes("pat") || normalizedRole === "pat")
-    ? [{ id: "menu-projetos", nome: "Projetos", rota: "/projetos", icone: "folder", ordem: 10 }]
-    : menus.length === 0 && (normalizedRole.includes("aud") || normalizedRole === "aud")
-      ? [{ id: "menu-logs", nome: "Logs e Auditoria", rota: "/logs", icone: "logs", ordem: 50 }]
-      : []
-  const visibleMenus = [...menus, ...fallbackMenus]
+  const { menus } = usePlatformContext()
+  // A matriz persistida no backend é a única fonte de verdade para os menus.
+  // Sem fallback por perfil, nenhum usuário recebe acesso fora das tabelas.
+  const visibleMenus = menus
 
   const groups = buildNavGroups(visibleMenus)
 
