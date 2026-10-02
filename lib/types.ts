@@ -11,8 +11,9 @@
  * - `gerente`      → Gerente do Projeto (conduz o projeto no dia a dia)
  * - `patrocinador` → Patrocinador (aprova acessos e acompanha resultados)
  * - `auditor`      → Auditor (somente leitura + trilha de auditoria)
+ * - `operador`     → Operador (acesso exclusivo às configurações)
  */
-export type Role = "admin" | "gerente" | "patrocinador" | "auditor" | "solicitante"
+export type Role = "admin" | "gerente" | "patrocinador" | "auditor" | "solicitante" | "operador"
 
 /** Papel global ou de participação dentro de um projeto. */
 export type ProjectMemberRole = Role

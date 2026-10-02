@@ -286,6 +286,7 @@ def upgrade() -> None:
             {"id": "AUD", "name": "auditor", "description": "Consulta informações e acompanha os registros de auditoria.", "created_at": seeded_at},
             {"id": "PAT", "name": "patrocinador", "description": "Acompanha resultados e aprova solicitações sob sua responsabilidade.", "created_at": seeded_at},
             {"id": "SOL", "name": "solicitante", "description": "Solicita acessos e acompanha o andamento das solicitações.", "created_at": seeded_at},
+            {"id": "OPR", "name": "operador", "description": "Acessa exclusivamente o menu Configurações.", "created_at": seeded_at},
         ]).on_conflict_do_nothing(index_elements=["id"])
     )
 
@@ -385,7 +386,7 @@ def upgrade() -> None:
         """
         INSERT INTO profile_modules (profile_id, module_id, can_view)
         SELECT p.id, m.id,
-            CASE WHEN p.id = 'ADM' THEN true WHEN m.id = 'configuracoes' THEN false
+            CASE WHEN p.id = 'ADM' THEN true WHEN p.id = 'OPR' THEN m.id = 'configuracoes' WHEN m.id = 'configuracoes' THEN false
             WHEN m.id = 'auditoria' THEN p.id IN ('AUD', 'ADM')
             WHEN m.id IN ('relatorios', 'pesquisas') THEN p.id IN ('GER', 'AUD', 'PAT', 'ADM')
             ELSE p.id IN ('GER', 'AUD', 'PAT', 'ADM') END
@@ -394,7 +395,7 @@ def upgrade() -> None:
 
         INSERT INTO profile_permissions (profile_id, permission_id, allowed)
         SELECT p.id, x.permission_id,
-            CASE WHEN p.id = 'ADM' THEN true WHEN x.permission_id = 'projeto.visualizar' THEN p.id IN ('GER', 'AUD', 'PAT')
+            CASE WHEN p.id = 'ADM' THEN true WHEN p.id = 'OPR' THEN x.permission_id = 'administracao.configurar' WHEN x.permission_id = 'projeto.visualizar' THEN p.id IN ('GER', 'AUD', 'PAT')
             WHEN x.permission_id = 'relatorio.visualizar' THEN p.id IN ('GER', 'AUD', 'PAT')
             WHEN x.permission_id = 'relatorio.exportar' THEN p.id IN ('ADM', 'GER')
             WHEN x.permission_id = 'auditoria.visualizar' THEN p.id IN ('ADM', 'AUD')
