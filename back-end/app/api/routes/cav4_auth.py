@@ -234,6 +234,11 @@ async def cav4_callback(request: Request, code: str, state: str):
             profile = profile_result.mappings().first()
             if not profile:
                 raise HTTPException(status_code=403, detail=f"Perfil CAV4 não cadastrado no SIGAC: {profile_id}")
+            local_user_result = await database.execute(
+                text(f"select id from {schema}.users where lower(email)=lower(:email) limit 1"),
+                {"email": identity.email},
+            )
+            local_user = local_user_result.mappings().first()
             await database.execute(
                 text(f"delete from {schema}.sessions where lower(email)=lower(:email)"),
                 {"email": identity.email},
@@ -244,7 +249,7 @@ async def cav4_callback(request: Request, code: str, state: str):
                     values(:id,:user_id,:email,:display_name,:profile_id,:expires_at)"""),
                 {
                     "id": session_id,
-                    "user_id": identity.user_login or identity.subject or identity.email,
+                    "user_id": local_user["id"] if local_user else None,
                     "email": identity.email,
                     "display_name": identity.display_name or identity.email.split("@", 1)[0],
                     "profile_id": str(profile_id),
