@@ -218,8 +218,11 @@ def upgrade() -> None:
         sa.Column("entity", sa.String(length=100), nullable=False),
         sa.Column("entity_id", sa.String(length=36), nullable=True),
         sa.Column("details", sa.Text(), nullable=False, server_default=""),
-        sa.Column("result", sa.String(length=40), nullable=True),
+        sa.Column("result", sa.String(length=30), nullable=False, server_default="success"),
+        sa.Column("project_id", sa.String(length=36), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -264,6 +267,7 @@ def upgrade() -> None:
     op.create_index("ix_folders_parent_id", "folders", ["parent_id"])
     op.create_index("ix_folders_created_by", "folders", ["created_by"])
     op.create_index("ix_activity_logs_user_id", "activity_logs", ["user_id"])
+    op.create_index("ix_activity_logs_project_id", "activity_logs", ["project_id"])
     op.create_index("ix_activity_logs_action", "activity_logs", ["action"])
     op.create_index("ix_activity_logs_entity", "activity_logs", ["entity"])
     op.create_index("ix_activity_logs_created_at", "activity_logs", ["created_at"])
@@ -302,6 +306,7 @@ def upgrade() -> None:
             job_title = excluded.job_title, area = excluded.area, role = excluded.role, profile_id = excluded.profile_id;
 
         INSERT INTO modules (id, name, route, icon, display_order, active) VALUES
+        ('dashboard', 'Dashboard', '/dashboard', 'layout-dashboard', 1, true),
         ('projetos', 'Projetos', '/projetos', 'folder', 10, true),
         ('relatorios', 'Relatórios', '/relatorios', 'chart', 30, true),
         ('auditoria', 'Logs e Auditoria', '/logs', 'history', 50, true),
@@ -310,6 +315,7 @@ def upgrade() -> None:
         ON CONFLICT (id) DO UPDATE SET name = excluded.name, route = excluded.route, icon = excluded.icon, display_order = excluded.display_order, active = excluded.active;
 
         INSERT INTO permissions (id, module_id, name, description, active) VALUES
+        ('dashboard.visualizar', 'dashboard', 'Visualizar Dashboard', 'Acessar o Dashboard da plataforma', true),
         ('projeto.visualizar', 'projetos', 'Visualizar projetos', 'Visualizar projetos', true),
         ('projeto.criar', 'projetos', 'Criar projetos', 'Criar projetos', true),
         ('projeto.editar', 'projetos', 'Editar projetos', 'Editar projetos', true),
@@ -323,7 +329,7 @@ def upgrade() -> None:
         ON CONFLICT (id) DO UPDATE SET module_id = excluded.module_id, name = excluded.name, description = excluded.description, active = excluded.active;
 
         INSERT INTO menus (id, module_id, name, route, icon, display_order, active) VALUES
-        ('menu-dashboard', NULL, 'Dashboard', '/dashboard', 'layout-dashboard', 1, true),
+        ('menu-dashboard', 'dashboard', 'Dashboard', '/dashboard', 'layout-dashboard', 1, true),
         ('menu-projetos', 'projetos', 'Projetos', '/projetos', 'folder', 10, true),
         ('menu-relatorios', 'relatorios', 'Relatórios', '/relatorios', 'chart', 30, true),
         ('menu-auditoria', 'auditoria', 'Logs e Auditoria', '/logs', 'history', 50, true),
@@ -332,6 +338,7 @@ def upgrade() -> None:
         ON CONFLICT (id) DO UPDATE SET module_id = excluded.module_id, name = excluded.name, route = excluded.route, icon = excluded.icon, display_order = excluded.display_order, active = excluded.active;
 
         INSERT INTO menu_permissions (menu_id, permission_id, allowed) VALUES
+        ('menu-dashboard', 'dashboard.visualizar', true),
         ('menu-projetos', 'projeto.visualizar', true), ('menu-relatorios', 'relatorio.visualizar', true),
         ('menu-auditoria', 'auditoria.visualizar', true), ('menu-pesquisas', 'pesquisa.visualizar', true),
         ('menu-configuracoes', 'administracao.configurar', true)
@@ -386,7 +393,7 @@ def upgrade() -> None:
         """
         INSERT INTO profile_modules (profile_id, module_id, can_view)
         SELECT p.id, m.id,
-            CASE WHEN p.id = 'ADM' THEN true WHEN p.id = 'OPR' THEN m.id = 'configuracoes' WHEN m.id = 'configuracoes' THEN false
+            CASE WHEN p.id = 'ADM' THEN true WHEN m.id = 'dashboard' THEN p.id IN ('ADM', 'GER', 'AUD', 'PAT') WHEN p.id = 'OPR' THEN m.id = 'configuracoes' WHEN m.id = 'configuracoes' THEN false
             WHEN m.id = 'auditoria' THEN p.id IN ('AUD', 'ADM')
             WHEN m.id IN ('relatorios', 'pesquisas') THEN p.id IN ('GER', 'AUD', 'PAT', 'ADM')
             ELSE p.id IN ('GER', 'AUD', 'PAT', 'ADM') END
@@ -395,13 +402,13 @@ def upgrade() -> None:
 
         INSERT INTO profile_permissions (profile_id, permission_id, allowed)
         SELECT p.id, x.permission_id,
-            CASE WHEN p.id = 'ADM' THEN true WHEN p.id = 'OPR' THEN x.permission_id = 'administracao.configurar' WHEN x.permission_id = 'projeto.visualizar' THEN p.id IN ('GER', 'AUD', 'PAT')
+            CASE WHEN p.id = 'ADM' THEN true WHEN x.permission_id = 'dashboard.visualizar' THEN p.id IN ('ADM', 'GER', 'AUD', 'PAT') WHEN p.id = 'OPR' THEN x.permission_id = 'administracao.configurar' WHEN x.permission_id = 'projeto.visualizar' THEN p.id IN ('GER', 'AUD', 'PAT')
             WHEN x.permission_id = 'relatorio.visualizar' THEN p.id IN ('GER', 'AUD', 'PAT')
             WHEN x.permission_id = 'relatorio.exportar' THEN p.id IN ('ADM', 'GER')
             WHEN x.permission_id = 'auditoria.visualizar' THEN p.id IN ('ADM', 'AUD')
             WHEN x.permission_id = 'pesquisa.visualizar' THEN p.id IN ('ADM', 'GER', 'AUD', 'PAT') ELSE false END
         FROM profiles p CROSS JOIN (VALUES
-            ('projeto.visualizar'), ('projeto.criar'), ('projeto.editar'), ('projeto.status'), ('projeto.excluir'),
+            ('dashboard.visualizar'), ('projeto.visualizar'), ('projeto.criar'), ('projeto.editar'), ('projeto.status'), ('projeto.excluir'),
             ('relatorio.visualizar'), ('relatorio.exportar'), ('auditoria.visualizar'), ('pesquisa.visualizar'), ('administracao.configurar')
         ) AS x(permission_id)
         ON CONFLICT (profile_id, permission_id) DO UPDATE SET allowed = excluded.allowed;

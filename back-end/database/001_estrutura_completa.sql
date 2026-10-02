@@ -174,14 +174,14 @@ CREATE TABLE activity_logs (
 	entity varchar(100) NOT NULL,
 	entity_id varchar(36) NULL,
 	details text DEFAULT ''::text NOT NULL,
-	"result" varchar(40) NULL,
+	"result" varchar(30) DEFAULT 'success'::character varying NOT NULL,
 	created_at timestamptz DEFAULT now() NOT NULL,
 	project_id varchar(36) NULL,
 	CONSTRAINT activity_logs_pkey PRIMARY KEY (id),
 	CONSTRAINT activity_logs_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL,
 	CONSTRAINT activity_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
-CREATE INDEX ix_activity_logs_project_id ON a25034.activity_logs USING btree (project_id);
+CREATE INDEX ix_activity_logs_project_id ON activity_logs USING btree (project_id);
 
 CREATE TABLE folders (
 	id varchar(36) NOT NULL,
