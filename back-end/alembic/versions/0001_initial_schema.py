@@ -81,25 +81,19 @@ def upgrade() -> None:
     )
     op.create_table(
         "users",
-        sa.Column("id", sa.String(length=255), nullable=False),
-        sa.Column("name", sa.String(length=200), nullable=False),
-        sa.Column("email", sa.String(length=320), nullable=False),
-        sa.Column("job_title", sa.String(length=120), nullable=True),
-        sa.Column("area", sa.String(length=120), nullable=True),
-        sa.Column("avatar_url", sa.String(length=500), nullable=True),
-        sa.Column("last_login_at", sa.DateTime(), nullable=True),
-        sa.Column("role", sa.String(length=40), nullable=False, server_default="solicitante"),
+        sa.Column("id", sa.String(length=32), nullable=False),
+        sa.Column("user_id", sa.String(length=80), nullable=False),
         sa.Column("profile_id", sa.String(length=20), nullable=True),
+        sa.Column("last_login_at", sa.DateTime(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.ForeignKeyConstraint(["profile_id"], ["profiles.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("user_id"),
     )
     op.create_table(
         "sessions",
         sa.Column("id", sa.String(length=128), nullable=False),
-        sa.Column("user_id", sa.String(length=255), nullable=True),
-        sa.Column("email", sa.String(length=320), nullable=False),
-        sa.Column("display_name", sa.String(length=255), nullable=True),
+        sa.Column("user_id", sa.String(length=32), nullable=False),
         sa.Column("profile_id", sa.String(length=20), nullable=True),
         sa.Column("expires_at", sa.DateTime(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("current_timestamp")),
@@ -253,7 +247,7 @@ def upgrade() -> None:
     )
 
     # Índices que refletem `index=True` nos models (não recriados pelas UniqueConstraint acima).
-    op.create_index("ix_users_email", "users", ["email"], unique=True)
+    op.create_index("ix_users_user_id", "users", ["user_id"], unique=True)
     op.create_index("ix_users_profile_id", "users", ["profile_id"])
     op.create_index("ix_projects_code", "projects", ["code"], unique=True)
     op.create_index("ix_projects_status", "projects", ["status"])
@@ -297,12 +291,9 @@ def upgrade() -> None:
     # permitir que a baseline seja aplicada em bancos já parcialmente povoados.
     execute_sql_script(
         """
-        INSERT INTO users (id, name, email, job_title, area, role, profile_id) VALUES
-        ('Kleber Goncalves', 'Administrador de Desenvolvimento', 'kleber.goncalves.prestserv@petrobras.com.br', 'Administrador', 'Governança e Compliance', 'administrador', 'ADM'),
-        ('Fabio Junio', 'Administrador de Desenvolvimento', 'fabio.j.lima.prestserv@petrobras.com.br', 'Administrador', 'Governança e Compliance', 'administrador', 'ADM'),
-        ('Jefferson Breno', 'Administrador de Desenvolvimento', 'jefferson.breno.prestserv@petrobras.com.br', 'Administrador', 'Governança e Compliance', 'administrador', 'ADM')
-        ON CONFLICT (id) DO UPDATE SET name = excluded.name, email = excluded.email,
-            job_title = excluded.job_title, area = excluded.area, role = excluded.role, profile_id = excluded.profile_id;
+        INSERT INTO users (id, user_id, profile_id) VALUES
+        ('5d25f562b21d7002b1631ad43e57a74c', 'GFZ3', 'ADM')
+        ON CONFLICT (id) DO UPDATE SET user_id = excluded.user_id, profile_id = excluded.profile_id;
 
         INSERT INTO modules (id, name, route, icon, display_order, active) VALUES
         ('dashboard', 'Dashboard', '/dashboard', 'layout-dashboard', 1, true),

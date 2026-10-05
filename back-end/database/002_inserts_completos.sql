@@ -143,5 +143,6 @@ COMMIT;
 -- profiles -> modules -> responsible_areas -> project_statuses -> report_types
 -- -> report_fields -> permissions -> menus -> menu_permissions
 -- -> profile_modules -> profile_permissions.
--- Usuários administrativos iniciais podem ser inseridos pela migration Alembic;
--- projetos, pastas, membros e logs de homologação ficam no script 003.
+-- A tabela users não armazena nome, e-mail ou cargo: esses dados vêm do CAV4.
+-- O usuário persistido contém apenas a chave user_id, o perfil local e timestamps.
+-- Usuários de homologação, projetos, pastas, membros e logs ficam no script 003.

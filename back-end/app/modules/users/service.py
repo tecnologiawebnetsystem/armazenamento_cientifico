@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from uuid import uuid4
+import hashlib
 
 from app.modules.users.models import Profile, User
 from app.modules.users.repository import ProfileRepository, UserRepository
@@ -13,21 +13,16 @@ class UserService:
     async def get_user(self, user_id: str) -> User | None:
         return await self.repository.find_by_id(user_id)
 
-    async def get_user_by_email(self, email: str) -> User | None:
-        return await self.repository.find_by_email(email)
+    async def get_user_by_user_id(self, user_id: str) -> User | None:
+        return await self.repository.find_by_user_id(user_id)
 
     async def list_users(self, skip: int = 0, limit: int = 100) -> list[User]:
         return await self.repository.list_all(skip, limit)
 
     async def create_user(self, data: UserCreate) -> User:
         user = User(
-            id=str(uuid4()),
-            name=data.name,
-            email=data.email,
-            job_title=data.cargo,
-            area=data.area,
-            avatar_url=data.avatar_url,
-            role=data.role,
+            id=hashlib.md5(data.user_id.encode("utf-8"), usedforsecurity=False).hexdigest(),
+            user_id=data.user_id,
             profile_id=data.perfil_id,
             created_at=datetime.now(UTC).replace(tzinfo=None),
         )
@@ -38,16 +33,8 @@ class UserService:
         if not user:
             return None
 
-        if data.name is not None:
-            user.name = data.name
-        if data.cargo is not None:
-            user.job_title = data.cargo
-        if data.area is not None:
-            user.area = data.area
-        if data.avatar_url is not None:
-            user.avatar_url = data.avatar_url
-        if data.role is not None:
-            user.role = data.role
+        if data.user_id is not None:
+            user.user_id = data.user_id
         if data.perfil_id is not None:
             user.profile_id = data.perfil_id
 

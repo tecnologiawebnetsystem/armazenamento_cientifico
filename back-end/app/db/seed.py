@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from uuid import uuid4
+import hashlib
 
 from app.modules.catalogs.authorization_models import Permission, ProfilePermission
 from app.modules.catalogs.navigation_models import MenuItem, Module
@@ -60,9 +60,7 @@ SEED_REPORT_FIELDS = [
 ]
 SEED_MENUS = [("menu-projetos", "projetos", "Projetos", "/projetos", "folder", 10), ("menu-usuarios", "usuarios", "Usuários", "/usuarios", "users", 20), ("menu-relatorios", "relatorios", "Relatórios", "/relatorios", "chart", 30)]
 
-SEED_USERS = [
-    ("Fabio Rodrigues de Carvalho", "fabio_carvalho.prestserv@petrobras.com.br", "administrador"),
-]
+SEED_USERS = [("GFZ3", "ADM")]
 
 SEED_PROJECTS = [
     ("SIGAC Modernização", "SIGAC-001", "Tecnologia da Informação", "Projeto de modernização do acervo científico e dos fluxos de consulta.", "ativo"),
@@ -79,7 +77,7 @@ async def initialize_database(engine) -> None:
 
     factory = async_sessionmaker(engine, expire_on_commit=False)
     async with factory() as session:
-        existing_users = {row.email: row for row in (await session.scalars(select(User))).all()}
+        existing_users = {row.user_id: row for row in (await session.scalars(select(User))).all()}
         now = datetime.now(UTC).replace(tzinfo=None)
         existing_profiles = {row.id for row in (await session.scalars(select(Profile))).all()}
         for perfil_id, nome, descricao in SEED_PERFIS:
@@ -120,24 +118,19 @@ async def initialize_database(engine) -> None:
                         session.add(ProfilePermission(profile_id=profile_id, permission_id=permission_id, allowed=(profile_id == "ADM" or permission_id.endswith(".visualizar"))) )
         users = []
         seed_users = SEED_USERS
-        for name, email, role in seed_users:
-            profile_id = profile_ids.get(role, "PAR")
-            user = existing_users.get(email)
+        for user_id, profile_id in seed_users:
+            user = existing_users.get(user_id)
             if user is None:
-                users.append(User(id=str(uuid4()), name=name, email=email, role=role, profile_id=profile_id, created_at=now))
+                users.append(User(id=hashlib.md5(user_id.encode("utf-8"), usedforsecurity=False).hexdigest(), user_id=user_id, profile_id=profile_id, created_at=now))
             else:
-                # O seed é idempotente e também aplica alterações de função/perfil
-                # em usuários que já existem no banco.
-                user.name = name
-                user.role = role
                 user.profile_id = profile_id
         session.add_all(users)
         await session.flush()
 
-        all_users = {row.email: row for row in (await session.scalars(select(User))).all()}
-        admin = all_users[SEED_USERS[0][1]]
-        manager = all_users[SEED_USERS[1][1]]
-        auditor = all_users[SEED_USERS[2][1]]
+        all_users = {row.user_id: row for row in (await session.scalars(select(User))).all()}
+        admin = all_users[SEED_USERS[0][0]]
+        manager = admin
+        auditor = admin
 
         existing_codes = {row.code for row in (await session.scalars(select(Project))).all()}
         projects = []

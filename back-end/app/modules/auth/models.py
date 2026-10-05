@@ -16,13 +16,11 @@ from app.db.base import Base
 class UserSession(Base):
     __tablename__ = "sessions"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
-    email: Mapped[str | None] = mapped_column(String(320), nullable=True, index=True)
-    display_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     profile_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
     expires_at: Mapped[datetime] = mapped_column(nullable=False)
-    cav4_subject: Mapped[str | None] = mapped_column(String(320), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(nullable=False)
 
 
 __all__ = ["UserSession"]

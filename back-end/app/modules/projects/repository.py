@@ -64,7 +64,7 @@ class ProjectRepository:
             select(ProjectMember, User)
             .join(User, User.id == ProjectMember.user_id)
             .where(ProjectMember.project_id == project_id)
-            .order_by(User.name)
+            .order_by(User.user_id)
         )
         return list((await self.session.execute(statement)).all())
 

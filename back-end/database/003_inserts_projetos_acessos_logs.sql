@@ -5,19 +5,12 @@
 \set ON_ERROR_STOP on
 BEGIN;
 
--- Usuários de homologação usados nas telas de dashboard, projetos e auditoria.
-INSERT INTO users (id, name, email, job_title, area, role, profile_id, last_login_at)
+-- Usuário de homologação: nome, e-mail e cargo não são persistidos; vêm do CAV4.
+INSERT INTO users (id, user_id, profile_id, last_login_at)
 VALUES
-  ('seed-admin', 'Administrador de Desenvolvimento', 'admin.dev@sigac.local', 'Administrador', 'Governança e Compliance', 'administrador', 'ADM', NULL),
-  ('seed-gerente', 'Gerente de Desenvolvimento', 'gerente.dev@sigac.local', 'Gerente de Projetos', 'Tecnologia', 'gerente', 'GER', NULL),
-  ('seed-auditor', 'Auditor de Desenvolvimento', 'auditor.dev@sigac.local', 'Auditor', 'Auditoria', 'auditor', 'AUD', NULL),
-  ('GFZ3', 'Kleber de Oliveira Gonçalves - PrestServ', 'kleber.goncalves.prestserv@petrobras.com.br', NULL, NULL, 'administrador', 'ADM', '2026-09-25 16:50:57.382-03')
+  ('5d25f562b21d7002b1631ad43e57a74c', 'GFZ3', 'ADM', '2026-09-25 16:50:57.382-03')
 ON CONFLICT (id) DO UPDATE SET
-  name = EXCLUDED.name,
-  email = EXCLUDED.email,
-  job_title = EXCLUDED.job_title,
-  area = EXCLUDED.area,
-  role = EXCLUDED.role,
+  user_id = EXCLUDED.user_id,
   profile_id = EXCLUDED.profile_id,
   last_login_at = EXCLUDED.last_login_at;
 
