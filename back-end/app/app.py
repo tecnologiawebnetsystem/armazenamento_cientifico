@@ -76,7 +76,8 @@ def create_app() -> FastAPI:
     @application.middleware("http")
     async def request_security_and_logging(request: Request, call_next: Any):
         started_at = perf_counter()
-        request_id = request.headers.get("X-Request-ID", str(uuid4()))
+        # O identificador é gerado no servidor para evitar spoofing e injeção em logs.
+        request_id = str(uuid4())
         context_token = set_request_id(request_id)
         logger.info("request_start method=%s path=%s", request.method, request.url.path)
         response = await call_next(request)

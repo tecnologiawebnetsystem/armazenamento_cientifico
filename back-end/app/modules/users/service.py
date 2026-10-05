@@ -62,7 +62,7 @@ class ProfileService:
         self.repository = repository
 
     async def get_profile(self, profile_id: str) -> Profile | None:
-        return await self.repository.find_by_id(perfil_id)
+        return await self.repository.find_by_id(profile_id)
 
     async def list_profiles(self) -> list[Profile]:
         return await self.repository.list_all()

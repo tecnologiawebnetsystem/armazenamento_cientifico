@@ -4,7 +4,6 @@ Importar este módulo garante que todos os modelos estejam registrados em
 ``Base.metadata`` antes de o Alembic comparar ou gerar migrations.
 """
 
-from app.db.base import Base
 from app.modules.audit.models import ActivityLog
 from app.modules.auth.models import UserSession
 from app.modules.catalogs.authorization_models import Permission, ProfileModule, ProfilePermission
@@ -18,10 +17,24 @@ from app.modules.users.models import User
 from app.modules.users.profile_model import Profile
 
 __all__ = [
-    "ActivityLog", "DashboardCard", "Folder", "MenuItem", "MenuPermission", "Module", "Profile",
-    "Permission", "ProfileModule", "ProfilePermission",
-    "Project", "ProjectMember", "ProjectStatus",
-    "ReportField", "ReportType", "ResponsibleArea", "User", "UserSession",
+    "ActivityLog",
+    "DashboardCard",
+    "Folder",
+    "MenuItem",
+    "MenuPermission",
+    "Module",
+    "Permission",
+    "Profile",
+    "ProfileModule",
+    "ProfilePermission",
+    "Project",
+    "ProjectMember",
+    "ProjectStatus",
+    "ReportField",
+    "ReportType",
+    "ResponsibleArea",
+    "User",
+    "UserSession",
 ]
 
 # Evita que linters removam os imports que registram as classes no metadata.
