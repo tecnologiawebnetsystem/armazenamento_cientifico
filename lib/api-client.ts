@@ -118,9 +118,20 @@ export function recordAuditEvent(event: {
   details?: Record<string, unknown>
   result?: string
 }) {
+  const details = {
+    rota: window.location.pathname,
+    url: window.location.href,
+    origem: document.referrer || undefined,
+    user_agent: navigator.userAgent,
+    idioma: navigator.language,
+    viewport: `${window.innerWidth}x${window.innerHeight}`,
+    horario_cliente: new Date().toISOString(),
+    ...event.details,
+  }
+
   return request<void>("/api/audit/events", {
     method: "POST",
-    body: JSON.stringify({ entity: "interface", result: "sucesso", ...event }),
+    body: JSON.stringify({ entity: "interface", result: "sucesso", ...event, details }),
   })
 }
 
