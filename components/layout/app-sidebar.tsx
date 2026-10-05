@@ -50,7 +50,14 @@ function buildNavGroups(menus: PlatformMenu[], profileName?: string | null): Nav
         .filter((menu) => menu.rota)
         .filter((menu) => {
           const route = menu.rota.trim().replace(/\/$/, "")
-          const isSettings = route === "/configuracoes" || menu.nome.trim().toLowerCase() === "configurações"
+          const menuName = menu.nome.trim().toLowerCase()
+          const isSettings = route === "/configuracoes" || menuName === "configurações"
+          const isAuditorOnlyMenu = route === "/auditoria" || menuName === "logs e auditoria" || menuName === "auditoria"
+
+          if (role === "auditor") {
+            return isAuditorOnlyMenu
+          }
+
           return !isSettings || role === "operador"
         })
         .map((menu) => [menu.rota.trim().replace(/\/$/, "") || "/", menu]),
