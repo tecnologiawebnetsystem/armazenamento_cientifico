@@ -392,20 +392,20 @@ def upgrade() -> None:
         """
         INSERT INTO profile_modules (profile_id, module_id, can_view)
         SELECT p.id, m.id,
-            CASE WHEN p.id = 'ADM' THEN true WHEN m.id = 'dashboard' THEN p.id IN ('ADM', 'GER', 'AUD', 'PAT') WHEN p.id = 'OPR' THEN m.id = 'configuracoes' WHEN m.id = 'configuracoes' THEN false
-            WHEN m.id = 'auditoria' THEN p.id IN ('AUD', 'ADM')
-            WHEN m.id IN ('relatorios', 'pesquisas') THEN p.id IN ('GER', 'AUD', 'PAT', 'ADM')
-            ELSE p.id IN ('GER', 'AUD', 'PAT', 'ADM') END
+            CASE WHEN p.id = 'ADM' THEN m.id <> 'configuracoes' WHEN p.id = 'OPR' THEN m.id = 'configuracoes' WHEN p.id = 'AUD' THEN m.id = 'auditoria' WHEN m.id = 'dashboard' THEN p.id IN ('ADM', 'GER', 'PAT') WHEN m.id = 'configuracoes' THEN false
+            WHEN m.id = 'auditoria' THEN p.id IN ('ADM')
+            WHEN m.id IN ('relatorios', 'pesquisas') THEN p.id IN ('GER', 'PAT', 'ADM')
+            ELSE p.id IN ('GER', 'PAT', 'ADM') END
         FROM profiles p CROSS JOIN modules m
         ON CONFLICT (profile_id, module_id) DO UPDATE SET can_view = excluded.can_view;
 
         INSERT INTO profile_permissions (profile_id, permission_id, allowed)
         SELECT p.id, x.permission_id,
-            CASE WHEN p.id = 'ADM' THEN true WHEN x.permission_id = 'dashboard.visualizar' THEN p.id IN ('ADM', 'GER', 'AUD', 'PAT') WHEN p.id = 'OPR' THEN x.permission_id = 'administracao.configurar' WHEN x.permission_id = 'projeto.visualizar' THEN p.id IN ('GER', 'AUD', 'PAT')
-            WHEN x.permission_id = 'relatorio.visualizar' THEN p.id IN ('GER', 'AUD', 'PAT')
+            CASE WHEN p.id = 'ADM' THEN x.permission_id <> 'administracao.configurar' WHEN p.id = 'OPR' THEN x.permission_id = 'administracao.configurar' WHEN p.id = 'AUD' THEN x.permission_id = 'auditoria.visualizar' WHEN x.permission_id = 'dashboard.visualizar' THEN p.id IN ('ADM', 'GER', 'PAT') WHEN x.permission_id = 'projeto.visualizar' THEN p.id IN ('GER', 'PAT')
+            WHEN x.permission_id = 'relatorio.visualizar' THEN p.id IN ('GER', 'PAT')
             WHEN x.permission_id = 'relatorio.exportar' THEN p.id IN ('ADM', 'GER')
-            WHEN x.permission_id = 'auditoria.visualizar' THEN p.id IN ('ADM', 'AUD')
-            WHEN x.permission_id = 'pesquisa.visualizar' THEN p.id IN ('ADM', 'GER', 'AUD', 'PAT') ELSE false END
+            WHEN x.permission_id = 'auditoria.visualizar' THEN p.id IN ('ADM')
+            WHEN x.permission_id = 'pesquisa.visualizar' THEN p.id IN ('ADM', 'GER', 'PAT') ELSE false END
         FROM profiles p CROSS JOIN (VALUES
             ('dashboard.visualizar'), ('projeto.visualizar'), ('projeto.criar'), ('projeto.editar'), ('projeto.status'), ('projeto.excluir'),
             ('relatorio.visualizar'), ('relatorio.exportar'), ('auditoria.visualizar'), ('pesquisa.visualizar'), ('administracao.configurar')
