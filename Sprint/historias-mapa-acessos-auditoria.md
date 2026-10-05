@@ -176,21 +176,22 @@ A regra deve ser armazenada na fonte oficial de permissões do sistema e aplicad
 ## História 8 — Regra: Administrador
 
 ### Título:
-Permitir acesso do perfil Administrador conforme a regra de segurança definida.
+Garantir acesso total do perfil Administrador e configurar as variáveis de ambiente AWS.
 
 ### Descrição:
-Como Administrador, quero acessar as funcionalidades e informações permitidas pelo meu perfil, para executar atividades administrativas e gerenciar o mapa de acessos com os privilégios adequados.
+Como usuário com perfil Administrador, quero ter acesso total às funcionalidades administrativas do sistema, para consultar auditorias e relatórios, visualizar e gerenciar projetos e criar novos projetos conforme minhas responsabilidades.
 
-A regra deve garantir que somente usuários associados ao perfil Administrador tenham acesso às funcionalidades administrativas, respeitando as permissões configuradas e impedindo elevação indevida de privilégio.
+A regra deve assegurar que o perfil Administrador tenha acesso às funcionalidades de auditoria, relatórios e projetos, incluindo a criação de projetos. Também devem ser criadas e configuradas as variáveis de ambiente AWS necessárias para o funcionamento seguro dos recursos relacionados.
 
 ### Critérios de Aceite:
-- [ ] O usuário com perfil Administrador consegue acessar as funcionalidades previstas para esse perfil.
-- [ ] Usuários sem o perfil Administrador não conseguem acessar as funcionalidades restritas, mesmo manipulando a URL ou a requisição.
+- [ ] O usuário com perfil Administrador tem acesso à auditoria.
+- [ ] O usuário com perfil Administrador tem acesso aos relatórios.
+- [ ] O usuário com perfil Administrador consegue visualizar e gerenciar projetos.
+- [ ] O usuário com perfil Administrador consegue criar projetos.
+- [ ] Usuários que não possuem o perfil Administrador não conseguem acessar as funcionalidades exclusivas desse perfil.
 - [ ] A autorização é validada no back-end e não somente na interface.
-- [ ] As permissões do Administrador são aplicadas de forma consistente na interface, nos endpoints e nas operações disponíveis.
-- [ ] As ações administrativas relevantes são registradas na trilha de auditoria.
 - [ ] As variáveis de ambiente AWS necessárias são criadas, documentadas e configuradas nos ambientes aplicáveis.
-- [ ] As credenciais e valores sensíveis não são expostos no código-fonte, na interface ou nos logs da aplicação.
+- [ ] Credenciais e valores sensíveis não são expostos no código-fonte, na interface ou nos logs da aplicação.
 
 ### Pontos:
 **5 pontos**
@@ -200,22 +201,23 @@ A regra deve garantir que somente usuários associados ao perfil Administrador t
 ## História 9 — Análise de viabilidade para solicitação de criação de projeto via ServiceNow
 
 ### Título:
-Analisar a viabilidade da criação de solicitações de projetos por meio do ServiceNow.
+Avaliar a viabilidade de criar uma solicitação de criação de projeto via ServiceNow.
 
 ### Descrição:
-Como responsável pelo processo de projetos, quero avaliar a viabilidade de criar uma solicitação de criação de projeto via ServiceNow, para identificar requisitos, integrações, regras de negócio e impactos técnicos antes da implementação.
+Como responsável pelo processo de projetos, quero analisar a viabilidade de abrir uma solicitação de criação de projeto via ServiceNow, para entender os requisitos, as integrações necessárias, as regras de negócio e os impactos técnicos antes de decidir pela implementação.
 
-A análise deve considerar o fluxo de abertura, o envio e recebimento de dados, o acompanhamento do status da solicitação, o tratamento de erros, a autenticação e os critérios necessários para uma futura implementação segura.
+A análise deve produzir uma avaliação documentada sobre o fluxo proposto, considerando a abertura da solicitação, o envio e recebimento de dados, o acompanhamento do status, o tratamento de erros, a autenticação e as dependências entre o sistema e o ServiceNow.
 
 ### Critérios de Aceite:
-- [ ] O fluxo atual de solicitação de criação de projeto está documentado e comparado com o fluxo proposto no ServiceNow.
-- [ ] Os dados obrigatórios, formatos, responsáveis e regras de negócio da solicitação estão identificados.
-- [ ] A necessidade de integração entre a aplicação e o ServiceNow está mapeada, incluindo APIs, eventos ou webhooks aplicáveis.
+- [ ] O fluxo atual de criação de projetos está documentado.
+- [ ] O fluxo proposto para abertura da solicitação no ServiceNow está descrito.
+- [ ] Os dados obrigatórios, formatos, responsáveis e regras de negócio estão identificados.
+- [ ] As opções de integração com o ServiceNow, como API, evento ou webhook, estão avaliadas.
 - [ ] Os requisitos de autenticação, autorização, segurança e variáveis de ambiente estão identificados.
-- [ ] Os possíveis retornos de sucesso, erro, indisponibilidade e duplicidade estão descritos.
+- [ ] Os cenários de sucesso, erro, indisponibilidade, duplicidade e reprocessamento estão descritos.
 - [ ] O acompanhamento do status e a sincronização das informações entre os sistemas estão avaliados.
-- [ ] A análise apresenta conclusão de viabilidade, restrições, riscos, dependências e recomendação dos próximos passos.
-- [ ] O resultado da análise está documentado e disponível para validação das partes responsáveis.
+- [ ] A análise apresenta conclusão de viabilidade, riscos, restrições, dependências e recomendação dos próximos passos.
+- [ ] O resultado está documentado e disponível para validação das partes responsáveis.
 
 ### Pontos:
 **5 pontos**
