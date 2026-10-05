@@ -220,7 +220,7 @@ async def cav4_callback(request: Request, code: str, state: str):
             )
             local_user_result = await database.execute(
                 text(
-                    f"select id from {schema}.users "
+                    f"select id, user_id from {schema}.users "
                     "where user_id in :user_ids "
                     "order by case user_id "
                     "when :user_login then 0 "
@@ -259,6 +259,10 @@ async def cav4_callback(request: Request, code: str, state: str):
                 {"user_id": local_user["id"]},
             )
             await database.execute(
+                text(f"update {schema}.users set last_login_at=now() where id=:user_id"),
+                {"user_id": local_user["id"]},
+            )
+            await database.execute(
                 text(f"""insert into {schema}.sessions
                     (id,user_id,profile_id,profile_data,expires_at)
                     values(:id,:user_id,:profile_id,:profile_data,:expires_at)"""),
@@ -269,6 +273,20 @@ async def cav4_callback(request: Request, code: str, state: str):
                     # A rota usa SQL textual; o driver asyncpg precisa receber JSON serializado.
                     "profile_data": json.dumps(profile_data, ensure_ascii=False),
                     "expires_at": expires_at,
+                },
+            )
+            await database.execute(
+                text(f"""insert into {schema}.activity_logs
+                    (id,user_id,action,entity,entity_id,details,result,created_at)
+                    values(:id,:user_id,:action,:entity,:entity_id,:details,:result,now())"""),
+                {
+                    "id": str(uuid4()),
+                    "user_id": local_user["user_id"],
+                    "action": "login",
+                    "entity": "session",
+                    "entity_id": session_id,
+                    "details": json.dumps({"provider": "CAV4", "subject": identity.subject}, ensure_ascii=False),
+                    "result": "success",
                 },
             )
             await database.commit()

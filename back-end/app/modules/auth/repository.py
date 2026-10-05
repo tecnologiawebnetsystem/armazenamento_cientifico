@@ -1,3 +1,4 @@
+import json
 import re
 from datetime import datetime
 from typing import Any
@@ -29,7 +30,15 @@ class AuthRepository:
             group by s.id, s.user_id, u.user_id, s.profile_data, u.last_login_at, u.created_at, s.profile_id, p.name
         """), {"session_id": session_id})
         row = result.mappings().first()
-        return dict(row) if row else None
+        if not row:
+            return None
+        identity = dict(row)
+        if isinstance(identity.get("profile_data"), str):
+            try:
+                identity["profile_data"] = json.loads(identity["profile_data"])
+            except json.JSONDecodeError:
+                identity["profile_data"] = {}
+        return identity
 
     async def create_session(self, user_id: str, session_id: str, expires_at: datetime) -> None:
         user_result = await self.database.execute(

@@ -273,15 +273,22 @@ export async function getUsers() {
 
 export type ActivityLogQuery = Record<string, string | number | undefined>
 
-export function getActivityLogs(params: ActivityLogQuery = {}) {
-  const queryParams = new URLSearchParams()
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== "") queryParams.set(key, String(value))
-  })
-  const query = queryParams.size ? `?${queryParams}` : ""
-  return request<{
-    logs: (ActivityLog & { user: User | null; projetoNome?: string | null })[]
-    pagination: { page: number; limit: number; total: number; totalPages: number }
-  }>(`/api/activity-logs${query}`)
+export async function getActivityLogs(params: ActivityLogQuery = {}) {
+  const limit = Number(params.limit ?? 100)
+  const logs = await request<ActivityLog[]>(`/api/audit/logs?limit=${limit}`)
+  return {
+    logs: logs.map((log) => ({
+      ...log,
+      user: null,
+      userId: log.user_id,
+      acao: log.action,
+      entidade: log.entity,
+      entidadeId: log.entity_id,
+      detalhes: log.details,
+      resultado: (log as ActivityLog & { result?: string }).result ?? "sucesso",
+      criadoEm: log.created_at,
+    })),
+    pagination: { page: 1, limit, total: logs.length, totalPages: logs.length ? 1 : 0 },
+  }
 }
 
