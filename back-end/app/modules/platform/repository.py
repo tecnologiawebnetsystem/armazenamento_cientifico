@@ -133,7 +133,7 @@ class PlatformRepository:
         await self.execute(f"delete from {self.schema}.{table} where {where}", params)
 
     async def users(self) -> list[dict[str, Any]]:
-        return await self.rows(f"select id, name as nome, email, job_title as cargo, area, avatar_url as \"avatarUrl\", last_login_at as \"ultimoLogin\", role, profile_id as \"perfilId\", created_at as \"criadoEm\" from {self.schema}.users order by name")
+        return await self.rows(f"select id, user_id as \"userId\", profile_id as \"perfilId\", last_login_at as \"ultimoLogin\", created_at as \"criadoEm\" from {self.schema}.users order by user_id")
 
     async def folders(self, project_id: str) -> list[dict[str, Any]]:
         return await self.rows(f"select id, project_id as \"projectId\", parent_id as \"parentId\", kind as tipo, name as nome, size_bytes as tamanho, mime_type as \"mimeType\", created_by as \"criadoPor\", created_at as \"criadoEm\", updated_at as \"atualizadoEm\" from {self.schema}.folders where project_id = :project_id order by name", {"project_id": project_id})

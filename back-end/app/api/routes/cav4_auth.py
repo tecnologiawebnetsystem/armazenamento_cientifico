@@ -235,8 +235,8 @@ async def cav4_callback(request: Request, code: str, state: str):
             if not profile:
                 raise HTTPException(status_code=403, detail=f"Perfil CAV4 não cadastrado no SIGAC: {profile_id}")
             local_user_result = await database.execute(
-                text(f"select id from {schema}.users where lower(email)=lower(:email) limit 1"),
-                {"email": identity.email},
+                text(f"select id from {schema}.users where user_id=:user_id limit 1"),
+                {"user_id": identity.subject},
             )
             local_user = local_user_result.mappings().first()
             await database.execute(

@@ -11,11 +11,11 @@ class UserRepository:
     async def find_by_id(self, user_id: str) -> User | None:
         return await self.session.scalar(select(User).where(User.id == user_id))
 
-    async def find_by_email(self, email: str) -> User | None:
-        return await self.session.scalar(select(User).where(User.email == email))
+    async def find_by_user_id(self, user_id: str) -> User | None:
+        return await self.session.scalar(select(User).where(User.user_id == user_id))
 
     async def list_all(self, skip: int = 0, limit: int = 100) -> list[User]:
-        stmt = select(User).offset(skip).limit(limit).order_by(User.name)
+        stmt = select(User).offset(skip).limit(limit).order_by(User.user_id)
         result = await self.session.scalars(stmt)
         return list(result)
 

@@ -152,17 +152,12 @@ CREATE TABLE report_fields (
 );
 
 CREATE TABLE users (
-	id varchar(255) NOT NULL,
-	"name" varchar(200) NOT NULL,
-	email varchar(320) NOT NULL,
-	job_title varchar(120) NULL,
-	area varchar(120) NULL,
-	"role" varchar(40) DEFAULT 'solicitante'::character varying NOT NULL,
+	id varchar(32) NOT NULL,
+	user_id varchar(80) NOT NULL,
 	profile_id varchar(20) NULL,
-	avatar_url varchar(500) NULL,
 	last_login_at timestamptz NULL,
 	created_at timestamptz DEFAULT now() NOT NULL,
-	CONSTRAINT users_email_key UNIQUE (email),
+	CONSTRAINT users_user_id_key UNIQUE (user_id),
 	CONSTRAINT users_pkey PRIMARY KEY (id),
 	CONSTRAINT users_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE SET NULL
 );

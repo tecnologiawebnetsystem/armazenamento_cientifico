@@ -1,16 +1,11 @@
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 
 class UserBase(BaseModel):
-    name: str = Field(..., min_length=1, max_length=200)
-    email: EmailStr
-    cargo: str | None = Field(None, max_length=120)
-    area: str | None = Field(None, max_length=120)
-    avatar_url: str | None = Field(None, max_length=500)
-    role: str = Field("solicitante", max_length=40)
-    perfil_id: str | None = Field(None, max_length=36)
+    user_id: str = Field(..., min_length=1, max_length=80)
+    perfil_id: str | None = Field(None, max_length=20)
 
 
 class UserCreate(UserBase):

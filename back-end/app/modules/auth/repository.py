@@ -15,8 +15,8 @@ class AuthRepository:
 
     async def find_session_identity(self, session_id: str) -> dict[str, Any] | None:
         result = await self.database.execute(text(f"""
-            select s.id, s.email, s.user_id, coalesce(nullif(u.name, ''), nullif(s.display_name, '')) as display_name, s.profile_id,
-                   u.name as name,
+            select s.id, s.email, s.user_id, coalesce(nullif(s.display_name, ''), u.user_id) as display_name, s.profile_id,
+                   u.user_id as name,
                    p.name as profile_name,
                    coalesce(array_agg(distinct perm.id) filter
                      (where pp.allowed = true and perm.active = true), '{{}}') as db_permissions
@@ -26,14 +26,14 @@ class AuthRepository:
             left join {self.schema}.profile_permissions pp on pp.profile_id = p.id
             left join {self.schema}.permissions perm on perm.id = pp.permission_id
             where s.id = :session_id and s.expires_at > now()
-            group by s.id, s.email, s.user_id, s.display_name, s.profile_id, u.name, p.name
+            group by s.id, s.email, s.user_id, s.display_name, s.profile_id, u.user_id, p.name
         """), {"session_id": session_id})
         row = result.mappings().first()
         return dict(row) if row else None
 
     async def find_user_by_email(self, email: str) -> dict[str, Any] | None:
         result = await self.database.execute(
-            text(f"select id, profile_id from {self.schema}.users where lower(email)=lower(:email)"),
+            text(f"select id, profile_id from {self.schema}.users where user_id=:user_id"),
             {"email": email},
         )
         row = result.mappings().first()
