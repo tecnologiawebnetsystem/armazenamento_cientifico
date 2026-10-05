@@ -5,6 +5,15 @@
 \set ON_ERROR_STOP on
 BEGIN;
 
+-- Garante que os logs armazenem a chave operacional (ex.: GBTF),
+-- e não o id técnico interno da tabela users.
+ALTER TABLE activity_logs
+  DROP CONSTRAINT IF EXISTS activity_logs_user_id_fkey;
+
+ALTER TABLE activity_logs
+  ADD CONSTRAINT activity_logs_user_id_fkey
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL;
+
 -- Usuário de homologação: nome, e-mail e cargo não são persistidos; vêm do CAV4.
 INSERT INTO users (id, user_id, profile_id, last_login_at)
 VALUES
@@ -133,7 +142,7 @@ WITH projetos AS (
 INSERT INTO activity_logs (id, user_id, action, entity, entity_id, details, result, created_at)
 SELECT
   md5('activity:' || p.code || ':' || e.ordem),
-  u.id,
+  u.user_id,
   e.action,
   e.entity,
   p.id,
@@ -142,7 +151,12 @@ SELECT
   now() - ((row_number() OVER (ORDER BY p.code, e.ordem)) || ' hours')::interval
 FROM projetos p
 CROSS JOIN eventos e
-CROSS JOIN LATERAL (SELECT id FROM users ORDER BY id LIMIT 1) u
+CROSS JOIN LATERAL (
+  SELECT user_id
+  FROM users
+  WHERE user_id = 'GBTF'
+  LIMIT 1
+) u
 ON CONFLICT (id) DO UPDATE SET
   user_id = EXCLUDED.user_id,
   action = EXCLUDED.action,

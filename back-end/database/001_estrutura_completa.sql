@@ -174,7 +174,7 @@ CREATE TABLE activity_logs (
 	project_id varchar(36) NULL,
 	CONSTRAINT activity_logs_pkey PRIMARY KEY (id),
 	CONSTRAINT activity_logs_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL,
-	CONSTRAINT activity_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+	CONSTRAINT activity_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
 );
 CREATE TABLE folders (
 	id varchar(36) NOT NULL,
