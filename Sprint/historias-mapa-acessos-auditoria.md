@@ -1,13 +1,5 @@
 # Histórias de Usuário — Mapa de Acessos e Auditoria
 
-## Objetivo
-
-Disponibilizar a consulta do mapa de acessos por projeto, com integração ao API de Identidade, regras de autorização por perfil, trilha de auditoria e avaliação da criação de projetos via ServiceNow.
-
-> **Premissa de estimativa:** os pontos seguem a escala Fibonacci utilizada no projeto: 1, 2, 3, 5, 8 e 13.
-
----
-
 ## História 1 — Definir estratégia de consulta ao API Identidade
 
 ### Título:
@@ -51,29 +43,6 @@ O serviço deve encapsular a integração externa, normalizar os dados retornado
 - [ ] Existem testes para sucesso, paginação, grupo inexistente, timeout e erro de autenticação.
 
 ### Pontos:
-**5 pontos**
-
----
-
-## História 3 — Contrato e modelo interno do mapa de acessos
-
-### Título:
-Definir o modelo interno para grupos, membros e origem dos dados.
-
-### Descrição:
-Como equipe de desenvolvimento, quero padronizar o modelo de dados do mapa de acessos, para que as informações provenientes do API Identidade sejam utilizadas de forma consistente pela API, pelas telas e pelos relatórios.
-
-O modelo deve representar projeto, grupos, membros, perfil ou tipo de acesso quando disponível, origem da informação, data da consulta e situação da sincronização.
-
-### Critérios de Aceite:
-- [ ] O contrato interno define projeto, grupos, membros e seus identificadores.
-- [ ] O modelo contempla nome, identificador e demais atributos necessários para exibição.
-- [ ] O contrato informa a fonte dos dados e o timestamp da consulta.
-- [ ] Campos obrigatórios, opcionais e regras de validação estão documentados.
-- [ ] O modelo trata respostas vazias sem quebrar a tela ou a API.
-- [ ] O contrato possui exemplos de resposta para sucesso, ausência de dados e erro.
-
-### Pontos:
 **3 pontos**
 
 ---
@@ -98,11 +67,33 @@ O endpoint deve consolidar as informações do projeto e do API Identidade, resp
 - [ ] O endpoint possui testes de sucesso, 404, 403 e falha de integração.
 
 ### Pontos:
-**5 pontos**
+**2 pontos**
+
+---
+## História 5.1.1 — Registrar operações dos usuários em log
+
+### Título:
+Registrar operações relevantes dos usuários em trilha de auditoria.
+
+### Descrição:
+Como auditor ou administrador de segurança, quero que as operações relevantes dos usuários sejam registradas automaticamente, para garantir rastreabilidade e apoiar auditorias e investigações.
+
+Devem ser registradas, no mínimo, autenticação, logout, consultas ao mapa de acessos, tentativas negadas, alterações de permissões e operações administrativas.
+
+### Critérios de Aceite:
+- [ ] Operações relevantes são registradas automaticamente no back-end.
+- [ ] O registro contém usuário, data/hora, operação, recurso, identificador, resultado e origem da requisição.
+- [ ] Tentativas autorizadas e negadas são diferenciadas.
+- [ ] Falhas ao registrar auditoria não expõem dados sensíveis nem interrompem indevidamente a operação principal, conforme política definida.
+- [ ] Tokens, senhas e segredos nunca são gravados nos logs.
+- [ ] Existem testes para operações permitidas, negadas e falhas de persistência.
+
+### Pontos:
+**1 pontos**
 
 ---
 
-## História 5 — Consultar histórico de logs de auditoria
+## História 5.1.2 — Consultar histórico de logs de auditoria
 
 ### Título:
 Consultar o histórico de logs de auditoria.
@@ -122,34 +113,11 @@ A consulta deve permitir filtros por período, usuário, operação, recurso, pr
 - [ ] A consulta não permite acesso a dados fora do escopo autorizado.
 
 ### Pontos:
-**5 pontos**
+**1 pontos**
 
 ---
 
-## História 6 — Registrar operações dos usuários em log
-
-### Título:
-Registrar operações relevantes dos usuários em trilha de auditoria.
-
-### Descrição:
-Como administrador de segurança, quero que as operações relevantes dos usuários sejam registradas automaticamente, para garantir rastreabilidade e apoiar auditorias e investigações.
-
-Devem ser registradas, no mínimo, autenticação, logout, consultas ao mapa de acessos, tentativas negadas, alterações de permissões e operações administrativas.
-
-### Critérios de Aceite:
-- [ ] Operações relevantes são registradas automaticamente no back-end.
-- [ ] O registro contém usuário, data/hora, operação, recurso, identificador, resultado e origem da requisição.
-- [ ] Tentativas autorizadas e negadas são diferenciadas.
-- [ ] Falhas ao registrar auditoria não expõem dados sensíveis nem interrompem indevidamente a operação principal, conforme política definida.
-- [ ] Tokens, senhas e segredos nunca são gravados nos logs.
-- [ ] Existem testes para operações permitidas, negadas e falhas de persistência.
-
-### Pontos:
-**3 pontos**
-
----
-
-## História 7 — Configurar permissões de acesso aos logs de auditoria
+## História 5.2.1 — Configurar permissões de acesso aos logs de auditoria
 
 ### Título:
 Configurar permissões de acesso aos logs de auditoria.
@@ -169,10 +137,104 @@ A regra deve ser armazenada na fonte oficial de permissões do sistema e aplicad
 - [ ] A configuração funciona em DEV, HMG e PROD com valores independentes.
 
 ### Pontos:
-**3 pontos**
+**2 pontos**
 
 ---
 
+## História 5.2.2 — Consultar logs do sistema por usuários autorizados
+
+### Título:
+Permitir a consulta de logs do sistema por usuários autorizados.
+
+### Descrição:
+Como usuário autorizado, quero consultar os logs do sistema, para acompanhar eventos técnicos, erros de integração e ocorrências operacionais necessárias à sustentação da plataforma.
+
+A consulta deve separar logs técnicos de logs de auditoria quando aplicável, permitindo pesquisa segura sem expor credenciais ou informações pessoais desnecessárias.
+
+### Critérios de Aceite:
+- [ ] Usuário autorizado consegue consultar logs do sistema dentro do seu escopo.
+- [ ] A consulta possui filtros por período, nível, serviço, correlação e mensagem.
+- [ ] Os resultados são paginados e ordenados por data/hora.
+- [ ] Dados sensíveis são mascarados ou removidos da resposta.
+- [ ] Usuário não autorizado não consegue consultar os logs mesmo manipulando a requisição.
+- [ ] A consulta é registrada na auditoria quando definida pela política de segurança.
+- [ ] As variáveis de ambiente AWS necessárias estão documentadas e configuradas por ambiente.
+
+### Pontos:
+**2 pontos**
+
+---
+
+## História 5.2.3 — Exportar logs de auditoria em múltiplos formatos
+
+### Título:
+Exportar logs de auditoria em múltiplos formatos.
+
+### Descrição:
+Como auditor ou administrador autorizado, quero exportar os logs filtrados em formatos padronizados, para realizar análises externas, atender auditorias e compartilhar evidências com segurança.
+
+A exportação deve respeitar exatamente os mesmos filtros, permissões e escopo da consulta na tela.
+
+### Critérios de Aceite:
+- [ ] Usuário autorizado consegue exportar o resultado filtrado.
+- [ ] A exportação está disponível nos formatos CSV e JSON, no mínimo.
+- [ ] Os filtros aplicados são refletidos integralmente no arquivo gerado.
+- [ ] O arquivo possui cabeçalho, codificação e formato documentados.
+- [ ] Há proteção contra exportações excessivamente grandes, com paginação, limite ou processamento assíncrono.
+- [ ] O nome do arquivo não inclui dados sensíveis indevidos.
+- [ ] Cada exportação é registrada na trilha de auditoria.
+
+### Pontos:
+**2 pontos**
+
+---
+
+## História 6 — Regra: Gerente visualiza apenas seus projetos
+
+### Título:
+Restringir o acesso do Gestor aos projetos sob sua responsabilidade.
+
+### Descrição:
+Como Gerente, quero visualizar apenas os projetos nos quais sou gestor ou supervisor, para garantir que o mapa de acessos e as informações de projetos respeitem meu escopo de responsabilidade.
+
+A regra deve ser aplicada tanto na listagem de projetos quanto na consulta detalhada e no endpoint do mapa de acessos.
+
+### Critérios de Aceite:
+- [ ] Ao listar projetos, o Gestor recebe somente os projetos sob sua responsabilidade.
+- [ ] A consulta direta de projeto fora do escopo retorna HTTP 403 ou 404 conforme a política de segurança.
+- [ ] O mapa de acessos aplica a mesma restrição de escopo.
+- [ ] A regra considera gestor, supervisor ou outro vínculo formal definido pelo negócio.
+- [ ] A regra é aplicada no back-end e não depende apenas de filtros da interface.
+- [ ] Tentativas de acesso fora do escopo são registradas na auditoria.
+- [ ] As variáveis de ambiente AWS necessárias estão configuradas por ambiente e não contêm valores fixos no código.
+
+### Pontos:
+**1 pontos**
+
+---
+
+## História 7 — Regra: Patrocinador visualiza qualquer mapa
+
+### Título:
+Permitir ao Patrocinador consultar qualquer mapa de acessos.
+
+### Descrição:
+Como Patrocinador, quero consultar o mapa de acessos de qualquer projeto, para acompanhar de forma executiva a distribuição de acessos e os responsáveis pelos projetos sob gestão institucional.
+
+O acesso deve ser global para leitura, sem conceder ao perfil poderes de alteração ou administração.
+
+### Critérios de Aceite:
+- [ ] O perfil Patrocinador consegue listar todos os projetos disponíveis para acompanhamento.
+- [ ] O Patrocinador consegue consultar o mapa de acessos de qualquer projeto.
+- [ ] O perfil não consegue alterar grupos, membros, permissões ou configurações administrativas sem permissão adicional.
+- [ ] Consultas realizadas pelo Patrocinador são registradas na auditoria.
+- [ ] O escopo global é aplicado no back-end.
+- [ ] As variáveis de ambiente AWS necessárias estão configuradas por ambiente, sem credenciais no repositório.
+
+### Pontos:
+**1 pontos**
+
+---
 ## História 8 — Regra: Administrador
 
 ### Título:
@@ -194,9 +256,7 @@ A regra deve assegurar que o perfil Administrador tenha acesso às funcionalidad
 - [ ] Credenciais e valores sensíveis não são expostos no código-fonte, na interface ou nos logs da aplicação.
 
 ### Pontos:
-**5 pontos**
-
----
+**1 pontos**
 
 ## História 9 — Análise de viabilidade para solicitação de criação de projeto via ServiceNow
 
@@ -220,118 +280,7 @@ A análise deve produzir uma avaliação documentada sobre o fluxo proposto, con
 - [ ] O resultado está documentado e disponível para validação das partes responsáveis.
 
 ### Pontos:
-**5 pontos**
+**2 pontos**
 
----
-
-## História 10 — Regra: Gestor visualiza apenas seus projetos
-
-### Título:
-Restringir o acesso do Gestor aos projetos sob sua responsabilidade.
-
-### Descrição:
-Como Gestor, quero visualizar apenas os projetos nos quais sou gestor ou supervisor, para garantir que o mapa de acessos e as informações de projetos respeitem meu escopo de responsabilidade.
-
-A regra deve ser aplicada tanto na listagem de projetos quanto na consulta detalhada e no endpoint do mapa de acessos.
-
-### Critérios de Aceite:
-- [ ] Ao listar projetos, o Gestor recebe somente os projetos sob sua responsabilidade.
-- [ ] A consulta direta de projeto fora do escopo retorna HTTP 403 ou 404 conforme a política de segurança.
-- [ ] O mapa de acessos aplica a mesma restrição de escopo.
-- [ ] A regra considera gestor, supervisor ou outro vínculo formal definido pelo negócio.
-- [ ] A regra é aplicada no back-end e não depende apenas de filtros da interface.
-- [ ] Tentativas de acesso fora do escopo são registradas na auditoria.
-- [ ] As variáveis de ambiente AWS necessárias estão configuradas por ambiente e não contêm valores fixos no código.
-
-### Pontos:
-**5 pontos**
-
----
-
-## História 11 — Regra: Patrocinador visualiza qualquer mapa
-
-### Título:
-Permitir ao Patrocinador consultar qualquer mapa de acessos.
-
-### Descrição:
-Como Patrocinador, quero consultar o mapa de acessos de qualquer projeto, para acompanhar de forma executiva a distribuição de acessos e os responsáveis pelos projetos sob gestão institucional.
-
-O acesso deve ser global para leitura, sem conceder ao perfil poderes de alteração ou administração.
-
-### Critérios de Aceite:
-- [ ] O perfil Patrocinador consegue listar todos os projetos disponíveis para acompanhamento.
-- [ ] O Patrocinador consegue consultar o mapa de acessos de qualquer projeto.
-- [ ] O perfil não consegue alterar grupos, membros, permissões ou configurações administrativas sem permissão adicional.
-- [ ] Consultas realizadas pelo Patrocinador são registradas na auditoria.
-- [ ] O escopo global é aplicado no back-end.
-- [ ] As variáveis de ambiente AWS necessárias estão configuradas por ambiente, sem credenciais no repositório.
-
-### Pontos:
-**3 pontos**
-
----
-
-## História 12 — Regra: Administrador e viabilidade de criação via ServiceNow
-
-### Título:
-Garantir acesso administrativo e analisar a criação de projetos via ServiceNow.
-
-### Descrição:
-Como Administrador, quero possuir acesso completo às funcionalidades administrativas do SIGAC e, adicionalmente, quero avaliar a viabilidade de criar solicitações de novos projetos via ServiceNow, para centralizar a governança e reduzir atividades manuais.
-
-A análise do ServiceNow deve resultar em uma decisão técnica documentada, contemplando autenticação, endpoint, campos obrigatórios, fluxo de aprovação, retorno da solicitação, tratamento de erros e impactos de segurança.
-
-### Critérios de Aceite:
-- [ ] O perfil Administrador possui acesso às funcionalidades administrativas autorizadas.
-- [ ] O Administrador consegue consultar projetos, mapas, auditorias, configurações e permissões conforme a matriz aprovada.
-- [ ] Operações administrativas relevantes são registradas na trilha de auditoria.
-- [ ] O Administrador não recebe permissões implícitas além das definidas na matriz de acesso.
-- [ ] A viabilidade da criação de solicitação de projeto via ServiceNow está documentada.
-- [ ] A análise identifica API, autenticação, campos, estados, aprovações, SLA, dependências e riscos.
-- [ ] A análise apresenta recomendação de implementação, não implementação ou prova de conceito.
-- [ ] Variáveis de ambiente AWS necessárias para a futura integração são listadas, sem inclusão de secrets no código.
-
-### Pontos:
-**8 pontos**
-
----
-
-## Resumo de estimativa
-
-| História | Tema | Pontos |
-|---|---|---:|
-| 1 | Estratégia de consulta ao API Identidade | 3 |
-| 2 | Serviço de membros de grupos | 5 |
-| 3 | Contrato do mapa de acessos | 3 |
-| 4 | Endpoint do mapa por projeto | 5 |
-| 5 | Histórico de logs de auditoria | 5 |
-| 6 | Registro de operações | 3 |
-| 7 | Permissões dos logs | 3 |
-| 8 | Consulta de logs do sistema | 5 |
-| 9 | Exportação de auditoria | 3 |
-| 10 | Regra de acesso do Gestor | 5 |
-| 11 | Regra de acesso do Patrocinador | 3 |
-| 12 | Regra do Administrador e ServiceNow | 8 |
-| **Total** |  | **51** |
-
-## Definition of Done comum
-
-- [ ] Código revisado e aprovado por outro desenvolvedor.
-- [ ] Lint, typecheck e testes executados com sucesso.
-- [ ] Nenhum segredo versionado no repositório.
-- [ ] Regras de autorização aplicadas no back-end.
-- [ ] Logs sem senhas, tokens ou secrets.
-- [ ] Documentação técnica atualizada.
-- [ ] Configurações e variáveis de ambiente separadas por ambiente.
-- [ ] Critérios de aceite validados pelo Product Owner ou responsável funcional.
-
-## Dependências principais
-
-1. Alinhamento com o time responsável pelo API Identidade.
-2. Definição do mecanismo de autenticação e permissões da integração.
-3. Configuração das variáveis de ambiente AWS em DEV, HMG e PROD.
-4. Definição da matriz de perfis e permissões.
-5. Disponibilidade do ambiente e dos contratos do ServiceNow para a análise de viabilidade.
-6. Definição da política de retenção, mascaramento e exportação de logs.
-
-> Observação: a numeração foi normalizada para 12 histórias. As cinco histórias de auditoria recebidas foram mantidas separadas para preservar rastreabilidade e facilitar o planejamento do backlog.
+### Total de Pontos:
+**21 pontos**
