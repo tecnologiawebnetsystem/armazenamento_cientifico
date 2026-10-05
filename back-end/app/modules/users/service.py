@@ -1,5 +1,4 @@
 from datetime import UTC, datetime
-import hashlib
 
 from app.modules.users.models import Profile, User
 from app.modules.users.repository import ProfileRepository, UserRepository
@@ -21,7 +20,6 @@ class UserService:
 
     async def create_user(self, data: UserCreate) -> User:
         user = User(
-            id=hashlib.md5(data.user_id.encode("utf-8"), usedforsecurity=False).hexdigest(),
             user_id=data.user_id,
             profile_id=data.perfil_id,
             created_at=datetime.now(UTC).replace(tzinfo=None),

@@ -1,5 +1,4 @@
 from datetime import UTC, datetime
-import hashlib
 
 from app.modules.catalogs.authorization_models import Permission, ProfilePermission
 from app.modules.catalogs.navigation_models import MenuItem, Module
@@ -121,7 +120,7 @@ async def initialize_database(engine) -> None:
         for user_id, profile_id in seed_users:
             user = existing_users.get(user_id)
             if user is None:
-                users.append(User(id=hashlib.md5(user_id.encode("utf-8"), usedforsecurity=False).hexdigest(), user_id=user_id, profile_id=profile_id, created_at=now))
+                users.append(User(user_id=user_id, profile_id=profile_id, created_at=now))
             else:
                 user.profile_id = profile_id
         session.add_all(users)

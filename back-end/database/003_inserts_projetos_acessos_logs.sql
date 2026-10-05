@@ -6,10 +6,10 @@
 BEGIN;
 
 -- Usuário de homologação: nome, e-mail e cargo não são persistidos; vêm do CAV4.
-INSERT INTO users (id, user_id, profile_id, last_login_at)
-VALUES
-  ('5d25f562b21d7002b1631ad43e57a74c', 'GFZ3', 'ADM', '2026-09-25 16:50:57.382-03')
-ON CONFLICT (id) DO UPDATE SET
+INSERT INTO users (user_id, profile_id, last_login_at)
+  VALUES
+  ('GFZ3', 'ADM', '2026-09-25 16:50:57.382-03')
+  ON CONFLICT (user_id) DO UPDATE SET
   user_id = EXCLUDED.user_id,
   profile_id = EXCLUDED.profile_id,
   last_login_at = EXCLUDED.last_login_at;

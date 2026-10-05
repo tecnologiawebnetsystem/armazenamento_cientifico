@@ -152,7 +152,7 @@ CREATE TABLE report_fields (
 );
 
 CREATE TABLE users (
-	id varchar(32) NOT NULL,
+	 id varchar(32) DEFAULT md5(gen_random_uuid()::text) NOT NULL,
 	user_id varchar(80) NOT NULL,
 	profile_id varchar(20) NULL,
 	last_login_at timestamptz NULL,

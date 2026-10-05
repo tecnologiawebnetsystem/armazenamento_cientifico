@@ -81,7 +81,7 @@ def upgrade() -> None:
     )
     op.create_table(
         "users",
-        sa.Column("id", sa.String(length=32), nullable=False),
+        sa.Column("id", sa.String(length=32), nullable=False, server_default=sa.text("md5(gen_random_uuid()::text)")),
         sa.Column("user_id", sa.String(length=80), nullable=False),
         sa.Column("profile_id", sa.String(length=20), nullable=True),
         sa.Column("last_login_at", sa.DateTime(), nullable=True),
@@ -291,9 +291,9 @@ def upgrade() -> None:
     # permitir que a baseline seja aplicada em bancos já parcialmente povoados.
     execute_sql_script(
         """
-        INSERT INTO users (id, user_id, profile_id) VALUES
-        ('5d25f562b21d7002b1631ad43e57a74c', 'GFZ3', 'ADM')
-        ON CONFLICT (id) DO UPDATE SET user_id = excluded.user_id, profile_id = excluded.profile_id;
+        INSERT INTO users (user_id, profile_id) VALUES
+        ('GFZ3', 'ADM')
+        ON CONFLICT (user_id) DO UPDATE SET profile_id = excluded.profile_id;
 
         INSERT INTO modules (id, name, route, icon, display_order, active) VALUES
         ('dashboard', 'Dashboard', '/dashboard', 'layout-dashboard', 1, true),
