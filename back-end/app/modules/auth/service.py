@@ -25,8 +25,10 @@ class CurrentUserService:
         if canonical_role(role) == "solicitante":
             raise HTTPException(status_code=403, detail="Seu perfil é Solicitante e não possui acesso ao SIGAC.")
         permissions = set(user.get("db_permissions") or []) if not self.temporary else set(user.get("permissions") or [])
+        profile_data = user.get("profile_data") or {}
         return {
             **dict(user),
+            **profile_data,
             "role": canonical_role(role),
             "roles": list(user.get("roles") or []),
             "permissions": sorted(permissions),
