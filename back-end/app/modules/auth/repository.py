@@ -15,7 +15,9 @@ class AuthRepository:
 
     async def find_session_identity(self, session_id: str) -> dict[str, Any] | None:
         result = await self.database.execute(text(f"""
-            select s.id, s.user_id, u.user_id as cav4_user_id, s.profile_id,
+            select s.id, s.user_id, u.user_id as cav4_user_id,
+                   u.email, u.display_name, u.job_title, u.area, u.avatar_url,
+                   u.last_login_at, u.created_at, s.profile_id,
                    p.name as profile_name,
                    coalesce(array_agg(distinct perm.id) filter
                      (where pp.allowed = true and perm.active = true), '{{}}') as db_permissions

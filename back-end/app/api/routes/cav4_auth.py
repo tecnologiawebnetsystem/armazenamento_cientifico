@@ -238,6 +238,29 @@ async def cav4_callback(request: Request, code: str, state: str):
                     status_code=403,
                     detail=f"Usuário CAV4 não cadastrado no SIGAC: {identity.user_login or identity.subject}",
                 )
+            claims = identity.raw_claims or {}
+            def claim(*names: str) -> str | None:
+                for name in names:
+                    value = claims.get(name)
+                    if value is not None and str(value).strip():
+                        return str(value).strip()
+                return None
+
+            await database.execute(
+                text(
+                    f"update {schema}.users set email=:email, display_name=:display_name, "
+                    "job_title=:job_title, area=:area, avatar_url=:avatar_url, last_login_at=now() "
+                    "where id=:user_id"
+                ),
+                {
+                    "user_id": local_user["id"],
+                    "email": identity.email,
+                    "display_name": identity.display_name or claim("name", "display_name", "displayName", "full_name", "fullName", "nome", "nomeCompleto"),
+                    "job_title": claim("job_title", "jobTitle", "cargo", "title", "occupation"),
+                    "area": claim("area", "department", "departmentName", "organizational_unit", "organizationalUnit"),
+                    "avatar_url": claim("picture", "avatar", "avatar_url", "photo", "photo_url"),
+                },
+            )
             await database.execute(
                 text(f"delete from {schema}.sessions where user_id=:user_id"),
                 {"user_id": local_user["id"]},
