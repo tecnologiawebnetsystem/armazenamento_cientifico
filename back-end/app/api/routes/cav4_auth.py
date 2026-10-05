@@ -239,19 +239,19 @@ async def cav4_callback(request: Request, code: str, state: str):
                 {"user_id": identity.subject},
             )
             local_user = local_user_result.mappings().first()
+            if not local_user:
+                raise HTTPException(status_code=403, detail=f"Usuário CAV4 não cadastrado no SIGAC: {identity.subject}")
             await database.execute(
-                text(f"delete from {schema}.sessions where lower(email)=lower(:email)"),
-                {"email": identity.email},
+                text(f"delete from {schema}.sessions where user_id=:user_id"),
+                {"user_id": local_user["id"]},
             )
             await database.execute(
                 text(f"""insert into {schema}.sessions
-                    (id,user_id,email,display_name,profile_id,expires_at)
-                    values(:id,:user_id,:email,:display_name,:profile_id,:expires_at)"""),
+                    (id,user_id,profile_id,expires_at)
+                    values(:id,:user_id,:profile_id,:expires_at)"""),
                 {
                     "id": session_id,
-                    "user_id": local_user["id"] if local_user else None,
-                    "email": identity.email,
-                    "display_name": identity.display_name or identity.email.split("@", 1)[0],
+                    "user_id": local_user["id"],
                     "profile_id": str(profile_id),
                     "expires_at": expires_at,
                 },
