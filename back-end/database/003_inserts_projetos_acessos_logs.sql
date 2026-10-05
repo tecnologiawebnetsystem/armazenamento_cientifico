@@ -121,6 +121,17 @@ WHERE p.code ~ '^(GFZ3|GCTL|GBTF)-([0-9]{2})$'
 ON CONFLICT (project_id, user_id) DO UPDATE SET role = EXCLUDED.role;
 
 -- Logs de auditoria: 12 eventos por projeto, totalizando 720 linhas.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM (VALUES ('GFZ3'), ('GCTL'), ('GBTF')) AS grupos(user_id)
+    WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.user_id = grupos.user_id)
+  ) THEN
+    RAISE EXCEPTION 'Os usuários GFZ3, GCTL e GBTF devem existir em users antes dos logs';
+  END IF;
+END $$;
+
 WITH projetos AS (
   SELECT id, code FROM projects WHERE code ~ '^(GFZ3|GCTL|GBTF)-([0-9]{2})$'
 ), eventos AS (
@@ -151,12 +162,8 @@ SELECT
   now() - ((row_number() OVER (ORDER BY p.code, e.ordem)) || ' hours')::interval
 FROM projetos p
 CROSS JOIN eventos e
-CROSS JOIN LATERAL (
-  SELECT user_id
-  FROM users
-  WHERE user_id = 'GBTF'
-  LIMIT 1
-) u
+JOIN users u
+  ON u.user_id = split_part(p.code, '-', 1)
 ON CONFLICT (id) DO UPDATE SET
   user_id = EXCLUDED.user_id,
   action = EXCLUDED.action,
