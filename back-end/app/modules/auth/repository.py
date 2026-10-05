@@ -30,17 +30,9 @@ class AuthRepository:
         row = result.mappings().first()
         return dict(row) if row else None
 
-    async def find_user_by_email(self, email: str) -> dict[str, Any] | None:
-        result = await self.database.execute(
-            text(f"select id, profile_id from {self.schema}.users where user_id=:user_id"),
-            {"email": email},
-        )
-        row = result.mappings().first()
-        return dict(row) if row else None
-
-    async def create_session(self, user_id: str, session_id: str, expires_at: datetime, subject: str) -> None:
+    async def create_session(self, user_id: str, session_id: str, expires_at: datetime) -> None:
         user_result = await self.database.execute(
-            text(f"select email, profile_id from {self.schema}.users where id=:user_id"),
+            text(f"select profile_id from {self.schema}.users where id=:user_id"),
             {"user_id": user_id},
         )
         user = user_result.mappings().first()
@@ -49,9 +41,9 @@ class AuthRepository:
         await self.database.execute(text(f"update {self.schema}.users set last_login_at=now() where id=:user_id"), {"user_id": user_id})
         await self.database.execute(text(f"delete from {self.schema}.sessions where user_id=:user_id"), {"user_id": user_id})
         await self.database.execute(text(f"""insert into {self.schema}.sessions
-            (id,user_id,email,profile_id,expires_at)
-            values(:id,:user_id,:email,:profile_id,:expires_at)"""),
-            {"id": session_id, "user_id": user_id, "email": user["email"], "profile_id": user["profile_id"], "expires_at": expires_at})
+            (id,user_id,profile_id,expires_at)
+            values(:id,:user_id,:profile_id,:expires_at)"""),
+            {"id": session_id, "user_id": user_id, "profile_id": user["profile_id"], "expires_at": expires_at})
         await self.database.commit()
 
     async def create_cav4_session(self, user_id: str, profile_id: str, session_id: str, expires_at: datetime) -> None:

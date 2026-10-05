@@ -215,19 +215,17 @@ CREATE TABLE project_members (
 );
 
 CREATE TABLE sessions (
-	id varchar(128) NOT NULL,
-	user_id varchar(255) NULL,
-	email varchar(320) NOT NULL,
-	display_name varchar(255) NULL,
-	profile_id varchar(20) NULL,
-	expires_at timestamp NOT NULL,
-	created_at timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	CONSTRAINT sessions_pkey PRIMARY KEY (id),
-	CONSTRAINT sessions_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE RESTRICT,
-	CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
+  id varchar(128) NOT NULL,
+  user_id varchar(32) NOT NULL,
+  profile_id varchar(20) NULL,
+  expires_at timestamp NOT NULL,
+  created_at timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  CONSTRAINT sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT sessions_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE RESTRICT,
+  CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
 
-CREATE INDEX ix_users_email ON users USING btree (email);
+
 CREATE INDEX ix_users_profile_id ON users USING btree (profile_id);
 CREATE INDEX ix_projects_code ON projects USING btree (code);
 CREATE INDEX ix_projects_status ON projects USING btree (status);

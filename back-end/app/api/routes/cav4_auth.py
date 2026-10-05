@@ -17,7 +17,6 @@ from app.core.temporary_sessions import delete_session
 from app.db.session import get_session
 from app.infrastructure.cav4 import CAV4AuthenticationError, decode_state_nonce, get_cav4_provider
 from app.modules.auth.repository import AuthRepository
-from app.modules.auth.schemas import EmailLoginRequest
 
 logger = logging.getLogger(__name__)
 
@@ -29,33 +28,6 @@ def _schema_name() -> str:
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", settings.db_schema):
         raise RuntimeError("DB_SCHEMA inválido ou ausente")
     return f'"{settings.db_schema}"'
-
-
-@email_router.post("/login")
-async def email_login(payload: EmailLoginRequest):
-    """Login auxiliar por e-mail (botão "Entrar com e-mail").
-
-    Controlado por EMAIL_LOGIN_ENABLED (padrão: ligado fora de produção). A
-    autenticação e a sessão continuam 100% dirigidas pelo banco: o e-mail é
-    buscado em `users`, o perfil precisa existir e a sessão é persistida em
-    `sessions`. Perfil, permissões e menus são resolvidos depois pelo Aurora.
-    """
-    if not settings.email_login_enabled:
-        raise HTTPException(status_code=404, detail="Login por e-mail não está habilitado neste ambiente")
-    email = payload.email.strip().lower()
-    session_id = str(uuid4())
-    expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours)
-    async for database in get_session():
-        repository = AuthRepository(database, settings.db_schema)
-        user = await repository.find_user_by_email(email)
-        if not user:
-            raise HTTPException(status_code=403, detail="Usuário não cadastrado na plataforma")
-        if not user.get("profile_id"):
-            raise HTTPException(status_code=403, detail="Usuário sem perfil configurado no banco de dados")
-        await repository.create_session(user["id"], session_id, expires_at, email)
-    response = Response(status_code=204)
-    response.set_cookie(settings.cookie_name, session_id, httponly=True, secure=settings.cookie_secure, samesite="lax", max_age=settings.session_hours * 3600)
-    return response
 
 
 @email_router.get("/health/database", tags=["Diagnostics"])
