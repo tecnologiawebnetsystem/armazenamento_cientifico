@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse, Response
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 
 from app.api.dependencies import get_current_user
@@ -206,13 +206,38 @@ async def cav4_callback(request: Request, code: str, state: str):
             profile = profile_result.mappings().first()
             if not profile:
                 raise HTTPException(status_code=403, detail=f"Perfil CAV4 não cadastrado no SIGAC: {profile_id}")
+            # O `sub` do CAV4 pode ser o e-mail (como ocorre em alguns
+            # clientes), enquanto o cadastro do SIGAC usa o login corporativo.
+            # Prioriza o login explícito e mantém o subject como fallback para
+            # compatibilidade com cadastros antigos.
+            cav4_identifiers = tuple(
+                dict.fromkeys(
+                    identifier
+                    for identifier in (identity.user_login, identity.subject, identity.email)
+                    if identifier
+                )
+            )
             local_user_result = await database.execute(
-                text(f"select id from {schema}.users where user_id=:user_id limit 1"),
-                {"user_id": identity.subject},
+                text(
+                    f"select id from {schema}.users "
+                    "where user_id in :user_ids "
+                    "order by case user_id "
+                    "when :user_login then 0 "
+                    "when :subject then 1 "
+                    "else 2 end limit 1"
+                ).bindparams(bindparam("user_ids", expanding=True)),
+                {
+                    "user_ids": list(cav4_identifiers),
+                    "user_login": identity.user_login or "",
+                    "subject": identity.subject,
+                },
             )
             local_user = local_user_result.mappings().first()
             if not local_user:
-                raise HTTPException(status_code=403, detail=f"Usuário CAV4 não cadastrado no SIGAC: {identity.subject}")
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Usuário CAV4 não cadastrado no SIGAC: {identity.user_login or identity.subject}",
+                )
             await database.execute(
                 text(f"delete from {schema}.sessions where user_id=:user_id"),
                 {"user_id": local_user["id"]},
