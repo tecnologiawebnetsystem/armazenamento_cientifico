@@ -38,12 +38,12 @@ export function ProfileAvatarMenu({ user, onLogout }: { user: User; onLogout: ()
               <AvatarFallback className="rounded-full bg-petrobras-yellow text-lg font-bold text-petrobras-blue">{initials(user.nome)}</AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1 pt-0.5">
-              <p className="text-base font-bold leading-tight text-balance">{user.nome}</p>
+              <p className="text-base font-bold leading-tight text-balance">{user.nome || user.chaveCav4 || "Usuário corporativo"}</p>
               <p className="mt-1 truncate text-xs text-white/80">{user.email || "E-mail não informado"}</p>
               <span className="mt-3 inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">Perfil {roleLabel(user.role)}</span>
             </div>
           </div>
-          {(user.area || user.cargo) && <div className="mt-5 flex items-center gap-2 border-t border-white/20 pt-4 text-sm text-white/85"><MapPinIcon className="size-4 shrink-0" aria-hidden="true" /><span className="truncate">{[user.area, user.cargo].filter(Boolean).join(" · ")}</span></div>}
+          {(user.area || user.cargo || user.chaveCav4) && <div className="mt-5 flex flex-col gap-1 border-t border-white/20 pt-4 text-sm text-white/85"><span className="truncate">{[user.cargo, user.area].filter(Boolean).join(" · ") || "Perfil corporativo"}</span>{user.chaveCav4 && <span className="truncate text-xs text-white/70">Chave CAV4: {user.chaveCav4}</span>}</div>}
         </div>
 
         <div className="grid gap-3 px-6 py-4">
