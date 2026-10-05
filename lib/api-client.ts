@@ -100,12 +100,28 @@ export async function downloadFile(path: string): Promise<Blob> {
 
 /* ---------------------------------- Auth --------------------------------- */
 
-export function login(email: string) {
-  return request<void>("/api/auth/login", { method: "POST", body: JSON.stringify({ email }) })
+export async function login(email: string) {
+  const response = await request<void>("/api/auth/login", { method: "POST", body: JSON.stringify({ email }) })
+  await recordAuditEvent({ action: "login", entity: "sessao", details: { identificador: email } }).catch(() => undefined)
+  return response
 }
 
-export function logout() {
+export async function logout() {
+  await recordAuditEvent({ action: "logout", entity: "sessao" }).catch(() => undefined)
   return request<void>("/api/auth/logout", { method: "POST" })
+}
+
+export function recordAuditEvent(event: {
+  action: string
+  entity?: string
+  entity_id?: string
+  details?: Record<string, unknown>
+  result?: string
+}) {
+  return request<void>("/api/audit/events", {
+    method: "POST",
+    body: JSON.stringify({ entity: "interface", result: "sucesso", ...event }),
+  })
 }
 
 export function getSession() {

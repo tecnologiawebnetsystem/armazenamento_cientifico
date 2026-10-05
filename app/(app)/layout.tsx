@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar"
 import { AppTopbar } from "@/components/layout/app-topbar"
 import { AppFooter } from "@/components/layout/app-footer"
 import { RouteAccessGuard } from "@/components/layout/route-access-guard"
+import { ActivityTracker } from "@/components/layout/activity-tracker"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getBackendSession()
@@ -12,6 +13,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarProvider>
+      <ActivityTracker />
       <AppSidebar />
       <div className="flex min-h-svh w-full flex-col">
         <AppTopbar />
