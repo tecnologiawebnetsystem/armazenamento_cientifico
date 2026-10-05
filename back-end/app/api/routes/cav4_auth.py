@@ -1,6 +1,7 @@
+import json
 import logging
-import re
 from datetime import UTC, datetime, timedelta
+
 from secrets import compare_digest
 from urllib.parse import quote
 from uuid import uuid4
@@ -265,7 +266,8 @@ async def cav4_callback(request: Request, code: str, state: str):
                     "id": session_id,
                     "user_id": local_user["id"],
                     "profile_id": str(profile_id),
-                    "profile_data": profile_data,
+                    # A rota usa SQL textual; o driver asyncpg precisa receber JSON serializado.
+                    "profile_data": json.dumps(profile_data, ensure_ascii=False),
                     "expires_at": expires_at,
                 },
             )
