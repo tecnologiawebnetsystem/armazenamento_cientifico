@@ -16,8 +16,7 @@ class AuthRepository:
     async def find_session_identity(self, session_id: str) -> dict[str, Any] | None:
         result = await self.database.execute(text(f"""
             select s.id, s.user_id, u.user_id as cav4_user_id,
-                   u.email, u.display_name, u.job_title, u.area, u.avatar_url,
-                   u.last_login_at, u.created_at, s.profile_id,
+                   s.profile_data, u.last_login_at, u.created_at, s.profile_id,
                    p.name as profile_name,
                    coalesce(array_agg(distinct perm.id) filter
                      (where pp.allowed = true and perm.active = true), '{{}}') as db_permissions
@@ -27,7 +26,7 @@ class AuthRepository:
             left join {self.schema}.profile_permissions pp on pp.profile_id = p.id
             left join {self.schema}.permissions perm on perm.id = pp.permission_id
             where s.id = :session_id and s.expires_at > now()
-            group by s.id, s.user_id, u.user_id, s.profile_id, p.name
+            group by s.id, s.user_id, u.user_id, s.profile_data, s.profile_id, p.name
         """), {"session_id": session_id})
         row = result.mappings().first()
         return dict(row) if row else None

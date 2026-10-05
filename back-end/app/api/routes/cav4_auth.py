@@ -246,33 +246,26 @@ async def cav4_callback(request: Request, code: str, state: str):
                         return str(value).strip()
                 return None
 
-            await database.execute(
-                text(
-                    f"update {schema}.users set email=:email, display_name=:display_name, "
-                    "job_title=:job_title, area=:area, avatar_url=:avatar_url, last_login_at=now() "
-                    "where id=:user_id"
-                ),
-                {
-                    "user_id": local_user["id"],
-                    "email": identity.email,
-                    "display_name": identity.display_name or claim("name", "display_name", "displayName", "full_name", "fullName", "nome", "nomeCompleto"),
-                    "job_title": claim("job_title", "jobTitle", "cargo", "title", "occupation"),
-                    "area": claim("area", "department", "departmentName", "organizational_unit", "organizationalUnit"),
-                    "avatar_url": claim("picture", "avatar", "avatar_url", "photo", "photo_url"),
-                },
-            )
+            profile_data = {
+                "email": identity.email,
+                "display_name": identity.display_name or claim("name", "display_name", "displayName", "full_name", "fullName", "nome", "nomeCompleto"),
+                "job_title": claim("job_title", "jobTitle", "cargo", "title", "occupation"),
+                "area": claim("area", "department", "departmentName", "organizational_unit", "organizationalUnit"),
+                "avatar_url": claim("picture", "avatar", "avatar_url", "photo", "photo_url"),
+            }
             await database.execute(
                 text(f"delete from {schema}.sessions where user_id=:user_id"),
                 {"user_id": local_user["id"]},
             )
             await database.execute(
                 text(f"""insert into {schema}.sessions
-                    (id,user_id,profile_id,expires_at)
-                    values(:id,:user_id,:profile_id,:expires_at)"""),
+                    (id,user_id,profile_id,profile_data,expires_at)
+                    values(:id,:user_id,:profile_id,:profile_data,:expires_at)"""),
                 {
                     "id": session_id,
                     "user_id": local_user["id"],
                     "profile_id": str(profile_id),
+                    "profile_data": profile_data,
                     "expires_at": expires_at,
                 },
             )
