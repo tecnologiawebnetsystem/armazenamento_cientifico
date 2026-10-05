@@ -26,7 +26,7 @@ class AuthRepository:
             left join {self.schema}.profile_permissions pp on pp.profile_id = p.id
             left join {self.schema}.permissions perm on perm.id = pp.permission_id
             where s.id = :session_id and s.expires_at > now()
-            group by s.id, s.user_id, u.user_id, s.profile_data, s.profile_id, p.name
+            group by s.id, s.user_id, u.user_id, s.profile_data, u.last_login_at, u.created_at, s.profile_id, p.name
         """), {"session_id": session_id})
         row = result.mappings().first()
         return dict(row) if row else None
