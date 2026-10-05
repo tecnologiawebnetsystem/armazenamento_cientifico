@@ -215,7 +215,7 @@ sa.Column("id", sa.String(length=32), nullable=False, server_default=sa.text("md
         sa.Column("project_id", sa.String(length=36), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(

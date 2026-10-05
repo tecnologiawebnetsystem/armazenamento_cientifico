@@ -145,7 +145,7 @@ class PlatformRepository:
         return {"projects": projects, "totalMembros": counts["membros"], "totalMapas": counts["mapas"], "armazenamentoMb": counts["armazenamento"], "activity": activity, "source": "database", "consultedAt": datetime.now(UTC).isoformat()}
 
     async def activity_logs(self, page: int, limit: int) -> tuple[list[dict[str, Any]], int]:
-        rows = await self.rows(f"select al.id, coalesce(nullif(al.user_id, ''), 'não informado') as \"userId\", coalesce(nullif(u.user_id, ''), nullif(al.user_id, ''), 'não informado') as \"userName\", al.action as acao, al.entity as entidade, al.entity_id as \"entidadeId\", al.details as detalhes, al.created_at as \"criadoEm\", al.result as resultado, al.project_id as \"projetoId\" from {self.schema}.activity_logs al left join {self.schema}.users u on u.id = al.user_id order by al.created_at desc limit :limit offset :offset", {"limit": limit, "offset": (page - 1) * limit})
+        rows = await self.rows(f"select al.id, coalesce(nullif(al.user_id, ''), 'não informado') as \"userId\", coalesce(nullif(u.user_id, ''), nullif(al.user_id, ''), 'não informado') as \"userName\", al.action as acao, al.entity as entidade, al.entity_id as \"entidadeId\", al.details as detalhes, al.created_at as \"criadoEm\", al.result as resultado, al.project_id as \"projetoId\" from {self.schema}.activity_logs al left join {self.schema}.users u on u.user_id = al.user_id order by al.created_at desc limit :limit offset :offset", {"limit": limit, "offset": (page - 1) * limit})
         count = await self.one(f"select count(*) as total from {self.schema}.activity_logs")
         return rows, int(count["total"])
 
