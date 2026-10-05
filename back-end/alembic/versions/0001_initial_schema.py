@@ -81,8 +81,8 @@ def upgrade() -> None:
     )
     op.create_table(
         "users",
-        sa.Column("id", sa.String(length=32), nullable=False),
-        sa.Column("user_id", sa.String(length=80), nullable=False),
+sa.Column("id", sa.String(length=32), nullable=False, server_default=sa.text("md5(random()::text || clock_timestamp()::text)")),
+  sa.Column("user_id", sa.String(length=80), nullable=False),
         sa.Column("profile_id", sa.String(length=20), nullable=True),
         sa.Column("last_login_at", sa.DateTime(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
