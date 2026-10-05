@@ -173,51 +173,52 @@ A regra deve ser armazenada na fonte oficial de permissões do sistema e aplicad
 
 ---
 
-## História 8 — Consultar logs do sistema por usuários autorizados
+## História 8 — Regra: Administrador
 
 ### Título:
-Permitir a consulta de logs do sistema por usuários autorizados.
+Permitir acesso do perfil Administrador conforme a regra de segurança definida.
 
 ### Descrição:
-Como usuário autorizado, quero consultar os logs do sistema, para acompanhar eventos técnicos, erros de integração e ocorrências operacionais necessárias à sustentação da plataforma.
+Como Administrador, quero acessar as funcionalidades e informações permitidas pelo meu perfil, para executar atividades administrativas e gerenciar o mapa de acessos com os privilégios adequados.
 
-A consulta deve separar logs técnicos de logs de auditoria quando aplicável, permitindo pesquisa segura sem expor credenciais ou informações pessoais desnecessárias.
+A regra deve garantir que somente usuários associados ao perfil Administrador tenham acesso às funcionalidades administrativas, respeitando as permissões configuradas e impedindo elevação indevida de privilégio.
 
 ### Critérios de Aceite:
-- [ ] Usuário autorizado consegue consultar logs do sistema dentro do seu escopo.
-- [ ] A consulta possui filtros por período, nível, serviço, correlação e mensagem.
-- [ ] Os resultados são paginados e ordenados por data/hora.
-- [ ] Dados sensíveis são mascarados ou removidos da resposta.
-- [ ] Usuário não autorizado não consegue consultar os logs mesmo manipulando a requisição.
-- [ ] A consulta é registrada na auditoria quando definida pela política de segurança.
-- [ ] As variáveis de ambiente AWS necessárias estão documentadas e configuradas por ambiente.
+- [ ] O usuário com perfil Administrador consegue acessar as funcionalidades previstas para esse perfil.
+- [ ] Usuários sem o perfil Administrador não conseguem acessar as funcionalidades restritas, mesmo manipulando a URL ou a requisição.
+- [ ] A autorização é validada no back-end e não somente na interface.
+- [ ] As permissões do Administrador são aplicadas de forma consistente na interface, nos endpoints e nas operações disponíveis.
+- [ ] As ações administrativas relevantes são registradas na trilha de auditoria.
+- [ ] As variáveis de ambiente AWS necessárias são criadas, documentadas e configuradas nos ambientes aplicáveis.
+- [ ] As credenciais e valores sensíveis não são expostos no código-fonte, na interface ou nos logs da aplicação.
 
 ### Pontos:
 **5 pontos**
 
 ---
 
-## História 9 — Exportar logs de auditoria em múltiplos formatos
+## História 9 — Análise de viabilidade para solicitação de criação de projeto via ServiceNow
 
 ### Título:
-Exportar logs de auditoria em múltiplos formatos.
+Analisar a viabilidade da criação de solicitações de projetos por meio do ServiceNow.
 
 ### Descrição:
-Como auditor ou administrador autorizado, quero exportar os logs filtrados em formatos padronizados, para realizar análises externas, atender auditorias e compartilhar evidências com segurança.
+Como responsável pelo processo de projetos, quero avaliar a viabilidade de criar uma solicitação de criação de projeto via ServiceNow, para identificar requisitos, integrações, regras de negócio e impactos técnicos antes da implementação.
 
-A exportação deve respeitar exatamente os mesmos filtros, permissões e escopo da consulta na tela.
+A análise deve considerar o fluxo de abertura, o envio e recebimento de dados, o acompanhamento do status da solicitação, o tratamento de erros, a autenticação e os critérios necessários para uma futura implementação segura.
 
 ### Critérios de Aceite:
-- [ ] Usuário autorizado consegue exportar o resultado filtrado.
-- [ ] A exportação está disponível nos formatos CSV e JSON, no mínimo.
-- [ ] Os filtros aplicados são refletidos integralmente no arquivo gerado.
-- [ ] O arquivo possui cabeçalho, codificação e formato documentados.
-- [ ] Há proteção contra exportações excessivamente grandes, com paginação, limite ou processamento assíncrono.
-- [ ] O nome do arquivo não inclui dados sensíveis indevidos.
-- [ ] Cada exportação é registrada na trilha de auditoria.
+- [ ] O fluxo atual de solicitação de criação de projeto está documentado e comparado com o fluxo proposto no ServiceNow.
+- [ ] Os dados obrigatórios, formatos, responsáveis e regras de negócio da solicitação estão identificados.
+- [ ] A necessidade de integração entre a aplicação e o ServiceNow está mapeada, incluindo APIs, eventos ou webhooks aplicáveis.
+- [ ] Os requisitos de autenticação, autorização, segurança e variáveis de ambiente estão identificados.
+- [ ] Os possíveis retornos de sucesso, erro, indisponibilidade e duplicidade estão descritos.
+- [ ] O acompanhamento do status e a sincronização das informações entre os sistemas estão avaliados.
+- [ ] A análise apresenta conclusão de viabilidade, restrições, riscos, dependências e recomendação dos próximos passos.
+- [ ] O resultado da análise está documentado e disponível para validação das partes responsáveis.
 
 ### Pontos:
-**3 pontos**
+**5 pontos**
 
 ---
 
