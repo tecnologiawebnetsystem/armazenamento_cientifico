@@ -20,6 +20,7 @@ import {
 import { usePlatformContext } from "@/hooks/use-platform-context"
 import { ChartNoAxesCombinedIcon, FolderKanbanIcon, LayoutDashboardIcon, NetworkIcon, SettingsIcon, ShieldCheckIcon, type LucideIcon } from "lucide-react"
 import type { NavGroup, NavItem } from "@/lib/nav-config"
+import { normalizeRole } from "@/hooks/use-permissions"
 import type { PlatformMenu } from "@/lib/types"
 
 const iconMap: Record<string, LucideIcon> = {
@@ -41,11 +42,17 @@ function getIcon(name: string): LucideIcon {
   return iconMap[name.trim().toLowerCase()] ?? FolderKanbanIcon
 }
 
-function buildNavGroups(menus: PlatformMenu[]): NavGroup[] {
+function buildNavGroups(menus: PlatformMenu[], profileName?: string | null): NavGroup[] {
+  const role = normalizeRole(profileName)
   const uniqueMenus = Array.from(
     new Map(
       menus
         .filter((menu) => menu.rota)
+        .filter((menu) => {
+          const route = menu.rota.trim().replace(/\/$/, "")
+          const isSettings = route === "/configuracoes" || menu.nome.trim().toLowerCase() === "configurações"
+          return !isSettings || role === "operador"
+        })
         .map((menu) => [menu.rota.trim().replace(/\/$/, "") || "/", menu]),
     ).values(),
   )
@@ -61,10 +68,11 @@ function buildNavGroups(menus: PlatformMenu[]): NavGroup[] {
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { menus } = usePlatformContext()
+  const { menus, data } = usePlatformContext()
   const homeHref = menus[0]?.rota ?? "/forbidden"
+  const profileName = data?.user?.perfil_nome
 
-  const groups = buildNavGroups(menus)
+  const groups = buildNavGroups(menus, profileName)
 
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border/55 bg-sidebar shadow-[8px_0_28px_color-mix(in_oklch,var(--sidebar)_24%,transparent)] transition-[width] duration-200 md:flex">
