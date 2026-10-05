@@ -95,6 +95,7 @@ sa.Column("id", sa.String(length=32), nullable=False, server_default=sa.text("md
         sa.Column("id", sa.String(length=128), nullable=False),
         sa.Column("user_id", sa.String(length=32), nullable=False),
         sa.Column("profile_id", sa.String(length=20), nullable=True),
+        sa.Column("profile_data", sa.JSON(), nullable=True),
         sa.Column("expires_at", sa.DateTime(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("current_timestamp")),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
