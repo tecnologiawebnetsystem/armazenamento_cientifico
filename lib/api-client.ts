@@ -69,20 +69,7 @@ export function isApiError(error: unknown, status?: number): error is ApiError {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const startedAt = performance.now()
-  const requestUrl = `${API_BASE_URL}${path}`
-  console.info("[v0][API] request_start", {
-    path,
-    url: requestUrl,
-    credentials: "include",
-  })
-  const res = await fetchRequest(requestUrl, init)
-  console.info("[v0][API] request_complete", {
-    path,
-    status: res.status,
-    durationMs: Math.round(performance.now() - startedAt),
-    requestId: res.headers.get("x-request-id"),
-  })
+  const res = await fetchRequest(`${API_BASE_URL}${path}`, init)
   if (!res.ok) {
     const body = (await res.json().catch(() => ({ message: res.statusText }))) as ApiErrorBody
     throw new ApiError(res.status, body.message ?? body.detail ?? "Erro inesperado na requisição")
