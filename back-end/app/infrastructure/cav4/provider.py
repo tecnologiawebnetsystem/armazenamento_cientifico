@@ -185,9 +185,9 @@ class CAV4OIDCProvider:
                 self._jwks_cache = jwks
                 logger.info("[CAV4] JWKS público carregado com sucesso refresh=%s keys=%s", refresh, len(jwks["keys"]))
                 return jwks
-        except httpx.HTTPError as e:
-            logger.error(f"[CAV4] Erro ao buscar JWKS: {e}")
-            raise CAV4AuthenticationError(f"Erro ao validar certificado CAV4: {e}") from e
+        except httpx.HTTPError as exc:
+            logger.error("[CAV4] Erro ao buscar JWKS tipo=%s", type(exc).__name__)
+            raise CAV4AuthenticationError("Erro ao validar certificado CAV4") from exc
 
     async def build_login_url(self, *, state: str, redirect_uri: str) -> str:
         """Constrói URL de autorização com PKCE."""

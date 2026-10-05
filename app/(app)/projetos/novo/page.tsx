@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { getBackendSession } from "@/lib/session"
-import { hasCapability, normalizeRole } from "@/hooks/use-permissions"
+import { normalizeRole } from "@/hooks/use-permissions"
 import { NewProjectForm } from "@/components/projects/new-project-form"
 import { PageHeader, PageLayout } from "@/components/shared/page-layout"
 
