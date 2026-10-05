@@ -5,7 +5,7 @@
 \set ON_ERROR_STOP on
 BEGIN;
 
--- Usuários de homologação usados nas telas de dashboard, projetos e auditoria.
+-- Usuário de homologação: nome, e-mail e cargo não são persistidos; vêm do CAV4.
 INSERT INTO users (id, user_id, profile_id, last_login_at)
 VALUES
   ('5d25f562b21d7002b1631ad43e57a74c', 'GFZ3', 'ADM', '2026-09-25 16:50:57.382-03')
