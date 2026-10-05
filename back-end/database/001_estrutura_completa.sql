@@ -238,30 +238,3 @@ CREATE INDEX ix_folders_project_id ON folders USING btree (project_id);
 CREATE INDEX ix_folders_parent_id ON folders USING btree (parent_id);
 CREATE INDEX ix_folders_created_by ON folders USING btree (created_by);
 CREATE INDEX ix_activity_logs_user_id ON activity_logs USING btree (user_id);
-
--- Usuários corporativos iniciais. O id técnico é gerado automaticamente pelo banco;
--- user_id mantém a identificação recebida do CAV4.
-INSERT INTO users (user_id, profile_id)
-SELECT 'GCTL', p.id
-FROM profiles p
-WHERE upper(p.name) = 'SOLICITANTE'
-ON CONFLICT (user_id) DO UPDATE
-SET profile_id = EXCLUDED.profile_id;
-
-INSERT INTO users (user_id, profile_id)
-SELECT 'GBTF', p.id
-FROM profiles p
-WHERE upper(p.name) = 'SOLICITANTE'
-ON CONFLICT (user_id) DO UPDATE
-SET profile_id = EXCLUDED.profile_id;
-
-INSERT INTO users (user_id, profile_id)
-SELECT 'Y1R9', p.id
-FROM profiles p
-WHERE upper(p.name) = 'GERENTE'
-ON CONFLICT (user_id) DO UPDATE
-SET profile_id = EXCLUDED.profile_id;
-CREATE INDEX ix_activity_logs_project_id ON activity_logs USING btree (project_id);
-CREATE INDEX ix_activity_logs_action ON activity_logs USING btree (action);
-CREATE INDEX ix_activity_logs_entity ON activity_logs USING btree (entity);
-CREATE INDEX ix_activity_logs_created_at ON activity_logs USING btree (created_at);

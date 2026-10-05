@@ -1,7 +1,3 @@
--- SIGAC / Aurora PostgreSQL
--- Seed de dados operacionais para projetos, folders, membros e auditoria.
--- Execute após 001_estrutura_completa.sql e 002_inserts_completos.sql.
--- Os códigos GFZ3, GCTL e GBTF recebem 20 projetos cada.
 \set ON_ERROR_STOP on
 BEGIN;
 
@@ -14,14 +10,34 @@ ALTER TABLE activity_logs
   ADD CONSTRAINT activity_logs_user_id_fkey
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL;
 
--- Usuário de homologação: nome, e-mail e cargo não são persistidos; vêm do CAV4.
-INSERT INTO users (id, user_id, profile_id, last_login_at)
-VALUES
-  ('5d25f562b21d7002b1631ad43e57a74c', 'GFZ3', 'ADM', '2026-09-25 16:50:57.382-03')
-ON CONFLICT (id) DO UPDATE SET
-  user_id = EXCLUDED.user_id,
-  profile_id = EXCLUDED.profile_id,
-  last_login_at = EXCLUDED.last_login_at;
+-
+    INSERT INTO users (user_id, profile_id)
+    SELECT 'GFZ3', p.id
+    FROM profiles p
+    WHERE upper(p.name) = 'ADMINISTRADOR'
+    ON CONFLICT (user_id) DO UPDATE
+    SET profile_id = EXCLUDED.profile_id;
+
+    INSERT INTO users (user_id, profile_id)
+    SELECT 'GCTL', p.id
+    FROM profiles p
+    WHERE upper(p.name) = 'ADMINISTRADOR'
+    ON CONFLICT (user_id) DO UPDATE
+    SET profile_id = EXCLUDED.profile_id;
+
+    INSERT INTO users (user_id, profile_id)
+    SELECT 'GBTF', p.id
+    FROM profiles p
+    WHERE upper(p.name) = 'ADMINISTRADOR'
+    ON CONFLICT (user_id) DO UPDATE
+    SET profile_id = EXCLUDED.profile_id;
+
+    INSERT INTO users (user_id, profile_id)
+    SELECT 'Y1R9', p.id
+    FROM profiles p
+    WHERE upper(p.name) = 'GERENTE'
+    ON CONFLICT (user_id) DO UPDATE
+    SET profile_id = EXCLUDED.profile_id;
 
 -- Cards de dashboard usados para homologar as visões por perfil.
 INSERT INTO dashboard_cards (id, module_id, key, title, description, metric_key, route, profile_ids, display_order, active)
@@ -174,9 +190,3 @@ ON CONFLICT (id) DO UPDATE SET
   created_at = EXCLUDED.created_at;
 
 COMMIT;
-
--- Conferência rápida após a execução:
--- SELECT split_part(code, '-', 1) AS chave, count(*) FROM projects WHERE code ~ '^(GFZ3|GCTL|GBTF)-' GROUP BY 1 ORDER BY 1;
--- SELECT count(*) AS folders FROM folders WHERE project_id IN (SELECT id FROM projects WHERE code ~ '^(GFZ3|GCTL|GBTF)-');
--- SELECT count(*) AS membros FROM project_members WHERE project_id IN (SELECT id FROM projects WHERE code ~ '^(GFZ3|GCTL|GBTF)-');
--- SELECT count(*) AS logs FROM activity_logs WHERE entity_id IN (SELECT id FROM projects WHERE code ~ '^(GFZ3|GCTL|GBTF)-');

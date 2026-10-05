@@ -1,7 +1,3 @@
--- SIGAC / Aurora PostgreSQL
--- Inserts completos de parâmetros e configurações.
--- Execute após 001_estrutura_completa.sql, nesta ordem.
--- O script é idempotente e pode ser reaplicado com segurança.
 \set ON_ERROR_STOP on
 BEGIN;
 
@@ -139,10 +135,3 @@ ON CONFLICT (profile_id, permission_id) DO UPDATE SET allowed = excluded.allowed
 
 COMMIT;
 
--- Ordem de execução:
--- profiles -> modules -> responsible_areas -> project_statuses -> report_types
--- -> report_fields -> permissions -> menus -> menu_permissions
--- -> profile_modules -> profile_permissions.
--- A tabela users não armazena nome, e-mail ou cargo: esses dados vêm do CAV4.
--- O usuário persistido contém apenas a chave user_id, o perfil local e timestamps.
--- Usuários de homologação, projetos, pastas, membros e logs ficam no script 003.
