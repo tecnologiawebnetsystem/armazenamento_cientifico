@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { PetrobrasLoading } from '@/components/petrobras-loading'
 import { PageHeader, PageLayout } from '@/components/shared/page-layout'
-import { getFolders, getProjectAccessMap, getProjects } from '@/lib/api-client'
+import { getFolders, getProjectAccessMap, getProjects, recordAuditEvent } from '@/lib/api-client'
 import type { FileNode, Project, ProjectAccessMapResponse } from '@/lib/types'
 
 const dateFormat = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
@@ -40,11 +40,12 @@ function downloadFile(content: string, fileName: string, type: string) {
   URL.revokeObjectURL(url)
 }
 
-function exportAccessMap(project: Project, folders: FileNode[], groups: ProjectAccessMapResponse['groups'], members: ProjectAccessMapResponse['members'], format: 'txt' | 'csv') {
+async function exportAccessMap(project: Project, folders: FileNode[], groups: ProjectAccessMapResponse['groups'], members: ProjectAccessMapResponse['members'], format: 'txt' | 'csv') {
   const rows = folders.map((folder) => [project.codigo, project.nome, folder.nome, groups.map((group) => `${group.nome} (${accessLabel(group.nivel)})`).join(' | '), members.map((member) => `${member.user?.nome || 'Usuário'} (${accessLabel(member.papel)})`).join(' | ')])
   const header = ['Código', 'Projeto', 'Pasta', 'Grupos e permissões', 'Membros e papéis']
   const content = format === 'csv' ? [header, ...rows].map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(';')).join('\\n') : [`MAPA DE ACESSOS - ${project.nome}`, `Gerado em: ${formatDate(new Date().toISOString())}`, '', header.join(' | '), ...rows.map((row) => row.join(' | '))].join('\\n')
   downloadFile(content, `mapa-acessos-${project.codigo}.${format}`, format === 'csv' ? 'text/csv;charset=utf-8' : 'text/plain;charset=utf-8')
+  await recordAuditEvent({ action: 'exportar-relatorio', entity: 'mapa_acessos', entity_id: project.id, details: { projeto: project.nome, codigo: project.codigo, formato: format, pastas: folders.length, grupos: groups.length, membros: members.length } }).catch(() => undefined)
 }
 
 export default function AccessMapPage() {
@@ -71,7 +72,10 @@ export default function AccessMapPage() {
     } as FileNode
   }).filter((item) => item.tipo === 'pasta')
 
-  const selectProject = (project: Project) => setSelectedProjectId(project.id)
+  const selectProject = (project: Project) => {
+    setSelectedProjectId(project.id)
+    void recordAuditEvent({ action: 'consultar-mapa-acessos', entity: 'projeto', entity_id: project.id, details: { projeto: project.nome, codigo: project.codigo } }).catch(() => undefined)
+  }
 
   return <PageLayout>
     <PageHeader eyebrow="Governança de acesso" title="Mapa de Acessos" description="Pesquise um projeto para consultar suas pastas, grupos e membros autorizados." />
@@ -95,7 +99,10 @@ export default function AccessMapPage() {
 function AccessMapDetails({ project, accessMap, accessError, accessLoading, folders, foldersLoading, retryAccess }: { project: Project; accessMap?: ProjectAccessMapResponse; accessError?: Error; accessLoading: boolean; folders: FileNode[]; foldersLoading: boolean; retryAccess: () => void }) {
   const groups = accessMap?.groups ?? []
   const members = accessMap?.members ?? []
-  const printMap = () => window.print()
+  const printMap = async () => {
+    await recordAuditEvent({ action: 'exportar-relatorio', entity: 'mapa_acessos', entity_id: project.id, details: { projeto: project.nome, codigo: project.codigo, formato: 'pdf', pastas: folders.length, grupos: groups.length, membros: members.length } }).catch(() => undefined)
+    window.print()
+  }
 
   return <div className="space-y-6">
     <div className="flex flex-wrap items-center justify-end gap-2 print:hidden">
