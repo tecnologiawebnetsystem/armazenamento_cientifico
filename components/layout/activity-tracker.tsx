@@ -4,31 +4,6 @@ import { useEffect } from "react"
 import { usePathname } from "next/navigation"
 import { recordAuditEvent } from "@/lib/api-client"
 
-function textOf(target: HTMLElement) {
-  return (target.getAttribute("aria-label") || target.getAttribute("title") || target.textContent || "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 160)
-}
-
-function targetDetails(target: HTMLElement) {
-  const field = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement
-  const value = field && !/password|token|secret/i.test(target.getAttribute("name") || target.id)
-    ? target.value.slice(0, 120)
-    : undefined
-
-  return {
-    texto: textOf(target),
-    tag: target.tagName.toLowerCase(),
-    id: target.id || undefined,
-    classes: typeof target.className === "string" ? target.className.slice(0, 200) || undefined : undefined,
-    name: target.getAttribute("name") || undefined,
-    role: target.getAttribute("role") || undefined,
-    href: target.getAttribute("href") || undefined,
-    value,
-  }
-}
-
 export function ActivityTracker() {
   const pathname = usePathname()
 
@@ -37,18 +12,6 @@ export function ActivityTracker() {
   }, [pathname])
 
   useEffect(() => {
-    const handleClick = (event: MouseEvent) => {
-      const target = event.target instanceof Element ? event.target.closest("a,button,[role='button'],input[type='submit']") : null
-      if (!target) return
-      const element = target as HTMLElement
-      void recordAuditEvent({
-        action: element.matches("a") ? "clicar_menu_ou_link" : "clicar_botao",
-        entity: "interface",
-        entity_id: element.getAttribute("href") || element.id || undefined,
-        details: { ...targetDetails(element), evento: "click", botao_mouse: event.button, rota_origem: window.location.pathname },
-      }).catch(() => undefined)
-    }
-
     const handleSubmit = (event: SubmitEvent) => {
       const form = event.target instanceof HTMLFormElement ? event.target : null
       if (!form) return
@@ -65,17 +28,6 @@ export function ActivityTracker() {
             .map((field) => ({ nome: field.name || field.id, tipo: field.type, preenchido: Boolean(field.value) }))
             .filter((field) => field.nome),
         },
-      }).catch(() => undefined)
-    }
-
-    const handleChange = (event: Event) => {
-      const target = event.target instanceof HTMLElement ? event.target : null
-      if (!target || !(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) return
-      void recordAuditEvent({
-        action: "alterar_campo",
-        entity: "formulario",
-        entity_id: target.name || target.id || undefined,
-        details: { ...targetDetails(target), evento: "change", preenchido: Boolean(target.value) },
       }).catch(() => undefined)
     }
 
@@ -111,17 +63,13 @@ export function ActivityTracker() {
       }).catch(() => undefined)
     }
 
-    document.addEventListener("click", handleClick, true)
     document.addEventListener("click", handleDownloadClick, true)
     document.addEventListener("submit", handleSubmit, true)
-    document.addEventListener("change", handleChange, true)
     window.addEventListener("error", handleError)
     window.addEventListener("unhandledrejection", handleUnhandledRejection)
     return () => {
-      document.removeEventListener("click", handleClick, true)
       document.removeEventListener("click", handleDownloadClick, true)
       document.removeEventListener("submit", handleSubmit, true)
-      document.removeEventListener("change", handleChange, true)
       window.removeEventListener("error", handleError)
       window.removeEventListener("unhandledrejection", handleUnhandledRejection)
     }
