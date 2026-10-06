@@ -280,6 +280,12 @@ type ApiActivityLog = {
   entity_id?: string | null
   details?: unknown
   result?: string | null
+  correlation_id?: string | null
+  http_method?: string | null
+  route?: string | null
+  duration_ms?: number | null
+  ip_address?: string | null
+  project_id?: string | null
   created_at: string
 }
 
@@ -296,6 +302,12 @@ export async function getActivityLogs(params: ActivityLogQuery = {}) {
       entidadeId: log.entity_id ?? "",
       detalhes: typeof log.details === "string" ? log.details : JSON.stringify(log.details ?? {}, null, 2),
       resultado: log.result === "erro" ? "erro" as const : "sucesso" as const,
+      correlacaoId: log.correlation_id,
+      metodoHttp: log.http_method,
+      rota: log.route,
+      duracaoMs: log.duration_ms,
+      ipAddress: log.ip_address,
+      projetoId: log.project_id,
       criadoEm: log.created_at,
     })),
     pagination: { page: 1, limit, total: logs.length, totalPages: logs.length ? 1 : 0 },

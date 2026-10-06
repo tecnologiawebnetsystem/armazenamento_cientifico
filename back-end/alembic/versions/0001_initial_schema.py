@@ -81,8 +81,8 @@ def upgrade() -> None:
     )
     op.create_table(
         "users",
-sa.Column("id", sa.String(length=32), nullable=False, server_default=sa.text("md5(random()::text || clock_timestamp()::text)")),
-  sa.Column("user_id", sa.String(length=80), nullable=False),
+        sa.Column("id", sa.String(length=32), nullable=False, server_default=sa.text("md5(random()::text || clock_timestamp()::text)")),
+        sa.Column("user_id", sa.String(length=80), nullable=False),
         sa.Column("profile_id", sa.String(length=20), nullable=True),
         sa.Column("last_login_at", sa.DateTime(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
@@ -213,6 +213,11 @@ sa.Column("id", sa.String(length=32), nullable=False, server_default=sa.text("md
         sa.Column("entity_id", sa.String(length=36), nullable=True),
         sa.Column("details", sa.Text(), nullable=False, server_default=""),
         sa.Column("result", sa.String(length=30), nullable=False, server_default="success"),
+        sa.Column("correlation_id", sa.String(length=36), nullable=True),
+        sa.Column("http_method", sa.String(length=10), nullable=True),
+        sa.Column("route", sa.String(length=255), nullable=True),
+        sa.Column("duration_ms", sa.Float(), nullable=True),
+        sa.Column("ip_address", sa.String(length=64), nullable=True),
         sa.Column("project_id", sa.String(length=36), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="SET NULL"),
@@ -265,8 +270,9 @@ sa.Column("id", sa.String(length=32), nullable=False, server_default=sa.text("md
     op.create_index("ix_activity_logs_action", "activity_logs", ["action"])
     op.create_index("ix_activity_logs_entity", "activity_logs", ["entity"])
     op.create_index("ix_activity_logs_created_at", "activity_logs", ["created_at"])
+    op.create_index("ix_activity_logs_correlation_id", "activity_logs", ["correlation_id"])
 
-    # Perfis oficiais da produção; perfis legados não fazem parte da baseline.
+    # Perfis oficiais da produç��o; perfis legados não fazem parte da baseline.
     bind = op.get_bind()
 
     def execute_sql_script(script: str) -> None:

@@ -171,7 +171,12 @@ export interface ActivityLog {
   detalhes: string
   criadoEm: string
   resultado?: "sucesso" | "erro"
-  projetoId?: string
+  correlacaoId?: string | null
+  metodoHttp?: string | null
+  rota?: string | null
+  duracaoMs?: number | null
+  ipAddress?: string | null
+  projetoId?: string | null
 }
 
 export interface AccessMapRow {

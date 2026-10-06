@@ -170,6 +170,11 @@ CREATE TABLE activity_logs (
 	entity_id varchar(36) NULL,
 	details text DEFAULT ''::text NOT NULL,
 	"result" varchar(30) DEFAULT 'success'::character varying NOT NULL,
+	correlation_id varchar(36) NULL,
+	http_method varchar(10) NULL,
+	route varchar(255) NULL,
+	duration_ms float8 NULL,
+	ip_address varchar(64) NULL,
 	created_at timestamptz DEFAULT now() NOT NULL,
 	project_id varchar(36) NULL,
 	CONSTRAINT activity_logs_pkey PRIMARY KEY (id),
@@ -218,6 +223,7 @@ CREATE TABLE sessions (
   id varchar(128) NOT NULL,
   user_id varchar(32) NOT NULL,
   profile_id varchar(20) NULL,
+  profile_data jsonb NULL,
   expires_at timestamp NOT NULL,
   created_at timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
   CONSTRAINT sessions_pkey PRIMARY KEY (id),
@@ -238,3 +244,41 @@ CREATE INDEX ix_folders_project_id ON folders USING btree (project_id);
 CREATE INDEX ix_folders_parent_id ON folders USING btree (parent_id);
 CREATE INDEX ix_folders_created_by ON folders USING btree (created_by);
 CREATE INDEX ix_activity_logs_user_id ON activity_logs USING btree (user_id);
+CREATE INDEX ix_activity_logs_project_id ON activity_logs USING btree (project_id);
+CREATE INDEX ix_activity_logs_action ON activity_logs USING btree ("action");
+CREATE INDEX ix_activity_logs_entity ON activity_logs USING btree (entity);
+CREATE INDEX ix_activity_logs_created_at ON activity_logs USING btree (created_at);
+CREATE INDEX ix_activity_logs_correlation_id ON activity_logs USING btree (correlation_id);
+
+-- Compatibilidade para bancos que já possuem parte do schema.
+-- Execute este bloco após a estrutura principal quando o banco já existir.
+DO $$
+BEGIN
+  IF to_regclass('public.sessions') IS NOT NULL
+     AND NOT EXISTS (
+       SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'sessions' AND column_name = 'profile_data'
+     ) THEN
+    ALTER TABLE sessions ADD COLUMN profile_data jsonb;
+  END IF;
+
+  IF to_regclass('public.activity_logs') IS NOT NULL THEN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'activity_logs' AND column_name = 'correlation_id') THEN
+      ALTER TABLE activity_logs ADD COLUMN correlation_id varchar(36);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'activity_logs' AND column_name = 'http_method') THEN
+      ALTER TABLE activity_logs ADD COLUMN http_method varchar(10);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'activity_logs' AND column_name = 'route') THEN
+      ALTER TABLE activity_logs ADD COLUMN route varchar(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'activity_logs' AND column_name = 'duration_ms') THEN
+      ALTER TABLE activity_logs ADD COLUMN duration_ms double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'activity_logs' AND column_name = 'ip_address') THEN
+      ALTER TABLE activity_logs ADD COLUMN ip_address varchar(64);
+    END IF;
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS ix_activity_logs_correlation_id ON activity_logs USING btree (correlation_id);

@@ -24,12 +24,11 @@ ServiceDependency = Annotated[AuditService, Depends(get_service)]
 async def record_event(request: Request, payload: ActivityLogIn, user: CurrentUser, service: ServiceDependency):
     user_id = str(user.get("user_id") or user.get("id") or "")
     forwarded_for = request.headers.get("x-forwarded-for")
+    ip_address = forwarded_for.split(",")[0].strip() if forwarded_for else request.client.host if request.client else None
+    correlation_id = request.headers.get("x-request-id")
     server_details = {
         **payload.details,
-        "ip": (forwarded_for.split(",")[0].strip() if forwarded_for else request.client.host if request.client else None),
-        "metodo_http": request.method,
         "user_agent_servidor": request.headers.get("user-agent"),
-        "correlation_id": request.headers.get("x-request-id"),
     }
     return await service.record_event(
         user_id=user_id,
@@ -38,6 +37,10 @@ async def record_event(request: Request, payload: ActivityLogIn, user: CurrentUs
         entity_id=payload.entity_id,
         details=server_details,
         result=payload.result,
+        correlation_id=correlation_id,
+        http_method=request.method,
+        route=request.url.path,
+        ip_address=ip_address,
     )
 
 

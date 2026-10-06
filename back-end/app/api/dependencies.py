@@ -28,6 +28,7 @@ async def get_current_user(request: Request):
             )
             user = await service.get(session_id)
 
+    request.state.audit_user = user
     logger.info(
         "auth_session_lookup_ok user_id=%s email=%s profile_id=%s profile_name=%s permissions_count=%s",
         user.get("id"), user.get("email"), user.get("profile_id"),
