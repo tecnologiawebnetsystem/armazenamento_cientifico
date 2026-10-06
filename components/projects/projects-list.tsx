@@ -117,9 +117,9 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
 
   const stats = useMemo(() => {
     const ativos = projects.filter((p) => p.status === "ativo").length
-    const suspensos = projects.filter((p) => p.status === "suspenso").length
+    const pausados = projects.filter((p) => p.status === "pausado").length
     const armazenamento = projects.reduce((acc, p) => acc + (p.armazenamentoUsadoMb ?? 0), 0)
-    return { total: projects.length, ativos, suspensos, armazenamento }
+    return { total: projects.length, ativos, pausados, armazenamento }
   }, [projects])
 
   const filtered = useMemo(() => {
@@ -156,12 +156,12 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
 
   async function confirmToggle() {
     if (!target) return
-    const novoStatus = target.status === "suspenso" ? "ativo" : "suspenso"
+    const novoStatus = target.status === "pausado" ? "ativo" : "pausado"
     setPending(true)
     try {
       await updateProject(target.id, { status: novoStatus })
       await refresh()
-      toast.success(novoStatus === "suspenso" ? "Projeto desativado." : "Projeto reativado.")
+      toast.success(novoStatus === "pausado" ? "Projeto desativado." : "Projeto reativado.")
       setTarget(null)
     } catch {
       toast.error("Não foi possível atualizar o projeto.")
@@ -193,7 +193,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         <StatCard
           icon={PauseCircleIcon}
           label="Suspensos"
-          value={stats.suspensos}
+          value={stats.pausados}
           accent="bg-warning/10 text-warning"
         />
         <StatCard
@@ -294,18 +294,18 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {target?.status === "suspenso" ? "Reativar projeto?" : "Desativar projeto?"}
+              {target?.status === "pausado" ? "Reativar projeto?" : "Desativar projeto?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {target?.status === "suspenso"
+              {target?.status === "pausado"
                 ? `O projeto "${target?.nome}" voltará a ficar ativo e acessível aos membros.`
-                : `O projeto "${target?.nome}" ficará suspenso. Os dados são mantidos, mas o projeto sai da operação ativa.`}
+                : `O projeto "${target?.nome}" ficará pausado. Os dados são mantidos, mas o projeto sai da operação ativa.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={pending}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmToggle} disabled={pending}>
-              {pending ? "Processando..." : target?.status === "suspenso" ? "Reativar" : "Desativar"}
+              {pending ? "Processando..." : target?.status === "pausado" ? "Reativar" : "Desativar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

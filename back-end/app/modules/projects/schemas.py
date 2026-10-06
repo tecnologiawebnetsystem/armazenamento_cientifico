@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-ProjectStatus = Literal["ativo", "concluido", "suspenso"]
+ProjectStatus = Literal["ativo", "em_implantacao", "pausado", "encerrado"]
 
 
 class ProjectCreate(BaseModel):

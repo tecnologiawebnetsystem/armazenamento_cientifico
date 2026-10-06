@@ -39,7 +39,7 @@ interface Props {
 
 export function ProjectListRow({ project, canManage = false, showMeta = true, onToggleStatus, className }: Props) {
   const membros = project.participantesIds?.length ?? 0
-  const suspenso = project.status === "suspenso"
+  const pausado = project.status === "pausado"
 
   return (
     <div className={cn("relative flex items-center gap-4 bg-card px-4 py-3 transition-colors hover:bg-muted/40", className)}>
@@ -91,11 +91,11 @@ export function ProjectListRow({ project, canManage = false, showMeta = true, on
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                variant={suspenso ? "default" : "destructive"}
+                variant={pausado ? "default" : "destructive"}
                 onClick={() => onToggleStatus?.(project)}
               >
-                {suspenso ? <PlayIcon /> : <PauseIcon />}
-                {suspenso ? "Reativar" : "Desativar"}
+                {pausado ? <PlayIcon /> : <PauseIcon />}
+                {pausado ? "Reativar" : "Desativar"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

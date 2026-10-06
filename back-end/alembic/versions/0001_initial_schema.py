@@ -14,6 +14,7 @@ A carga de parâmetros é executada separadamente pelo seed idempotente.
 
 from collections.abc import Sequence
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 from alembic import op
 
@@ -95,7 +96,7 @@ def upgrade() -> None:
         sa.Column("id", sa.String(length=128), nullable=False),
         sa.Column("user_id", sa.String(length=32), nullable=False),
         sa.Column("profile_id", sa.String(length=20), nullable=True),
-        sa.Column("profile_data", sa.JSON(), nullable=True),
+        sa.Column("profile_data", postgresql.JSONB(), nullable=True),
         sa.Column("expires_at", sa.DateTime(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("current_timestamp")),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
@@ -108,7 +109,7 @@ def upgrade() -> None:
         sa.Column("name", sa.String(length=200), nullable=False),
         sa.Column("code", sa.String(length=50), nullable=False),
         sa.Column("responsible_area", sa.String(length=160), nullable=False),
-        sa.Column("managers_ids", sa.JSON(), nullable=False),
+        sa.Column("managers_ids", postgresql.JSONB(), nullable=False),
         sa.Column("write_group", sa.String(length=160), nullable=False),
         sa.Column("read_group", sa.String(length=160), nullable=False),
         sa.Column("write_identity_role", sa.String(length=160), nullable=False),
@@ -117,7 +118,7 @@ def upgrade() -> None:
         sa.Column("parent_folder", sa.String(length=500), nullable=False),
         sa.Column("description", sa.Text(), nullable=False),
         sa.Column("status", sa.String(length=30), nullable=False),
-        sa.Column("participants_ids", sa.JSON(), nullable=False),
+        sa.Column("participants_ids", postgresql.JSONB(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.PrimaryKeyConstraint("id"),

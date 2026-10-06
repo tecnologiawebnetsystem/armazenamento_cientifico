@@ -11,8 +11,8 @@ import type { Project, ProjectStatus } from "@/lib/types"
 
 const statusOptions: { value: ProjectStatus; label: string }[] = [
   { value: "ativo", label: "Ativo" },
-  { value: "concluido", label: "Concluído" },
-  { value: "suspenso", label: "Suspenso" },
+  { value: "encerrado", label: "Concluído" },
+  { value: "pausado", label: "Suspenso" },
 ]
 
 export function ProjectInfoTab({

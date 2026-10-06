@@ -31,7 +31,7 @@ class ProjectStatus(Base):
 
     id: Mapped[str] = mapped_column(String(40), primary_key=True)
     code: Mapped[str] = mapped_column("code", String(40), unique=True, nullable=False)
-    name: Mapped[str] = mapped_column("nome", String(100), nullable=False)
+    name: Mapped[str] = mapped_column("name", String(100), nullable=False)
     color: Mapped[str] = mapped_column("color", String(20), default="slate", nullable=False)
     display_order: Mapped[int] = mapped_column("display_order", Integer, default=0, nullable=False)
     active: Mapped[bool] = mapped_column("active", Boolean, default=True, nullable=False)

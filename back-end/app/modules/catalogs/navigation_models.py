@@ -20,7 +20,7 @@ class MenuItem(Base):
 
     id: Mapped[str] = mapped_column(String(80), primary_key=True)
     module_id: Mapped[str | None] = mapped_column("module_id", ForeignKey("modules.id", ondelete="SET NULL"), nullable=True)
-    parent_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    parent_id: Mapped[str | None] = mapped_column(ForeignKey("menus.id", ondelete="SET NULL"), String(80), nullable=True)
     name: Mapped[str] = mapped_column("name", String(120), nullable=False)
     route: Mapped[str] = mapped_column("route", String(180), default="", nullable=False)
     icon: Mapped[str] = mapped_column("icon", String(80), default="circle", nullable=False)
