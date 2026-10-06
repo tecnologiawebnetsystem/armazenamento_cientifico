@@ -95,7 +95,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" tooltip="SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico" render={<Link href={homeHref} />}>
               <div className="flex size-9 items-center justify-center rounded-xl bg-sidebar-primary/15 ring-1 ring-sidebar-primary/40 shadow-[0_0_20px_color-mix(in_oklch,var(--sidebar-primary)_18%,transparent)]"><LogoMark className="size-5" /></div>
-              <div className="flex min-w-0 flex-col gap-1 leading-none"><span className="truncate text-sm font-semibold tracking-wide">SIGAC</span><span className="hidden truncate text-[10px] text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden">Gestão de acesso ao armazenamento científico</span></div>
+              <div className="flex min-w-0 flex-col gap-1 leading-none group-data-[collapsible=icon]:hidden"><span className="truncate text-sm font-semibold tracking-wide">SIGAC</span><span className="hidden truncate text-[10px] text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden">Gestão de acesso ao armazenamento científico</span></div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
