@@ -192,7 +192,7 @@ O schema de referência está em [`back-end/database/postgresql-schema.sql`](bac
 
 ### Seed e usuários iniciais
 
-O seed é controlado por `SEED_DATABASE`. Quando habilitado em um ambiente de desenvolvimento, cria apenas registros iniciais que ainda não existem. Em ambientes compartilhados ou de produção, mantenha `SEED_DATABASE=false` após a carga inicial e altere dados por migrations ou rotinas administrativas controladas.
+O seed é controlado por `SEED_DATABASE`. Quando habilitado em um ambiente de desenvolvimento, aplica os catálogos, permissões, menus, perfis e usuários iniciais de forma idempotente, além dos projetos de demonstração que ainda não existem. A migration `0001_initial_schema.py` contém somente estrutura, constraints e índices; ela não insere dados. Em ambientes compartilhados ou de produção, mantenha `SEED_DATABASE=false` após a carga inicial e altere dados por migrations ou rotinas administrativas controladas.
 
 ### Verificar o banco
 
