@@ -35,7 +35,7 @@ function formatActivityDate(value: string) {
 export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, armazenamentoMb, pendencias, activity, consultedAt }: Props) {
   const view = profileView[role] ?? profileView.solicitante
   const activeProjects = projects.filter((project) => project.status === "ativo").length
-  const attention = projects.filter((project) => project.status === "suspenso").length
+  const attention = projects.filter((project) => project.status === "pausado").length
   const featuredProjects = projects.filter((project) => project.status === "ativo").slice(0, 3)
 
   const indicators = [
@@ -91,7 +91,7 @@ export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, a
           </CardContent>
         </Card>
         <Card className="sigac-surface border-0 ring-1 ring-border/70">
-          <CardContent className="flex flex-col gap-5 p-5 sm:p-6"><div><p className="text-[10px] font-bold tracking-[0.16em] text-primary uppercase">Prioridades</p><h2 className="mt-1 font-heading text-lg font-semibold">Próxima atenção</h2><p className="mt-1 text-sm text-muted-foreground">Somente o que pode exigir uma ação.</p></div><div className="flex flex-col gap-2.5"><div className="flex items-center justify-between rounded-lg border border-border/70 bg-muted/30 p-3.5"><span className="flex items-center gap-2 text-sm"><span className="size-2 rounded-full bg-petrobras-yellow" />Pendências de acesso</span><strong className="font-heading text-xl">{pendencias}</strong></div><div className="flex items-center justify-between rounded-lg border border-border/70 bg-muted/30 p-3.5"><span className="flex items-center gap-2 text-sm"><span className="size-2 rounded-full bg-muted-foreground/50" />Projetos suspensos</span><strong className="font-heading text-xl">{attention}</strong></div></div></CardContent>
+          <CardContent className="flex flex-col gap-5 p-5 sm:p-6"><div><p className="text-[10px] font-bold tracking-[0.16em] text-primary uppercase">Prioridades</p><h2 className="mt-1 font-heading text-lg font-semibold">Próxima atenção</h2><p className="mt-1 text-sm text-muted-foreground">Somente o que pode exigir uma ação.</p></div><div className="flex flex-col gap-2.5"><div className="flex items-center justify-between rounded-lg border border-border/70 bg-muted/30 p-3.5"><span className="flex items-center gap-2 text-sm"><span className="size-2 rounded-full bg-petrobras-yellow" />Pendências de acesso</span><strong className="font-heading text-xl">{pendencias}</strong></div><div className="flex items-center justify-between rounded-lg border border-border/70 bg-muted/30 p-3.5"><span className="flex items-center gap-2 text-sm"><span className="size-2 rounded-full bg-muted-foreground/50" />Projetos pausados</span><strong className="font-heading text-xl">{attention}</strong></div></div></CardContent>
         </Card>
       </section>
 
@@ -102,7 +102,7 @@ export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, a
             <div className="flex flex-col gap-2 text-sm">
               <div className="flex items-center justify-between rounded-lg bg-muted/40 p-3"><span>Projetos ativos</span><strong>{activeProjects} de {projects.length}</strong></div>
               <div className="flex items-center justify-between rounded-lg bg-muted/40 p-3"><span>Solicitações pendentes</span><strong className={pendencias > 0 ? "text-amber-700" : "text-emerald-700"}>{pendencias}</strong></div>
-              <div className="flex items-center justify-between rounded-lg bg-muted/40 p-3"><span>Projetos suspensos</span><strong className={attention > 0 ? "text-red-700" : "text-emerald-700"}>{attention}</strong></div>
+              <div className="flex items-center justify-between rounded-lg bg-muted/40 p-3"><span>Projetos pausados</span><strong className={attention > 0 ? "text-red-700" : "text-emerald-700"}>{attention}</strong></div>
             </div>
           </CardContent>
         </Card>

@@ -40,7 +40,7 @@ interface Props {
 export function ProjectCard({ project, canManage = false, showMeta = true, onToggleStatus }: Props) {
   const membros = project.participantesIds?.length ?? 0
   const gestores = project.gestoresIds?.length ?? 0
-  const suspenso = project.status === "suspenso"
+  const pausado = project.status === "pausado"
 
   return (
     <Card className="group relative overflow-hidden rounded-xl border-border/70 bg-card shadow-sm shadow-petrobras-blue/5 transition-all duration-200 hover:-translate-y-0.5 hover:border-petrobras-green/35 hover:shadow-md hover:shadow-petrobras-green/10">
@@ -85,11 +85,11 @@ export function ProjectCard({ project, canManage = false, showMeta = true, onTog
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    variant={suspenso ? "default" : "destructive"}
+                    variant={pausado ? "default" : "destructive"}
                     onClick={() => onToggleStatus?.(project)}
                   >
-                    {suspenso ? <PlayIcon /> : <PauseIcon />}
-                    {suspenso ? "Reativar" : "Desativar"}
+                    {pausado ? <PlayIcon /> : <PauseIcon />}
+                    {pausado ? "Reativar" : "Desativar"}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

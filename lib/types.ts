@@ -19,7 +19,7 @@ export type Role = "admin" | "gerente" | "patrocinador" | "auditor" | "solicitan
 export type ProjectMemberRole = Role
 
 
-export type ProjectStatus = "ativo" | "concluido" | "suspenso" | "inativo" | "em_andamento"
+export type ProjectStatus = "ativo" | "em_implantacao" | "pausado" | "encerrado"
 
 export interface User {
   id: string
