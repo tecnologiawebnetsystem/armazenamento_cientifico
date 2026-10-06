@@ -30,6 +30,23 @@ function accessLabel(value?: string | null) {
   return ({ leitura: 'Leitura', escrita: 'Escrita', editor: 'Edição', gerente: 'Gestão', admin: 'Administrador' }[safeValue.toLowerCase()] ?? safeValue)
 }
 
+function downloadFile(content: string, fileName: string, type: string) {
+  const blob = new Blob([content], { type })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+function exportAccessMap(project: Project, folders: FileNode[], groups: ProjectAccessMapResponse['groups'], members: ProjectAccessMapResponse['members'], format: 'txt' | 'csv') {
+  const rows = folders.map((folder) => [project.codigo, project.nome, folder.nome, groups.map((group) => `${group.nome} (${accessLabel(group.nivel)})`).join(' | '), members.map((member) => `${member.user?.nome || 'Usuário'} (${accessLabel(member.papel)})`).join(' | ')])
+  const header = ['Código', 'Projeto', 'Pasta', 'Grupos e permissões', 'Membros e papéis']
+  const content = format === 'csv' ? [header, ...rows].map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(';')).join('\\n') : [`MAPA DE ACESSOS - ${project.nome}`, `Gerado em: ${formatDate(new Date().toISOString())}`, '', header.join(' | '), ...rows.map((row) => row.join(' | '))].join('\\n')
+  downloadFile(content, `mapa-acessos-${project.codigo}.${format}`, format === 'csv' ? 'text/csv;charset=utf-8' : 'text/plain;charset=utf-8')
+}
+
 export default function AccessMapPage() {
   const [search, setSearch] = useState('')
   const [selectedProjectId, setSelectedProjectId] = useState('')
@@ -68,9 +85,21 @@ export default function AccessMapPage() {
 function AccessMapDetails({ project, accessMap, accessError, accessLoading, folders, foldersLoading, retryAccess }: { project: Project; accessMap?: ProjectAccessMapResponse; accessError?: Error; accessLoading: boolean; folders: FileNode[]; foldersLoading: boolean; retryAccess: () => void }) {
   const groups = accessMap?.groups ?? []
   const members = accessMap?.members ?? []
+  const printMap = () => window.print()
 
   return <div className="space-y-6">
+    <div className="flex flex-wrap items-center justify-end gap-2 print:hidden">
+      <Button variant="outline" size="sm" onClick={() => exportAccessMap(project, folders, groups, members, 'txt')}>Exportar TXT</Button>
+      <Button variant="outline" size="sm" onClick={() => exportAccessMap(project, folders, groups, members, 'csv')}>Exportar CSV</Button>
+      <Button size="sm" onClick={printMap}>Imprimir / PDF</Button>
+    </div>
     <Card className="sigac-surface overflow-hidden"><CardHeader className="sigac-section-header px-5 py-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-wide text-primary">Projeto selecionado</p><CardTitle className="mt-1 text-2xl">{project.nome}</CardTitle><CardDescription className="mt-1">{project.codigo} · {project.areaResponsavel}</CardDescription></div><Badge variant="secondary">{project.status}</Badge></div></CardHeader><CardContent className="grid gap-3 p-5 sm:grid-cols-3"><div className="rounded-lg border border-border/70 p-3"><p className="text-xs text-muted-foreground">Pastas</p><p className="mt-1 text-2xl font-semibold">{foldersLoading ? '—' : folders.length}</p></div><div className="rounded-lg border border-border/70 p-3"><p className="text-xs text-muted-foreground">Grupos</p><p className="mt-1 text-2xl font-semibold">{groups.length ?? '—'}</p></div><div className="rounded-lg border border-border/70 p-3"><p className="text-xs text-muted-foreground">Membros</p><p className="mt-1 text-2xl font-semibold">{members.length ?? '—'}</p></div></CardContent></Card>
+    <Card className="sigac-surface">
+      <CardHeader className="sigac-section-header px-5 py-4"><CardTitle className="text-base">Pastas e permissões</CardTitle><CardDescription>Recursos do projeto e grupos/membros autorizados em cada pasta.</CardDescription></CardHeader>
+      <CardContent className="p-0">
+        {foldersLoading ? <div className="p-5"><PetrobrasLoading label="Carregando pastas..." /></div> : folders.length === 0 ? <p className="p-5 text-sm text-muted-foreground">Nenhuma pasta encontrada para este projeto.</p> : <div className="divide-y divide-border">{folders.map((folder) => <div key={folder.id} className="grid gap-3 px-5 py-4 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"><div className="flex items-start gap-3"><FolderOpen className="mt-0.5 size-5 shrink-0 text-primary" /><div><p className="font-semibold">{folder.nome}</p><p className="text-xs text-muted-foreground">{folder.parentId ? `Subpasta de ${folder.parentId}` : 'Pasta do projeto'}</p></div></div><div className="flex flex-wrap gap-2">{groups.map((group) => <Badge key={`${folder.id}-${group.nome}`} variant="outline">{group.nome}: {accessLabel(group.nivel)}</Badge>)}{!groups.length && <span className="text-sm text-muted-foreground">Permissões não retornadas pela API.</span>}</div></div>)}</div>}
+      </CardContent>
+    </Card>
     {accessLoading ? <Card className="sigac-surface"><CardContent className="p-6"><PetrobrasLoading label="Consultando mapa de acessos..." /></CardContent></Card> : accessError ? <Card className="sigac-surface"><CardContent className="flex flex-col items-center gap-3 p-8 text-center"><ShieldCheck className="size-8 text-destructive" /><p className="font-semibold">Não foi possível consultar os acessos</p><p className="text-sm text-muted-foreground">Verifique sua permissão para este projeto e tente novamente.</p><Button variant="outline" onClick={retryAccess}>Tentar novamente</Button></CardContent></Card> : accessMap ? <><Card className="sigac-surface"><CardHeader className="sigac-section-header px-5 py-4"><CardTitle className="text-base">Grupos de acesso</CardTitle><CardDescription>Grupos e níveis consolidados pela API de mapa de acessos.</CardDescription></CardHeader><CardContent className="grid gap-3 p-5 sm:grid-cols-2">{groups.map((group) => <div key={`${group.fonte}-${group.nome}`} className="rounded-lg border border-border/70 p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{group.nome}</p><p className="mt-1 text-xs text-muted-foreground">Fonte: {group.fonte}</p></div><Badge>{accessLabel(group.nivel)}</Badge></div></div>)}{!groups.length ? <p className="text-sm text-muted-foreground">Nenhum grupo configurado.</p> : null}</CardContent></Card><Card className="sigac-surface"><CardHeader className="sigac-section-header px-5 py-4"><CardTitle className="text-base">Membros autorizados</CardTitle><CardDescription>Usuários vinculados ao projeto e seus perfis.</CardDescription></CardHeader><CardContent className="p-0"><div className="divide-y divide-border">{members.map((member) => <div key={member.userId} className="flex items-center justify-between gap-3 px-5 py-4"><div className="flex min-w-0 items-center gap-3"><div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{initials(member.user?.nome)}</div><div className="min-w-0"><p className="truncate text-sm font-semibold">{member.user?.nome || 'Usuário sem nome'}</p><p className="truncate text-xs text-muted-foreground">{member.user?.email || 'E-mail não informado' || member.user.id}</p></div></div><Badge variant="outline">{accessLabel(member.papel)}</Badge></div>)}{!members.length ? <p className="p-5 text-sm text-muted-foreground">Nenhum membro autorizado.</p> : null}</div></CardContent></Card><Card className="sigac-surface"><CardHeader className="sigac-section-header px-5 py-4"><CardTitle className="flex items-center gap-2 text-base"><FolderOpen className="size-4 text-primary" />Pastas do projeto</CardTitle><CardDescription>Estrutura de pastas disponível dentro do escopo autorizado.</CardDescription></CardHeader><CardContent className="p-0"><div className="divide-y divide-border">{folders.map((folder) => <div key={folder.id} className="flex items-center gap-3 px-5 py-4"><Folder className="size-4 text-primary" /><div><p className="text-sm font-semibold">{folder.nome}</p><p className="text-xs text-muted-foreground">Pasta · atualizada em {formatDate(folder.atualizadoEm)}</p></div></div>)}{!folders.length ? <p className="p-5 text-sm text-muted-foreground">Nenhuma pasta encontrada.</p> : null}</div></CardContent></Card><p className="flex items-center gap-2 text-xs text-muted-foreground"><Clock3 className="size-3.5" />Fonte: {accessMap.source} · Consultado em {formatDate(accessMap.consultedAt)}</p></> : null}
   </div>
 }
