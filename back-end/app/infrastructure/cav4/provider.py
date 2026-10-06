@@ -157,14 +157,19 @@ class CAV4OIDCProvider:
                     settings.oidc_discovery_url.split('/')[2],
                 )
                 return self._discovery_cache
-        except httpx.HTTPError as e:
+        except (httpx.HTTPError, OSError, ssl.SSLError, ValueError) as e:
             logger.error(
-                "[CAV4] Erro ao buscar discovery verify=%s erro=%s",
+                "[CAV4] Falha no discovery verify=%s truststore=%s ca_file=%s url=%s tipo=%s erro=%s",
                 settings.ca_ssl_verify,
+                settings.ca_ssl_use_truststore,
+                bool(settings.ca_ssl_cert_file),
+                settings.oidc_discovery_url,
+                type(e).__name__,
                 str(e),
+                exc_info=True,
             )
             raise CAV4AuthenticationError(
-                "Erro ao conectar com CAV4. Verifique CA_SSL_VERIFY e reinicie o backend."
+                "Não foi possível conectar ao CAV4. Verifique a URL de discovery, DNS, firewall e a configuração CA_SSL_VERIFY/CA_SSL_CERT_FILE."
             ) from e
 
     async def _fetch_jwks(self, *, refresh: bool = False) -> dict[str, Any]:
