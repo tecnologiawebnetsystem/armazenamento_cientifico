@@ -170,6 +170,11 @@ CREATE TABLE activity_logs (
 	entity_id varchar(36) NULL,
 	details text DEFAULT ''::text NOT NULL,
 	"result" varchar(30) DEFAULT 'success'::character varying NOT NULL,
+	correlation_id varchar(36) NULL,
+	http_method varchar(10) NULL,
+	route varchar(255) NULL,
+	duration_ms float8 NULL,
+	ip_address varchar(64) NULL,
 	created_at timestamptz DEFAULT now() NOT NULL,
 	project_id varchar(36) NULL,
 	CONSTRAINT activity_logs_pkey PRIMARY KEY (id),
@@ -238,3 +243,8 @@ CREATE INDEX ix_folders_project_id ON folders USING btree (project_id);
 CREATE INDEX ix_folders_parent_id ON folders USING btree (parent_id);
 CREATE INDEX ix_folders_created_by ON folders USING btree (created_by);
 CREATE INDEX ix_activity_logs_user_id ON activity_logs USING btree (user_id);
+CREATE INDEX ix_activity_logs_project_id ON activity_logs USING btree (project_id);
+CREATE INDEX ix_activity_logs_action ON activity_logs USING btree ("action");
+CREATE INDEX ix_activity_logs_entity ON activity_logs USING btree (entity);
+CREATE INDEX ix_activity_logs_created_at ON activity_logs USING btree (created_at);
+CREATE INDEX ix_activity_logs_correlation_id ON activity_logs USING btree (correlation_id);
