@@ -101,6 +101,8 @@ def create_app() -> FastAPI:
                             user.get("audit_user_id")
                             or user.get("cav4_user_id")
                             or user.get("user_id")
+                            or user.get("profile_data", {}).get("cav4_user_id")
+                            or user.get("profile_data", {}).get("user_login")
                             or user.get("profile_data", {}).get("user_id")
                             or user.get("id")
                             or ""
