@@ -32,6 +32,8 @@ async def get_current_user(request: Request):
     audit_user_id = (
         user.get("cav4_user_id")
         or user.get("user_id")
+        or user.get("profile_data", {}).get("cav4_user_id")
+        or user.get("profile_data", {}).get("user_login")
         or user.get("profile_data", {}).get("user_id")
         or user.get("id")
     )

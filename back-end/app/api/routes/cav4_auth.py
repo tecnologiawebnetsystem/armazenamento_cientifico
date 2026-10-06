@@ -246,6 +246,9 @@ async def cav4_callback(request: Request, code: str, state: str):
                 return None
 
             profile_data = {
+                # O login funcional (ex.: GFZ3) é a identidade usada pela auditoria.
+                "cav4_user_id": identity.user_login,
+                "user_login": identity.user_login,
                 "email": identity.email,
                 "display_name": identity.display_name or claim("name", "display_name", "displayName", "full_name", "fullName", "nome", "nomeCompleto"),
                 "job_title": claim("job_title", "jobTitle", "cargo", "title", "occupation"),
