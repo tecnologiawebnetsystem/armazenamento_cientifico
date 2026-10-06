@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronDownIcon, LogOutIcon, MailIcon, MapPinIcon } from "lucide-react"
+import { ChevronDownIcon, LogOutIcon, MailIcon } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { logout } from "@/lib/api-client"
@@ -43,7 +43,7 @@ export function ProfileAvatarMenu({ user, onLogout }: { user: User; onLogout: ()
               <span className="mt-3 inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">Perfil {roleLabel(user.role)}</span>
             </div>
           </div>
-          {(user.area || user.cargo || user.chaveCav4) && <div className="mt-5 flex flex-col gap-1 border-t border-white/20 pt-4 text-sm text-white/85"><span className="truncate">{[user.cargo, user.area].filter(Boolean).join(" · ") || "Perfil corporativo"}</span>{user.chaveCav4 && <span className="truncate text-xs text-white/70">Chave CAV4: {user.chaveCav4}</span>}</div>}
+          {(user.area || user.cargo || user.chaveCav4) && <div className="mt-5 flex flex-col gap-1 border-t border-white/20 pt-4 text-sm text-white/85"><span className="truncate">{[user.cargo, user.area].filter(Boolean).join(" · ") || "Perfil corporativo"}</span>{user.chaveCav4 && <span className="truncate text-xs text-white/70">Chave: {user.chaveCav4}</span>}</div>}
         </div>
 
         <div className="grid gap-3 px-6 py-4">

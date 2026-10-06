@@ -284,7 +284,7 @@ export async function getActivityLogs(params: ActivityLogQuery = {}) {
       acao: log.action,
       entidade: log.entity,
       entidadeId: log.entity_id,
-      detalhes: log.details,
+      detalhes: typeof log.details === "string" ? log.details : JSON.stringify(log.details ?? {}, null, 2),
       resultado: (log as ActivityLog & { result?: string }).result ?? "sucesso",
       criadoEm: log.created_at,
     })),
