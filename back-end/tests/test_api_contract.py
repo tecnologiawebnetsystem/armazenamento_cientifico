@@ -12,6 +12,7 @@ def test_openapi_exposes_required_operations():
         "/api/auth/cav4/start",
         "/api/auth/cav4/callback",
         "/api/projects",
+        "/api/projects/{project_id}/access-map",
         "/api/folders",
         "/api/audit/logs",
     }

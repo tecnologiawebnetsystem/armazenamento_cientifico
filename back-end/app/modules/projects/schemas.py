@@ -47,15 +47,6 @@ class AccessMapGroupOut(BaseModel):
     nivel: str
 
 
-class AccessMapOut(BaseModel):
-    projectId: str
-    groups: list[AccessMapGroupOut]
-    members: list[ProjectMemberOut]
-    source: str
-    consultedAt: datetime
-    gaps: list[str] = Field(default_factory=list)
-
-
 class ProjectOut(BaseModel):
     id: str
     nome: str
@@ -67,3 +58,13 @@ class ProjectOut(BaseModel):
     participantesIds: list[str]
     criadoEm: datetime
     atualizadoEm: datetime
+
+
+class AccessMapOut(BaseModel):
+    project: ProjectOut
+    projectId: str
+    groups: list[AccessMapGroupOut]
+    members: list[ProjectMemberOut]
+    source: str
+    consultedAt: datetime
+    gaps: list[str] = Field(default_factory=list)

@@ -159,12 +159,21 @@ Proteção:
 
 A resposta contém:
 
+- project: dados completos do projeto;
 - projectId;
 - groups;
 - members;
 - source;
 - consultedAt;
 - gaps.
+
+Códigos de retorno:
+
+- 200: mapa consolidado retornado;
+- 403: sessão sem a capacidade access_map ou sem acesso ao projeto;
+- 404: projeto inexistente;
+- 502: falha controlada ao consultar a fonte de identidade/dados externos;
+- 500: erro interno não previsto, sem exposição de detalhes sensíveis.
 
 O campo groups contém grupos de leitura e escrita configurados no projeto. O campo gaps informa problemas como grupo não configurado ou projeto sem membros.
 
