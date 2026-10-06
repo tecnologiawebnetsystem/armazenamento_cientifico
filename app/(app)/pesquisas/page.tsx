@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { PetrobrasLoading } from '@/components/petrobras-loading'
+import { ExportButton, ExportFieldsDialog, type ExportField } from '@/components/export-fields-dialog'
 import { PageHeader, PageLayout } from '@/components/shared/page-layout'
 import { getFolders, getProjectAccessMap, getProjects, recordAuditEvent } from '@/lib/api-client'
 import type { FileNode, Project, ProjectAccessMapResponse } from '@/lib/types'
@@ -40,9 +41,25 @@ function downloadFile(content: string, fileName: string, type: string) {
   URL.revokeObjectURL(url)
 }
 
-async function exportAccessMap(project: Project, folders: FileNode[], groups: ProjectAccessMapResponse['groups'], members: ProjectAccessMapResponse['members'], format: 'txt' | 'csv') {
-  const rows = folders.map((folder) => [project.codigo, project.nome, folder.nome, groups.map((group) => `${group.nome} (${accessLabel(group.nivel)})`).join(' | '), members.map((member) => `${member.user?.nome || 'Usuário'} (${accessLabel(member.papel)})`).join(' | ')])
-  const header = ['Código', 'Projeto', 'Pasta', 'Grupos e permissões', 'Membros e papéis']
+const accessMapExportFields: ExportField[] = [
+  { key: 'codigo', label: 'Código' },
+  { key: 'projeto', label: 'Projeto' },
+  { key: 'pasta', label: 'Pasta' },
+  { key: 'grupos', label: 'Grupos e permissões' },
+  { key: 'membros', label: 'Membros e papéis' },
+]
+
+async function exportAccessMap(project: Project, folders: FileNode[], groups: ProjectAccessMapResponse['groups'], members: ProjectAccessMapResponse['members'], format: 'txt' | 'csv', fields: string[]) {
+  const values = [project.codigo, project.nome, '', '', '']
+  const labels = ['Código', 'Projeto', 'Pasta', 'Grupos e permissões', 'Membros e papéis']
+  const selectedIndexes = accessMapExportFields.map((field, index) => fields.includes(field.key) ? index : -1).filter((index) => index >= 0)
+  const rows = folders.map((folder) => {
+    values[2] = folder.nome
+    values[3] = groups.map((group) => `${group.nome} (${accessLabel(group.nivel)})`).join(' | ')
+    values[4] = members.map((member) => `${member.user?.nome || 'Usuário'} (${accessLabel(member.papel)})`).join(' | ')
+    return selectedIndexes.map((index) => values[index])
+  })
+  const header = selectedIndexes.map((index) => labels[index])
   const content = format === 'csv' ? [header, ...rows].map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(';')).join('\\n') : [`MAPA DE ACESSOS - ${project.nome}`, `Gerado em: ${formatDate(new Date().toISOString())}`, '', header.join(' | '), ...rows.map((row) => row.join(' | '))].join('\\n')
   downloadFile(content, `mapa-acessos-${project.codigo}.${format}`, format === 'csv' ? 'text/csv;charset=utf-8' : 'text/plain;charset=utf-8')
   await recordAuditEvent({ action: 'exportar-relatorio', entity: 'mapa_acessos', entity_id: project.id, details: { projeto: project.nome, codigo: project.codigo, formato: format, pastas: folders.length, grupos: groups.length, membros: members.length } }).catch(() => undefined)
@@ -99,6 +116,7 @@ export default function AccessMapPage() {
 function AccessMapDetails({ project, accessMap, accessError, accessLoading, folders, foldersLoading, retryAccess }: { project: Project; accessMap?: ProjectAccessMapResponse; accessError?: Error; accessLoading: boolean; folders: FileNode[]; foldersLoading: boolean; retryAccess: () => void }) {
   const groups = accessMap?.groups ?? []
   const members = accessMap?.members ?? []
+  const [exportOpen, setExportOpen] = useState(false)
   const printMap = async () => {
     await recordAuditEvent({ action: 'exportar-relatorio', entity: 'mapa_acessos', entity_id: project.id, details: { projeto: project.nome, codigo: project.codigo, formato: 'pdf', pastas: folders.length, grupos: groups.length, membros: members.length } }).catch(() => undefined)
     window.print()
@@ -106,10 +124,9 @@ function AccessMapDetails({ project, accessMap, accessError, accessLoading, fold
 
   return <div className="space-y-6">
     <div className="flex flex-wrap items-center justify-end gap-2 print:hidden">
-      <Button variant="outline" size="sm" onClick={() => exportAccessMap(project, folders, groups, members, 'txt')}>Exportar TXT</Button>
-      <Button variant="outline" size="sm" onClick={() => exportAccessMap(project, folders, groups, members, 'csv')}>Exportar CSV</Button>
-      <Button size="sm" onClick={printMap}>Imprimir / PDF</Button>
+      <ExportButton onClick={() => setExportOpen(true)} />
     </div>
+    <ExportFieldsDialog open={exportOpen} onOpenChange={setExportOpen} title="mapa de acessos" fields={accessMapExportFields} onConfirm={(fields, formats) => void Promise.all(formats.map(async (format) => format === 'pdf' ? printMap() : exportAccessMap(project, folders, groups, members, format, fields)))} />
     <Card className="sigac-surface overflow-hidden"><CardHeader className="sigac-section-header px-5 py-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-wide text-primary">Projeto selecionado</p><CardTitle className="mt-1 text-2xl">{project.nome}</CardTitle><CardDescription className="mt-1">{project.codigo} · {project.areaResponsavel}</CardDescription></div><Badge variant="secondary">{project.status}</Badge></div></CardHeader><CardContent className="grid gap-3 p-5 sm:grid-cols-3"><div className="rounded-lg border border-border/70 p-3"><p className="text-xs text-muted-foreground">Pastas</p><p className="mt-1 text-2xl font-semibold">{foldersLoading ? '—' : folders.length}</p></div><div className="rounded-lg border border-border/70 p-3"><p className="text-xs text-muted-foreground">Grupos</p><p className="mt-1 text-2xl font-semibold">{groups.length ?? '—'}</p></div><div className="rounded-lg border border-border/70 p-3"><p className="text-xs text-muted-foreground">Membros</p><p className="mt-1 text-2xl font-semibold">{members.length ?? '—'}</p></div></CardContent></Card>
     <Card className="sigac-surface">
       <CardHeader className="sigac-section-header px-5 py-4"><CardTitle className="text-base">Pastas e permissões</CardTitle><CardDescription>Recursos do projeto e grupos/membros autorizados em cada pasta.</CardDescription></CardHeader>
