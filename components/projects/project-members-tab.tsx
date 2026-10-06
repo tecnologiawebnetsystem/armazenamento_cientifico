@@ -47,8 +47,8 @@ export function ProjectMembersTab({ projectId }: { projectId: string; canManage?
               <ShieldCheckIcon className="size-5" aria-hidden="true" />
             </div>
             <div className="flex flex-col gap-1">
-              <CardTitle className="text-xl tracking-tight">Mapa de acessos</CardTitle>
-              <CardDescription>Grupos, membros e níveis de acesso autorizados para este projeto.</CardDescription>
+              <CardTitle className="text-xl tracking-tight">Membros e mapa de acessos</CardTitle>
+              <CardDescription>Consulte os grupos, membros e níveis de acesso autorizados para este projeto.</CardDescription>
             </div>
           </div>
           <div className="flex items-center gap-2">
