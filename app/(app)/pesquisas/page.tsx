@@ -59,7 +59,17 @@ export default function AccessMapPage() {
   const selectedProject = projects.find((project) => project.id === selectedProjectId)
   const { data: accessMap, isLoading: accessLoading, error: accessError, mutate: retryAccess } = useSWR<ProjectAccessMapResponse>(selectedProjectId ? ['project-access-map-page', selectedProjectId] : null, () => getProjectAccessMap(selectedProjectId))
   const { data: foldersData, isLoading: foldersLoading } = useSWR(selectedProjectId ? ['access-map-folders', selectedProjectId] : null, () => getFolders(selectedProjectId))
-  const folders = (foldersData?.folders ?? []).filter((item: FileNode) => item.tipo === 'pasta')
+  const folders = (foldersData?.folders ?? []).map((item) => {
+    const raw = item as FileNode & { kind?: string; name?: string; project_id?: string; parent_id?: string | null }
+    return {
+      ...item,
+      id: raw.id,
+      projectId: raw.projectId ?? raw.project_id ?? selectedProjectId,
+      parentId: raw.parentId ?? raw.parent_id ?? null,
+      tipo: (raw.tipo ?? raw.kind ?? 'pasta') === 'arquivo' ? 'arquivo' : 'pasta',
+      nome: raw.nome ?? raw.name ?? 'Pasta sem nome',
+    } as FileNode
+  }).filter((item) => item.tipo === 'pasta')
 
   const selectProject = (project: Project) => setSelectedProjectId(project.id)
 
