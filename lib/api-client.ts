@@ -1,7 +1,6 @@
 import type {
   ProjectReport,
   AccessMapResponse,
-  ActivityLog,
   DashboardSummary,
   FileNode,
   Project,
@@ -273,19 +272,30 @@ export async function getUsers() {
 
 export type ActivityLogQuery = Record<string, string | number | undefined>
 
+type ApiActivityLog = {
+  id: string
+  user_id?: string | null
+  action?: string | null
+  entity?: string | null
+  entity_id?: string | null
+  details?: unknown
+  result?: string | null
+  created_at: string
+}
+
 export async function getActivityLogs(params: ActivityLogQuery = {}) {
   const limit = Number(params.limit ?? 100)
-  const logs = await request<ActivityLog[]>(`/api/audit/logs?limit=${limit}`)
+  const logs = await request<ApiActivityLog[]>(`/api/audit/logs?limit=${limit}`)
   return {
     logs: logs.map((log) => ({
-      ...log,
+      id: log.id,
       user: null,
-      userId: log.user_id,
-      acao: log.action,
-      entidade: log.entity,
-      entidadeId: log.entity_id,
+      userId: log.user_id ?? "",
+      acao: log.action ?? "evento",
+      entidade: log.entity ?? "interface",
+      entidadeId: log.entity_id ?? "",
       detalhes: typeof log.details === "string" ? log.details : JSON.stringify(log.details ?? {}, null, 2),
-      resultado: (log as ActivityLog & { result?: string }).result ?? "sucesso",
+      resultado: log.result === "erro" ? "erro" as const : "sucesso" as const,
       criadoEm: log.created_at,
     })),
     pagination: { page: 1, limit, total: logs.length, totalPages: logs.length ? 1 : 0 },
