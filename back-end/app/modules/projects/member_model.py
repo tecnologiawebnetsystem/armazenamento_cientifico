@@ -12,7 +12,7 @@ class ProjectMember(Base):
     __tablename__ = "project_members"
 
     project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True, index=True)
-    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), String(255), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(255), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     role: Mapped[str | None] = mapped_column("role", String(40), nullable=True)
     created_at: Mapped[datetime] = mapped_column(nullable=False)
 
