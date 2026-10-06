@@ -17,7 +17,8 @@ from app.api.routes.health import router as health_router
 from app.core.config import settings
 from app.core.exceptions import AppException
 from app.core.logging import configure_logging, reset_request_id, set_request_id
-from app.db.session import connect, disconnect
+from app.db.session import connect, disconnect, session_factory
+from app.modules.audit.repository import ActivityLogRepository
 
 configure_logging(settings.log_level)
 from app.modules.files.module import router as folders_router
@@ -79,8 +80,38 @@ def create_app() -> FastAPI:
         # O identificador é gerado no servidor para evitar spoofing e injeção em logs.
         request_id = str(uuid4())
         context_token = set_request_id(request_id)
-        logger.info("request_start method=%s path=%s", request.method, request.url.path)
-        response = await call_next(request)
+        request.state.correlation_id = request_id
+        logger.info("request_start method=%s path=%s correlation_id=%s", request.method, request.url.path, request_id)
+        response = None
+        result = "sucesso"
+        try:
+            response = await call_next(request)
+            result = "sucesso" if response.status_code < 400 else "erro"
+        except Exception:
+            result = "erro"
+            raise
+        finally:
+            duration_ms = (perf_counter() - started_at) * 1000
+            if request.url.path != "/api/audit/events" and session_factory is not None:
+                try:
+                    async with session_factory() as audit_session:
+                        user = getattr(request.state, "audit_user", {})
+                        user_id = str(user.get("user_id") or user.get("id") or "") if isinstance(user, dict) else ""
+                        await ActivityLogRepository(audit_session).create(
+                            user_id=user_id,
+                            action=getattr(request.state, "audit_action", "consulta" if request.method in {"GET", "HEAD"} else "alteracao"),
+                            entity=getattr(request.state, "audit_entity", "requisicao"),
+                            entity_id=getattr(request.state, "audit_entity_id", None),
+                            details={"status_code": response.status_code if response is not None else 500, "level": getattr(request.state, "audit_level", "essencial")},
+                            result=result,
+                            correlation_id=request_id,
+                            http_method=request.method,
+                            route=request.url.path,
+                            duration_ms=duration_ms,
+                            ip_address=request.headers.get("x-forwarded-for", request.client.host if request.client else None),
+                        )
+                except Exception:
+                    logger.exception("audit_persist_failed correlation_id=%s", request_id)
         if settings.security_headers_enabled:
             response.headers["X-Content-Type-Options"] = "nosniff"
             response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
