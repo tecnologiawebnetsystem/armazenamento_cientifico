@@ -10,6 +10,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .models import ActivityLog
 
 
+def _database_datetime(value: datetime) -> datetime:
+    """Converte datas para UTC sem tzinfo, compatível com TIMESTAMP WITHOUT TIME ZONE."""
+    if value.tzinfo is None:
+        return value
+    return value.astimezone(UTC).replace(tzinfo=None)
+
+
 class ActivityLogRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -28,7 +35,7 @@ class ActivityLogRepository:
             route=route,
             duration_ms=duration_ms,
             ip_address=ip_address,
-            created_at=datetime.now(UTC),
+            created_at=_database_datetime(datetime.now(UTC)),
         )
         self.session.add(log)
         await self.session.commit()
@@ -63,9 +70,9 @@ class ActivityLogRepository:
         if result:
             filters.append(ActivityLog.result == result)
         if date_from:
-            filters.append(ActivityLog.created_at >= date_from)
+            filters.append(ActivityLog.created_at >= _database_datetime(date_from))
         if date_to:
-            filters.append(ActivityLog.created_at <= date_to)
+            filters.append(ActivityLog.created_at <= _database_datetime(date_to))
         predicate = and_(*filters) if filters else None
         count_query = select(func.count()).select_from(ActivityLog)
         data_query = select(ActivityLog).order_by(ActivityLog.created_at.desc(), ActivityLog.id.desc()).offset((page - 1) * limit).limit(limit)
