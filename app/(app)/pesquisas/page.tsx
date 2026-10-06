@@ -47,19 +47,35 @@ const accessMapExportFields: ExportField[] = [
   { key: 'pasta', label: 'Pasta' },
   { key: 'grupos', label: 'Grupos e permissões' },
   { key: 'membros', label: 'Membros e papéis' },
+  { key: 'projetoCodigo', label: 'Código do projeto' },
+  { key: 'caminhoPasta', label: 'Caminho da pasta' },
+  { key: 'grupo', label: 'Grupo de acesso' },
+  { key: 'permissao', label: 'Permissão' },
+  { key: 'membroEmail', label: 'E-mail do membro' },
+  { key: 'fonte', label: 'Fonte da consulta' },
+  { key: 'consultadoEm', label: 'Consultado em' },
 ]
 
-async function exportAccessMap(project: Project, folders: FileNode[], groups: ProjectAccessMapResponse['groups'], members: ProjectAccessMapResponse['members'], format: 'txt' | 'csv', fields: string[]) {
-  const values = [project.codigo, project.nome, '', '', '']
-  const labels = ['Código', 'Projeto', 'Pasta', 'Grupos e permissões', 'Membros e papéis']
-  const selectedIndexes = accessMapExportFields.map((field, index) => fields.includes(field.key) ? index : -1).filter((index) => index >= 0)
+async function exportAccessMap(project: Project, folders: FileNode[], accessMap: ProjectAccessMapResponse | undefined, groups: ProjectAccessMapResponse['groups'], members: ProjectAccessMapResponse['members'], format: 'txt' | 'csv', fields: string[]) {
+  const labels = Object.fromEntries(accessMapExportFields.map((field) => [field.key, field.label]))
   const rows = folders.map((folder) => {
-    values[2] = folder.nome
-    values[3] = groups.map((group) => `${group.nome} (${accessLabel(group.nivel)})`).join(' | ')
-    values[4] = members.map((member) => `${member.user?.nome || 'Usuário'} (${accessLabel(member.papel)})`).join(' | ')
-    return selectedIndexes.map((index) => values[index])
+    const values: Record<string, string> = {
+      codigo: project.codigo,
+      projeto: project.nome,
+      pasta: folder.nome,
+      grupos: groups.map((group) => `${group.nome} (${accessLabel(group.nivel)})`).join(' | '),
+      membros: members.map((member) => `${member.user?.nome || 'Usuário'} (${accessLabel(member.papel)})`).join(' | '),
+      projetoCodigo: project.codigo,
+      caminhoPasta: folder.parentId ? `Subpasta de ${folder.parentId}` : 'Pasta do projeto',
+      grupo: groups.map((group) => group.nome).join(' | '),
+      permissao: groups.map((group) => accessLabel(group.nivel)).join(' | '),
+      membroEmail: members.map((member) => member.user?.email || 'E-mail não informado').join(' | '),
+      fonte: accessMap?.source || 'Mapa de acessos',
+      consultadoEm: accessMap?.consultedAt ? formatDate(accessMap.consultedAt) : formatDate(new Date().toISOString()),
+    }
+    return fields.map((field) => values[field] ?? '')
   })
-  const header = selectedIndexes.map((index) => labels[index])
+  const header = fields.map((field) => labels[field] ?? field)
   const content = format === 'csv' ? [header, ...rows].map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(';')).join('\\n') : [`MAPA DE ACESSOS - ${project.nome}`, `Gerado em: ${formatDate(new Date().toISOString())}`, '', header.join(' | '), ...rows.map((row) => row.join(' | '))].join('\\n')
   downloadFile(content, `mapa-acessos-${project.codigo}.${format}`, format === 'csv' ? 'text/csv;charset=utf-8' : 'text/plain;charset=utf-8')
   await recordAuditEvent({ action: 'exportar-relatorio', entity: 'mapa_acessos', entity_id: project.id, details: { projeto: project.nome, codigo: project.codigo, formato: format, pastas: folders.length, grupos: groups.length, membros: members.length } }).catch(() => undefined)
@@ -126,7 +142,7 @@ function AccessMapDetails({ project, accessMap, accessError, accessLoading, fold
     <div className="flex flex-wrap items-center justify-end gap-2 print:hidden">
       <ExportButton onClick={() => setExportOpen(true)} />
     </div>
-    <ExportFieldsDialog open={exportOpen} onOpenChange={setExportOpen} title="mapa de acessos" fields={accessMapExportFields} onConfirm={(fields, formats) => void Promise.all(formats.map(async (format) => format === 'pdf' ? printMap() : exportAccessMap(project, folders, groups, members, format, fields)))} />
+    <ExportFieldsDialog open={exportOpen} onOpenChange={setExportOpen} title="mapa de acessos" fields={accessMapExportFields} onConfirm={(fields, formats) => void Promise.all(formats.map(async (format) => format === 'pdf' ? printMap() : exportAccessMap(project, folders, accessMap, groups, members, format, fields)))} />
     <Card className="sigac-surface overflow-hidden"><CardHeader className="sigac-section-header px-5 py-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-wide text-primary">Projeto selecionado</p><CardTitle className="mt-1 text-2xl">{project.nome}</CardTitle><CardDescription className="mt-1">{project.codigo} · {project.areaResponsavel}</CardDescription></div><Badge variant="secondary">{project.status}</Badge></div></CardHeader><CardContent className="grid gap-3 p-5 sm:grid-cols-3"><div className="rounded-lg border border-border/70 p-3"><p className="text-xs text-muted-foreground">Pastas</p><p className="mt-1 text-2xl font-semibold">{foldersLoading ? '—' : folders.length}</p></div><div className="rounded-lg border border-border/70 p-3"><p className="text-xs text-muted-foreground">Grupos</p><p className="mt-1 text-2xl font-semibold">{groups.length ?? '—'}</p></div><div className="rounded-lg border border-border/70 p-3"><p className="text-xs text-muted-foreground">Membros</p><p className="mt-1 text-2xl font-semibold">{members.length ?? '—'}</p></div></CardContent></Card>
     <Card className="sigac-surface">
       <CardHeader className="sigac-section-header px-5 py-4"><CardTitle className="text-base">Pastas e permissões</CardTitle><CardDescription>Recursos do projeto e grupos/membros autorizados em cada pasta.</CardDescription></CardHeader>
