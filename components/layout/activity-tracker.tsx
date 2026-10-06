@@ -79,13 +79,51 @@ export function ActivityTracker() {
       }).catch(() => undefined)
     }
 
+    const handleDownloadClick = (event: MouseEvent) => {
+      const anchor = event.target instanceof Element ? event.target.closest("a") as HTMLAnchorElement | null : null
+      if (!anchor?.download && !anchor?.href) return
+      const href = anchor.href
+      if (anchor.download || /\.(pdf|csv|xlsx?|txt)(?:[?#]|$)/i.test(href)) {
+        void recordAuditEvent({
+          action: "download",
+          entity: "arquivo",
+          entity_id: anchor.download || href,
+          details: { nome: anchor.download || undefined, url: href, rota_origem: window.location.pathname },
+        }).catch(() => undefined)
+      }
+    }
+
+    const handleError = (event: ErrorEvent) => {
+      void recordAuditEvent({
+        action: "erro_frontend",
+        entity: "aplicacao",
+        result: "erro",
+        details: { mensagem: event.message, arquivo: event.filename, linha: event.lineno, coluna: event.colno, rota: window.location.pathname },
+      }).catch(() => undefined)
+    }
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      void recordAuditEvent({
+        action: "erro_frontend",
+        entity: "aplicacao",
+        result: "erro",
+        details: { mensagem: String(event.reason), rota: window.location.pathname, tipo: "unhandled_rejection" },
+      }).catch(() => undefined)
+    }
+
     document.addEventListener("click", handleClick, true)
+    document.addEventListener("click", handleDownloadClick, true)
     document.addEventListener("submit", handleSubmit, true)
     document.addEventListener("change", handleChange, true)
+    window.addEventListener("error", handleError)
+    window.addEventListener("unhandledrejection", handleUnhandledRejection)
     return () => {
       document.removeEventListener("click", handleClick, true)
+      document.removeEventListener("click", handleDownloadClick, true)
       document.removeEventListener("submit", handleSubmit, true)
       document.removeEventListener("change", handleChange, true)
+      window.removeEventListener("error", handleError)
+      window.removeEventListener("unhandledrejection", handleUnhandledRejection)
     }
   }, [])
 
