@@ -21,12 +21,14 @@ SEED_PERFIS = [
 SEED_MODULES = [
     ("projetos", "Projetos", "/projetos", "folder", 10), ("usuarios", "Usuários", "/usuarios", "users", 20),
     ("relatorios", "Relatórios", "/relatorios", "chart", 30), ("administracao", "Administração", "/administracao", "settings", 40),
+    ("pesquisas", "Mapa de Acessos", "/pesquisas", "search", 60),
 ]
 SEED_PERMISSIONS = [
     ("projeto.visualizar", "projetos", "Visualizar projetos"), ("projeto.criar", "projetos", "Criar projetos"),
     ("projeto.editar", "projetos", "Editar projetos"), ("projeto.status", "projetos", "Ativar ou desativar projetos"),
     ("usuario.editar", "usuarios", "Editar usuários e perfis"), ("relatorio.exportar", "relatorios", "Exportar relatórios"),
     ("administracao.configurar", "administracao", "Configurar parâmetros"),
+    ("pesquisa.visualizar", "pesquisas", "Visualizar mapa de acessos"),
 ]
 SEED_STATUS = [("ATIVO", "ativo", "Ativo", "green", 10, True), ("INATIVO", "inativo", "Inativo", "slate", 20, False), ("CONCLUIDO", "concluido", "Concluído", "blue", 30, False), ("SUSPENSO", "suspenso", "Suspenso", "amber", 40, True)]
 SEED_REPORTS = [("PROJETOS", "projetos", "Relatório de projetos", "csv,xlsx,pdf"), ("ACESSOS", "acessos", "Mapa de acessos", "csv,xlsx,pdf")]
@@ -58,7 +60,7 @@ SEED_REPORT_FIELDS = [
     ("acessos-acesso", "acessos", "acesso", "Nível de acesso", "accessLevel", 80),
     ("acessos-ultima", "acessos", "ultimaVisualizacao", "Última visualização", "lastViewedAt", 90),
 ]
-SEED_MENUS = [("menu-projetos", "projetos", "Projetos", "/projetos", "folder", 10), ("menu-usuarios", "usuarios", "Usuários", "/usuarios", "users", 20), ("menu-relatorios", "relatorios", "Relatórios", "/relatorios", "chart", 30)]
+SEED_MENUS = [("menu-projetos", "projetos", "Projetos", "/projetos", "folder", 10), ("menu-usuarios", "usuarios", "Usuários", "/usuarios", "users", 20), ("menu-relatorios", "relatorios", "Relatórios", "/relatorios", "chart", 30), ("menu-pesquisas", "pesquisas", "Mapa de Acessos", "/pesquisas", "search", 60)]
 
 SEED_USERS = [("GFZ3", "ADM")]
 
