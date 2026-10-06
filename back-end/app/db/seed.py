@@ -65,6 +65,16 @@ SEED_REPORT_FIELDS = [
     ("acessos-tipo", "acessos", "tipo", "Tipo de recurso", "resourceType", 70),
     ("acessos-acesso", "acessos", "acesso", "Nível de acesso", "accessLevel", 80),
     ("acessos-ultima", "acessos", "ultimaVisualizacao", "Última visualização", "lastViewedAt", 90),
+    ("acessos-projeto-codigo", "acessos", "projetoCodigo", "Código do projeto", "projectCode", 100),
+    ("acessos-pasta", "acessos", "pasta", "Pasta", "folderName", 110),
+    ("acessos-caminho-pasta", "acessos", "caminhoPasta", "Caminho da pasta", "folderPath", 120),
+    ("acessos-grupo", "acessos", "grupo", "Grupo de acesso", "groupName", 130),
+    ("acessos-permissao", "acessos", "permissao", "Permissão", "permission", 140),
+    ("acessos-membro", "acessos", "membro", "Membro", "memberName", 150),
+    ("acessos-membro-email", "acessos", "membroEmail", "E-mail do membro", "memberEmail", 160),
+    ("acessos-membro-papel", "acessos", "membroPapel", "Papel do membro", "memberRole", 170),
+    ("acessos-fonte", "acessos", "fonte", "Fonte da consulta", "source", 180),
+    ("acessos-consultado-em", "acessos", "consultadoEm", "Consultado em", "queriedAt", 190),
 ]
 SEED_MENUS = [
     ("menu-dashboard", "dashboard", "Dashboard", "/dashboard", "layout-dashboard", 1),
