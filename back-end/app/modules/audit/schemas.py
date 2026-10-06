@@ -13,10 +13,17 @@ class ActivityLogIn(BaseModel):
 
 class ActivityLogOut(BaseModel):
     id: str
-    user_id: str
+    user_id: str | None
     action: str
     entity: str
     entity_id: str | None
     details: str
+    result: str
+    correlation_id: str | None
+    http_method: str | None
+    route: str | None
+    duration_ms: float | None
+    ip_address: str | None
+    project_id: str | None
     created_at: datetime
     model_config = {"from_attributes": True}
