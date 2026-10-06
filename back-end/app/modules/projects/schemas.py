@@ -36,6 +36,7 @@ class ProjectPatch(BaseModel):
 class ProjectMemberOut(BaseModel):
     projectId: str
     userId: str
+    papel: str | None = None
     adicionadoEm: datetime
     user: dict
 

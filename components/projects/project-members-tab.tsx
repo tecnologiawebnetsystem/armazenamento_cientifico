@@ -11,8 +11,8 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/
 import { getProjectAccessMap } from "@/lib/api-client"
 import { roleLabel } from "@/hooks/use-permissions"
 
-function initials(nome?: string | null) {
-  const normalizedName = nome?.trim() || "Usuário"
+function initials(nome?: string | null, userId?: string | null) {
+  const normalizedName = nome?.trim() || userId?.trim() || "Usuário"
   const result = normalizedName
     .split(/\s+/)
     .filter(Boolean)
@@ -83,7 +83,7 @@ export function ProjectMembersTab({ projectId }: { projectId: string; canManage?
               <div className="flex flex-col divide-y divide-border">
                 {members.length === 0 ? <p className="px-4 py-6 text-sm text-muted-foreground">Nenhum membro individual retornado.</p> : members.map((member) => (
                   <div key={member.userId} className="flex items-center justify-between gap-3 px-2 py-2.5 sm:px-4">
-                    <div className="flex min-w-0 items-center gap-3"><Avatar className="size-9">{member.user.avatarUrl ? <AvatarImage src={member.user.avatarUrl} alt={member.user.nome} /> : null}<AvatarFallback>{initials(member.user.nome)}</AvatarFallback></Avatar><div className="flex min-w-0 flex-col"><span className="truncate text-sm font-medium text-foreground">{member.user.nome}</span><span className="truncate text-xs text-muted-foreground">{member.user.email}</span></div></div>
+                    <div className="flex min-w-0 items-center gap-3"><Avatar className="size-9">{member.user.avatarUrl ? <AvatarImage src={member.user.avatarUrl} alt={member.user.nome} /> : null}<AvatarFallback>{initials(member.user.nome, member.user.userId || member.userId)}</AvatarFallback></Avatar><div className="flex min-w-0 flex-col"><span className="truncate text-sm font-medium text-foreground">{member.user.nome || member.user.userId || member.userId}</span><span className="truncate text-xs text-muted-foreground">{member.user.email || `Identificador: ${member.user.userId || member.userId}`}</span></div></div>
                     <Badge className="shrink-0 border-petrobras-yellow/50 bg-petrobras-yellow/15 text-foreground" variant="outline">{roleLabel(displayedRole(member.papel))}</Badge>
                     <span className="hidden text-xs text-muted-foreground sm:block">Mapa do projeto</span>
                   </div>
