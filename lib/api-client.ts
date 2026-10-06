@@ -290,10 +290,13 @@ type ApiActivityLog = {
 }
 
 export async function getActivityLogs(params: ActivityLogQuery = {}) {
-  const limit = Number(params.limit ?? 100)
-  const logs = await request<ApiActivityLog[]>(`/api/audit/logs?limit=${limit}`)
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => value !== undefined && value !== "" && query.set(key, String(value)))
+  if (!query.has("page")) query.set("page", "1")
+  if (!query.has("limit")) query.set("limit", "25")
+  const response = await request<{ items: ApiActivityLog[]; page: number; limit: number; total: number; total_pages: number }>(`/api/audit/logs?${query}`)
   return {
-    logs: logs.map((log) => ({
+    logs: response.items.map((log) => ({
       id: log.id,
       user: null,
       userId: log.user_id ?? "",
@@ -310,7 +313,7 @@ export async function getActivityLogs(params: ActivityLogQuery = {}) {
       projetoId: log.project_id,
       criadoEm: log.created_at,
     })),
-    pagination: { page: 1, limit, total: logs.length, totalPages: logs.length ? 1 : 0 },
+    pagination: { page: response.page, limit: response.limit, total: response.total, totalPages: response.total_pages },
   }
 }
 
