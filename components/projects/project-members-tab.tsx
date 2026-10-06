@@ -10,14 +10,17 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/
 import { useProjectMembers } from "@/hooks/use-project-members"
 import { roleLabel } from "@/hooks/use-permissions"
 
-function initials(nome: string) {
-  return nome
-    .split(" ")
+function initials(nome?: string | null) {
+  const normalizedName = nome?.trim() || "Usuário"
+  const result = normalizedName
+    .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((parte) => parte[0])
     .join("")
     .toUpperCase()
+
+  return result || "U"
 }
 
 function displayedRole(value: unknown) {
