@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, require_capabilities
@@ -118,15 +119,32 @@ async def get_project(project_id: str, service: Annotated[ProjectService, Depend
     return {"project": serialize_project(project)}
 
 
-@router.get("/{project_id}/access-map", response_model=AccessMapOut)
-async def get_project_access_map(project_id: str, service: Annotated[ProjectService, Depends(get_service)], user: CurrentUser):
+@router.get(
+    "/{project_id}/access-map",
+    response_model=AccessMapOut,
+    summary="Consultar mapa de acessos do projeto",
+    description="Consolida o projeto, grupos, membros e a fonte/instante da consulta, respeitando o escopo autorizado.",
+    responses={
+        403: {"description": "Usuário sem a capacidade access_map ou sem acesso ao projeto."},
+        404: {"description": "Projeto inexistente."},
+        502: {"description": "Falha na fonte de dados necessária para consolidar o mapa."},
+    },
+)
+async def get_project_access_map(
+    project_id: str,
+    service: Annotated[ProjectService, Depends(get_service)],
+    user: Annotated[dict, Depends(require_capabilities("access_map"))],
+):
     project = await service.get_project(project_id)
     if not project:
         raise project_not_found()
-    role = user["role"] or "solicitante"
-    if not await service.can_view(project_id, str(user["id"]), str(role)):
+    role = user.get("role") or "solicitante"
+    if not await service.can_view(project_id, str(user.get("id")), str(role)):
         raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
-    members = serialize_members(await service.list_members(project_id))
+    try:
+        members = serialize_members(await service.list_members(project_id))
+    except (SQLAlchemyError, OSError, TimeoutError) as error:
+        raise HTTPException(status_code=502, detail="Falha ao consultar a fonte de acessos") from error
     groups, gaps = [], []
     if project.read_group:
         groups.append(AccessMapGroupOut(nome=project.read_group, fonte="projeto", identificadores=[project.read_group], nivel="leitura"))
@@ -138,7 +156,10 @@ async def get_project_access_map(project_id: str, service: Annotated[ProjectServ
         gaps.append("grupo de escrita não configurado")
     if not members:
         gaps.append("projeto sem membros vinculados")
-    return AccessMapOut(projectId=project.id, groups=groups, members=members, source="database", consultedAt=datetime.now(UTC), gaps=gaps)
+    return AccessMapOut(
+        project=serialize_project(project), projectId=project.id, groups=groups,
+        members=members, source="database", consultedAt=datetime.now(UTC), gaps=gaps,
+    )
 
 
 @router.get("/layered", response_model=list[ProjectOut])
