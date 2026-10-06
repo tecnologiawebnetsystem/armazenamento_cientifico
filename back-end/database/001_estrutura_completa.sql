@@ -221,14 +221,15 @@ CREATE TABLE project_members (
 
 CREATE TABLE sessions (
   id varchar(128) NOT NULL,
-  user_id varchar(32) NOT NULL,
+  -- Código funcional do usuário (ex.: GFZE), nunca o UUID técnico de users.id.
+  user_id varchar(80) NOT NULL,
   profile_id varchar(20) NULL,
   profile_data jsonb NULL,
   expires_at timestamp NOT NULL,
   created_at timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
   CONSTRAINT sessions_pkey PRIMARY KEY (id),
   CONSTRAINT sessions_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE RESTRICT,
-  CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
   );
 
 

@@ -94,13 +94,14 @@ def upgrade() -> None:
     op.create_table(
         "sessions",
         sa.Column("id", sa.String(length=128), nullable=False),
-        sa.Column("user_id", sa.String(length=32), nullable=False),
-        sa.Column("profile_id", sa.String(length=20), nullable=True),
+  # Armazena o código funcional (ex.: GFZE), não users.id.
+  sa.Column("user_id", sa.String(length=80), nullable=False),
+  sa.Column("profile_id", sa.String(length=20), nullable=True),
         sa.Column("profile_data", postgresql.JSONB(), nullable=True),
         sa.Column("expires_at", sa.DateTime(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("current_timestamp")),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["profile_id"], ["profiles.id"], ondelete="RESTRICT"),
+  sa.ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
+  sa.ForeignKeyConstraint(["profile_id"], ["profiles.id"], ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(

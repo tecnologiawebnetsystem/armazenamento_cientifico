@@ -10,6 +10,7 @@ from app.modules.projects.member_model import ProjectMember
 from app.modules.projects.models import Project
 from app.modules.users.models import User
 from app.modules.users.profile_model import Profile
+from app.modules.auth.models import UserSession
 
 SEED_PERFIS = [
     ("ADM", "administrador", "Administra a plataforma, configura parâmetros e gerencia acessos."),
@@ -162,6 +163,18 @@ async def initialize_database(engine) -> None:
             else:
                 user.profile_id = profile_id
         session.add_all(users)
+        await session.flush()
+
+        # Sessões usam o código funcional (GFZE), enquanto usuários legados podem
+        # ter armazenado o UUID técnico. Corrige esses registros durante o seed.
+        all_users = {row.user_id: row for row in (await session.scalars(select(User))).all()}
+        users_by_technical_id = {row.id: row for row in all_users.values()}
+        sessions = (await session.scalars(select(UserSession))).all()
+        for auth_session in sessions:
+            legacy_user = users_by_technical_id.get(auth_session.user_id)
+            if legacy_user is not None:
+                auth_session.user_id = legacy_user.user_id
+
         await session.flush()
 
         all_users = {row.user_id: row for row in (await session.scalars(select(User))).all()}
