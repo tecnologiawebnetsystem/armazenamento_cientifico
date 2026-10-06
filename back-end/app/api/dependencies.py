@@ -28,7 +28,14 @@ async def get_current_user(request: Request):
             )
             user = await service.get(session_id)
 
-    request.state.audit_user = user
+    # O auditoria usa o identificador de negócio do SIGAC, nunca o UUID técnico.
+    audit_user_id = (
+        user.get("cav4_user_id")
+        or user.get("user_id")
+        or user.get("profile_data", {}).get("user_id")
+        or user.get("id")
+    )
+    request.state.audit_user = {**user, "audit_user_id": audit_user_id} if audit_user_id else user
     logger.info(
         "auth_session_lookup_ok user_id=%s email=%s profile_id=%s profile_name=%s permissions_count=%s",
         user.get("id"), user.get("email"), user.get("profile_id"),
