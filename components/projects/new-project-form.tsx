@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useCatalogs } from "@/hooks/use-catalogs"
-import { createProject, ApiError } from "@/lib/api-client"
+import { createProject, ApiError, recordAuditEvent } from "@/lib/api-client"
 import type { SessionUser } from "@/lib/types"
 
 function ChipInput({ label, value, onChange, placeholder }: { label: string; value: string[]; onChange: (value: string[]) => void; placeholder: string }) {
@@ -59,6 +59,7 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
     setIsSubmitting(true)
     try {
       const { project } = await createProject({ nome: nome.trim(), codigo: codigo || undefined, criadoEm, areaResponsavel: areaResponsavel.trim(), gestoresIds: [gestorProjeto.trim()], grupoAdEscrita: grupoAdEscrita.join(", "), grupoAdLeitura: grupoAdLeitura.join(", "), roleIdentidadeEscrita: roleIdentidadeEscrita.join(", "), roleIdentidadeLeitura: roleIdentidadeLeitura.join(", "), numeroTarefaSnow: numeroTarefaSnow.trim(), pastaMae: pastaMae.trim(), descricao: descricao.trim(), participantesIds: [] }) as { project: import("@/lib/types").Project }
+      void recordAuditEvent({ action: "criar", entity: "projeto", entity_id: project.id, details: { projeto: project.nome, codigo: project.codigo, areaResponsavel: project.areaResponsavel } }).catch(() => undefined)
       toast.success("Projeto criado com sucesso.")
       router.push(`/projetos/${project.id}`)
     } catch (err: unknown) {

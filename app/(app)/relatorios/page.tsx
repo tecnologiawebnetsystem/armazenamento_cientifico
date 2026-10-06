@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import useSWR from "swr"
 import { BarChart3, Download, Filter, FolderKanban, Map, RefreshCw, Search, SlidersHorizontal, Users } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -21,6 +21,9 @@ export default function ReportsPage() {
   const { data, error, isLoading, mutate } = useSWR<ProjectReport>("/api/reports", fetcher)
   const { data: catalogs } = useSWR("/api/catalogos", getCatalogs)
   const { data: configuredFields } = useSWR("/api/report-fields?report_code=projetos", () => getReportFields("projetos"))
+  useEffect(() => {
+    void recordAuditEvent({ action: "consultar", entity: "relatorio_projetos", details: { rota: "/relatorios" } }).catch(() => undefined)
+  }, [])
   const [query, setQuery] = useState("")
   const [status, setStatus] = useState("todos")
   const [area, setArea] = useState("todas")

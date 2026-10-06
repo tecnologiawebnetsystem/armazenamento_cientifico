@@ -17,7 +17,7 @@ import {
 import { useProjects } from "@/hooks/use-projects"
 import { useCatalogs } from "@/hooks/use-catalogs"
 import { useSession } from "@/hooks/use-session"
-import { updateProject } from "@/lib/api-client"
+import { recordAuditEvent, updateProject } from "@/lib/api-client"
 import { ProjectCard } from "@/components/projects/project-card"
 import {
   ProjectFilters,
@@ -160,6 +160,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
     setPending(true)
     try {
       await updateProject(target.id, { status: novoStatus })
+      void recordAuditEvent({ action: "alterar_status", entity: "projeto", entity_id: target.id, details: { projeto: target.nome, codigo: target.codigo, status_anterior: target.status, status_novo: novoStatus } }).catch(() => undefined)
       await refresh()
       toast.success(novoStatus === "pausado" ? "Projeto desativado." : "Projeto reativado.")
       setTarget(null)
