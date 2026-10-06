@@ -96,7 +96,8 @@ def create_app() -> FastAPI:
                 try:
                     async with session_factory() as audit_session:
                         user = getattr(request.state, "audit_user", {})
-                        user_id = str(user.get("user_id") or user.get("id") or "") if isinstance(user, dict) else ""
+                        # O user_id de negócio do SIGAC é o código, por exemplo GFZ3; não o UUID técnico da sessão.
+                        user_id = str(user.get("user_id") or user.get("cav4_user_id") or "") if isinstance(user, dict) else ""
                         await ActivityLogRepository(audit_session).create(
                             user_id=user_id,
                             action=getattr(request.state, "audit_action", "consulta" if request.method in {"GET", "HEAD"} else "alteracao"),
