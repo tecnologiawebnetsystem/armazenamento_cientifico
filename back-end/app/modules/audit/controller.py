@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Request, status
@@ -7,7 +8,7 @@ from app.api.dependencies import CurrentUser, require_capabilities
 from app.db.session import get_session
 
 from .repository import ActivityLogRepository
-from .schemas import ActivityLogIn, ActivityLogOut
+from .schemas import ActivityLogIn, ActivityLogOut, ActivityLogPage
 from .service import AuditService
 
 router = APIRouter(prefix="/api/audit", tags=["Audit"])
@@ -45,10 +46,21 @@ async def record_event(request: Request, payload: ActivityLogIn, user: CurrentUs
     )
 
 
-@router.get("/logs", response_model=list[ActivityLogOut])
+@router.get("/logs", response_model=ActivityLogPage)
 async def list_logs(
+    request: Request,
     service: ServiceDependency,
     _: Annotated[dict, Depends(require_capabilities("audit"))],
-    limit: int = Query(default=100, ge=1, le=500),
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=25, ge=1, le=100),
+    q: str | None = Query(default=None, max_length=120),
+    user_id: str | None = Query(default=None, max_length=100),
+    action: str | None = Query(default=None, max_length=100),
+    entity: str | None = Query(default=None, max_length=100),
+    project_id: str | None = Query(default=None, max_length=100),
+    result: str | None = Query(default=None, max_length=30),
+    date_from: datetime | None = Query(default=None),
+    date_to: datetime | None = Query(default=None),
 ):
-    return await service.list_logs(limit)
+    rows, total = await service.list_logs(page=page, limit=limit, query=q, user_id=user_id, action=action, entity=entity, project_id=project_id, result=result, date_from=date_from, date_to=date_to)
+    return {"items": rows, "page": page, "limit": limit, "total": total, "total_pages": (total + limit - 1) // limit}

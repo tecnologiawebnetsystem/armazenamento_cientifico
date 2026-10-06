@@ -3,6 +3,14 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
+class ActivityLogPage(BaseModel):
+    items: list["ActivityLogOut"]
+    page: int
+    limit: int
+    total: int
+    total_pages: int
+
+
 class ActivityLogIn(BaseModel):
     action: str = Field(min_length=1, max_length=100)
     entity: str = Field(default="interface", min_length=1, max_length=100)
