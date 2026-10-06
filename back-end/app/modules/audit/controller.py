@@ -23,8 +23,9 @@ ServiceDependency = Annotated[AuditService, Depends(get_service)]
 @router.post("/events", response_model=ActivityLogOut, status_code=status.HTTP_201_CREATED)
 async def record_event(request: Request, payload: ActivityLogIn, user: CurrentUser, service: ServiceDependency):
     user_id = str(user.get("user_id") or user.get("id") or "")
-    forwarded_for = request.headers.get("x-forwarded-for")
-    ip_address = forwarded_for.split(",")[0].strip() if forwarded_for else request.client.host if request.client else None
+    # O cabeçalho pode ser forjado por clientes; use o peer TCP até existir
+    # uma configuração explícita de proxy confiável.
+    ip_address = request.client.host if request.client else None
     correlation_id = request.headers.get("x-request-id")
     server_details = {
         **payload.details,

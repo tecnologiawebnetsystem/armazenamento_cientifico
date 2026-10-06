@@ -108,7 +108,8 @@ def create_app() -> FastAPI:
                             http_method=request.method,
                             route=request.url.path,
                             duration_ms=duration_ms,
-                            ip_address=request.headers.get("x-forwarded-for", request.client.host if request.client else None),
+                            # Não confiar em X-Forwarded-For sem uma lista explícita de proxies confiáveis.
+                            ip_address=request.client.host if request.client else None,
                         )
                 except Exception:
                     logger.exception("audit_persist_failed correlation_id=%s", request_id)

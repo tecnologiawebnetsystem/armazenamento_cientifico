@@ -40,23 +40,20 @@ async def database_health():
             _schema_name()
             result = await database.execute(
                 text(
-                    f"select current_database(), current_user, current_schema(), "
-                    f"to_regclass('{settings.db_schema}.users')"
-                )
+                    "select current_schema(), to_regclass(:users_table)"
+                ),
+                {"users_table": f"{settings.db_schema}.users"},
             )
-            database_name, database_user, schema_name, users_table = result.one()
+            schema_name, users_table = result.one()
             if users_table is None:
                 return {
                     "ok": False,
                     "code": "SCHEMA_NOT_INITIALIZED",
-                    "database": database_name,
                     "schema": schema_name,
                     "users_table": False,
                 }
             return {
                 "ok": True,
-                "database": database_name,
-                "user": database_user,
                 "schema": schema_name,
                 "users_table": True,
             }
