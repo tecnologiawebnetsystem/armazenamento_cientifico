@@ -106,7 +106,6 @@ export default function LogsPage() {
           <div><span className="text-muted-foreground">Data e hora</span><p>{new Date(selectedLog.criadoEm).toLocaleString("pt-BR")}</p></div>
           <div className="grid gap-1 sm:grid-cols-2"><div><span className="text-muted-foreground">Rota / método</span><p className="break-all font-mono">{selectedLog.metodoHttp ?? "—"} {selectedLog.rota ?? ""}</p></div><div><span className="text-muted-foreground">Correlação / duração</span><p className="break-all font-mono">{selectedLog.correlacaoId ?? "—"} · {selectedLog.duracaoMs != null ? `${selectedLog.duracaoMs.toFixed(2)} ms` : "—"}</p></div></div>
           <div><span className="text-muted-foreground">Endereço IP</span><p className="font-mono">{selectedLog.ipAddress ?? "—"}</p></div>
-          <div><span className="text-muted-foreground">Detalhes técnicos</span><pre className="mt-1 max-h-64 overflow-auto rounded-lg bg-muted p-3 text-xs whitespace-pre-wrap break-words">{selectedLog.detalhes || "Nenhum detalhe adicional registrado."}</pre></div>
         </div>}
       </DialogContent>
     </Dialog>
