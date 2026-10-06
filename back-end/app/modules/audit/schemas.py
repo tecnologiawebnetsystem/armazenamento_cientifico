@@ -22,6 +22,8 @@ class ActivityLogIn(BaseModel):
 class ActivityLogOut(BaseModel):
     id: str
     user_id: str | None
+    user_name: str | None = None
+    user_email: str | None = None
     action: str
     entity: str
     entity_id: str | None

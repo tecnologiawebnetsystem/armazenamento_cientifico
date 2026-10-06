@@ -275,6 +275,8 @@ export type ActivityLogQuery = Record<string, string | number | undefined>
 type ApiActivityLog = {
   id: string
   user_id?: string | null
+  user_name?: string | null
+  user_email?: string | null
   action?: string | null
   entity?: string | null
   entity_id?: string | null
@@ -300,6 +302,8 @@ export async function getActivityLogs(params: ActivityLogQuery = {}) {
       id: log.id,
       user: null,
       userId: log.user_id ?? "",
+      userName: log.user_name ?? log.user_id ?? null,
+      userEmail: log.user_email ?? null,
       acao: log.action ?? "evento",
       entidade: log.entity ?? "interface",
       entidadeId: log.entity_id ?? "",

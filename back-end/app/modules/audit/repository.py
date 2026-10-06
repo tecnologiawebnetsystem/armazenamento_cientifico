@@ -60,7 +60,7 @@ class ActivityLogRepository:
         result: str | None = None,
         date_from: datetime | None = None,
         date_to: datetime | None = None,
-    ) -> tuple[list[ActivityLog], int]:
+    ) -> tuple[list[dict], int]:
         filters = []
         if query:
             term = f"%{query.strip()}%"
@@ -80,13 +80,42 @@ class ActivityLogRepository:
         if date_to:
             filters.append(ActivityLog.created_at <= _database_datetime(date_to))
         predicate = and_(*filters) if filters else None
-        count_query = select(func.count()).select_from(ActivityLog)
-        data_query = select(ActivityLog).order_by(ActivityLog.created_at.desc(), ActivityLog.id.desc()).offset((page - 1) * limit).limit(limit)
+
+        # Join com User para resolver userName e userEmail
+        joined_query = select(ActivityLog, User.user_id.label("_user_name")).outerjoin(
+            User, ActivityLog.user_id == User.user_id
+        ).order_by(ActivityLog.created_at.desc(), ActivityLog.id.desc())
+
+        count_query = select(func.count(ActivityLog.id)).select_from(ActivityLog)
+
         if predicate is not None:
+            joined_query = joined_query.where(predicate)
             count_query = count_query.where(predicate)
-            data_query = data_query.where(predicate)
+
         total = int((await self.session.scalar(count_query)) or 0)
-        rows = list((await self.session.scalars(data_query)).all())
+        results = await self.session.execute(joined_query.offset((page - 1) * limit).limit(limit))
+        rows = []
+        for log, user_name in results:
+            log_dict = {
+                "id": log.id,
+                "user_id": log.user_id,
+                "user_name": user_name,
+                "user_email": None,
+                "action": log.action,
+                "entity": log.entity,
+                "entity_id": log.entity_id,
+                "details": log.details,
+                "result": log.result,
+                "correlation_id": log.correlation_id,
+                "http_method": log.http_method,
+                "route": log.route,
+                "duration_ms": log.duration_ms,
+                "ip_address": log.ip_address,
+                "project_id": log.project_id,
+                "created_at": log.created_at,
+            }
+            rows.append(log_dict)
+
         return rows, total
 
     async def list(self, limit: int = 100) -> list[ActivityLog]:
