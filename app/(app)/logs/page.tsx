@@ -9,13 +9,13 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { PetrobrasLoading } from "@/components/petrobras-loading"
-import { getActivityLogs } from "@/lib/api-client"
+import { getActivityLogs, recordAuditEvent } from "@/lib/api-client"
 import type { ActivityLog } from "@/lib/types"
 
 const fetcher = () => getActivityLogs({ page: 1, limit: 100 })
 type LogWithUser = ActivityLog & { userName?: string | null; userEmail?: string | null }
 
-function downloadCsv(logs: LogWithUser[]) {
+async function downloadCsv(logs: LogWithUser[]) {
   const headers = ["data", "usuario", "acao", "entidade", "identificador", "resultado", "detalhes"]
   const rows = logs.map((log) => [log.criadoEm, log.userName ?? log.userId ?? "Usuário não identificado", log.acao, log.entidade, log.entidadeId ?? "", log.resultado ?? "sucesso", log.detalhes ?? ""])
   const csv = [headers, ...rows].map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n")
@@ -25,6 +25,7 @@ function downloadCsv(logs: LogWithUser[]) {
   link.download = `auditoria-sigac-${new Date().toISOString().slice(0, 10)}.csv`
   link.click()
   URL.revokeObjectURL(link.href)
+  await recordAuditEvent({ action: "exportacao", entity: "logs_auditoria", details: { formato: "csv", quantidade: logs.length } }).catch(() => undefined)
 }
 
 export default function LogsPage() {
@@ -63,7 +64,7 @@ export default function LogsPage() {
           <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Logs de auditoria</h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Acompanhe as ações realizadas na plataforma com rastreabilidade por usuário, entidade e resultado.</p>
         </div>
-        <div className="relative flex flex-wrap gap-2"><Button variant="outline" onClick={() => void mutate()}><RefreshCwIcon data-icon="inline-start" />Atualizar</Button><Button onClick={() => downloadCsv(logs)} disabled={!logs.length}><DownloadIcon data-icon="inline-start" />Exportar CSV</Button></div>
+        <div className="relative flex flex-wrap gap-2"><Button variant="outline" onClick={() => void mutate()}><RefreshCwIcon data-icon="inline-start" />Atualizar</Button><Button onClick={() => void downloadCsv(logs)} disabled={!logs.length}><DownloadIcon data-icon="inline-start" />Exportar CSV</Button></div>
       </div>
       <div className="relative flex flex-wrap gap-x-8 gap-y-3 border-t border-border/70 px-5 py-4 text-xs text-muted-foreground sm:px-7"><span>ÚLTIMA CAPTURA <strong className="ml-1 font-mono text-foreground">{latest ? new Date(latest).toLocaleString("pt-BR") : "—"}</strong></span><span>FONTE <strong className="ml-1 font-mono text-foreground">Banco de dados</strong></span><span className="flex items-center gap-1 text-primary"><span className="size-1.5 rounded-full bg-primary" /> Dados atualizados</span></div>
     </section>

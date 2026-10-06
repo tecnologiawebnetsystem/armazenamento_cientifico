@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { downloadFile, getCatalogs, getProjectReport, getProjectReportExportPath, getReportFields } from "@/lib/api-client"
+import { downloadFile, getCatalogs, getProjectReport, getProjectReportExportPath, getReportFields, recordAuditEvent } from "@/lib/api-client"
 import type { ProjectReport } from "@/lib/types"
 import { PetrobrasLoading } from "@/components/petrobras-loading"
 import { KpiCards, type KpiItem } from "@/components/dashboard/kpi-cards"
@@ -42,6 +42,7 @@ export default function ReportsPage() {
   const downloadExport = async (format: ReportExportFormat, fields: string[]) => {
     const path = getProjectReportExportPath({ format, fields, status: status === "todos" ? undefined : status, area: area === "todas" ? undefined : area, gestorId: gestor || undefined })
     const blob = await downloadFile(path); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `relatorio-projetos.${format}`; document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url)
+    await recordAuditEvent({ action: "exportacao", entity: "relatorio_projetos", details: { formato: format, filtros: { status, area, gestorId: gestor || null }, campos: fields } }).catch(() => undefined)
   }
   const cards: KpiItem[] = data ? [
     { label: "Projetos no escopo", value: String(data.indicadores.totalProjetos), icon: FolderKanban, tone: "green" },
