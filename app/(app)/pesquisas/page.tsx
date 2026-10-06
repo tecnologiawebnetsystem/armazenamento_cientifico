@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { downloadFile, getAccessMap, getAccessMapExportUrl, getReportFields } from '@/lib/api-client'
+import { downloadFile, getAccessMap, getAccessMapExportUrl, getReportFields, recordAuditEvent } from '@/lib/api-client'
 import type { AccessMapResponse } from '@/lib/types'
 import { PetrobrasLoading } from '@/components/petrobras-loading'
 import { KpiCards, type KpiItem } from '@/components/dashboard/kpi-cards'
@@ -85,6 +85,7 @@ export default function AccessMapPage() {
       link.download = `mapa-de-acessos.${format}`
       link.click()
       URL.revokeObjectURL(url)
+      await recordAuditEvent({ action: 'exportacao', entity: 'mapa_acessos', details: { formato: format, filtros: { busca: search, tipo: type, nivel: level, visualizacao: view }, campos: fields } }).catch(() => undefined)
     }
   }
 
