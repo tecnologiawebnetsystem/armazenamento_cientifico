@@ -23,6 +23,7 @@ export type ProjectStatus = "ativo" | "em_implantacao" | "pausado" | "encerrado"
 
 export interface User {
   id: string
+  userId?: string
   nome: string
   email: string
   cargo: string
@@ -43,7 +44,7 @@ export interface User {
 export interface ProjectMember {
   projectId: string
   userId: string
-  papel: ProjectMemberRole
+  papel?: ProjectMemberRole | string | null
   adicionadoEm: string
 }
 

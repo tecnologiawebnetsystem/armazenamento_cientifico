@@ -46,6 +46,7 @@ def serialize_members(rows) -> list[ProjectMemberOut]:
     return [
         ProjectMemberOut(
             projectId=member.project_id, userId=member.user_id,
+            papel=member.role,
             adicionadoEm=member.created_at,
             user={"id": user.id, "userId": user.user_id, "perfilId": user.profile_id},
         )
