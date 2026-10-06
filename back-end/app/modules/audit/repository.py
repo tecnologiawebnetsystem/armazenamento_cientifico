@@ -5,6 +5,7 @@ from uuid import uuid4
 from sqlalchemy import and_, func, or_, select
 
 from app.core.audit import mask_sensitive
+from app.modules.users.models import User
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .models import ActivityLog
@@ -22,13 +23,18 @@ class ActivityLogRepository:
         self.session = session
 
     async def create(self, *, user_id: str, action: str, entity: str, entity_id: str | None, details: dict[str, object], result: str, correlation_id: str | None = None, http_method: str | None = None, route: str | None = None, duration_ms: float | None = None, ip_address: str | None = None) -> ActivityLog:
+        resolved_user_id = user_id if user_id and await self.session.scalar(select(User.user_id).where(User.user_id == user_id)) else None
+        safe_details = mask_sensitive(details)
+        if resolved_user_id is None and user_id:
+            safe_details = {**safe_details, "usuario_auditoria_nao_localizado": user_id}
+
         log = ActivityLog(
             id=str(uuid4()),
-            user_id=user_id,
+            user_id=resolved_user_id,
             action=action,
             entity=entity,
             entity_id=entity_id,
-            details=json.dumps(mask_sensitive(details), ensure_ascii=False, default=str),
+            details=json.dumps(safe_details, ensure_ascii=False, default=str),
             result=result,
             correlation_id=correlation_id,
             http_method=http_method,

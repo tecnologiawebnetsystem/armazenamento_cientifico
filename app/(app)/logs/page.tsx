@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import useSWR from "swr"
 import { ActivityIcon, DownloadIcon, EyeIcon, FilterIcon, RefreshCwIcon, SearchIcon, ShieldCheckIcon, UserRoundIcon, XIcon, type LucideIcon } from "lucide-react"
@@ -29,6 +29,7 @@ async function downloadCsv(logs: LogWithUser[]) {
 
 export default function LogsPage() {
   const [query, setQuery] = useState("")
+  const [debouncedQuery, setDebouncedQuery] = useState("")
   const [action, setAction] = useState("todos")
   const [entity, setEntity] = useState("todos")
   const [result, setResult] = useState("todos")
@@ -37,9 +38,15 @@ export default function LogsPage() {
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
   const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebouncedQuery(query), 350)
+    return () => window.clearTimeout(timeoutId)
+  }, [query])
+
   const { data, error, isLoading, mutate } = useSWR(
-    ["/api/activity-logs", page, query, action, entity, result, userId, projectId, dateFrom, dateTo],
-    () => getActivityLogs({ page, limit: 25, q: query, action: action === "todos" ? undefined : action, entity: entity === "todos" ? undefined : entity, result: result === "todos" ? undefined : result, user_id: userId, project_id: projectId, date_from: dateFrom, date_to: dateTo }),
+    ["/api/activity-logs", page, debouncedQuery, action, entity, result, userId, projectId, dateFrom, dateTo],
+    () => getActivityLogs({ page, limit: 25, q: debouncedQuery, action: action === "todos" ? undefined : action, entity: entity === "todos" ? undefined : entity, result: result === "todos" ? undefined : result, user_id: userId, project_id: projectId, date_from: dateFrom, date_to: dateTo }),
     { keepPreviousData: true },
   )
   const [selectedLog, setSelectedLog] = useState<LogWithUser | null>(null)
