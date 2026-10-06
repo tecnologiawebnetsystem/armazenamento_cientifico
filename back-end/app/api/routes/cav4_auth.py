@@ -257,7 +257,7 @@ async def cav4_callback(request: Request, code: str, state: str):
             }
             await database.execute(
                 text(f"delete from {schema}.sessions where user_id=:user_id"),
-                {"user_id": local_user["id"]},
+                {"user_id": local_user["user_id"]},
             )
             await database.execute(
                 text(f"update {schema}.users set last_login_at=now() where id=:user_id"),
@@ -269,7 +269,7 @@ async def cav4_callback(request: Request, code: str, state: str):
                     values(:id,:user_id,:profile_id,:profile_data,:expires_at)"""),
                 {
                     "id": session_id,
-                    "user_id": local_user["id"],
+                    "user_id": local_user["user_id"],
                     "profile_id": str(profile_id),
                     # A rota usa SQL textual; o driver asyncpg precisa receber JSON serializado.
                     "profile_data": json.dumps(profile_data, ensure_ascii=False),
