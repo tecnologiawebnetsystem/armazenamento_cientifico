@@ -1,4 +1,5 @@
 import asyncio
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid4, uuid5
@@ -33,7 +34,7 @@ class FolderService:
         try:
             folders = await asyncio.wait_for(
                 asyncio.to_thread(self._read_root_folders, project_id, parent_folder),
-                timeout=10,
+                timeout=45,
             )
             return folders if folders else await self.list_folders_by_project(project_id)
         except Exception:
@@ -49,13 +50,15 @@ class FolderService:
             return []
 
         now = datetime.now(UTC).replace(tzinfo=None)
-        entries = sorted(
-            (entry for entry in root.iterdir() if entry.is_dir()),
-            key=lambda entry: entry.name.casefold(),
-        )
+        with os.scandir(root) as directory:
+            entries = sorted(
+                (entry for entry in directory if entry.is_dir(follow_symlinks=False)),
+                key=lambda entry: entry.name.casefold(),
+            )
+
         return [
             Folder(
-                id=str(uuid5(NAMESPACE_URL, f"{project_id}:{entry}")),
+                id=str(uuid5(NAMESPACE_URL, f"{project_id}:{entry.path}")),
                 project_id=project_id,
                 parent_id=None,
                 kind="pasta",
