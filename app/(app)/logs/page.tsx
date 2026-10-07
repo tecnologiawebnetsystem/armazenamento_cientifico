@@ -95,7 +95,7 @@ export default function LogsPage() {
     return () => window.clearTimeout(timeoutId)
   }, [query])
 
-  const { data, error, isLoading, mutate } = useSWR(
+  const { data, error, isLoading, isValidating, mutate } = useSWR(
     ["/api/activity-logs", page, debouncedQuery, action, entity, result, userId, projectId, dateFrom, dateTo],
     () => getActivityLogs({ page, limit: 25, q: debouncedQuery, action: action === "todos" ? undefined : action, entity: entity === "todos" ? undefined : entity, result: result === "todos" ? undefined : result, user_id: userId, project_id: projectId, date_from: dateFrom, date_to: dateTo }),
     { keepPreviousData: true },
@@ -110,7 +110,6 @@ export default function LogsPage() {
   }), [allLogs, query, action, entity, result])
   const users = new Set(allLogs.map((log) => log.userId)).size
   const errors = allLogs.filter((log) => log.resultado === "erro").length
-  const latest = allLogs[0]?.criadoEm
   const metricCards: Array<[string, number, LucideIcon]> = [
     ["Eventos capturados", allLogs.length, ActivityIcon],
     ["Usuários observados", users, UserRoundIcon],
@@ -126,14 +125,8 @@ export default function LogsPage() {
       eyebrow="Governança de acesso · rastreabilidade"
       title="Logs de auditoria"
       description="Acompanhe as ações realizadas na plataforma com uma leitura simples por usuário, entidade e resultado."
-      actions={<><Button variant="outline" onClick={() => void mutate()}><RefreshCwIcon data-icon="inline-start" />Atualizar</Button><Button onClick={() => void downloadCsv(logs)} disabled={!logs.length}><DownloadIcon data-icon="inline-start" />Exportar CSV</Button></>}
+      actions={<><Button variant="outline" onClick={() => void mutate()} disabled={isValidating}><RefreshCwIcon data-icon="inline-start" className={isValidating ? "animate-spin" : undefined} />{isValidating ? "Atualizando..." : "Atualizar"}</Button><Button onClick={() => void downloadCsv(logs)} disabled={!logs.length}><DownloadIcon data-icon="inline-start" />Exportar CSV</Button></>}
     />
-    <div className="flex flex-wrap items-center gap-x-8 gap-y-2 rounded-xl border border-border/70 bg-card/70 px-4 py-3 text-xs text-muted-foreground shadow-sm sm:px-5">
-      <span>ÚLTIMA CAPTURA <strong className="ml-1 font-mono text-foreground">{latest ? new Date(latest).toLocaleString("pt-BR") : "—"}</strong></span>
-      <span>FONTE <strong className="ml-1 font-mono text-foreground">Banco de dados</strong></span>
-      <span className="flex items-center gap-1 text-primary"><span className="size-1.5 rounded-full bg-primary" /> Dados atualizados</span>
-    </div>
-
     <section aria-label="Indicadores da auditoria" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {metricCards.map(([label, value, Icon]) => <Card key={String(label)} className="gap-3 rounded-xl border-border/70 py-4 shadow-sm"><CardContent className="flex items-center justify-between"><div><p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p><p className="mt-1 font-mono text-2xl font-semibold tabular-nums">{value}</p></div><div className="rounded-lg border border-primary/10 bg-primary/[0.07] p-2 text-primary"><Icon className="size-5" /></div></CardContent></Card>)}
     </section>
