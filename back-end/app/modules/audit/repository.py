@@ -76,7 +76,10 @@ class ActivityLogRepository:
         if project_id:
             filters.append(ActivityLog.project_id == project_id)
         if project_name:
-            filters.append(Project.name.ilike(f"%{project_name.strip()}%"))
+            project_term = f"%{project_name.strip()}%"
+            # Alguns eventos antigos, como consultas ao mapa de acessos,
+            # registram o nome apenas nos detalhes e não em project_id.
+            filters.append(or_(Project.name.ilike(project_term), ActivityLog.details.ilike(project_term)))
         if result:
             filters.append(ActivityLog.result == result)
         if date_from:
