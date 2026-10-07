@@ -58,26 +58,40 @@ const accessMapExportFields: ExportField[] = [
 
 async function exportAccessMap(project: Project, folders: FileNode[], accessMap: ProjectAccessMapResponse | undefined, groups: ProjectAccessMapResponse['groups'], members: ProjectAccessMapResponse['members'], format: 'txt' | 'csv', fields: string[]) {
   const labels = Object.fromEntries(accessMapExportFields.map((field) => [field.key, field.label]))
-  const rows = folders.map((folder) => {
-    const values: Record<string, string> = {
-      codigo: project.codigo,
-      projeto: project.nome,
-      pasta: folder.nome,
-      grupos: groups.map((group) => `${group.nome} (${accessLabel(group.nivel)})`).join(' | '),
-      membros: members.map((member) => `${member.user?.nome || member.user?.userId || member.userId || 'Usuário'} (${accessLabel(member.papel)})`).join(' | '),
-      projetoCodigo: project.codigo,
-      caminhoPasta: folder.parentId ? `Subpasta de ${folder.parentId}` : 'Pasta do projeto',
-      grupo: groups.map((group) => group.nome).join(' | '),
-      permissao: groups.map((group) => accessLabel(group.nivel)).join(' | '),
-      membroEmail: members.map((member) => member.user?.email || 'E-mail não informado').join(' | '),
-      fonte: accessMap?.source || 'Mapa de acessos',
-      consultadoEm: accessMap?.consultedAt ? formatDate(accessMap.consultedAt) : formatDate(new Date().toISOString()),
-    }
-    return fields.map((field) => values[field] ?? '')
-  })
+  const consultedAt = accessMap?.consultedAt ? formatDate(accessMap.consultedAt) : formatDate(new Date().toISOString())
+  const rows: string[][] = []
+  const addRow = (values: Record<string, string>) => rows.push(fields.map((field) => values[field] ?? ''))
+  const base = { codigo: project.codigo, projeto: project.nome, projetoCodigo: project.codigo, fonte: accessMap?.source || 'Mapa de acessos', consultadoEm: consultedAt }
+
+  folders.forEach((folder) => addRow({ ...base, pasta: folder.nome, caminhoPasta: folder.parentId ? `Subpasta de ${folder.parentId}` : 'Pasta do projeto', grupos: '', membros: '', grupo: '', permissao: '' }))
+  groups.forEach((group) => addRow({ ...base, pasta: '', caminhoPasta: '', grupos: `${group.nome} (${accessLabel(group.nivel)})`, membros: '', grupo: group.nome, permissao: accessLabel(group.nivel) }))
+  members.forEach((member) => addRow({ ...base, pasta: '', caminhoPasta: '', grupos: '', membros: `${member.user?.nome || member.user?.userId || member.userId || 'Usuário'} (${accessLabel(member.papel)})`, grupo: '', permissao: accessLabel(member.papel), membroEmail: member.user?.email || 'E-mail não informado' }))
+
   const header = fields.map((field) => labels[field] ?? field)
-  const content = format === 'csv' ? [header, ...rows].map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(';')).join('\\n') : [`MAPA DE ACESSOS - ${project.nome}`, `Gerado em: ${formatDate(new Date().toISOString())}`, '', header.join(' | '), ...rows.map((row) => row.join(' | '))].join('\\n')
-  downloadFile(content, `mapa-acessos-${project.codigo}.${format}`, format === 'csv' ? 'text/csv;charset=utf-8' : 'text/plain;charset=utf-8')
+  const sectionLines = [
+    `MAPA DE ACESSOS - ${project.nome}`,
+    `Código: ${project.codigo}`,
+    `Gerado em: ${formatDate(new Date().toISOString())}`,
+    '',
+    'PASTAS E PERMISSÕES',
+    `Total de pastas: ${folders.length}`,
+    'GRUPOS DE ACESSO',
+    `Total de grupos: ${groups.length}`,
+    'MEMBROS AUTORIZADOS',
+    `Total de membros: ${members.length}`,
+    'PASTAS DO PROJETO',
+    `Caminho raiz: ${project.pastaMae || 'Não informado'}`,
+    '',
+  ]
+  const escapeCsv = (value: string) => `"${value.replaceAll('"', '""')}"`
+  const csvLines = [
+    ...sectionLines.slice(0, 3),
+    '',
+    header.map(escapeCsv).join(';'),
+    ...rows.map((row) => row.map(escapeCsv).join(';')),
+  ]
+  const content = format === 'csv' ? csvLines.join('\\n') : [...sectionLines, header.join(' | '), ...rows.map((row) => row.join(' | '))].join('\\n')
+  downloadFile(`\\ufeff${content}`, `mapa-acessos-${project.codigo}.${format}`, format === 'csv' ? 'text/csv;charset=utf-8' : 'text/plain;charset=utf-8')
   await recordAuditEvent({ action: 'exportar-relatorio', entity: 'mapa_acessos', entity_id: project.id, details: { projeto: project.nome, codigo: project.codigo, formato: format, campos: fields, pastas: folders.length, grupos: groups.length, membros: members.length } }).catch(() => undefined)
 }
 
