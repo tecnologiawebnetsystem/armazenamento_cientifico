@@ -36,7 +36,7 @@ export function AppTopbar() {
       <Separator orientation="vertical" className="mx-1 h-8 bg-border/80" />
       <div className="relative hidden items-center gap-2.5 sm:flex">
         <div className="rounded-xl bg-petrobras-green/10 p-1.5 ring-1 ring-petrobras-green/25 shadow-sm"><LogoMark className="size-7 shrink-0 rounded-md" /></div>
-        <div className="flex flex-col"><span className="text-xs font-bold tracking-[0.16em] text-petrobras-green">SIGAC</span><span className="text-[9px] font-medium tracking-[0.12em] text-muted-foreground uppercase">Governança de acesso</span></div>
+        <div className="flex flex-col"><span className="text-xs font-bold tracking-[0.16em] text-petrobras-green">SIGAC</span><span className="text-[9px] font-medium tracking-[0.12em] text-muted-foreground uppercase">Sistema de Gestão de Acesso ao Armazenamento Científico</span></div>
       </div>
 
       <div className="relative ml-auto flex items-center gap-1.5 rounded-2xl border border-border/70 bg-background/70 p-1.5 shadow-sm md:gap-2">
