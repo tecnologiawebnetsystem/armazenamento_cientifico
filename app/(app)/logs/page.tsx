@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ExportButton, ExportFieldsDialog, type ExportField, type ExportFormat } from "@/components/export-fields-dialog"
 import useSWR from "swr"
-import { ActivityIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, EyeIcon, FilterIcon, RefreshCwIcon, SearchIcon, ShieldCheckIcon, UserRoundIcon, XIcon, type LucideIcon } from "lucide-react"
+import { ActivityIcon, ChevronLeftIcon, ChevronRightIcon, EyeIcon, FilterIcon, RefreshCwIcon, SearchIcon, ShieldCheckIcon, UserRoundIcon, XIcon, type LucideIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -69,17 +70,46 @@ function displayEntityId(log: LogWithUser) {
   return log.entidadeId || "—"
 }
 
-async function downloadCsv(logs: LogWithUser[]) {
-  const headers = ["data", "usuario", "acao", "entidade", "identificador", "resultado", "detalhes"]
-  const rows = logs.map((log) => [log.criadoEm, log.userName ?? log.userId ?? "Usuário não identificado", log.acao, log.entidade, log.entidadeId ?? "", log.resultado ?? "sucesso", log.detalhes ?? ""])
-  const csv = [headers, ...rows].map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n")
-  const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" })
-  const link = document.createElement("a")
-  link.href = URL.createObjectURL(blob)
-  link.download = `auditoria-sigac-${new Date().toISOString().slice(0, 10)}.csv`
-  link.click()
-  URL.revokeObjectURL(link.href)
-  await recordAuditEvent({ action: "exportacao", entity: "logs_auditoria", details: { formato: "csv", quantidade: logs.length } }).catch(() => undefined)
+const exportFields: ExportField[] = [
+  { key: "criadoEm", label: "Data e hora" },
+  { key: "usuario", label: "Usuário" },
+  { key: "acao", label: "Ação" },
+  { key: "entidade", label: "Entidade" },
+  { key: "identificador", label: "Identificador" },
+  { key: "resultado", label: "Resultado" },
+  { key: "detalhes", label: "Detalhes" },
+]
+
+function getExportValue(log: LogWithUser, key: string) {
+  const values: Record<string, string> = {
+    criadoEm: new Date(log.criadoEm).toLocaleString("pt-BR"),
+    usuario: log.userName ?? log.userId ?? "Usuário não identificado",
+    acao: displayAction(log.acao),
+    entidade: displayEntity(log.entidade),
+    identificador: displayEntityId(log),
+    resultado: log.resultado ?? "sucesso",
+    detalhes: log.detalhes ?? "",
+  }
+  return values[key] ?? ""
+}
+
+async function downloadLogExport(logs: LogWithUser[], fields: string[], format: ExportFormat) {
+  const headers = fields.map((key) => exportFields.find((field) => field.key === key)?.label ?? key)
+  const rows = logs.map((log) => fields.map((key) => getExportValue(log, key)))
+  const escapeCsv = (value: string) => `"${value.replaceAll('"', '""')}"`
+  const csv = [headers, ...rows].map((row) => row.map(escapeCsv).join(",")).join("\n")
+  const text = [headers.join(" | "), ...rows.map((row) => row.join(" | "))].join("\n")
+  if (format === "pdf") {
+    const printWindow = window.open("", "_blank", "width=900,height=700")
+    if (printWindow) {
+      printWindow.document.write(`<html lang="pt-BR"><head><title>Logs de auditoria</title><style>body{font-family:Arial,sans-serif;padding:24px}h1{font-size:20px}table{border-collapse:collapse;width:100%;font-size:11px}th,td{border:1px solid #ccc;padding:6px;text-align:left;vertical-align:top}th{background:#eee}</style></head><body><h1>Logs de auditoria</h1><table><thead><tr>${headers.map((header) => `<th>${header}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((value) => `<td>${value.replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</td>`).join("")}</tr>`).join("")}</tbody></table></body></html>`)
+      printWindow.document.close(); printWindow.focus(); printWindow.print(); printWindow.close()
+    }
+  } else {
+    const blob = new Blob([format === "csv" ? `\ufeff${csv}` : text], { type: format === "csv" ? "text/csv;charset=utf-8" : "text/plain;charset=utf-8" })
+    const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `auditoria-sigac-${new Date().toISOString().slice(0, 10)}.${format}`; document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url)
+  }
+  await recordAuditEvent({ action: "exportacao", entity: "logs_auditoria", details: { formato: format, quantidade: logs.length, campos: fields } }).catch(() => undefined)
 }
 
 export default function LogsPage() {
@@ -93,6 +123,7 @@ export default function LogsPage() {
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
   const [page, setPage] = useState(1)
+  const [exportOpen, setExportOpen] = useState(false)
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => setDebouncedQuery(query), 350)
@@ -130,7 +161,7 @@ export default function LogsPage() {
       eyebrow="Governança de acesso · rastreabilidade"
       title="Logs de auditoria"
       description="Acompanhe as ações realizadas na plataforma com uma leitura simples por usuário, entidade e resultado."
-      actions={<><Button variant="outline" onClick={() => void mutate()} disabled={isValidating}><RefreshCwIcon data-icon="inline-start" className={isValidating ? "animate-spin" : undefined} />{isValidating ? "Atualizando..." : "Atualizar"}</Button><Button onClick={() => void downloadCsv(logs)} disabled={!logs.length}><DownloadIcon data-icon="inline-start" />Exportar CSV</Button></>}
+      actions={<><Button variant="outline" onClick={() => void mutate()} disabled={isValidating}><RefreshCwIcon data-icon="inline-start" className={isValidating ? "animate-spin" : undefined} />{isValidating ? "Atualizando..." : "Atualizar"}</Button><ExportButton onClick={() => setExportOpen(true)} disabled={!logs.length} /></>}
     />
     <section aria-label="Indicadores da auditoria" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {metricCards.map(([label, value, Icon]) => <Card key={String(label)} className="gap-3 rounded-xl border-border/70 py-4 shadow-sm"><CardContent className="flex items-center justify-between"><div><p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p><p className="mt-1 font-mono text-2xl font-semibold tabular-nums">{value}</p></div><div className="rounded-lg border border-primary/10 bg-primary/[0.07] p-2 text-primary"><Icon className="size-5" /></div></CardContent></Card>)}
@@ -151,6 +182,15 @@ export default function LogsPage() {
         </div>
       </div>}
     </Card>
+
+    <ExportFieldsDialog
+      open={exportOpen}
+      onOpenChange={setExportOpen}
+      title="logs de auditoria"
+      fields={exportFields}
+      defaultFormats={["csv"]}
+      onConfirm={(fields, formats) => void Promise.all(formats.map((format) => downloadLogExport(logs, fields, format)))}
+    />
 
     <Dialog open={Boolean(selectedLog)} onOpenChange={(open) => { if (!open) setSelectedLog(null) }}>
       <DialogContent className="max-w-2xl">
