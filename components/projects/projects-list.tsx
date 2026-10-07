@@ -80,7 +80,8 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
   const initialArea = searchParams.get("area") ?? "todas"
   const pageSize = 15
   const currentPage = Math.max(1, Number(searchParams.get("page") ?? "1") || 1)
-  const { projects, refresh, isLoading } = useProjects({ nome: initialSearch, status: initialStatus, area: initialArea === "todas" ? undefined : initialArea, limit: 500 })
+  const apiStatus = initialStatus === "suspenso" ? "pausado" : initialStatus
+  const { projects, refresh, isLoading } = useProjects({ nome: initialSearch, status: apiStatus, area: initialArea === "todas" ? undefined : initialArea, limit: 500 })
   const { areas: catalogAreas } = useCatalogs()
   const { user } = useSession()
   const [search, setSearch] = useState(initialSearch)
@@ -126,7 +127,8 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
     const term = search.trim().toLowerCase()
     const uniqueProjects = Array.from(new Map(projects.map((project) => [project.id, project])).values())
     const list = uniqueProjects.filter((p) => {
-      const matchesStatus = status === "todos" || p.status === status
+      const requestedStatus = status === "suspenso" ? "pausado" : status
+      const matchesStatus = status === "todos" || p.status === requestedStatus
       const matchesArea = area === "todas" || p.areaResponsavel === area
       const matchesSearch =
         !term ||

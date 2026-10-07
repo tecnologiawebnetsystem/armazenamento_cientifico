@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { PetrobrasLoading } from "@/components/petrobras-loading"
+import { PageHeader, PageLayout } from "@/components/shared/page-layout"
 import { getActivityLogs, recordAuditEvent } from "@/lib/api-client"
 import type { ActivityLog } from "@/lib/types"
 
@@ -80,19 +81,18 @@ export default function LogsPage() {
   if (isLoading) return <main className="flex flex-col gap-6"><h1 className="text-2xl font-semibold">Central de auditoria</h1><PetrobrasLoading label="Carregando trilha de auditoria..." /></main>
   if (error || !data) return <main className="flex flex-col gap-6"><p className="text-destructive">Não foi possível carregar os logs.</p></main>
 
-  return <main className="flex flex-col gap-6">
-    <section className="sigac-surface relative overflow-hidden rounded-xl border-l-4 border-l-primary shadow-sm">
-      <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-primary/[0.04] [clip-path:polygon(35%_0,100%_0,100%_100%,0_100%)] md:block" />
-      <div className="relative flex flex-col gap-6 p-5 sm:p-7 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-2xl">
-          <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary"><ActivityIcon className="size-4" /> Governança · rastreabilidade</div>
-          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Logs de auditoria</h1>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Acompanhe as ações realizadas na plataforma com rastreabilidade por usuário, entidade e resultado.</p>
-        </div>
-        <div className="relative flex flex-wrap gap-2"><Button variant="outline" onClick={() => void mutate()}><RefreshCwIcon data-icon="inline-start" />Atualizar</Button><Button onClick={() => void downloadCsv(logs)} disabled={!logs.length}><DownloadIcon data-icon="inline-start" />Exportar CSV</Button></div>
-      </div>
-      <div className="relative flex flex-wrap gap-x-8 gap-y-3 border-t border-border/70 px-5 py-4 text-xs text-muted-foreground sm:px-7"><span>ÚLTIMA CAPTURA <strong className="ml-1 font-mono text-foreground">{latest ? new Date(latest).toLocaleString("pt-BR") : "—"}</strong></span><span>FONTE <strong className="ml-1 font-mono text-foreground">Banco de dados</strong></span><span className="flex items-center gap-1 text-primary"><span className="size-1.5 rounded-full bg-primary" /> Dados atualizados</span></div>
-    </section>
+  return <PageLayout>
+    <PageHeader
+      eyebrow="Governança de acesso · rastreabilidade"
+      title="Logs de auditoria"
+      description="Acompanhe as ações realizadas na plataforma com uma leitura simples por usuário, entidade e resultado."
+      actions={<><Button variant="outline" onClick={() => void mutate()}><RefreshCwIcon data-icon="inline-start" />Atualizar</Button><Button onClick={() => void downloadCsv(logs)} disabled={!logs.length}><DownloadIcon data-icon="inline-start" />Exportar CSV</Button></>}
+    />
+    <div className="flex flex-wrap items-center gap-x-8 gap-y-2 rounded-xl border border-border/70 bg-card/70 px-4 py-3 text-xs text-muted-foreground shadow-sm sm:px-5">
+      <span>ÚLTIMA CAPTURA <strong className="ml-1 font-mono text-foreground">{latest ? new Date(latest).toLocaleString("pt-BR") : "—"}</strong></span>
+      <span>FONTE <strong className="ml-1 font-mono text-foreground">Banco de dados</strong></span>
+      <span className="flex items-center gap-1 text-primary"><span className="size-1.5 rounded-full bg-primary" /> Dados atualizados</span>
+    </div>
 
     <section aria-label="Indicadores da auditoria" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {metricCards.map(([label, value, Icon]) => <Card key={String(label)} className="gap-3 rounded-xl border-border/70 py-4 shadow-sm"><CardContent className="flex items-center justify-between"><div><p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p><p className="mt-1 font-mono text-2xl font-semibold tabular-nums">{value}</p></div><div className="rounded-lg border border-primary/10 bg-primary/[0.07] p-2 text-primary"><Icon className="size-5" /></div></CardContent></Card>)}
@@ -118,5 +118,5 @@ export default function LogsPage() {
         </div>}
       </DialogContent>
     </Dialog>
-  </main>
+  </PageLayout>
 }
