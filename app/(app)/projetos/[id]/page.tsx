@@ -1,6 +1,6 @@
 "use client"
 
-import { use } from "react"
+import { use, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ProjectStatusBadge } from "@/components/projects/project-status-badge"
 import { ProjectDetailTabs } from "@/components/projects/project-detail-tabs"
@@ -15,14 +15,16 @@ export default function ProjetoDetalhePage({ params }: { params: Promise<{ id: s
   const { user, isLoading: sessionLoading } = useSession()
   const { project, isLoading, error } = useProject(id)
 
-  if (sessionLoading || isLoading) return <PetrobrasLoading label="Carregando projeto..." />
-  if (!user) {
-    router.replace("/login")
-    return null
-  }
-  if (error || !project) {
-    router.replace("/projetos")
-    return null
+  useEffect(() => {
+    if (!sessionLoading && !user) {
+      router.replace("/login")
+    } else if (!sessionLoading && !isLoading && (error || !project)) {
+      router.replace("/projetos")
+    }
+  }, [error, isLoading, project, router, sessionLoading, user])
+
+  if (sessionLoading || isLoading || !user || error || !project) {
+    return <PetrobrasLoading label="Carregando projeto..." />
   }
 
   return (
