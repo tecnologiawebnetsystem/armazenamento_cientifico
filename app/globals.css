@@ -207,9 +207,9 @@
     @apply bg-background text-foreground;
     background-image: radial-gradient(circle at 12% -8%, color-mix(in oklch, var(--petrobras-green) 5%, transparent), transparent 28%), linear-gradient(135deg, color-mix(in oklch, var(--petrobras-green) 1.5%, transparent), transparent 42%);
     }
-  h1,
-  h2,
-  h3 {
+  .app-content h1,
+  .app-content h2,
+  .app-content h3 {
     color: var(--petrobras-blue) !important;
   }
   ::selection {
