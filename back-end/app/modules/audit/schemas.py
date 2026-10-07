@@ -35,5 +35,6 @@ class ActivityLogOut(BaseModel):
     duration_ms: float | None
     ip_address: str | None
     project_id: str | None
+    project_name: str | None = None
     created_at: datetime
     model_config = {"from_attributes": True}

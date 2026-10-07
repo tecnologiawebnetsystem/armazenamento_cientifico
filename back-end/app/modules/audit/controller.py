@@ -58,9 +58,10 @@ async def list_logs(
     action: str | None = Query(default=None, max_length=100),
     entity: str | None = Query(default=None, max_length=100),
     project_id: str | None = Query(default=None, max_length=100),
+    project_name: str | None = Query(default=None, max_length=200),
     result: str | None = Query(default=None, max_length=30),
     date_from: datetime | None = Query(default=None),
     date_to: datetime | None = Query(default=None),
 ):
-    rows, total = await service.list_logs(page=page, limit=limit, query=q, user_id=user_id, action=action, entity=entity, project_id=project_id, result=result, date_from=date_from, date_to=date_to)
+    rows, total = await service.list_logs(page=page, limit=limit, query=q, user_id=user_id, action=action, entity=entity, project_id=project_id, project_name=project_name, result=result, date_from=date_from, date_to=date_to)
     return {"items": rows, "page": page, "limit": limit, "total": total, "total_pages": (total + limit - 1) // limit}

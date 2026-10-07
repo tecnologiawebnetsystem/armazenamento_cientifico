@@ -6,6 +6,7 @@ from sqlalchemy import and_, func, or_, select
 
 from app.core.audit import mask_sensitive
 from app.modules.users.models import User
+from app.modules.projects.models import Project
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .models import ActivityLog
@@ -57,6 +58,7 @@ class ActivityLogRepository:
         action: str | None = None,
         entity: str | None = None,
         project_id: str | None = None,
+        project_name: str | None = None,
         result: str | None = None,
         date_from: datetime | None = None,
         date_to: datetime | None = None,
@@ -73,6 +75,8 @@ class ActivityLogRepository:
             filters.append(ActivityLog.entity == entity)
         if project_id:
             filters.append(ActivityLog.project_id == project_id)
+        if project_name:
+            filters.append(Project.name.ilike(f"%{project_name.strip()}%"))
         if result:
             filters.append(ActivityLog.result == result)
         if date_from:
@@ -82,11 +86,11 @@ class ActivityLogRepository:
         predicate = and_(*filters) if filters else None
 
         # Join com User para resolver userName e userEmail
-        joined_query = select(ActivityLog, User.user_id.label("_user_name")).outerjoin(
+        joined_query = select(ActivityLog, User.user_id.label("_user_name"), Project.name.label("_project_name")).outerjoin(
             User, ActivityLog.user_id == User.user_id
-        ).order_by(ActivityLog.created_at.desc(), ActivityLog.id.desc())
+        ).outerjoin(Project, ActivityLog.project_id == Project.id).order_by(ActivityLog.created_at.desc(), ActivityLog.id.desc())
 
-        count_query = select(func.count(ActivityLog.id)).select_from(ActivityLog)
+        count_query = select(func.count(ActivityLog.id)).select_from(ActivityLog).outerjoin(Project, ActivityLog.project_id == Project.id)
 
         if predicate is not None:
             joined_query = joined_query.where(predicate)
@@ -95,7 +99,7 @@ class ActivityLogRepository:
         total = int((await self.session.scalar(count_query)) or 0)
         results = await self.session.execute(joined_query.offset((page - 1) * limit).limit(limit))
         rows = []
-        for log, user_name in results:
+        for log, user_name, project_name_value in results:
             log_dict = {
                 "id": log.id,
                 "user_id": log.user_id,
@@ -112,6 +116,7 @@ class ActivityLogRepository:
                 "duration_ms": log.duration_ms,
                 "ip_address": log.ip_address,
                 "project_id": log.project_id,
+                "project_name": project_name_value,
                 "created_at": log.created_at,
             }
             rows.append(log_dict)

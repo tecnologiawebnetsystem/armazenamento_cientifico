@@ -288,6 +288,7 @@ type ApiActivityLog = {
   duration_ms?: number | null
   ip_address?: string | null
   project_id?: string | null
+  project_name?: string | null
   created_at: string
 }
 
@@ -314,8 +315,9 @@ export async function getActivityLogs(params: ActivityLogQuery = {}) {
       rota: log.route,
       duracaoMs: log.duration_ms,
       ipAddress: log.ip_address,
-      projetoId: log.project_id,
-      criadoEm: log.created_at,
+  projetoId: log.project_id,
+  projetoNome: log.project_name,
+  criadoEm: log.created_at,
     })),
     pagination: { page: response.page, limit: response.limit, total: response.total, totalPages: response.total_pages },
   }
