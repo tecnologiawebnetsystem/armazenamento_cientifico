@@ -154,7 +154,7 @@ export default function LogsPage() {
           <div className="grid gap-1 sm:grid-cols-2"><div><span className="text-muted-foreground">Entidade</span><p className="font-mono">{displayEntity(selectedLog.entidade)}</p></div><div><span className="text-muted-foreground">Identificador</span><p className="break-all">{displayEntityId(selectedLog)}</p></div></div>
           <div><span className="text-muted-foreground">Usuário</span><p>{selectedLog.userName ?? selectedLog.userId ?? "Usuário não identificado"}</p></div>
           <div><span className="text-muted-foreground">Data e hora</span><p>{new Date(selectedLog.criadoEm).toLocaleString("pt-BR")}</p></div>
-          <div className="grid gap-1 sm:grid-cols-2"><div><span className="text-muted-foreground">Rota / método</span><p className="break-all font-mono">{selectedLog.metodoHttp ?? "—"} {selectedLog.rota ?? ""}</p></div><div><span className="text-muted-foreground">Correlação / duração</span><p className="break-all font-mono">{selectedLog.correlacaoId ?? "—"} · {selectedLog.duracaoMs != null ? `${selectedLog.duracaoMs.toFixed(2)} ms` : "—"}</p></div></div>
+          <div><span className="text-muted-foreground">Rota / método</span><p className="break-all font-mono">{selectedLog.metodoHttp ?? "—"} {selectedLog.rota ?? ""}</p></div>
         </div>}
       </DialogContent>
     </Dialog>
