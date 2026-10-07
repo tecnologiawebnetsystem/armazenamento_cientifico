@@ -32,6 +32,25 @@ function formatActivityDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value))
 }
 
+function activityLabel(item: ActivityLog) {
+  const labels: Record<string, string> = {
+    login: "Sessão iniciada",
+    logout: "Sessão encerrada",
+    "criar-projeto": "Projeto criado",
+    "editar-projeto": "Projeto atualizado",
+    "excluir-projeto": "Projeto removido",
+    "consultar-mapa-acessos": "Mapa de acessos consultado",
+    "exportar-logs": "Logs exportados",
+  }
+
+  return labels[item.acao] ?? (item.detalhes || "Atividade registrada")
+}
+
+function activityContext(item: ActivityLog) {
+  if (item.rota) return `${item.entidade} · ${item.rota}`
+  return `${item.entidade} · ${formatActivityDate(item.criadoEm)}`
+}
+
 export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, armazenamentoMb, pendencias, activity, consultedAt }: Props) {
   const view = profileView[role] ?? profileView.solicitante
   const activeProjects = projects.filter((project) => project.status === "ativo").length
@@ -95,7 +114,7 @@ export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, a
         </Card>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[1fr_1.35fr]">
+      <section className="grid gap-6 lg:grid-cols-[0.85fr_1.5fr]">
         <Card className="sigac-surface border-0 ring-1 ring-border/70">
           <CardContent className="flex flex-col gap-4 p-5 sm:p-6">
             <div className="flex items-start justify-between gap-4"><div><h2 className="font-heading text-lg font-semibold">Saúde do ambiente</h2><p className="mt-1 text-sm text-muted-foreground">Sinais que ajudam a priorizar a operação.</p></div><ShieldAlertIcon className="size-5 text-primary" /></div>
@@ -109,7 +128,7 @@ export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, a
         <Card className="sigac-surface border-0 ring-1 ring-border/70">
           <CardContent className="flex flex-col gap-5 p-5 sm:p-6">
             <div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold tracking-[0.16em] text-primary uppercase">Rastreabilidade</p><h2 className="mt-1 font-heading text-lg font-semibold">Atividade recente</h2><p className="mt-1 text-sm text-muted-foreground">Últimos eventos registrados na plataforma.</p></div><span className="flex size-9 items-center justify-center rounded-lg bg-muted/60 text-primary"><ActivityIcon className="size-4" /></span></div>
-            {activity.length ? <div className="relative flex flex-col gap-0 pl-4 before:absolute before:bottom-3 before:left-[3px] before:top-3 before:w-px before:bg-border">{activity.slice(0, 5).map((item) => <div key={item.id} className="relative flex items-start justify-between gap-4 border-b border-border/60 py-3 first:pt-0 last:border-b-0 last:pb-0"><span className="absolute -left-[1.05rem] top-4 size-2 rounded-full border-2 border-card bg-petrobras-green ring-1 ring-petrobras-green/30" /><div className="min-w-0"><p className="truncate text-sm font-medium">{item.detalhes || item.acao}</p><p className="mt-1 text-xs text-muted-foreground">{item.entidade} · {formatActivityDate(item.criadoEm)}</p></div><Badge variant={item.resultado === "erro" ? "destructive" : "outline"} className="shrink-0">{item.resultado === "erro" ? "Erro" : "Sucesso"}</Badge></div>)}</div> : <p className="rounded-lg bg-muted/40 p-4 text-sm text-muted-foreground">Ainda não há atividade registrada.</p>}
+            {activity.length ? <div className="relative flex flex-col gap-0 pl-5 before:absolute before:bottom-4 before:left-[5px] before:top-4 before:w-px before:bg-petrobras-green/20">{activity.slice(0, 5).map((item) => <div key={item.id} className="relative flex items-start justify-between gap-4 border-b border-border/60 py-4 first:pt-1 last:border-b-0 last:pb-1"><span className="absolute -left-[1.28rem] top-5 flex size-3 items-center justify-center rounded-full border-2 border-card bg-petrobras-green shadow-[0_0_0_3px] shadow-petrobras-green/10" /><div className="min-w-0"><p className="truncate text-sm font-semibold text-foreground">{activityLabel(item)}</p><p className="mt-1 truncate text-xs text-muted-foreground">{activityContext(item)} · {formatActivityDate(item.criadoEm)}</p></div><Badge variant={item.resultado === "erro" ? "destructive" : "outline"} className="shrink-0 rounded-full border-petrobras-green/25 px-3 text-petrobras-green">{item.resultado === "erro" ? "Erro" : "Sucesso"}</Badge></div>)}</div> : <p className="rounded-lg bg-muted/40 p-4 text-sm text-muted-foreground">Ainda não há atividade registrada.</p>}
           </CardContent>
         </Card>
       </section>
