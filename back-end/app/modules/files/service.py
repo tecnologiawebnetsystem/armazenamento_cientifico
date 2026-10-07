@@ -1,3 +1,4 @@
+import asyncio
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid4, uuid5
@@ -18,48 +19,51 @@ class FolderService:
         return await self.repository.find_by_project(project_id)
 
     async def list_project_folders(self, project_id: str) -> list[Folder]:
-        """Lê somente diretórios do caminho configurado; usa a tabela como fallback."""
+        """Lista somente as pastas imediatamente dentro do caminho do projeto.
+
+        A leitura do compartilhamento Windows acontece em uma thread para não
+        bloquear o FastAPI. Se o caminho não estiver disponível, a tabela local
+        continua sendo a fonte de fallback.
+        """
         project = await self.repository.find_project(project_id)
         parent_folder = (project.parent_folder if project else "").strip()
         if not parent_folder:
             return await self.list_folders_by_project(project_id)
 
-        root = Path(parent_folder)
         try:
-            if not root.is_dir():
-                return await self.list_folders_by_project(project_id)
-            now = datetime.now(UTC).replace(tzinfo=None)
-            folders: list[Folder] = []
-
-            def scan(directory: Path, parent_id: str | None = None) -> None:
-                try:
-                    entries = sorted(
-                        (entry for entry in directory.iterdir() if entry.is_dir()),
-                        key=lambda entry: entry.name.casefold(),
-                    )
-                except (OSError, PermissionError):
-                    return
-                for entry in entries:
-                    folder_id = str(uuid5(NAMESPACE_URL, f"{project_id}:{entry}"))
-                    folders.append(
-                        Folder(
-                            id=folder_id,
-                            project_id=project_id,
-                            parent_id=parent_id,
-                            kind="pasta",
-                            name=entry.name,
-                            created_by="filesystem",
-                            created_at=now,
-                            updated_at=now,
-                            size=0,
-                        )
-                    )
-                    scan(entry, folder_id)
-
-            scan(root)
-            return folders
-        except (OSError, PermissionError, ValueError):
+            folders = await asyncio.wait_for(
+                asyncio.to_thread(self._read_root_folders, project_id, parent_folder),
+                timeout=10,
+            )
+            return folders if folders else await self.list_folders_by_project(project_id)
+        except (asyncio.TimeoutError, OSError, PermissionError, ValueError):
             return await self.list_folders_by_project(project_id)
+
+    @staticmethod
+    def _read_root_folders(project_id: str, parent_folder: str) -> list[Folder]:
+        root = Path(parent_folder)
+        if not root.is_dir():
+            return []
+
+        now = datetime.now(UTC).replace(tzinfo=None)
+        entries = sorted(
+            (entry for entry in root.iterdir() if entry.is_dir()),
+            key=lambda entry: entry.name.casefold(),
+        )
+        return [
+            Folder(
+                id=str(uuid5(NAMESPACE_URL, f"{project_id}:{entry}")),
+                project_id=project_id,
+                parent_id=None,
+                kind="pasta",
+                name=entry.name,
+                created_by="filesystem",
+                created_at=now,
+                updated_at=now,
+                size=0,
+            )
+            for entry in entries
+        ]
 
     async def can_list_project(self, project_id: str, user_id: str, role: str) -> bool:
         return await self.repository.can_view_project(project_id, user_id, role)
