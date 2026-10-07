@@ -221,6 +221,43 @@
     }
 }
 
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-access-map,
+  .print-access-map * {
+    visibility: visible !important;
+  }
+
+  .print-access-map {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    padding: 1.5rem !important;
+    background: #ffffff !important;
+  }
+
+  .print-access-map > .print\\:hidden {
+    display: none !important;
+  }
+
+  .print-access-map .sigac-surface {
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  .print-access-map .grid {
+    break-inside: auto;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+}
+
 @layer utilities {
   .sigac-surface {
     border: 1px solid color-mix(in oklch, var(--border) 88%, transparent);
