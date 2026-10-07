@@ -36,7 +36,10 @@ class FolderService:
                 timeout=10,
             )
             return folders if folders else await self.list_folders_by_project(project_id)
-        except (asyncio.TimeoutError, OSError, PermissionError, ValueError):
+        except Exception:
+            # Compartilhamentos UNC podem falhar com exceções específicas do
+            # Windows (ou permanecer indisponíveis sem gerar OSError). A API
+            # deve continuar respondendo usando a tabela local como fallback.
             return await self.list_folders_by_project(project_id)
 
     @staticmethod
