@@ -69,6 +69,10 @@ export function ProjectInfoTab({
 
         <div className="grid gap-5 md:grid-cols-2">
           <Field>
+            <FieldLabel htmlFor="caminho-pasta">Caminho da pasta mãe</FieldLabel>
+            <Input id="caminho-pasta" value={project.pastaMae || "Não informado"} disabled className="h-11 bg-muted/50 font-mono text-sm" />
+          </Field>
+          <Field>
             <FieldLabel htmlFor="area">Área responsável</FieldLabel>
             <Input id="area" value={areaResponsavel} disabled className="h-11 bg-muted/50" />
           </Field>
