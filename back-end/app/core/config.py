@@ -58,9 +58,8 @@ class Settings(BaseSettings):
     api_prefix: str = "/api"
     log_level: str = "INFO"
     environment: str = "development"
-    # A documentação fica disponível por padrão; pode ser desativada na AWS
-    # com EXPOSE_API_DOCS=false quando houver uma política de segurança para isso.
-    expose_api_docs: bool = True
+    # A documentação da API fica desativada por padrão; habilite apenas em ambientes controlados.
+    expose_api_docs: bool = False
     security_headers_enabled: bool = True
     cookie_domain: str | None = None
     audit_retention_days: int = 365
@@ -69,7 +68,8 @@ class Settings(BaseSettings):
     oidc_discovery_url: str = ""
     ca_ssl_use_truststore: bool = False
     ca_ssl_cert_file: str = ""
-    ca_ssl_verify: bool = False
+    # A validação TLS deve permanecer ativa; desligá-la exige configuração explícita.
+    ca_ssl_verify: bool = True
     cav4_client_id: str = Field(default="", validation_alias=AliasChoices("CA_CLIENT_ID", "CAV4_CLIENT_ID"))
     cav4_client_secret: str = Field(default="", validation_alias=AliasChoices("CA_CLIENT_SECRET", "CAV4_CLIENT_SECRET"))
     cav4_redirect_uri: str = Field(default="http://localhost:8080/api/auth/cav4/callback", validation_alias=AliasChoices("CA_REDIRECT_URI", "CAV4_REDIRECT_URI"))
@@ -107,7 +107,7 @@ class Settings(BaseSettings):
         data.setdefault("email_login_enabled", env != "production")
         data.setdefault("expose_api_docs", env != "production")
         data.setdefault("ca_ssl_use_truststore", env == "production")
-        data.setdefault("ca_ssl_verify", env == "production")
+        data.setdefault("ca_ssl_verify", True)
         return data
 
     @model_validator(mode="after")
