@@ -90,8 +90,8 @@ async function exportAccessMap(project: Project, folders: FileNode[], accessMap:
     header.map(escapeCsv).join(';'),
     ...rows.map((row) => row.map(escapeCsv).join(';')),
   ]
-  const content = format === 'csv' ? csvLines.join('\\n') : [...sectionLines, header.join(' | '), ...rows.map((row) => row.join(' | '))].join('\\n')
-  downloadFile(`\\ufeff${content}`, `mapa-acessos-${project.codigo}.${format}`, format === 'csv' ? 'text/csv;charset=utf-8' : 'text/plain;charset=utf-8')
+  const content = format === 'csv' ? csvLines.join('\n') : [...sectionLines, header.join(' | '), ...rows.map((row) => row.join(' | '))].join('\n')
+  downloadFile(`\ufeff${content}`, `mapa-acessos-${project.codigo}.${format}`, format === 'csv' ? 'text/csv;charset=utf-8' : 'text/plain;charset=utf-8')
   await recordAuditEvent({ action: 'exportar-relatorio', entity: 'mapa_acessos', entity_id: project.id, details: { projeto: project.nome, codigo: project.codigo, formato: format, campos: fields, pastas: folders.length, grupos: groups.length, membros: members.length } }).catch(() => undefined)
 }
 
