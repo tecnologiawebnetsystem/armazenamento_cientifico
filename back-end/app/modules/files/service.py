@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
-from uuid import uuid4
+from pathlib import Path
+from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from app.modules.files.models import Folder
 from app.modules.files.repository import FolderRepository
@@ -15,6 +16,50 @@ class FolderService:
 
     async def list_folders_by_project(self, project_id: str) -> list[Folder]:
         return await self.repository.find_by_project(project_id)
+
+    async def list_project_folders(self, project_id: str) -> list[Folder]:
+        """Lê somente diretórios do caminho configurado; usa a tabela como fallback."""
+        project = await self.repository.find_project(project_id)
+        parent_folder = (project.parent_folder if project else "").strip()
+        if not parent_folder:
+            return await self.list_folders_by_project(project_id)
+
+        root = Path(parent_folder)
+        try:
+            if not root.is_dir():
+                return await self.list_folders_by_project(project_id)
+            now = datetime.now(UTC).replace(tzinfo=None)
+            folders: list[Folder] = []
+
+            def scan(directory: Path, parent_id: str | None = None) -> None:
+                try:
+                    entries = sorted(
+                        (entry for entry in directory.iterdir() if entry.is_dir()),
+                        key=lambda entry: entry.name.casefold(),
+                    )
+                except (OSError, PermissionError):
+                    return
+                for entry in entries:
+                    folder_id = str(uuid5(NAMESPACE_URL, f"{project_id}:{entry}"))
+                    folders.append(
+                        Folder(
+                            id=folder_id,
+                            project_id=project_id,
+                            parent_id=parent_id,
+                            kind="pasta",
+                            name=entry.name,
+                            created_by="filesystem",
+                            created_at=now,
+                            updated_at=now,
+                            size_bytes=0,
+                        )
+                    )
+                    scan(entry, folder_id)
+
+            scan(root)
+            return folders
+        except (OSError, PermissionError, ValueError):
+            return await self.list_folders_by_project(project_id)
 
     async def can_list_project(self, project_id: str, user_id: str, role: str) -> bool:
         return await self.repository.can_view_project(project_id, user_id, role)
