@@ -258,8 +258,21 @@
     margin: 0 !important;
   }
 
-  .print-page-shell > :not(.print-access-map) {
+  .print-page-shell > header,
+  .print-content-shell > :first-child {
     display: none !important;
+  }
+
+  .print-content-shell {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+  }
+
+  .print-content-shell > .print-access-map {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
   }
 
   .print-access-map > .print\\:hidden,

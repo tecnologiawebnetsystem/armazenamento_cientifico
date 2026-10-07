@@ -131,7 +131,7 @@ export default function AccessMapPage() {
 
   return <PageLayout className="print-page-shell">
     <PageHeader eyebrow="Governança de acesso" title="Mapa de Acessos" description="Pesquise um projeto para consultar suas pastas, grupos e membros autorizados." />
-    <div className="grid gap-6 lg:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]">
+    <div className="print-content-shell grid gap-6 lg:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]">
       <Card className="sigac-surface h-fit overflow-hidden">
         <CardHeader className="sigac-section-header px-5 py-4">
           <CardTitle className="flex items-center gap-2 text-base"><Search className="size-4 text-primary" />Pesquisar projeto</CardTitle>
