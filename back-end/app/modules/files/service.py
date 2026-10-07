@@ -51,7 +51,7 @@ class FolderService:
                             created_by="filesystem",
                             created_at=now,
                             updated_at=now,
-                            size_bytes=0,
+                            size=0,
                         )
                     )
                     scan(entry, folder_id)
@@ -82,7 +82,7 @@ class FolderService:
             created_by=data.created_by,
             created_at=now,
             updated_at=now,
-            size_bytes=0,
+            size=0,
         )
         return await self.repository.create(folder)
 
