@@ -50,15 +50,23 @@ async function fetchRequest(url: string, init?: RequestInit): Promise<Response> 
     throw new Error("NEXT_PUBLIC_API_BASE_URL precisa estar configurada em produção.")
   }
 
-  return fetch(url, {
-    ...init,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-    cache: "no-store",
-  })
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 15_000)
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(init?.headers ?? {}),
+      },
+      cache: "no-store",
+    })
+  } finally {
+    window.clearTimeout(timeout)
+  }
 }
 
 type ApiErrorBody = { message?: string; detail?: string }
