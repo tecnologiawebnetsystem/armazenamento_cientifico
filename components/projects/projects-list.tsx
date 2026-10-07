@@ -179,7 +179,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-petrobras-green">Gestão científica</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-petrobras-blue sm:text-3xl">Projetos</h1>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-petrobras-blue sm:text-2xl">Projetos</h1>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Acompanhe projetos, áreas responsáveis, acessos e armazenamento em um só lugar.</p>
           </div>
           {canCreate && <Link href="/projetos/novo" className={buttonVariants({ className: "bg-petrobras-green text-primary-foreground shadow-sm shadow-petrobras-green/20 hover:-translate-y-0.5 hover:bg-petrobras-green/90 hover:shadow-md" })}><FolderPlusIcon data-icon="inline-start" />Novo projeto</Link>}
