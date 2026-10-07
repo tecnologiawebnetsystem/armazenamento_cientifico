@@ -250,6 +250,18 @@
     font-family: Arial, sans-serif !important;
   }
 
+  .print-page-shell {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .print-page-shell > :not(.print-access-map) {
+    display: none !important;
+  }
+
   .print-access-map > .print\\:hidden,
   .print-access-map [role='dialog'] {
     display: none !important;
@@ -279,8 +291,8 @@
     border-radius: 14px !important;
     box-shadow: none !important;
     background: #ffffff !important;
-    break-inside: avoid;
-    page-break-inside: avoid;
+    break-inside: auto;
+    page-break-inside: auto;
     margin-top: 8mm;
   }
 

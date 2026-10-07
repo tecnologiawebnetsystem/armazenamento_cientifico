@@ -124,7 +124,7 @@ export default function AccessMapPage() {
     void recordAuditEvent({ action: 'consultar-mapa-acessos', entity: 'projeto', entity_id: project.id, details: { projeto: project.nome, codigo: project.codigo } }).catch(() => undefined)
   }
 
-  return <PageLayout>
+  return <PageLayout className="print-page-shell">
     <PageHeader eyebrow="Governança de acesso" title="Mapa de Acessos" description="Pesquise um projeto para consultar suas pastas, grupos e membros autorizados." />
     <div className="grid gap-6 lg:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]">
       <Card className="sigac-surface h-fit overflow-hidden">
