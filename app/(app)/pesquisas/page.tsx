@@ -37,8 +37,13 @@ function downloadFile(content: string, fileName: string, type: string) {
   const link = document.createElement('a')
   link.href = url
   link.download = fileName
+  link.style.display = 'none'
+  document.body.appendChild(link)
   link.click()
-  URL.revokeObjectURL(url)
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url)
+    link.remove()
+  }, 1000)
 }
 
 const accessMapExportFields: ExportField[] = [
@@ -149,7 +154,7 @@ function AccessMapDetails({ project, accessMap, accessError, accessLoading, fold
   const [exportOpen, setExportOpen] = useState(false)
   const printMap = async (fields: string[]) => {
     await recordAuditEvent({ action: 'exportar-relatorio', entity: 'mapa_acessos', entity_id: project.id, details: { projeto: project.nome, codigo: project.codigo, formato: 'pdf', campos: fields, pastas: folders.length, grupos: groups.length, membros: members.length } }).catch(() => undefined)
-    window.print()
+    window.setTimeout(() => window.print(), 150)
   }
 
   return <div className="print-access-map space-y-6">
