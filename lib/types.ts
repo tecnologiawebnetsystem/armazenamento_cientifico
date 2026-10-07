@@ -68,7 +68,7 @@ export interface Project {
   roleIdentidadeLeitura: string
   /** Número da tarefa do ServiceNow (Snow) que originou a demanda. */
   numeroTarefaSnow: string
-  /** Nome da pasta mãe do projeto no repositório de arquivos. */
+  /** Caminho da pasta mãe do projeto no repositório de arquivos. */
   pastaMae: string
   descricao: string
   status: ProjectStatus

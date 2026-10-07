@@ -34,7 +34,7 @@ def serialize_project(project: Project) -> ProjectOut:
         areaResponsavel=project.responsible_area, descricao=project.description,
         status=project.status, gestoresIds=project.managers_ids or [],
         participantesIds=project.participants_ids or [], criadoEm=project.created_at,
-        atualizadoEm=project.updated_at,
+        atualizadoEm=project.updated_at, pastaMae=project.parent_folder or "",
     )
 
 

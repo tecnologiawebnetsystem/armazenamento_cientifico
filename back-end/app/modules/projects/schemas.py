@@ -59,6 +59,7 @@ class ProjectOut(BaseModel):
     participantesIds: list[str]
     criadoEm: datetime
     atualizadoEm: datetime
+    pastaMae: str = ""
 
 
 class AccessMapOut(BaseModel):
