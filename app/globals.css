@@ -235,26 +235,80 @@
     position: absolute !important;
     inset: 0 !important;
     width: 100% !important;
-    padding: 1.5rem !important;
+    padding: 0 !important;
     background: #ffffff !important;
+    color: #10231b !important;
+    font-family: Arial, sans-serif !important;
   }
 
-  .print-access-map > .print\\:hidden {
+  .print-access-map > .print\\:hidden,
+  .print-access-map [role='dialog'] {
     display: none !important;
   }
 
+  .print-access-map::before {
+    content: 'GOVERNANÇA DE ACESSO  •  MAPA DE ACESSOS';
+    display: block;
+    padding: 0 0 8mm;
+    border-bottom: 2px solid #008f4c;
+    color: #008f4c;
+    font-size: 10pt;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+  }
+
   .print-access-map .sigac-surface {
+    border: 1px solid #d9e2dd !important;
+    border-radius: 14px !important;
     box-shadow: none !important;
+    background: #ffffff !important;
     break-inside: avoid;
+    page-break-inside: avoid;
+    margin-top: 8mm;
+  }
+
+  .print-access-map .sigac-section-header {
+    background: #f2f8f4 !important;
+    border-bottom: 1px solid #d9e2dd !important;
+  }
+
+  .print-access-map .print-folders,
+  .print-access-map .print-groups,
+  .print-access-map .print-members {
+    margin-top: 6mm;
+  }
+
+  .print-access-map .print-folders {
+    page-break-before: always;
+  }
+
+  .print-access-map .print-groups,
+  .print-access-map .print-members {
+    page-break-before: auto;
   }
 
   .print-access-map .grid {
     break-inside: auto;
   }
 
+  .print-access-map .grid > div {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-access-map svg {
+    color: #008f4c !important;
+  }
+
+  .print-access-map [data-slot='badge'] {
+    border-color: #b8d8c5 !important;
+    color: #10231b !important;
+    background: #f2f8f4 !important;
+  }
+
   @page {
     size: A4 portrait;
-    margin: 12mm;
+    margin: 16mm 14mm;
   }
 }
 
