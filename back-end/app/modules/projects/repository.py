@@ -26,7 +26,24 @@ class ProjectRepository:
                 (Project.managers_ids.contains([user_id]))
                 | exists().where(ProjectMember.project_id == Project.id, ProjectMember.user_id == user_id)
             )
-        return list(await self.session.scalars(statement))
+
+        projects = list(await self.session.scalars(statement))
+        if not projects:
+            return projects
+
+        project_ids = [project.id for project in projects]
+        member_rows = await self.session.execute(
+            select(ProjectMember.project_id, ProjectMember.user_id)
+            .where(ProjectMember.project_id.in_(project_ids))
+        )
+        members_by_project: dict[str, list[str]] = {}
+        for project_id, member_id in member_rows:
+            members_by_project.setdefault(project_id, []).append(member_id)
+
+        for project in projects:
+            project.participants_ids = members_by_project.get(project.id, [])
+
+        return projects
 
     async def can_view(self, project_id: str, user_id: str, role: str) -> bool:
         if role in {"admin", "patrocinador", "auditor"}:
