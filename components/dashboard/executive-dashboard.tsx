@@ -65,7 +65,7 @@ export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, a
 
   return (
     <div className="sw-motion flex flex-col gap-8">
-      <header className="sigac-grid sigac-surface relative isolate overflow-hidden rounded-2xl border-l-4 border-l-primary p-6 sm:p-8 lg:p-10">
+      <header className="sigac-grid sigac-surface relative isolate flex min-h-[300px] flex-col justify-center overflow-hidden rounded-[2rem] border border-border/70 p-6 shadow-sm sm:p-10 lg:p-12">
         <div className="relative flex max-w-3xl flex-col gap-4">
           <div className="flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-2 rounded-sm border border-primary/20 bg-primary/8 px-2.5 py-1 text-[10px] font-bold tracking-[0.18em] text-primary uppercase"><span className="size-1.5 rounded-full bg-primary" />SIGAC</span>
@@ -73,7 +73,7 @@ export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, a
             <span className="text-xs font-medium text-muted-foreground">{view.focus}</span>
           </div>
           <div className="space-y-2">
-            <h1 className="font-heading text-3xl font-semibold tracking-[-0.035em] text-balance sm:text-4xl lg:text-[2.65rem]">{view.label}</h1>
+            <h1 className="font-heading text-4xl font-semibold tracking-[-0.045em] text-balance sm:text-5xl lg:text-[3.35rem]">{view.label}</h1>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">{view.description}</p>
           </div>
         </div>
