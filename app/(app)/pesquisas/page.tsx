@@ -152,7 +152,7 @@ function AccessMapDetails({ project, accessMap, accessError, accessLoading, fold
     window.print()
   }
 
-  return <div className="space-y-6">
+  return <div className="print-access-map space-y-6">
     <div className="flex flex-wrap items-center justify-end gap-2 print:hidden">
       <ExportButton onClick={() => setExportOpen(true)} />
     </div>
