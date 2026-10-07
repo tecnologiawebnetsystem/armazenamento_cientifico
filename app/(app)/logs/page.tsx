@@ -131,7 +131,7 @@ export default function LogsPage() {
 
   const { data, error, isLoading, isValidating, mutate } = useSWR(
     ["/api/activity-logs", page, debouncedQuery, action, entity, result, projectName, dateFrom, dateTo],
-    () => getActivityLogs({ page, limit: 25, q: debouncedQuery, action: action === "todos" ? undefined : action, entity: entity === "todos" ? undefined : entity, result: result === "todos" ? undefined : result, project_id: projectName, date_from: dateFrom, date_to: dateTo }),
+    () => getActivityLogs({ page, limit: 25, q: debouncedQuery, action: action === "todos" ? undefined : action, entity: entity === "todos" ? undefined : entity, result: result === "todos" ? undefined : result, project_name: projectName, date_from: dateFrom, date_to: dateTo }),
     { keepPreviousData: true },
   )
   const [selectedLog, setSelectedLog] = useState<LogWithUser | null>(null)
