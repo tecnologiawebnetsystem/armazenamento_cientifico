@@ -20,7 +20,7 @@ function formatStorage(mb: number) {
 }
 
 const profileView: Record<Role, { label: string; description: string; focus: string }> = {
-  admin: { label: "Governança da plataforma", description: "Visão essencial do ambiente e do portfólio sob administração.", focus: "Controle geral" },
+  admin: { label: "Governança da plataforma", description: "Visão essencial do ambiente e do portfólio sob administração.", focus: "Dashboard" },
   gerente: { label: "Operação dos projetos", description: "Acompanhe os projetos e acessos que precisam da sua atenção.", focus: "Acompanhamento" },
   patrocinador: { label: "Acompanhamento executivo", description: "Consulte o andamento e o alcance dos projetos patrocinados.", focus: "Visão executiva" },
   auditor: { label: "Conformidade e rastreabilidade", description: "Consulte o escopo auditável e os mapas de acesso registrados.", focus: "Conformidade" },
