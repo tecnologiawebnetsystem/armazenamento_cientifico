@@ -179,14 +179,14 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-petrobras-green">Gestão científica</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-petrobras-blue sm:text-2xl">Projetos</h1>
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Acompanhe projetos, áreas responsáveis, acessos e armazenamento em um só lugar.</p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-petrobras-blue sm:text-2xl">Áreas de Rede</h1>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Acompanhe áreas de rede, áreas responsáveis, acessos e armazenamento em um só lugar.</p>
           </div>
-          {canCreate && <Link href="/projetos/novo" className={buttonVariants({ className: "bg-petrobras-green text-primary-foreground shadow-sm shadow-petrobras-green/20 hover:-translate-y-0.5 hover:bg-petrobras-green/90 hover:shadow-md" })}><FolderPlusIcon data-icon="inline-start" />Novo projeto</Link>}
+          {canCreate && <Link href="/projetos/novo" className={buttonVariants({ className: "bg-petrobras-green text-primary-foreground shadow-sm shadow-petrobras-green/20 hover:-translate-y-0.5 hover:bg-petrobras-green/90 hover:shadow-md" })}><FolderPlusIcon data-icon="inline-start" />Nova área de rede</Link>}
         </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Resumo dos projetos">
-        <StatCard icon={LayersIcon} label="Projetos" value={stats.total} />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Resumo dos áreas de rede">
+        <StatCard icon={LayersIcon} label="Áreas de Rede" value={stats.total} />
         <StatCard
           icon={CircleCheckIcon}
           label="Ativos"
@@ -221,7 +221,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         onViewChange={setView}
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"><span aria-live="polite">Exibindo {visibleProjects.length} de {filtered.length} projetos</span><div className="flex items-center gap-3"><Button nativeButton variant="ghost" size="sm" onClick={() => void refresh()}><RefreshCwIcon data-icon="inline-start" />Atualizar</Button><Button nativeButton variant="ghost" size="sm" onClick={() => { setSearch(""); setStatus("todos"); setArea("todas") }} disabled={!search && status === "todos" && area === "todas"}><XIcon data-icon="inline-start" />Limpar filtros</Button><label className="flex items-center gap-2"><Columns3Icon className="size-4" /><input type="checkbox" checked={showMeta} onChange={(event) => setShowMeta(event.target.checked)} />Mostrar detalhes</label></div></div>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"><span aria-live="polite">Exibindo {visibleProjects.length} de {filtered.length} áreas de rede</span><div className="flex items-center gap-3"><Button nativeButton variant="ghost" size="sm" onClick={() => void refresh()}><RefreshCwIcon data-icon="inline-start" />Atualizar</Button><Button nativeButton variant="ghost" size="sm" onClick={() => { setSearch(""); setStatus("todos"); setArea("todas") }} disabled={!search && status === "todos" && area === "todas"}><XIcon data-icon="inline-start" />Limpar filtros</Button><label className="flex items-center gap-2"><Columns3Icon className="size-4" /><input type="checkbox" checked={showMeta} onChange={(event) => setShowMeta(event.target.checked)} />Mostrar detalhes</label></div></div>
 
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -235,10 +235,10 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
             <EmptyMedia variant="icon">
               <FoldersIcon />
             </EmptyMedia>
-            <EmptyTitle>Nenhum projeto encontrado</EmptyTitle>
+            <EmptyTitle>Nenhuma área de rede encontrada</EmptyTitle>
             <EmptyDescription>
               {projects.length === 0
-                ? "Você ainda não participa de nenhum projeto científico."
+                ? "Você ainda não participa de nenhuma área de rede científica."
                 : "Ajuste os filtros de busca para encontrar o que procura."}
             </EmptyDescription>
           </EmptyHeader>
@@ -246,7 +246,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
             <EmptyContent>
               <Link href="/projetos/novo" className={buttonVariants()}>
                 <FolderPlusIcon data-icon="inline-start" />
-                Criar primeiro projeto
+                Criar primeira área de rede
               </Link>
             </EmptyContent>
           )}
@@ -279,8 +279,8 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
       )}
 
       {totalPages > 1 && (
-        <nav className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between" aria-label="Paginação de projetos">
-          <p className="text-sm text-muted-foreground">Página {page} de {totalPages} · {filtered.length} projetos</p>
+        <nav className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between" aria-label="Paginação de áreas de rede">
+          <p className="text-sm text-muted-foreground">Página {page} de {totalPages} · {filtered.length} áreas de rede</p>
           <div className="flex flex-wrap items-center gap-2">
             <Button nativeButton variant="outline" size="sm" disabled={page <= 1} onClick={() => goToPage(page - 1)}>Anterior</Button>
             {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
@@ -297,7 +297,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {target?.status === "pausado" ? "Reativar projeto?" : "Desativar projeto?"}
+              {target?.status === "pausado" ? "Reativar área de rede?" : "Desativar área de rede?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {target?.status === "pausado"
