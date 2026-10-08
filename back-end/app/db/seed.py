@@ -14,7 +14,7 @@ from app.modules.auth.models import UserSession
 
 SEED_PERFIS = [
     ("ADM", "administrador", "Administra a plataforma, configura parâmetros e gerencia acessos."),
-    ("RES", "responsavel", "Coordena a área de rede, equipes e atividades operacionais."),
+    ("GER", "responsavel", "Coordena a área de rede, equipes e atividades operacionais."),
     ("AUD", "auditor", "Consulta informações e acompanha os registros de auditoria."),
     ("PAT", "patrocinador", "Acompanha resultados e aprova solicitações sob sua responsabilidade."),
     ("SOL", "solicitante", "Solicita acessos e acompanha o andamento das solicitações."),
@@ -87,7 +87,7 @@ SEED_MENUS = [
     ("menu-configuracoes", "configuracoes", "Configurações", "/configuracoes", "settings", 70),
 ]
 
-SEED_USERS = [("GFZ3", "ADM"), ("GCTL", "ADM"), ("GBTF", "ADM"), ("Y1R9", "RES")]
+SEED_USERS = [("GFZ3", "ADM"), ("GCTL", "ADM"), ("GBTF", "ADM"), ("Y1R9", "GER")]
 
 
 SEED_PROJECTS = [
