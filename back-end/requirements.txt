@@ -3,6 +3,8 @@ fastapi>=0.115,<1.0
 uvicorn[standard]>=0.30,<1.0
 pydantic[email]>=2.8,<3.0
 asyncpg>=0.29,<1.0
+# Driver opcional para SQLite (alternativa de desenvolvimento local; PostgreSQL segue como padrão).
+aiosqlite>=0.20,<1.0
 python-dotenv>=1.0,<2.0
 sqlalchemy[asyncio]>=2.0,<3.0
 greenlet>=3.0,<4.0
@@ -10,11 +12,12 @@ alembic>=1.16,<2.0
 python-multipart>=0.0.9,<1.0
 reportlab>=4.2,<5.0
 pydantic-settings>=2.4,<3.0
+# Necessário para usar o truststore de certificados do sistema operacional (CAV4/TLS corporativo).
 truststore>=0.10,<1.0
 
 # Dependências de desenvolvimento e testes
-pytest>=8.3,<9.0
-pytest-asyncio>=0.24,<1.0
+pytest>=9.0,<10.0
+pytest-asyncio>=1.3,<2.0
 httpx>=0.27,<1.0
 ruff>=0.8,<1.0
 

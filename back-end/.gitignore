@@ -1,9 +1,50 @@
+# Bytecode / cache
 __pycache__/
 *.py[cod]
-*.db
-.pytest_cache/
-.ruff_cache/
+*$py.class
+
+# Ambiente virtual
 .venv/
+venv/
+env/
+
+# Variáveis de ambiente e segredos
 .env
 .env.*
 !.env.example
+
+# Empacotamento
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Testes e cobertura
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Lint / type-check
+.ruff_cache/
+.mypy_cache/
+.dmypy.json
+
+# Lock files de gerenciadores alternativos (projeto usa pip + requirements.txt)
+uv.lock
+Pipfile.lock
+poetry.lock
+
+# Bancos locais e artefatos de migração manual
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+
+# Logs
+*.log
+
+# Sistema operacional / editor
+.DS_Store
+Thumbs.db

@@ -1,11 +1,14 @@
 from logging.config import fileConfig
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+from alembic import context
 from sqlalchemy import pool, text
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 import app.db.models  # noqa: F401 - registra todos os modelos no metadata
+from app.core.config import settings
+from app.db.base import Base
 
 
 def _async_database_url(url: str) -> str:
@@ -18,11 +21,15 @@ def _async_database_url(url: str) -> str:
     elif url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql+asyncpg://", 1)
     parts = urlsplit(url)
-    query = [(key, value) for key, value in parse_qsl(parts.query) if key not in {"sslmode", "channel_binding"}]
-    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
-from alembic import context
-from app.core.config import settings
-from app.db.base import Base
+    query = [
+        (key, value)
+        for key, value in parse_qsl(parts.query)
+        if key not in {"sslmode", "channel_binding"}
+    ]
+    return urlunsplit(
+        (parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment)
+    )
+
 
 config = context.config
 if config.config_file_name is not None:

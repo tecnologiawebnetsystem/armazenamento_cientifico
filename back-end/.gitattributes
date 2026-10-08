@@ -1,0 +1,26 @@
+* text=auto eol=lf
+*.py text eol=lf
+*.py diff=python
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.sql text eol=lf
+*.ini text eol=lf
+*.cfg text eol=lf
+*.toml text eol=lf
+*.mako text eol=lf
+*.txt text eol=lf
+requirements*.txt text eol=lf
+Makefile text eol=lf
+Dockerfile text eol=lf
+*.sh text eol=lf
+
+*.pyc binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.db binary
