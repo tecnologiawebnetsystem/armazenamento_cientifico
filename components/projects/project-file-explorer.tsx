@@ -40,7 +40,7 @@ export function ProjectFileExplorer({ projectId }: { projectId: string }) {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-3">
             <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-petrobras-green text-primary-foreground"><FoldersIcon className="size-5" aria-hidden="true" /></div>
-            <div className="flex flex-col gap-1"><CardTitle className="text-xl tracking-tight">Pastas do projeto</CardTitle><CardDescription>Visualize a estrutura real de pastas, sem arquivos e sem edição.</CardDescription></div>
+            <div className="flex flex-col gap-1"><CardTitle className="text-xl tracking-tight">Pastas da área de rede</CardTitle><CardDescription>Visualize a estrutura real de pastas, sem arquivos e sem edição.</CardDescription></div>
           </div>
           <div className="flex flex-wrap gap-2"><Badge variant="secondary">{folders.length} {folders.length === 1 ? "pasta" : "pastas"}</Badge><Badge variant="outline">Somente leitura</Badge></div>
         </div>

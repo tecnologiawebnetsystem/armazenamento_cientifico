@@ -58,7 +58,7 @@ export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, a
   const featuredProjects = projects.filter((project) => project.status === "ativo").slice(0, 3)
 
   const indicators = [
-    { label: "Projetos ativos", value: activeProjects, icon: FolderKanbanIcon, href: "/projetos" },
+    { label: "Área de rede ativos", value: activeProjects, icon: FolderKanbanIcon, href: "/projetos" },
     { label: role === "auditor" ? "Mapas de acesso" : "Pessoas no escopo", value: role === "auditor" ? totalMapas : totalMembros, icon: role === "auditor" ? MapIcon : UsersIcon, href: role === "auditor" ? "/pesquisas" : "/projetos" },
     { label: "Armazenamento", value: formatStorage(armazenamentoMb), icon: DatabaseIcon, href: "/projetos" },
   ]
@@ -81,8 +81,8 @@ export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, a
 
       <section aria-label="Ações rápidas" className="flex flex-wrap items-center gap-2 rounded-xl border border-border/70 bg-card/70 p-3">
         <span className="mr-1 text-xs font-semibold text-muted-foreground">Comece por aqui</span>
-        <Link href="/projetos" className="sigac-focus-ring inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-primary/5"><FolderKanbanIcon className="size-4 text-primary" />Consultar projetos</Link>
-        {role === "admin" || role === "gerente" ? <Link href="/projetos/novo" className="sigac-focus-ring inline-flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/8 px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/15"><PlusIcon className="size-4" />Criar projeto</Link> : null}
+        <Link href="/projetos" className="sigac-focus-ring inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-primary/5"><FolderKanbanIcon className="size-4 text-primary" />Consultar área de rede</Link>
+        {role === "admin" || role === "gerente" ? <Link href="/projetos/novo" className="sigac-focus-ring inline-flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/8 px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/15"><PlusIcon className="size-4" />Criar área de rede</Link> : null}
         <Link href={role === "auditor" ? "/logs" : "/pesquisas"} className="sigac-focus-ring inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-primary/5"><ActivityIcon className="size-4 text-primary" />{role === "auditor" ? "Consultar auditoria" : "Consultar acessos"}</Link>
       </section>
 
@@ -105,12 +105,12 @@ export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, a
       <section className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
         <Card className="sigac-surface border-0 ring-1 ring-border/70">
           <CardContent className="flex flex-col gap-5 p-5 sm:p-6">
-            <div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold tracking-[0.16em] text-primary uppercase">Portfólio</p><h2 className="mt-1 font-heading text-lg font-semibold">Projetos em destaque</h2><p className="mt-1 text-sm text-muted-foreground">Acesso rápido ao que está em operação.</p></div><span className="flex size-9 items-center justify-center rounded-lg bg-muted/60 text-primary"><FolderKanbanIcon className="size-4" /></span></div>
+            <div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold tracking-[0.16em] text-primary uppercase">Portfólio</p><h2 className="mt-1 font-heading text-lg font-semibold">Áreas de rede em destaque</h2><p className="mt-1 text-sm text-muted-foreground">Acesso rápido ao que está em operação.</p></div><span className="flex size-9 items-center justify-center rounded-lg bg-muted/60 text-primary"><FolderKanbanIcon className="size-4" /></span></div>
             {featuredProjects.length ? <div className="divide-y divide-border/70 rounded-lg border border-border/70">{featuredProjects.map((project) => <Link key={project.id} href={`/projetos/${project.id}`} className="flex items-center justify-between gap-4 px-3.5 py-3 transition-colors first:rounded-t-lg last:rounded-b-lg hover:bg-muted/50"><span className="flex min-w-0 items-center gap-2.5 truncate text-sm font-medium"><span className="size-1.5 shrink-0 rounded-full bg-petrobras-green" />{project.nome}</span><Badge variant="outline" className="border-petrobras-green/25 text-petrobras-green">Ativo</Badge></Link>)}</div> : <p className="rounded-lg bg-muted/40 p-4 text-sm text-muted-foreground">Nenhum projeto ativo no seu escopo.</p>}
           </CardContent>
         </Card>
         <Card className="sigac-surface border-0 ring-1 ring-border/70">
-          <CardContent className="flex flex-col gap-5 p-5 sm:p-6"><div><p className="text-[10px] font-bold tracking-[0.16em] text-primary uppercase">Prioridades</p><h2 className="mt-1 font-heading text-lg font-semibold">Próxima atenção</h2><p className="mt-1 text-sm text-muted-foreground">Somente o que pode exigir uma ação.</p></div><div className="flex flex-col gap-2.5"><div className="flex items-center justify-between rounded-lg border border-border/70 bg-muted/30 p-3.5"><span className="flex items-center gap-2 text-sm"><span className="size-2 rounded-full bg-petrobras-yellow" />Pendências de acesso</span><strong className="font-heading text-xl">{pendencias}</strong></div><div className="flex items-center justify-between rounded-lg border border-border/70 bg-muted/30 p-3.5"><span className="flex items-center gap-2 text-sm"><span className="size-2 rounded-full bg-muted-foreground/50" />Projetos pausados</span><strong className="font-heading text-xl">{attention}</strong></div></div></CardContent>
+          <CardContent className="flex flex-col gap-5 p-5 sm:p-6"><div><p className="text-[10px] font-bold tracking-[0.16em] text-primary uppercase">Prioridades</p><h2 className="mt-1 font-heading text-lg font-semibold">Próxima atenção</h2><p className="mt-1 text-sm text-muted-foreground">Somente o que pode exigir uma ação.</p></div><div className="flex flex-col gap-2.5"><div className="flex items-center justify-between rounded-lg border border-border/70 bg-muted/30 p-3.5"><span className="flex items-center gap-2 text-sm"><span className="size-2 rounded-full bg-petrobras-yellow" />Pendências de acesso</span><strong className="font-heading text-xl">{pendencias}</strong></div><div className="flex items-center justify-between rounded-lg border border-border/70 bg-muted/30 p-3.5"><span className="flex items-center gap-2 text-sm"><span className="size-2 rounded-full bg-muted-foreground/50" />Área de rede pausados</span><strong className="font-heading text-xl">{attention}</strong></div></div></CardContent>
         </Card>
       </section>
 
@@ -119,9 +119,9 @@ export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, a
           <CardContent className="flex flex-col gap-4 p-5 sm:p-6">
             <div className="flex items-start justify-between gap-4"><div><h2 className="font-heading text-lg font-semibold">Saúde do ambiente</h2><p className="mt-1 text-sm text-muted-foreground">Sinais que ajudam a priorizar a operação.</p></div><ShieldAlertIcon className="size-5 text-primary" /></div>
             <div className="flex flex-col gap-2 text-sm">
-              <div className="flex items-center justify-between rounded-lg bg-muted/40 p-3"><span>Projetos ativos</span><strong>{activeProjects} de {projects.length}</strong></div>
+              <div className="flex items-center justify-between rounded-lg bg-muted/40 p-3"><span>Área de rede ativos</span><strong>{activeProjects} de {projects.length}</strong></div>
               <div className="flex items-center justify-between rounded-lg bg-muted/40 p-3"><span>Solicitações pendentes</span><strong className={pendencias > 0 ? "text-amber-700" : "text-emerald-700"}>{pendencias}</strong></div>
-              <div className="flex items-center justify-between rounded-lg bg-muted/40 p-3"><span>Projetos pausados</span><strong className={attention > 0 ? "text-red-700" : "text-emerald-700"}>{attention}</strong></div>
+              <div className="flex items-center justify-between rounded-lg bg-muted/40 p-3"><span>Área de rede pausados</span><strong className={attention > 0 ? "text-red-700" : "text-emerald-700"}>{attention}</strong></div>
             </div>
           </CardContent>
         </Card>

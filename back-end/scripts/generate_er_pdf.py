@@ -42,7 +42,7 @@ TABLE_USAGE = {
     "menus": ("Itens de menu e rotas", "components/layout/app-sidebar.tsx; lib/nav-config.ts", "GET /api/auth/session; GET /api/permissions"),
     "projects": ("Cadastro, gestão e relatórios", "app/(app)/projetos/page.tsx; app/(app)/projetos/novo/page.tsx; app/(app)/projetos/[id]/page.tsx", "GET/POST /api/projects; GET/PATCH/DELETE /api/projects/{id}; GET /api/reports; GET /api/dashboard/summary"),
     "project_members": ("Usuários vinculados aos projetos", "components/projects/project-members-tab.tsx; app/(app)/projetos/[id]/page.tsx", "GET /api/projects/{id}/members; GET /api/projects/{id}/access-map"),
-    "folders": ("Pastas do projeto, somente leitura", "components/projects/project-file-explorer.tsx; app/(app)/projetos/[id]/page.tsx", "GET /api/folders?projectId={id}"),
+    "folders": ("Pastas da área de rede, somente leitura", "components/projects/project-file-explorer.tsx; app/(app)/projetos/[id]/page.tsx", "GET /api/folders?projectId={id}"),
     "access_requests": ("Solicitações de acesso", "components/administracao/access-requests-queue.tsx; app/(app)/projetos/[id]/page.tsx", "GET/POST /api/access-requests; PATCH /api/access-requests/{id}"),
     "activity_logs": ("Auditoria das operações", "app/(app)/logs/page.tsx; hooks/use-activity-logs.ts", "GET /api/activity-logs"),
 }

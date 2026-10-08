@@ -68,7 +68,7 @@ async def create_project(
     user: CurrentUser,
 ):
     if canonical_role(user.get("role")) in {"gerente", "patrocinador", "auditor", "solicitante"}:
-        raise HTTPException(status_code=403, detail="Este perfil não pode criar projetos")
+        raise HTTPException(status_code=403, detail="Este perfil não pode criar área de rede")
     require_capability(user, "create")
     try:
         project = await service.create_project(data)

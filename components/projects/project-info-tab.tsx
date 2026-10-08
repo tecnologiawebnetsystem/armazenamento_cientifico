@@ -58,7 +58,7 @@ export function ProjectInfoTab({
       <CardContent className="space-y-6 px-5 py-6 sm:px-7">
         <div className="grid gap-5 md:grid-cols-[minmax(0,1.4fr)_minmax(220px,0.6fr)]">
           <Field>
-            <FieldLabel htmlFor="nome">Nome do projeto</FieldLabel>
+            <FieldLabel htmlFor="nome">Área de Rede</FieldLabel>
             <Input id="nome" value={project.nome} disabled className="h-11 bg-muted/50" />
           </Field>
           <Field>

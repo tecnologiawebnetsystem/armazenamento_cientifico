@@ -88,9 +88,9 @@ Campos normalmente utilizados no frontend:
 - userName: nome do usuário;
 - userEmail: e-mail;
 - userRole: perfil do usuário;
-- projectId: identificador do projeto;
-- projectName: nome do projeto;
-- projectStatus: status do projeto;
+- projectId: identificador da área de rede;
+- projectName: área de rede;
+- projectStatus: status do área de rede;
 - area: área responsável;
 - resourceId: identificador do recurso;
 - resourceName: nome do recurso;

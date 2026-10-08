@@ -14,7 +14,7 @@ from app.modules.auth.models import UserSession
 
 SEED_PERFIS = [
     ("ADM", "administrador", "Administra a plataforma, configura parâmetros e gerencia acessos."),
-    ("GER", "gerente", "Coordena projetos, equipes e atividades operacionais."),
+    ("RES", "responsavel", "Coordena a área de rede, equipes e atividades operacionais."),
     ("AUD", "auditor", "Consulta informações e acompanha os registros de auditoria."),
     ("PAT", "patrocinador", "Acompanha resultados e aprova solicitações sob sua responsabilidade."),
     ("SOL", "solicitante", "Solicita acessos e acompanha o andamento das solicitações."),
@@ -23,7 +23,7 @@ SEED_PERFIS = [
 
 SEED_MODULES = [
     ("dashboard", "Dashboard", "/dashboard", "layout-dashboard", 1),
-    ("projetos", "Projetos", "/projetos", "folder", 10),
+    ("projetos", "Área de Rede", "/projetos", "folder", 10),
     ("usuarios", "Usuários", "/usuarios", "users", 20),
     ("relatorios", "Relatórios", "/relatorios", "chart", 30),
     ("auditoria", "Logs e Auditoria", "/logs", "history", 50),
@@ -31,14 +31,14 @@ SEED_MODULES = [
     ("configuracoes", "Configurações", "/configuracoes", "settings", 70),
 ]
 SEED_PERMISSIONS = [
-    ("projeto.visualizar", "projetos", "Visualizar projetos"), ("projeto.criar", "projetos", "Criar projetos"),
-    ("projeto.editar", "projetos", "Editar projetos"), ("projeto.status", "projetos", "Ativar ou desativar projetos"),
+    ("projeto.visualizar", "projetos", "Visualizar área de rede"), ("projeto.criar", "projetos", "Criar área de rede"),
+    ("projeto.editar", "projetos", "Editar área de rede"), ("projeto.status", "projetos", "Ativar ou desativar área de rede"),
     ("usuario.editar", "usuarios", "Editar usuários e perfis"), ("relatorio.exportar", "relatorios", "Exportar relatórios"),
     ("administracao.configurar", "administracao", "Configurar parâmetros"),
     ("pesquisa.visualizar", "pesquisas", "Visualizar mapa de acessos"),
 ]
 SEED_STATUS = [("ATIVO", "ativo", "Ativo", "green", 10, True), ("INATIVO", "inativo", "Inativo", "slate", 20, False), ("CONCLUIDO", "concluido", "Concluído", "blue", 30, False), ("SUSPENSO", "suspenso", "Suspenso", "amber", 40, True)]
-SEED_REPORTS = [("PROJETOS", "projetos", "Relatório de projetos", "csv,xlsx,pdf"), ("ACESSOS", "acessos", "Mapa de acessos", "csv,xlsx,pdf")]
+SEED_REPORTS = [("PROJETOS", "projetos", "Relatório da área de rede", "csv,xlsx,pdf"), ("ACESSOS", "acessos", "Mapa de acessos", "csv,xlsx,pdf")]
 SEED_AREAS = [
     ("tecnologia-informacao", "Tecnologia da Informação", "TI"),
     ("governanca-compliance", "Governança e Compliance", "GC"),
@@ -51,7 +51,7 @@ SEED_AREAS = [
     ("tecnologia", "Tecnologia", "TEC"),
 ]
 SEED_REPORT_FIELDS = [
-    ("projetos-nome", "projetos", "nome", "Nome do projeto", "projectName", 10),
+    ("projetos-nome", "projetos", "nome", "Área de Rede", "projectName", 10),
     ("projetos-codigo", "projetos", "codigo", "Código", "projectCode", 20),
     ("projetos-area", "projetos", "area", "Área responsável", "area", 30),
     ("projetos-status", "projetos", "status", "Status", "status", 40),

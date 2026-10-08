@@ -81,7 +81,7 @@ ON CONFLICT (id) DO UPDATE SET report_code = excluded.report_code, field_key = e
 -- 7. Permissões
 INSERT INTO permissions (id, module_id, name, description, active) VALUES
 ('projeto.visualizar', 'projetos', 'Visualizar projetos', 'Visualizar projetos', true),
-('projeto.criar', 'projetos', 'Criar projetos', 'Criar projetos', true),
+('projeto.criar', 'projetos', 'Criar área de rede', 'Criar área de rede', true),
 ('projeto.editar', 'projetos', 'Editar projetos', 'Editar projetos', true),
 ('projeto.status', 'projetos', 'Alterar status', 'Alterar status de projetos', true),
 ('projeto.excluir', 'projetos', 'Excluir projetos', 'Excluir projetos', true),
