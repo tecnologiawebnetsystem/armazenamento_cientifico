@@ -14,9 +14,9 @@ export default async function NovoProjetoPage() {
   return (
     <PageLayout className="mx-auto w-full max-w-2xl">
       <PageHeader
-        eyebrow="Gestão de projetos"
-        title="Novo projeto"
-        description="Cadastre um novo projeto científico e defina seu gestor e participantes iniciais."
+        eyebrow="Gestão de áreas de rede"
+        title="Nova área de rede"
+        description="Cadastre uma nova área de rede científica e defina seu gestor e participantes iniciais."
       />
       <NewProjectForm currentUser={user} />
     </PageLayout>

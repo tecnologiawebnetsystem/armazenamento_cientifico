@@ -9,7 +9,7 @@ export function RecentProjects({ projects }: { projects: Project[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Projetos recentes</CardTitle>
+        <CardTitle>Áreas de rede recentes</CardTitle>
         <CardAction>
           <Button variant="ghost" size="sm" render={<Link href="/projetos" />} nativeButton={false}>
             Ver todos
@@ -18,7 +18,7 @@ export function RecentProjects({ projects }: { projects: Project[] }) {
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-1">
-        {projects.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">Nenhum projeto encontrado.</p>}
+        {projects.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">Nenhuma área de rede encontrada.</p>}
         {projects.map((project) => (
           <Link
             key={project.id}

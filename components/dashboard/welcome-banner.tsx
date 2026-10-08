@@ -14,7 +14,7 @@ export function WelcomeBanner({ nome }: { nome: string }) {
         {greeting()}, {primeiroNome}
       </h2>
       <p className="text-sm text-muted-foreground">
-        Acompanhe seus projetos científicos e o armazenamento de dados da plataforma.
+        Acompanhe suas áreas de rede científicas e o armazenamento de dados da plataforma.
       </p>
     </div>
   )

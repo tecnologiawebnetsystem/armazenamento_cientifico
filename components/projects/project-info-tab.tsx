@@ -43,10 +43,10 @@ export function ProjectInfoTab({
       <CardHeader className="border-b bg-muted/30 px-5 py-5 sm:px-7">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1.5">
-            <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-petrobras-green">Projeto científico</p>
+            <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-petrobras-green">Área de rede científica</p>
             <div className="flex items-center gap-3"><div className="flex size-11 items-center justify-center rounded-xl bg-petrobras-green text-primary-foreground"><ClipboardListIcon className="size-6" aria-hidden="true" /></div><CardTitle className="text-2xl tracking-tight">{project.nome}</CardTitle></div>
             <CardDescription>
-              Visão geral dos dados deste projeto em modo somente leitura.
+              Visão geral dos dados desta área de rede em modo somente leitura.
             </CardDescription>
           </div>
           <div className="flex shrink-0 items-center gap-2 rounded-full border border-petrobras-green/30 bg-petrobras-green/10 px-3 py-1.5 text-sm font-semibold text-petrobras-green">

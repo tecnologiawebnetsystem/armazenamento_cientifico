@@ -31,7 +31,7 @@ export function buildKpis({
 }): KpiItem[] {
   return [
     {
-      label: "Projetos",
+      label: "Áreas de Rede",
       value: String(totalProjetos),
       hint: `${projetosAtivos} ativos`,
       icon: FolderKanbanIcon,

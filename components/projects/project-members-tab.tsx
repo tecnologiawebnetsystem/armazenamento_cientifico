@@ -48,7 +48,7 @@ export function ProjectMembersTab({ projectId }: { projectId: string; canManage?
             </div>
             <div className="flex flex-col gap-1">
               <CardTitle className="text-xl tracking-tight">Membros e mapa de acessos</CardTitle>
-              <CardDescription>Consulte os grupos, membros e níveis de acesso autorizados para este projeto.</CardDescription>
+              <CardDescription>Consulte os grupos, membros e níveis de acesso autorizados para esta área de rede.</CardDescription>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -62,7 +62,7 @@ export function ProjectMembersTab({ projectId }: { projectId: string; canManage?
           <Empty>
             <EmptyHeader>
               <EmptyTitle>Não foi possível carregar o mapa de acessos</EmptyTitle>
-              <EmptyDescription>A API de Identidade ou o serviço de projetos não respondeu. Tente novamente.</EmptyDescription>
+              <EmptyDescription>A API de Identidade ou o serviço de áreas de rede não respondeu. Tente novamente.</EmptyDescription>
             </EmptyHeader>
             <Button variant="outline" onClick={() => mutate()}>Tentar novamente</Button>
           </Empty>

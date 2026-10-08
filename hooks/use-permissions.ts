@@ -61,7 +61,7 @@ export function roleDescription(role: Role) {
   switch (normalizeRole(role)) {
     case "admin": return "Governança total da plataforma, usuários e parâmetros."
     case "gerente": return "Aprova ou revoga acessos e consulta apenas seu escopo."
-    case "patrocinador": return "Consulta projetos, relatórios, logs e mapas de acessos."
+    case "patrocinador": return "Consulta áreas de rede, relatórios, logs e mapas de acessos."
     case "auditor": return "Somente leitura, com acesso à trilha de auditoria."
     case "solicitante": return "Não possui acesso ao SIGAC."
     case "operador": return "Acesso exclusivo às configurações da plataforma."

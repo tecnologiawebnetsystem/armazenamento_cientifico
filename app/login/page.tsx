@@ -33,7 +33,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             <span className="size-1.5 rounded-full bg-petrobras-yellow" /> Plataforma corporativa Petrobras
           </span>
           <h1 id="sigac-hero-title" className="max-w-2xl text-[clamp(2.35rem,4.4vw,4.5rem)] leading-[1.06] font-semibold tracking-[-0.04em] text-balance">
-            Organize, arquive e compartilhe os dados científicos de cada projeto com <span className="text-petrobras-yellow">segurança e rastreabilidade</span>.
+            Organize, arquive e compartilhe os dados científicos de cada área de rede com <span className="text-petrobras-yellow">segurança e rastreabilidade</span>.
           </h1>
           <p className="mt-6 text-base leading-7 text-white/75 sm:text-lg">Gestão de dados de pesquisa e desenvolvimento</p>
           <div className="mt-10 grid gap-4 border-t border-white/20 pt-6 sm:grid-cols-2">
@@ -47,7 +47,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <div className="pointer-events-none absolute -bottom-28 -left-24 size-80 rounded-full border-[34px] border-petrobras-green/15" />
         <div className="relative w-full max-w-xl">
           <div className="mb-8 flex flex-col gap-3 lg:hidden"><LogoFull className="h-11 w-52" /><span className="text-sm font-semibold tracking-wide text-[#063f58]">SIGAC · Petrobras</span></div>
-          <div className="mb-7 flex flex-col gap-3"><span className="h-1 w-12 rounded-full bg-petrobras-yellow" /><h2 id="login-title" className="text-3xl font-semibold tracking-tight text-[#063f58] sm:text-4xl">Acesse sua conta</h2><p className="max-w-md text-sm leading-6 text-muted-foreground">Entre no SIGAC para consultar seus projetos, mapas de acesso e permissões.</p></div>
+          <div className="mb-7 flex flex-col gap-3"><span className="h-1 w-12 rounded-full bg-petrobras-yellow" /><h2 id="login-title" className="text-3xl font-semibold tracking-tight text-[#063f58] sm:text-4xl">Acesse sua conta</h2><p className="max-w-md text-sm leading-6 text-muted-foreground">Entre no SIGAC para consultar suas áreas de rede, mapas de acesso e permissões.</p></div>
           <LoginForm authError={authError} nextPath={nextPath} />
         </div>
       </section>
