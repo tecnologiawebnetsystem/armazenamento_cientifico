@@ -61,12 +61,12 @@ SEED_REPORT_FIELDS = [
     ("acessos-email", "acessos", "email", "E-mail", "userEmail", 20),
     ("acessos-perfil", "acessos", "perfil", "Perfil", "userRole", 30),
     ("acessos-area", "acessos", "area", "Área", "area", 40),
-    ("acessos-projeto", "acessos", "projeto", "Projeto", "projectName", 50),
+    ("acessos-projeto", "acessos", "projeto", "Área de Rede", "projectName", 50),
     ("acessos-recurso", "acessos", "recurso", "Recurso", "resourceName", 60),
     ("acessos-tipo", "acessos", "tipo", "Tipo de recurso", "resourceType", 70),
     ("acessos-acesso", "acessos", "acesso", "Nível de acesso", "accessLevel", 80),
     ("acessos-ultima", "acessos", "ultimaVisualizacao", "Última visualização", "lastViewedAt", 90),
-    ("acessos-projeto-codigo", "acessos", "projetoCodigo", "Código do projeto", "projectCode", 100),
+    ("acessos-projeto-codigo", "acessos", "projetoCodigo", "Código da área de rede", "projectCode", 100),
     ("acessos-pasta", "acessos", "pasta", "Pasta", "folderName", 110),
     ("acessos-caminho-pasta", "acessos", "caminhoPasta", "Caminho da pasta", "folderPath", 120),
     ("acessos-grupo", "acessos", "grupo", "Grupo de acesso", "groupName", 130),
@@ -79,7 +79,7 @@ SEED_REPORT_FIELDS = [
 ]
 SEED_MENUS = [
     ("menu-dashboard", "dashboard", "Dashboard", "/dashboard", "layout-dashboard", 1),
-    ("menu-projetos", "projetos", "Projetos", "/projetos", "folder", 10),
+    ("menu-projetos", "projetos", "Área de Rede", "/projetos", "folder", 10),
     ("menu-usuarios", "usuarios", "Usuários", "/usuarios", "users", 20),
     ("menu-relatorios", "relatorios", "Relatórios", "/relatorios", "chart", 30),
     ("menu-auditoria", "auditoria", "Logs e Auditoria", "/logs", "history", 50),
@@ -87,7 +87,7 @@ SEED_MENUS = [
     ("menu-configuracoes", "configuracoes", "Configurações", "/configuracoes", "settings", 70),
 ]
 
-SEED_USERS = [("GFZ3", "ADM"), ("GCTL", "ADM"), ("GBTF", "ADM"), ("Y1R9", "GER")]
+SEED_USERS = [("GFZ3", "ADM"), ("GCTL", "ADM"), ("GBTF", "ADM"), ("Y1R9", "RES")]
 
 
 SEED_PROJECTS = [

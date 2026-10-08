@@ -130,12 +130,12 @@ export default function AccessMapPage() {
   }
 
   return <PageLayout className="print-page-shell">
-    <PageHeader eyebrow="Governança de acesso" title="Mapa de Acessos" description="Pesquise um projeto para consultar suas pastas, grupos e membros autorizados." />
+    <PageHeader eyebrow="Governança de acesso" title="Mapa de Acessos" description="Pesquise uma área de rede para consultar suas pastas, grupos e membros autorizados." />
     <div className="print-content-shell grid gap-6 lg:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]">
       <Card className="sigac-surface h-fit overflow-hidden">
         <CardHeader className="sigac-section-header px-5 py-4">
-          <CardTitle className="flex items-center gap-2 text-base"><Search className="size-4 text-primary" />Pesquisar projeto</CardTitle>
-          <CardDescription>Selecione um projeto para abrir o mapa de acessos.</CardDescription>
+          <CardTitle className="flex items-center gap-2 text-base"><Search className="size-4 text-primary" />Pesquisar área de rede</CardTitle>
+          <CardDescription>Selecione uma área de rede para abrir o mapa de acessos.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 p-5">
           <div className="relative"><Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" /><Input aria-label="Pesquisar projeto" className="pl-9" placeholder="Nome, código ou área responsável" value={search} onChange={(event) => setSearch(event.target.value)} /></div>
@@ -143,7 +143,7 @@ export default function AccessMapPage() {
         </CardContent>
       </Card>
 
-      {!selectedProject ? <Card className="sigac-surface flex min-h-[480px] items-center justify-center"><CardContent className="max-w-md space-y-3 text-center"><div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary"><ShieldCheck className="size-7" /></div><h2 className="text-xl font-semibold">Selecione um projeto</h2><p className="text-sm leading-6 text-muted-foreground">Pesquise e selecione um projeto ao lado para visualizar as pastas, os grupos de identidade e os membros com acesso.</p></CardContent></Card> : <AccessMapDetails project={selectedProject} accessMap={accessMap} accessError={accessError} accessLoading={accessLoading} folders={folders} foldersLoading={foldersLoading} retryAccess={retryAccess} />}
+      {!selectedProject ? <Card className="sigac-surface flex min-h-[480px] items-center justify-center"><CardContent className="max-w-md space-y-3 text-center"><div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary"><ShieldCheck className="size-7" /></div><h2 className="text-xl font-semibold">Selecione uma área de rede</h2><p className="text-sm leading-6 text-muted-foreground">Pesquise e selecione uma área de rede ao lado para visualizar as pastas, os grupos de identidade e os membros com acesso.</p></CardContent></Card> : <AccessMapDetails project={selectedProject} accessMap={accessMap} accessError={accessError} accessLoading={accessLoading} folders={folders} foldersLoading={foldersLoading} retryAccess={retryAccess} />}
     </div>
   </PageLayout>
 }
@@ -162,7 +162,7 @@ function AccessMapDetails({ project, accessMap, accessError, accessLoading, fold
       <ExportButton onClick={() => setExportOpen(true)} />
     </div>
     <ExportFieldsDialog open={exportOpen} onOpenChange={setExportOpen} title="mapa de acessos" fields={accessMapExportFields} onConfirm={(fields, formats) => void Promise.all(formats.map(async (format) => format === 'pdf' ? printMap(fields) : exportAccessMap(project, folders, accessMap, groups, members, format, fields)))} />
-    <Card className="sigac-surface print-cover overflow-hidden"><CardHeader className="sigac-section-header px-5 py-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-wide text-primary">Projeto selecionado</p><CardTitle className="mt-1 text-2xl">{project.nome}</CardTitle><CardDescription className="mt-1">{project.codigo} · {project.areaResponsavel}</CardDescription></div><Badge variant="secondary">{project.status}</Badge></div></CardHeader><CardContent className="grid gap-3 p-5 sm:grid-cols-3"><div className="rounded-lg border border-border/70 p-3"><p className="text-xs text-muted-foreground">Pastas</p><p className="mt-1 text-2xl font-semibold">{foldersLoading ? '—' : folders.length}</p></div><div className="rounded-lg border border-border/70 p-3"><p className="text-xs text-muted-foreground">Grupos</p><p className="mt-1 text-2xl font-semibold">{groups.length ?? '—'}</p></div><div className="rounded-lg border border-border/70 p-3"><p className="text-xs text-muted-foreground">Membros</p><p className="mt-1 text-2xl font-semibold">{members.length ?? '—'}</p></div></CardContent></Card>
+    <Card className="sigac-surface print-cover overflow-hidden"><CardHeader className="sigac-section-header px-5 py-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-wide text-primary">Área de rede selecionada</p><CardTitle className="mt-1 text-2xl">{project.nome}</CardTitle><CardDescription className="mt-1">{project.codigo} · {project.areaResponsavel}</CardDescription></div><Badge variant="secondary">{project.status}</Badge></div></CardHeader><CardContent className="grid gap-3 p-5 sm:grid-cols-3"><div className="rounded-lg border border-border/70 p-3"><p className="text-xs text-muted-foreground">Pastas</p><p className="mt-1 text-2xl font-semibold">{foldersLoading ? '—' : folders.length}</p></div><div className="rounded-lg border border-border/70 p-3"><p className="text-xs text-muted-foreground">Grupos</p><p className="mt-1 text-2xl font-semibold">{groups.length ?? '—'}</p></div><div className="rounded-lg border border-border/70 p-3"><p className="text-xs text-muted-foreground">Membros</p><p className="mt-1 text-2xl font-semibold">{members.length ?? '—'}</p></div></CardContent></Card>
     <Card className="sigac-surface print-section print-folders">
       <CardHeader className="sigac-section-header px-5 py-4"><CardTitle className="text-base">Pastas e permissões</CardTitle><CardDescription>Recursos da área de rede e grupos/membros autorizados em cada pasta.</CardDescription></CardHeader>
       <CardContent className="p-0">
