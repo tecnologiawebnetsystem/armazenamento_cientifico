@@ -113,7 +113,8 @@ class PlatformRepository:
     async def create_configuration(self, resource: str, data: dict[str, Any]) -> dict[str, Any]:
         table, columns, keys = self.CONFIGURATION_TABLES[resource]
         values = {key: data[key] for key in columns if key in data}
-        if any(key not in values for key in keys): raise ValueError("Todos os campos de identificação são obrigatórios")
+        if any(key not in values for key in keys):
+            raise ValueError("Todos os campos de identificação são obrigatórios")
         names = tuple(values)
         await self.execute(f"insert into {self.schema}.{table} ({', '.join(names)}) values ({', '.join(':' + name for name in names)})", values)
         where = " and ".join(f"{key} = :{key}" for key in keys)
@@ -123,7 +124,8 @@ class PlatformRepository:
         table, columns, keys = self.CONFIGURATION_TABLES[resource]
         where, key_params = self._configuration_filter(keys, identifier)
         values = {name: data[name] for name in columns if name not in keys and name in data}
-        if not values: raise ValueError("Nenhum campo informado")
+        if not values:
+            raise ValueError("Nenhum campo informado")
         await self.execute(f"update {self.schema}.{table} set {', '.join(f'{name} = :{name}' for name in values)} where {where}", {**values, **key_params})
         return (await self.rows(f"select {', '.join(columns)} from {self.schema}.{table} where {where}", key_params))[0]
 

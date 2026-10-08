@@ -43,28 +43,32 @@ CONFIGURATION_RESOURCES = frozenset(PlatformRepository.CONFIGURATION_TABLES)
 
 @router.get("/configurations/{resource}")
 async def configurations(resource: str, service: Service, user: CurrentUser):
-    if resource not in CONFIGURATION_RESOURCES: raise HTTPException(status_code=404, detail="Recurso de configuração inválido")
+    if resource not in CONFIGURATION_RESOURCES:
+        raise HTTPException(status_code=404, detail="Recurso de configuração inválido")
     require_operator(user)
     return await service.configurations(resource)
 
 
 @router.post("/configurations/{resource}")
 async def create_configuration(resource: str, service: Service, user: CurrentUser, payload: ConfigurationPayload):
-    if resource not in CONFIGURATION_RESOURCES: raise HTTPException(status_code=404, detail="Recurso de configuração inválido")
+    if resource not in CONFIGURATION_RESOURCES:
+        raise HTTPException(status_code=404, detail="Recurso de configuração inválido")
     require_operator(user)
     return await service.create_configuration(resource, payload)
 
 
 @router.patch("/configurations/{resource}/{identifier}")
 async def update_configuration(resource: str, identifier: str, service: Service, user: CurrentUser, payload: ConfigurationPayload):
-    if resource not in CONFIGURATION_RESOURCES: raise HTTPException(status_code=404, detail="Recurso de configuração inválido")
+    if resource not in CONFIGURATION_RESOURCES:
+        raise HTTPException(status_code=404, detail="Recurso de configuração inválido")
     require_operator(user)
     return await service.update_configuration(resource, identifier, payload)
 
 
 @router.delete("/configurations/{resource}/{identifier}")
 async def delete_configuration(resource: str, identifier: str, service: Service, user: CurrentUser):
-    if resource not in CONFIGURATION_RESOURCES: raise HTTPException(status_code=404, detail="Recurso de configuração inválido")
+    if resource not in CONFIGURATION_RESOURCES:
+        raise HTTPException(status_code=404, detail="Recurso de configuração inválido")
     require_operator(user)
     await service.delete_configuration(resource, identifier)
     return {"deleted": True}

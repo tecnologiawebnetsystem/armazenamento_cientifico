@@ -18,7 +18,6 @@ from app.core.config import settings
 from app.core.temporary_sessions import delete_session
 from app.db.session import get_session
 from app.infrastructure.cav4 import CAV4AuthenticationError, decode_state_nonce, get_cav4_provider
-from app.modules.auth.repository import AuthRepository
 
 logger = logging.getLogger(__name__)
 
