@@ -120,7 +120,13 @@ class PlatformRepository:
         where = " and ".join(f"{key} = :{key}" for key in keys)
         return (await self.rows(f"select {', '.join(columns)} from {self.schema}.{table} where {where}", {key: values[key] for key in keys}))[0]
 
-    async def update_configuration(self, resource: str, identifier: str, data: dict[str, Any]) -> dict[str, Any]:
+    async def update_configuration(
+    self,
+    resource: str,
+    identifier: str,
+    data: dict[str, Any],
+    current_user: dict[str, Any],
+) -> dict[str, Any]:
         table, columns, keys = self.CONFIGURATION_TABLES[resource]
         where, key_params = self._configuration_filter(keys, identifier)
         values = {name: data[name] for name in columns if name not in keys and name in data}

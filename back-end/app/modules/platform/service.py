@@ -23,8 +23,8 @@ class PlatformService:
     async def create_configuration(self, resource: str, data: dict[str, Any]) -> dict[str, Any]:
         return await self.repository.create_configuration(resource, data)
 
-    async def update_configuration(self, resource: str, identifier: str, data: dict[str, Any]) -> dict[str, Any]:
-        return await self.repository.update_configuration(resource, identifier, data)
+    async def update_configuration(self, resource: str, identifier: str, data: dict[str, Any], current_user: dict[str, Any],) -> dict[str, Any]:
+        return await self.repository.update_configuration(resource=resource, identifier=identifier, data=data, current_user=current_user)
 
     async def delete_configuration(self, resource: str, identifier: str) -> None:
         await self.repository.delete_configuration(resource, identifier)

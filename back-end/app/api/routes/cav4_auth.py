@@ -231,6 +231,19 @@ async def cav4_callback(request: Request, code: str, state: str):
                 },
             )
             local_user = local_user_result.mappings().first()
+            registered_profile_result = await database.execute(
+                text(
+                    f"""
+                    select profile_id
+                    from {schema}.users
+                    where id = :user_id
+                    """
+                ),
+                {
+                    "user_id": local_user["id"]
+                }
+            )
+            registered_profile = registered_profile_result.scalar()
             if not local_user:
                 raise HTTPException(
                     status_code=403,
@@ -276,16 +289,53 @@ async def cav4_callback(request: Request, code: str, state: str):
                 },
             )
             await database.execute(
-                text(f"""insert into {schema}.activity_logs
-                    (id,user_id,action,entity,entity_id,details,result,created_at)
-                    values(:id,:user_id,:action,:entity,:entity_id,:details,:result,now())"""),
+                text(
+                    f"""
+                    insert into {schema}.activity_logs
+                    (
+                        id,
+                        user_id,
+                        action,
+                        entity,
+                        entity_id,
+                        details,
+                        result,
+                        created_at
+                    )
+                    values
+                    (
+                        :id,
+                        :user_id,
+                        :action,
+                        :entity,
+                        :entity_id,
+                        :details,
+                        :result,
+                        now()
+                    )
+                    """
+                ),
                 {
                     "id": str(uuid4()),
                     "user_id": local_user["user_id"],
-                    "action": "login",
+                    "action": "cav4_authorization",
                     "entity": "session",
                     "entity_id": session_id,
-                    "details": json.dumps({"provider": "CAV4", "subject": identity.subject}, ensure_ascii=False),
+                    "details": json.dumps(
+                        {
+                            "user_login": identity.user_login,
+                            "email": identity.email,
+                            "registered_profile": registered_profile,
+                            "selected_profile": str(profile_id),
+                            "roles_received": [
+                                str(role)
+                                for role in identity.roles
+                                if role
+                            ],
+                            "provider": "CAV4",
+                        },
+                        ensure_ascii=False,
+                    ),
                     "result": "success",
                 },
             )
