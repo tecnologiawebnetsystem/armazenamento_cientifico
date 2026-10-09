@@ -2,8 +2,8 @@ from datetime import UTC, datetime
 import hashlib
 from uuid import uuid4
 
-from app.modules.catalogs.authorization_models import Permission, ProfilePermission
-from app.modules.catalogs.navigation_models import MenuItem, Module
+from app.modules.catalogs.authorization_models import Permission, ProfileModule, ProfilePermission
+from app.modules.catalogs.navigation_models import MenuItem, MenuPermission, Module
 from app.modules.catalogs.project_catalog_models import ProjectStatus, ResponsibleArea
 from app.modules.catalogs.reporting_models import ReportField, ReportType
 from app.modules.projects.member_model import ProjectMember
@@ -14,7 +14,7 @@ from app.modules.auth.models import UserSession
 
 SEED_PERFIS = [
     ("ADM", "administrador", "Administra a plataforma, configura parâmetros e gerencia acessos."),
-    ("GER", "responsavel", "Coordena a área de rede, equipes e atividades operacionais."),
+    ("GER", "gerente", "Acessa áreas de rede sob sua gestão ou supervisão."),
     ("AUD", "auditor", "Consulta informações e acompanha os registros de auditoria."),
     ("PAT", "patrocinador", "Acompanha resultados e aprova solicitações sob sua responsabilidade."),
     ("SOL", "solicitante", "Solicita acessos e acompanha o andamento das solicitações."),
@@ -37,6 +37,14 @@ SEED_PERMISSIONS = [
     ("administracao.configurar", "administracao", "Configurar parâmetros"),
     ("pesquisa.visualizar", "pesquisas", "Visualizar mapa de acessos"),
 ]
+SEED_PERMISSION_MATRIX = {
+    "ADM": {permission_id: True for permission_id, _, _ in SEED_PERMISSIONS},
+    "GER": {permission_id: permission_id in {"projeto.visualizar", "relatorio.visualizar", "relatorio.exportar", "pesquisa.visualizar", "dashboard.visualizar"} for permission_id, _, _ in SEED_PERMISSIONS},
+    "AUD": {permission_id: permission_id == "auditoria.visualizar" for permission_id, _, _ in SEED_PERMISSIONS},
+    "PAT": {permission_id: permission_id in {"projeto.visualizar", "relatorio.visualizar", "pesquisa.visualizar", "dashboard.visualizar"} for permission_id, _, _ in SEED_PERMISSIONS},
+    "SOL": {permission_id: False for permission_id, _, _ in SEED_PERMISSIONS},
+    "OPR": {permission_id: permission_id == "administracao.configurar" for permission_id, _, _ in SEED_PERMISSIONS},
+}
 SEED_STATUS = [("ATIVO", "ativo", "Ativo", "green", 10, True), ("INATIVO", "inativo", "Inativo", "slate", 20, False), ("CONCLUIDO", "concluido", "Concluído", "blue", 30, False), ("SUSPENSO", "suspenso", "Suspenso", "amber", 40, True)]
 SEED_REPORTS = [("PROJETOS", "projetos", "Relatório da área de rede", "csv,xlsx,pdf"), ("ACESSOS", "acessos", "Mapa de acessos", "csv,xlsx,pdf")]
 SEED_AREAS = [
@@ -76,6 +84,19 @@ SEED_REPORT_FIELDS = [
     ("acessos-membro-papel", "acessos", "membroPapel", "Papel do membro", "memberRole", 170),
     ("acessos-fonte", "acessos", "fonte", "Fonte da consulta", "source", 180),
     ("acessos-consultado-em", "acessos", "consultadoEm", "Consultado em", "queriedAt", 190),
+]
+SEED_PROFILE_MODULES = [
+    ("ADM", "dashboard", True), ("ADM", "projetos", True), ("ADM", "relatorios", True), ("ADM", "auditoria", True), ("ADM", "pesquisas", True), ("ADM", "configuracoes", True),
+    ("GER", "dashboard", True), ("GER", "projetos", True), ("GER", "relatorios", True), ("GER", "auditoria", False), ("GER", "pesquisas", True), ("GER", "configuracoes", False),
+    ("AUD", "dashboard", False), ("AUD", "projetos", False), ("AUD", "relatorios", False), ("AUD", "auditoria", True), ("AUD", "pesquisas", False), ("AUD", "configuracoes", False),
+    ("PAT", "dashboard", True), ("PAT", "projetos", True), ("PAT", "relatorios", True), ("PAT", "auditoria", False), ("PAT", "pesquisas", True), ("PAT", "configuracoes", False),
+    ("SOL", "dashboard", False), ("SOL", "projetos", False), ("SOL", "relatorios", False), ("SOL", "auditoria", False), ("SOL", "pesquisas", False), ("SOL", "configuracoes", False),
+    ("OPR", "dashboard", False), ("OPR", "projetos", False), ("OPR", "relatorios", False), ("OPR", "auditoria", False), ("OPR", "pesquisas", False), ("OPR", "configuracoes", True),
+]
+SEED_MENU_PERMISSIONS = [
+    ("menu-dashboard", "dashboard.visualizar"), ("menu-projetos", "projeto.visualizar"),
+    ("menu-relatorios", "relatorio.visualizar"), ("menu-auditoria", "auditoria.visualizar"),
+    ("menu-pesquisas", "pesquisa.visualizar"), ("menu-configuracoes", "administracao.configurar"),
 ]
 SEED_MENUS = [
     ("menu-dashboard", "dashboard", "Dashboard", "/dashboard", "layout-dashboard", 1),
@@ -118,9 +139,16 @@ async def initialize_database(engine) -> None:
             if area_id not in existing_areas:
                 session.add(ResponsibleArea(id=area_id, name=name, prefix=prefix, next_number=1, active=True, created_at=now, updated_at=now))
         await session.flush()
-        for item in SEED_MODULES:
-            if not await session.get(Module, item[0]):
-                session.add(Module(id=item[0], name=item[1], route=item[2], icon=item[3], display_order=item[4], active=True))
+        for module_id, name, route, icon, display_order in SEED_MODULES:
+            module = await session.get(Module, module_id)
+            if module is None:
+                session.add(Module(id=module_id, name=name, route=route, icon=icon, display_order=display_order, active=True))
+            else:
+                module.name = name
+                module.route = route
+                module.icon = icon
+                module.display_order = display_order
+                module.active = True
         await session.flush()
         for permission_id, module_id, name in SEED_PERMISSIONS:
             permission = await session.get(Permission, permission_id)
@@ -143,12 +171,34 @@ async def initialize_database(engine) -> None:
                 session.add(ReportField(id=field_id, report_code=report_code, field_key=field_key, label=label, source_key=source_key, display_order=display_order, active=True))
 
         for menu_id, module_id, name, route, icon, order in SEED_MENUS:
-            if not await session.get(MenuItem, menu_id):
+            menu = await session.get(MenuItem, menu_id)
+            if menu is None:
                 session.add(MenuItem(id=menu_id, module_id=module_id, name=name, route=route, icon=icon, display_order=order, active=True))
+            else:
+                menu.module_id = module_id
+                menu.name = name
+                menu.route = route
+                menu.icon = icon
+                menu.display_order = order
+                menu.active = True
+        await session.flush()
+        for menu_id, permission_id in SEED_MENU_PERMISSIONS:
+            link = await session.get(MenuPermission, {"menu_id": menu_id, "permission_id": permission_id})
+            if link is None:
+                session.add(MenuPermission(menu_id=menu_id, permission_id=permission_id, allowed=True))
+            else:
+                link.allowed = True
+        for profile_id, module_id, can_view in SEED_PROFILE_MODULES:
+            profile_module = await session.get(ProfileModule, {"profile_id": profile_id, "module_id": module_id})
+            if profile_module is None:
+                session.add(ProfileModule(profile_id=profile_id, module_id=module_id, can_view=can_view))
+            else:
+                profile_module.can_view = can_view
         await session.flush()
         for profile_id in profile_ids.values():
             for permission_id, _, _ in SEED_PERMISSIONS:
-                    allowed = profile_id == "ADM" or (profile_id == "GER" and permission_id == "pesquisa.visualizar")
+                    profile_code = next((code for code, _, _ in SEED_PERFIS if code == profile_id), profile_id)
+                    allowed = SEED_PERMISSION_MATRIX.get(profile_code, {}).get(permission_id, False)
                     profile_permission = await session.get(ProfilePermission, {"profile_id": profile_id, "permission_id": permission_id})
                     if profile_permission is None:
                         session.add(ProfilePermission(profile_id=profile_id, permission_id=permission_id, allowed=allowed))
