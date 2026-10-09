@@ -152,7 +152,7 @@ export default function LogsPage() {
     ["Eventos com erro", errors, errors ? XIcon : ShieldCheckIcon],
   ]
 
-  if (isLoading) return <main className="flex flex-col gap-6"><h1 className="text-2xl font-semibold">Central de auditoria</h1><PetrobrasLoading label="Carregando trilha de auditoria..." /></main>
+  if (isLoading) return <main className="flex flex-col gap-6"><h1 className="font-heading text-2xl font-semibold tracking-[-0.03em] text-foreground text-balance sm:text-3xl lg:text-[2.15rem]">Logs de auditoria</h1><PetrobrasLoading label="Carregando trilha de auditoria..." /></main>
   if (error || !data) return <main className="flex flex-col gap-6"><p className="text-destructive">Não foi possível carregar os logs.</p></main>
 
   return <PageLayout>
