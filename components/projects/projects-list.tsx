@@ -179,7 +179,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-petrobras-green">Gestão científica</p>
-            <h1 className="mt-1 font-heading text-3xl font-semibold tracking-[-0.035em] text-foreground text-balance sm:text-4xl lg:text-[2.65rem]">Áreas de Rede</h1>
+            <h1 className="mt-1 font-heading text-2xl font-semibold tracking-[-0.03em] text-foreground text-balance sm:text-3xl lg:text-[2.15rem]">Áreas de Rede</h1>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Acompanhe áreas de rede, áreas responsáveis, acessos e armazenamento em um só lugar.</p>
           </div>
           {canCreate && <Link href="/projetos/novo" className={buttonVariants({ className: "bg-petrobras-green text-primary-foreground shadow-sm shadow-petrobras-green/20 hover:-translate-y-0.5 hover:bg-petrobras-green/90 hover:shadow-md" })}><FolderPlusIcon data-icon="inline-start" />Nova área de rede</Link>}
