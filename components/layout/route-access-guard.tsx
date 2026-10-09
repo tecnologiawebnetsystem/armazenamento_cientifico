@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { usePlatformContext } from "@/hooks/use-platform-context"
+import { canAccessRoute } from "@/lib/role-access"
 
 function routeMatches(pathname: string, route: string) {
   const normalizedRoute = route.replace(/\/$/, "") || "/"
@@ -12,9 +13,9 @@ function routeMatches(pathname: string, route: string) {
 export function RouteAccessGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { menus, isReady, error } = usePlatformContext()
-  const isAuthorized = menus.some((menu) => routeMatches(pathname, menu.rota))
-  const fallbackRoute = menus[0]?.rota ?? "/forbidden"
+  const { menus, data, isReady, error } = usePlatformContext()
+  const isAuthorized = canAccessRoute(data?.user?.perfil_nome, pathname) && menus.some((menu) => routeMatches(pathname, menu.rota))
+  const fallbackRoute = menus.find((menu) => canAccessRoute(data?.user?.perfil_nome, menu.rota))?.rota ?? "/forbidden"
 
   useEffect(() => {
     if (!isReady || error || isAuthorized) return
