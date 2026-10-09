@@ -6,7 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, require_capabilities
-from app.core.authorization import canonical_role, require_capability
+from app.core.authorization import require_capability
 from app.core.exceptions import ConflictException
 from app.db.session import get_session
 from app.modules.projects.models import Project
@@ -67,8 +67,6 @@ async def create_project(
     service: Annotated[ProjectService, Depends(get_service)],
     user: CurrentUser,
 ):
-    if canonical_role(user.get("role")) in {"gerente", "patrocinador", "auditor", "solicitante"}:
-        raise HTTPException(status_code=403, detail="Este perfil não pode criar área de rede")
     require_capability(user, "create")
     try:
         project = await service.create_project(data)
@@ -104,7 +102,10 @@ async def delete_project(
 
 
 @router.get("/areas", response_model=dict)
-async def list_responsible_areas(service: Annotated[ProjectService, Depends(get_service)], _: CurrentUser):
+async def list_responsible_areas(
+    service: Annotated[ProjectService, Depends(get_service)],
+    _: Annotated[dict, Depends(require_capabilities("read"))],
+):
     areas = await service.list_areas()
     return {"areas": [{"id": area.id, "nome": area.name, "prefixo": area.prefix, "proximoCodigo": area.preview_code()} for area in areas]}
 
@@ -174,5 +175,11 @@ async def list_projects_layered(
 
 
 @router.get("/{project_id}/members", response_model=list[ProjectMemberOut])
-async def list_project_members(project_id: str, service: Annotated[ProjectService, Depends(get_service)], _: CurrentUser):
+async def list_project_members(
+    project_id: str,
+    service: Annotated[ProjectService, Depends(get_service)],
+    user: Annotated[dict, Depends(require_capabilities("access_map"))],
+):
+    if not await service.can_view(project_id, str(user.get("id")), str(user.get("role") or "")):
+        raise HTTPException(status_code=403, detail="Sem acesso a esta área de rede")
     return serialize_members(await service.list_members(project_id))

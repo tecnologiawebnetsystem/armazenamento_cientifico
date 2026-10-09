@@ -46,11 +46,11 @@ def has_capability(user: Any, capability: str) -> bool:
     # que ainda não possuem a lista de permissões carregada.
     normalized_role = canonical_role(raw_role)
     role_capabilities = ROLE_CAPABILITIES.get(normalized_role)
-    if role_capabilities is not None and capability not in role_capabilities:
-        return False
+    # A matriz carregada do banco é sempre a autoridade. O mapa de papéis
+    # existe apenas para sessões legadas que ainda não carregam permissões.
     if permissions is not None:
         required_permission = CAPABILITY_PERMISSION_MAP.get(capability, capability)
-        return required_permission in permissions
+        return required_permission in {str(permission) for permission in permissions}
     return capability in (role_capabilities or frozenset())
 
 
