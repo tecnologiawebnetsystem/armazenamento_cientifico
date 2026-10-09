@@ -83,6 +83,7 @@ def upgrade() -> None:
     op.create_table(
         "users",
         sa.Column("id", sa.String(length=32), nullable=False, server_default=sa.text("md5(random()::text || clock_timestamp()::text)")),
+        # As sessões referenciam o código funcional do usuário, não o UUID técnico.
         sa.Column("user_id", sa.String(length=80), nullable=False),
         sa.Column("profile_id", sa.String(length=20), nullable=True),
         sa.Column("last_login_at", sa.DateTime(), nullable=True),

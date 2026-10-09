@@ -47,7 +47,7 @@ export function usePermissions() {
 export function roleLabel(role: Role | string | null | undefined) {
   switch (normalizeRole(role)) {
     case "admin": return "Administrador"
-    case "gerente": return "Gerente"
+    case "gerente": return "Responsável"
     case "patrocinador": return "Patrocinador"
     case "auditor": return "Auditor"
     case "solicitante": return "Solicitante"
