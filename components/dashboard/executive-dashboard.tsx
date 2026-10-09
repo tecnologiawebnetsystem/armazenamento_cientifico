@@ -73,7 +73,7 @@ export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, a
             <span className="text-xs font-medium text-muted-foreground">{view.focus}</span>
           </div>
           <div className="space-y-2">
-            <h1 className="font-heading text-2xl font-semibold tracking-[-0.03em] text-foreground text-balance sm:text-3xl lg:text-[2.15rem]">{view.label}</h1>
+            <h1 className="sigac-page-title font-heading text-2xl font-semibold tracking-[-0.03em] text-balance sm:text-3xl lg:text-[2.15rem]">{view.label}</h1>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">{view.description}</p>
           </div>
         </div>

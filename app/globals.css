@@ -92,6 +92,7 @@
     --sigac-space-section: 2rem;
     --sigac-shadow-surface: 0 1px 2px color-mix(in oklch, var(--foreground) 3%, transparent), 0 10px 24px color-mix(in oklch, var(--foreground) 4%, transparent);
     --sigac-shadow-hover: 0 2px 4px color-mix(in oklch, var(--foreground) 4%, transparent), 0 16px 30px color-mix(in oklch, var(--foreground) 7%, transparent);
+    --sigac-title-shadow: 0 2px 5px color-mix(in oklch, var(--primary) 18%, transparent);
     --petrobras-green: oklch(0.575 0.155 151);
     --petrobras-yellow: oklch(0.82 0.17 82);
     --petrobras-blue: oklch(0.48 0.13 245);
@@ -105,6 +106,11 @@
     --sidebar-accent-foreground: #ffffff;
     --sidebar-border: #2a9f63;
     --sidebar-ring: #fdbb30;
+}
+
+.sigac-page-title {
+    color: var(--primary);
+    text-shadow: var(--sigac-title-shadow);
 }
 
 .dark {
