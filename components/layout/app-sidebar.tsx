@@ -21,6 +21,7 @@ import { usePlatformContext } from "@/hooks/use-platform-context"
 import { ChartNoAxesCombinedIcon, FolderKanbanIcon, LayoutDashboardIcon, NetworkIcon, SettingsIcon, ShieldCheckIcon, type LucideIcon } from "lucide-react"
 import type { NavGroup, NavItem } from "@/lib/nav-config"
 import { normalizeRole } from "@/hooks/use-permissions"
+import { canAccessRoute } from "@/lib/role-access"
 import type { PlatformMenu } from "@/lib/types"
 
 const iconMap: Record<string, LucideIcon> = {
@@ -48,6 +49,7 @@ function buildNavGroups(menus: PlatformMenu[], profileName?: string | null): Nav
     new Map(
       menus
         .filter((menu) => menu.rota)
+        .filter((menu) => canAccessRoute(role, menu.rota))
         .filter((menu) => {
           const route = menu.rota.trim().replace(/\/$/, "")
           const menuName = menu.nome.trim().toLowerCase()

@@ -82,7 +82,7 @@ export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, a
       <section aria-label="Ações rápidas" className="flex flex-wrap items-center gap-2 rounded-xl border border-border/70 bg-card/70 p-3">
         <span className="mr-1 text-xs font-semibold text-muted-foreground">Comece por aqui</span>
         <Link href="/projetos" className="sigac-focus-ring inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-primary/5"><FolderKanbanIcon className="size-4 text-primary" />Consultar área de rede</Link>
-        {role === "admin" || role === "gerente" ? <Link href="/projetos/novo" className="sigac-focus-ring inline-flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/8 px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/15"><PlusIcon className="size-4" />Criar área de rede</Link> : null}
+        {role === "admin" ? <Link href="/projetos/novo" className="sigac-focus-ring inline-flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/8 px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/15"><PlusIcon className="size-4" />Criar área de rede</Link> : null}
         <Link href={role === "auditor" ? "/logs" : "/pesquisas"} className="sigac-focus-ring inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-primary/5"><ActivityIcon className="size-4 text-primary" />{role === "auditor" ? "Consultar auditoria" : "Consultar acessos"}</Link>
       </section>
 
