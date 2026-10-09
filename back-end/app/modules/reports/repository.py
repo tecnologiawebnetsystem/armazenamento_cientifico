@@ -18,10 +18,11 @@ class ReportRepository:
     async def fields(self, report_code: str) -> list[dict[str, Any]]:
         return await self.rows(f"select id, report_code, field_key, label, source_key, display_order, active from {self.schema}.report_fields where report_code=:report_code and active=true order by display_order", {"report_code": report_code})
 
-    async def projects(self, status: str | None, area: str | None) -> list[dict[str, Any]]:
+    async def projects(self, status: str | None, area: str | None, user_id: str, all_projects: bool = False) -> list[dict[str, Any]]:
+        scope = "" if all_projects else " and (p.managers_ids @> jsonb_build_array(cast(:user_id as text)) or p.participants_ids @> jsonb_build_array(cast(:user_id as text)) or exists (select 1 from " + self.schema + ".project_members pm where pm.project_id=p.id and pm.user_id=:user_id))"
         return await self.rows(
-            f'''select p.id, p.name as nome, p.code as codigo, p.responsible_area as "areaResponsavel", p.status, p.description as descricao, p.created_at as "criadoEm", p.updated_at as "atualizadoEm", 0 as "totalMapas", 0 as "totalMembros" from {self.schema}.projects p where (cast(:status as text) is null or p.status=:status) and (cast(:area as text) is null or p.responsible_area=:area) order by p.name''',
-            {"status": status, "area": area},
+            f'''select p.id, p.name as nome, p.code as codigo, p.responsible_area as "areaResponsavel", p.status, p.description as descricao, p.created_at as "criadoEm", p.updated_at as "atualizadoEm", 0 as "totalMapas", 0 as "totalMembros" from {self.schema}.projects p where (cast(:status as text) is null or p.status=:status) and (cast(:area as text) is null or p.responsible_area=:area){scope} order by p.name''',
+            {"status": status, "area": area, "user_id": user_id},
         )
 
     async def by_status(self) -> list[dict[str, Any]]:

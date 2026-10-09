@@ -7,7 +7,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUser
+from app.api.dependencies import CurrentUser, require_capabilities
 from app.core.authorization import is_operator_user, require_operator
 from app.db.session import get_session
 
@@ -89,19 +89,19 @@ async def dashboard(service: Service, user: CurrentUser):
 
 
 @router.get("/activity-logs")
-async def activity_logs(service: Service, _: CurrentUser, page: int = Query(1, ge=1), limit: int = Query(50, ge=1, le=500)):
+async def activity_logs(service: Service, _: Annotated[dict, Depends(require_capabilities("audit"))], page: int = Query(1, ge=1), limit: int = Query(50, ge=1, le=500)):
     logger.info("platform_activity_logs_read page=%s limit=%s", page, limit)
     return await service.activity_logs(page, limit)
 
 
 @router.get("/access-map")
-async def access_map(service: Service, _: CurrentUser):
+async def access_map(service: Service, _: Annotated[dict, Depends(require_capabilities("access_map"))]):
     logger.info("platform_access_map_read")
     return await service.access_map()
 
 
 @router.get("/access-map/export")
-async def export_access_map(service: Service, _: CurrentUser, format: str = Query("csv"), fields: str = ""):
+async def export_access_map(service: Service, _: Annotated[dict, Depends(require_capabilities("access_map"))], format: str = Query("csv"), fields: str = ""):
     data = await service.access_map()
     output = io.StringIO()
     rows = data.get("rows", [])
