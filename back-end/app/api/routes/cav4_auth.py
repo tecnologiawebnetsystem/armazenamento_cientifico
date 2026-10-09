@@ -13,7 +13,6 @@ from sqlalchemy import bindparam, text
 from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 
 from app.api.dependencies import get_current_user
-from app.core.authorization import canonical_role
 from app.core.config import settings
 from app.core.temporary_sessions import delete_session
 from app.db.session import get_session
@@ -179,31 +178,13 @@ async def cav4_callback(request: Request, code: str, state: str):
         identity.email,
         [str(role) for role in identity.roles if role],
     )
-    solicitante_role = next((role for role in identity.roles if canonical_role(role) == "solicitante"), None)
-    profile_id = solicitante_role or next((role for role in identity.roles if canonical_role(role)), None)
-    if not profile_id:
-        raise HTTPException(status_code=403, detail="Usuário CAV4 sem perfil corporativo configurado")
-    if solicitante_role:
-        message = "Seu perfil de Solicitante no CAV4 não tem permissão para acessar o Dashboard SIGAC."
-        login_url = f"{settings.frontend_url.rstrip('/')}/login?auth_error={quote(message)}&next={quote(next_path or '/dashboard', safe='')}"
-        logger.info("cav4_access_denied_redirect role=%s frontend=%s", profile_id, settings.frontend_url)
-        return RedirectResponse(
-            url=login_url,
-            status_code=status.HTTP_303_SEE_OTHER,
-        )
-
     session_id = str(uuid4())
     expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours)
     try:
         schema = _schema_name()
         async for database in get_session():
-            profile_result = await database.execute(
-                text(f"select id from {schema}.profiles where id=:profile_id"),
-                {"profile_id": profile_id},
-            )
-            profile = profile_result.mappings().first()
-            if not profile:
-                raise HTTPException(status_code=403, detail=f"Perfil CAV4 não cadastrado no SIGAC: {profile_id}")
+            # A identidade corporativa identifica o usuário; o perfil efetivo,
+            # os módulos e as permissões são sempre resolvidos pelo cadastro local.
             # O `sub` do CAV4 pode ser o e-mail (como ocorre em alguns
             # clientes), enquanto o cadastro do SIGAC usa o login corporativo.
             # Prioriza o login explícito e mantém o subject como fallback para
@@ -217,7 +198,7 @@ async def cav4_callback(request: Request, code: str, state: str):
             )
             local_user_result = await database.execute(
                 text(
-                    f"select id, user_id from {schema}.users "
+                    f"select id, user_id, profile_id from {schema}.users "
                     "where user_id in :user_ids "
                     "order by case user_id "
                     "when :user_login then 0 "
@@ -231,24 +212,19 @@ async def cav4_callback(request: Request, code: str, state: str):
                 },
             )
             local_user = local_user_result.mappings().first()
-            registered_profile_result = await database.execute(
-                text(
-                    f"""
-                    select profile_id
-                    from {schema}.users
-                    where id = :user_id
-                    """
-                ),
-                {
-                    "user_id": local_user["id"]
-                }
-            )
-            registered_profile = registered_profile_result.scalar()
-            if not local_user:
+            if not local_user or not local_user.get("profile_id"):
                 raise HTTPException(
                     status_code=403,
-                    detail=f"Usuário CAV4 não cadastrado no SIGAC: {identity.user_login or identity.subject}",
+                    detail=f"Usuário CAV4 não cadastrado no SIGAC ou sem perfil: {identity.user_login or identity.subject}",
                 )
+            profile_id = str(local_user["profile_id"])
+            profile_result = await database.execute(
+                text(f"select id from {schema}.profiles where id=:profile_id"),
+                {"profile_id": profile_id},
+            )
+            if not profile_result.mappings().first():
+                raise HTTPException(status_code=403, detail="Perfil do usuário não está configurado no SIGAC")
+            registered_profile = profile_id
             claims = identity.raw_claims or {}
             def claim(*names: str) -> str | None:
                 for name in names:
