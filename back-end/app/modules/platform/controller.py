@@ -7,8 +7,8 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUser
-from app.core.authorization import is_operator_user, require_operator
+from app.api.dependencies import CurrentUser, require_capabilities
+from app.core.authorization import require_capability
 from app.db.session import get_session
 
 from .repository import PlatformRepository
@@ -33,7 +33,7 @@ async def platform_context(service: Service, user: CurrentUser):
 
 
 @router.get("/catalogos")
-async def catalogs(service: Service, _: CurrentUser):
+async def catalogs(service: Service, _: Annotated[dict, Depends(require_capabilities("read"))]):
     logger.info("platform_catalogs_read")
     return await service.catalogs()
 
@@ -45,7 +45,7 @@ CONFIGURATION_RESOURCES = frozenset(PlatformRepository.CONFIGURATION_TABLES)
 async def configurations(resource: str, service: Service, user: CurrentUser):
     if resource not in CONFIGURATION_RESOURCES:
         raise HTTPException(status_code=404, detail="Recurso de configuração inválido")
-    require_operator(user)
+    require_capability(user, "configure")
     return await service.configurations(resource)
 
 
@@ -53,7 +53,7 @@ async def configurations(resource: str, service: Service, user: CurrentUser):
 async def create_configuration(resource: str, service: Service, user: CurrentUser, payload: ConfigurationPayload):
     if resource not in CONFIGURATION_RESOURCES:
         raise HTTPException(status_code=404, detail="Recurso de configuração inválido")
-    require_operator(user)
+    require_capability(user, "configure")
     return await service.create_configuration(resource, payload)
 
 
@@ -61,7 +61,7 @@ async def create_configuration(resource: str, service: Service, user: CurrentUse
 async def update_configuration(resource: str, identifier: str, service: Service, user: CurrentUser, payload: ConfigurationPayload):
     if resource not in CONFIGURATION_RESOURCES:
         raise HTTPException(status_code=404, detail="Recurso de configuração inválido")
-    require_operator(user)
+    require_capability(user, "configure")
     return await service.update_configuration(resource=resource, identifier=identifier, data=payload, current_user=user)
 
 
@@ -69,39 +69,37 @@ async def update_configuration(resource: str, identifier: str, service: Service,
 async def delete_configuration(resource: str, identifier: str, service: Service, user: CurrentUser):
     if resource not in CONFIGURATION_RESOURCES:
         raise HTTPException(status_code=404, detail="Recurso de configuração inválido")
-    require_operator(user)
+    require_capability(user, "configure")
     await service.delete_configuration(resource, identifier)
     return {"deleted": True}
 
 
 @router.get("/users")
-async def users(service: Service, _: CurrentUser):
+async def users(service: Service, _: Annotated[dict, Depends(require_capabilities("manage_users"))]):
     logger.info("platform_users_read")
     return {"users": await service.users()}
 
 
 @router.get("/dashboard/summary")
-async def dashboard(service: Service, user: CurrentUser):
-    if is_operator_user(user):
-        raise HTTPException(status_code=403, detail="O perfil Operador tem acesso exclusivo a Configurações.")
+async def dashboard(service: Service, _: Annotated[dict, Depends(require_capabilities("read"))]):
     logger.info("platform_dashboard_read")
     return await service.dashboard()
 
 
 @router.get("/activity-logs")
-async def activity_logs(service: Service, _: CurrentUser, page: int = Query(1, ge=1), limit: int = Query(50, ge=1, le=500)):
+async def activity_logs(service: Service, _: Annotated[dict, Depends(require_capabilities("audit"))], page: int = Query(1, ge=1), limit: int = Query(50, ge=1, le=500)):
     logger.info("platform_activity_logs_read page=%s limit=%s", page, limit)
     return await service.activity_logs(page, limit)
 
 
 @router.get("/access-map")
-async def access_map(service: Service, _: CurrentUser):
+async def access_map(service: Service, _: Annotated[dict, Depends(require_capabilities("access_map"))]):
     logger.info("platform_access_map_read")
     return await service.access_map()
 
 
 @router.get("/access-map/export")
-async def export_access_map(service: Service, _: CurrentUser, format: str = Query("csv"), fields: str = ""):
+async def export_access_map(service: Service, _: Annotated[dict, Depends(require_capabilities("access_map"))], format: str = Query("csv"), fields: str = ""):
     data = await service.access_map()
     output = io.StringIO()
     rows = data.get("rows", [])
