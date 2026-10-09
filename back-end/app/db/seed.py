@@ -14,7 +14,7 @@ from app.modules.auth.models import UserSession
 
 SEED_PERFIS = [
     ("ADM", "administrador", "Administra a plataforma, configura parâmetros e gerencia acessos."),
-    ("GER", "gerente", "Acessa áreas de rede sob sua gestão ou supervisão."),
+    ("GER", "Responsável", "Acessa áreas de rede sob sua gestão ou supervisão."),
     ("AUD", "auditor", "Consulta informações e acompanha os registros de auditoria."),
     ("PAT", "patrocinador", "Acompanha resultados e aprova solicitações sob sua responsabilidade."),
     ("SOL", "solicitante", "Solicita acessos e acompanha o andamento das solicitações."),
@@ -128,10 +128,14 @@ async def initialize_database(engine) -> None:
     async with factory() as session:
         existing_users = {row.user_id: row for row in (await session.scalars(select(User))).all()}
         now = datetime.now(UTC).replace(tzinfo=None)
-        existing_profiles = {row.id for row in (await session.scalars(select(Profile))).all()}
+        existing_profiles = {row.id: row for row in (await session.scalars(select(Profile))).all()}
         for perfil_id, nome, descricao in SEED_PERFIS:
-            if perfil_id not in existing_profiles:
+            profile = existing_profiles.get(perfil_id)
+            if profile is None:
                 session.add(Profile(id=perfil_id, name=nome, description=descricao, created_at=now))
+            else:
+                profile.name = nome
+                profile.description = descricao
         await session.flush()
         profile_ids = {row.name: row.id for row in (await session.scalars(select(Profile))).all()}
         existing_areas = {row.id for row in (await session.scalars(select(ResponsibleArea))).all()}
