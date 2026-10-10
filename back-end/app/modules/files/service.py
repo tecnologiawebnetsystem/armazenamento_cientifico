@@ -23,8 +23,48 @@ class FolderService:
         return await self.repository.find_by_project(project_id)
 
     async def list_project_folders(self, project_id: str) -> list[Folder]:
-        """Consulta rápida: a tabela local é a fonte da aba de Pastas."""
-        return await self.list_folders_by_project(project_id)
+        """Lista a raiz real da rede e usa o banco como fallback."""
+        project = await self.repository.find_project(project_id)
+        parent_folder = (project.parent_folder if project else "").strip()
+        if not parent_folder:
+            return await self.list_folders_by_project(project_id)
+
+        try:
+            folders = await asyncio.wait_for(
+                asyncio.to_thread(self._read_root_folders, project_id, parent_folder),
+                timeout=45,
+            )
+            return folders if folders else await self.list_folders_by_project(project_id)
+        except Exception:
+            return await self.list_folders_by_project(project_id)
+
+    @staticmethod
+    def _read_root_folders(project_id: str, parent_folder: str) -> list[Folder]:
+        root = Path(parent_folder)
+        if not root.is_dir():
+            return []
+
+        now = datetime.now(UTC).replace(tzinfo=None)
+        with os.scandir(root) as directory:
+            entries = sorted(
+                (entry for entry in directory if entry.is_dir(follow_symlinks=False)),
+                key=lambda entry: entry.name.casefold(),
+            )
+
+        return [
+            Folder(
+                id=str(uuid5(NAMESPACE_URL, f"{project_id}:{entry.path}")),
+                project_id=project_id,
+                parent_id=None,
+                kind="pasta",
+                name=entry.name,
+                created_by="filesystem",
+                created_at=now,
+                updated_at=now,
+                size=0,
+            )
+            for entry in entries
+        ]
 
     async def synchronize_project_folders(self, project_id: str, user_id: str) -> dict:
         project = await self.repository.find_project(project_id)
