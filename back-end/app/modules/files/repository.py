@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.files.models import Folder
@@ -18,6 +18,13 @@ class FolderRepository:
             .order_by(Folder.name)
         )
         return list(result)
+
+    async def save_sync(self, folders: list[Folder], stale_ids: list[str]) -> None:
+        if stale_ids:
+            await self.session.execute(delete(Folder).where(Folder.id.in_(stale_ids)))
+        for folder in folders:
+            self.session.add(folder)
+        await self.session.commit()
 
     async def project_exists(self, project_id: str) -> bool:
         from app.modules.projects.models import Project

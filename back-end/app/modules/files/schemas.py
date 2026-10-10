@@ -29,3 +29,10 @@ class FolderListOut(BaseModel):
     folders: list[FolderOut]
 
     model_config = {"from_attributes": True}
+
+
+class FolderSyncOut(FolderListOut):
+    added: int = 0
+    updated: int = 0
+    removed: int = 0
+    synchronized_at: datetime

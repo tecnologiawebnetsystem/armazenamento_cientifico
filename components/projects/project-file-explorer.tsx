@@ -1,9 +1,9 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { ChevronRightIcon, FolderIcon, FoldersIcon, SearchIcon, SearchXIcon } from "lucide-react"
+import { ChevronRightIcon, FolderIcon, FoldersIcon, Loader2Icon, RefreshCwIcon, SearchIcon, SearchXIcon } from "lucide-react"
 import useSWR from "swr"
-import { getFolders } from "@/lib/api-client"
+import { getFolders, syncFolders } from "@/lib/api-client"
 import type { FileNode } from "@/lib/types"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,7 +20,21 @@ function parentId(folder: FileNode) {
 }
 
 export function ProjectFileExplorer({ projectId }: { projectId: string }) {
-  const { data, isLoading, error } = useSWR(["project-folders", projectId], () => getFolders(projectId))
+  const { data, isLoading, error, mutate } = useSWR(["project-folders", projectId], () => getFolders(projectId))
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [syncError, setSyncError] = useState<string | null>(null)
+
+  async function handleSync() {
+    setIsSyncing(true)
+    setSyncError(null)
+    try {
+      await mutate(() => syncFolders(projectId), { revalidate: false })
+    } catch {
+      setSyncError("Não foi possível atualizar as pastas. Verifique a disponibilidade da área de rede.")
+    } finally {
+      setIsSyncing(false)
+    }
+  }
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const folders = useMemo(() => (data?.folders ?? []).filter((folder) => folder.tipo !== "arquivo"), [data?.folders])
@@ -42,11 +56,12 @@ export function ProjectFileExplorer({ projectId }: { projectId: string }) {
             <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-petrobras-green text-primary-foreground"><FoldersIcon className="size-5" aria-hidden="true" /></div>
             <div className="flex flex-col gap-1"><CardTitle className="text-xl tracking-tight">Pastas da área de rede</CardTitle><CardDescription>Visualize a estrutura real de pastas, sem arquivos e sem edição.</CardDescription></div>
           </div>
-          <div className="flex flex-wrap gap-2"><Badge variant="secondary">{folders.length} {folders.length === 1 ? "pasta" : "pastas"}</Badge><Badge variant="outline">Somente leitura</Badge></div>
+          <div className="flex flex-wrap items-center gap-2"><Badge variant="secondary">{folders.length} {folders.length === 1 ? "pasta" : "pastas"}</Badge><Badge variant="outline">Somente leitura</Badge><button type="button" onClick={handleSync} disabled={isSyncing} className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-petrobras-green/30 bg-background px-3 text-sm font-semibold text-foreground transition-colors hover:bg-petrobras-green/10 disabled:cursor-not-allowed disabled:opacity-60" aria-label="Atualizar pastas da área de rede">{isSyncing ? <Loader2Icon className="size-4 animate-spin" aria-hidden="true" /> : <RefreshCwIcon className="size-4" aria-hidden="true" />}<span>{isSyncing ? "Atualizando..." : "Atualizar pastas"}</span></button></div>
         </div>
         <CardAction className="sr-only">Somente leitura</CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        {syncError ? <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{syncError}</p> : null}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
             <button type="button" className="shrink-0 font-medium text-foreground hover:underline disabled:cursor-default disabled:no-underline" onClick={() => setCurrentFolderId(null)} disabled={!currentFolderId}>Raiz</button>
