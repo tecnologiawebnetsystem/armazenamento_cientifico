@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import subprocess
-from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid4, uuid5
@@ -71,28 +70,39 @@ class FolderService:
         ]
 
     async def synchronize_project_folders(self, project_id: str, user_id: str) -> dict:
+        logger.info("folder_sync_started project_id=%s user_id=%s", project_id, user_id)
         project = await self.repository.find_project(project_id)
         parent_folder = (project.parent_folder if project else "").strip()
+        logger.info(
+            "folder_sync_project_loaded project_id=%s project_found=%s network_path=%s",
+            project_id,
+            project is not None,
+            parent_folder or "<empty>",
+        )
         if not parent_folder:
+            logger.error("folder_sync_missing_network_path project_id=%s", project_id)
             raise ValueError("O projeto não possui área de rede configurada")
 
-        executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="folder-sync")
-        future = executor.submit(self._discover_folders, project_id, parent_folder, user_id)
-        wrapped_future = asyncio.wrap_future(future)
         try:
-            discovered, has_walk_errors = await asyncio.wait_for(wrapped_future, timeout=30)
+            logger.info("folder_sync_scan_started project_id=%s network_path=%s", project_id, parent_folder)
+            discovered, has_walk_errors = await asyncio.wait_for(
+                asyncio.to_thread(self._discover_folders, project_id, parent_folder, user_id),
+                timeout=30,
+            )
+            logger.info(
+                "folder_sync_scan_finished project_id=%s discovered=%s partial=%s",
+                project_id,
+                len(discovered),
+                has_walk_errors,
+            )
         except asyncio.TimeoutError as exc:
-            # Não aguarde uma chamada de rede travada no encerramento do executor.
-            # O worker será descartado quando terminar; a API continua disponível.
-            future.cancel()
-            executor.shutdown(wait=False, cancel_futures=True)
+            logger.exception("folder_sync_scan_timeout project_id=%s network_path=%s", project_id, parent_folder)
             raise TimeoutError("A leitura da área de rede excedeu o tempo limite") from exc
         except Exception:
-            executor.shutdown(wait=False, cancel_futures=True)
+            logger.exception("folder_sync_scan_failed project_id=%s network_path=%s", project_id, parent_folder)
             raise
-        else:
-            executor.shutdown(wait=True, cancel_futures=False)
         current = await self.repository.find_by_project(project_id)
+        logger.info("folder_sync_database_loaded project_id=%s current=%s", project_id, len(current))
         current_by_id = {folder.id: folder for folder in current}
         desired_ids = {folder.id for folder in discovered}
         added = 0
@@ -132,8 +142,34 @@ class FolderService:
         # Em uma varredura parcial, mantemos registros antigos: remover uma
         # pasta apenas porque uma subpasta ficou inacessível seria destrutivo.
         stale_ids = [] if has_walk_errors else [folder.id for folder in current if folder.id not in desired_ids]
-        await self.repository.save_sync([folder for folder in discovered if folder.id not in current_by_id], stale_ids)
+        new_folders = [folder for folder in discovered if folder.id not in current_by_id]
+        logger.info(
+            "folder_sync_persist_started project_id=%s insert=%s update=%s remove=%s partial=%s",
+            project_id,
+            len(new_folders),
+            updated,
+            len(stale_ids),
+            has_walk_errors,
+        )
+        try:
+            await self.repository.save_sync(new_folders, stale_ids)
+        except Exception:
+            logger.exception(
+                "folder_sync_persist_failed project_id=%s insert=%s remove=%s",
+                project_id,
+                len(new_folders),
+                len(stale_ids),
+            )
+            raise
         folders = await self.repository.find_by_project(project_id)
+        logger.info(
+            "folder_sync_finished project_id=%s total=%s added=%s updated=%s removed=%s",
+            project_id,
+            len(folders),
+            added,
+            updated,
+            len(stale_ids),
+        )
         return {"folders": folders, "added": added, "updated": updated, "removed": len(stale_ids), "synchronized_at": now}
 
     @staticmethod
