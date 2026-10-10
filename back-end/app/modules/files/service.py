@@ -1,5 +1,7 @@
 import asyncio
+import json
 import os
+import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid4, uuid5
@@ -89,6 +91,32 @@ class FolderService:
             parent = path.parent if path.parent != root else None
             discovered.append(Folder(id=folder_id, project_id=project_id, parent_id=ids_by_path.get(parent), kind="pasta", name=path.name, created_by=user_id, created_at=now, updated_at=now, size=sizes_by_path[path]))
         return discovered
+
+    async def get_folder_permissions(self, project_id: str, folder_id: str) -> dict:
+        project = await self.repository.find_project(project_id)
+        folders = await self.repository.find_by_project(project_id)
+        folder = next((item for item in folders if item.id == folder_id), None)
+        if not project or not folder:
+            raise ValueError("Pasta não encontrada")
+        path_by_id = {item.id: item for item in folders}
+        parts: list[str] = []
+        current = folder
+        while current:
+            parts.append(current.name)
+            current = path_by_id.get(current.parent_id)
+        root = Path((project.parent_folder or "").strip())
+        folder_path = root.joinpath(*reversed(parts))
+        permissions = await asyncio.to_thread(self._read_windows_permissions, folder_path)
+        return {"folder_id": folder.id, "folder_name": folder.name, "permissions": permissions, "source": "Windows ACL", "consulted_at": datetime.now(UTC).replace(tzinfo=None)}
+
+    @staticmethod
+    def _read_windows_permissions(folder_path: Path) -> list[dict]:
+        if os.name != "nt":
+            raise OSError("A leitura de permissões está disponível no servidor Windows da área de rede")
+        script = """$acl = Get-Acl -LiteralPath $args[0]; $acl.Access | ForEach-Object { [PSCustomObject]@{ identity=$_.IdentityReference.Value; access_type=$_.AccessControlType.ToString(); rights=([string]$_.FileSystemRights -split ', '); inherited=$_.IsInherited; inheritance_flags=([string]$_.InheritanceFlags -split ', '); propagation_flags=([string]$_.PropagationFlags -split ', ') } } | ConvertTo-Json -Compress"""
+        result = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script, str(folder_path)], capture_output=True, text=True, timeout=30, check=True)
+        payload = json.loads(result.stdout or "[]")
+        return payload if isinstance(payload, list) else [payload]
 
     async def can_list_project(self, project_id: str, user_id: str, role: str) -> bool:
         return await self.repository.can_view_project(project_id, user_id, role)

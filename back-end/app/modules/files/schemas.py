@@ -36,3 +36,20 @@ class FolderSyncOut(FolderListOut):
     updated: int = 0
     removed: int = 0
     synchronized_at: datetime
+
+
+class FolderPermissionOut(BaseModel):
+    identity: str
+    access_type: str
+    rights: list[str]
+    inherited: bool
+    inheritance_flags: list[str] = Field(default_factory=list)
+    propagation_flags: list[str] = Field(default_factory=list)
+
+
+class FolderPermissionsOut(BaseModel):
+    folder_id: str
+    folder_name: str
+    permissions: list[FolderPermissionOut]
+    source: str
+    consulted_at: datetime

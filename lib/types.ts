@@ -80,6 +80,23 @@ export interface Project {
   armazenamentoUsadoMb?: number
 }
 
+export interface FolderPermission {
+  identity: string
+  access_type: string
+  rights: string[]
+  inherited: boolean
+  inheritance_flags?: string[]
+  propagation_flags?: string[]
+}
+
+export interface FolderPermissions {
+  folder_id: string
+  folder_name: string
+  permissions: FolderPermission[]
+  source: string
+  consulted_at: string
+}
+
 export interface FileNode {
   id: string
   projectId: string

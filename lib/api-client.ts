@@ -235,6 +235,10 @@ export function syncFolders(projectId: string) {
   return request<{ folders: FileNode[]; added: number; updated: number; removed: number; synchronized_at: string }>(`/api/folders/sync?projectId=${encodeURIComponent(projectId)}`, { method: "POST" })
 }
 
+export function getFolderPermissions(projectId: string, folderId: string) {
+  return request<import("@/lib/types").FolderPermissions>(`/api/folders/${encodeURIComponent(folderId)}/permissions?projectId=${encodeURIComponent(projectId)}`)
+}
+
 /* -------------------------------- Dashboard -------------------------------- */
 
 export function getDashboardSummary() {
