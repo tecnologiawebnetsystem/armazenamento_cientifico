@@ -32,7 +32,10 @@ function formatBytes(bytes: number) {
 }
 
 export function ProjectFileExplorer({ projectId }: { projectId: string }) {
-  const { data, isLoading, error, mutate } = useSWR(["project-folders", projectId], () => getFolders(projectId))
+  const { data, isLoading, error, mutate } = useSWR(["project-folders", projectId], () => getFolders(projectId), {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+  })
   const [isSyncing, setIsSyncing] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
 

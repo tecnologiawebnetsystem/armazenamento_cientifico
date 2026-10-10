@@ -110,8 +110,8 @@ export default function AccessMapPage() {
     return projects.filter((project) => !term || `${project.nome} ${project.codigo} ${project.areaResponsavel}`.toLocaleLowerCase('pt-BR').includes(term))
   }, [projects, search])
   const selectedProject = projects.find((project) => project.id === selectedProjectId)
-  const { data: accessMap, isLoading: accessLoading, error: accessError, mutate: retryAccess } = useSWR<ProjectAccessMapResponse>(selectedProjectId ? ['project-access-map-page', selectedProjectId] : null, () => getProjectAccessMap(selectedProjectId))
-  const { data: foldersData, isLoading: foldersLoading } = useSWR(selectedProjectId ? ['access-map-folders', selectedProjectId] : null, () => getFolders(selectedProjectId))
+  const { data: accessMap, isLoading: accessLoading, error: accessError, mutate: retryAccess } = useSWR<ProjectAccessMapResponse>(selectedProjectId ? ['project-access-map-page', selectedProjectId] : null, () => getProjectAccessMap(selectedProjectId), { revalidateOnFocus: false, revalidateOnReconnect: false })
+  const { data: foldersData, isLoading: foldersLoading } = useSWR(selectedProjectId ? ['access-map-folders', selectedProjectId] : null, () => getFolders(selectedProjectId), { revalidateOnFocus: false, revalidateOnReconnect: false })
   const folders = (foldersData?.folders ?? []).map((item) => {
     const raw = item as FileNode & { kind?: string; name?: string; project_id?: string; parent_id?: string | null }
     return {
