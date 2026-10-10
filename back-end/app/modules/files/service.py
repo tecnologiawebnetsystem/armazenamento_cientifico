@@ -65,11 +65,29 @@ class FolderService:
         discovered: list[Folder] = []
         paths = sorted((path for path in root.rglob("*") if path.is_dir()), key=lambda path: str(path).casefold())
         ids_by_path: dict[Path, str] = {}
+        sizes_by_path: dict[Path, int] = {path: 0 for path in paths}
+
+        # Uma única varredura calcula o tamanho de cada pasta, incluindo arquivos
+        # de subpastas, evitando uma consulta recursiva por pasta na rede.
+        for current_path, _, filenames in os.walk(root):
+            current = Path(current_path)
+            for filename in filenames:
+                file_path = current / filename
+                try:
+                    file_size = file_path.stat().st_size
+                except OSError:
+                    continue
+                ancestor = current
+                while ancestor != root:
+                    if ancestor in sizes_by_path:
+                        sizes_by_path[ancestor] += file_size
+                    ancestor = ancestor.parent
+
         for path in paths:
             folder_id = str(uuid5(NAMESPACE_URL, f"{project_id}:{path}"))
             ids_by_path[path] = folder_id
             parent = path.parent if path.parent != root else None
-            discovered.append(Folder(id=folder_id, project_id=project_id, parent_id=ids_by_path.get(parent), kind="pasta", name=path.name, created_by=user_id, created_at=now, updated_at=now, size=0))
+            discovered.append(Folder(id=folder_id, project_id=project_id, parent_id=ids_by_path.get(parent), kind="pasta", name=path.name, created_by=user_id, created_at=now, updated_at=now, size=sizes_by_path[path]))
         return discovered
 
     async def can_list_project(self, project_id: str, user_id: str, role: str) -> bool:

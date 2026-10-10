@@ -19,6 +19,17 @@ function parentId(folder: FileNode) {
   return folder.parentId ?? (folder as FileNode & { parent_id?: string | null }).parent_id ?? null
 }
 
+function folderSize(folder: FileNode) {
+  return folder.tamanho ?? folder.sizeBytes ?? folder.size_bytes ?? 0
+}
+
+function formatBytes(bytes: number) {
+  if (bytes === 0) return "0 B"
+  const units = ["B", "KB", "MB", "GB", "TB"]
+  const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1)
+  return `${(bytes / 1024 ** unitIndex).toLocaleString("pt-BR", { maximumFractionDigits: unitIndex === 0 ? 0 : 2 })} ${units[unitIndex]}`
+}
+
 export function ProjectFileExplorer({ projectId }: { projectId: string }) {
   const { data, isLoading, error, mutate } = useSWR(["project-folders", projectId], () => getFolders(projectId))
   const [isSyncing, setIsSyncing] = useState(false)
@@ -38,6 +49,7 @@ export function ProjectFileExplorer({ projectId }: { projectId: string }) {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const folders = useMemo(() => (data?.folders ?? []).filter((folder) => folder.tipo !== "arquivo"), [data?.folders])
+  const totalSize = useMemo(() => folders.filter((folder) => parentId(folder) === null).reduce((total, folder) => total + folderSize(folder), 0), [folders])
   const currentFolder = folders.find((folder) => folder.id === currentFolderId)
   const children = useMemo(
     () => folders.filter((folder) => parentId(folder) === currentFolderId).sort((a, b) => folderName(a).localeCompare(folderName(b), "pt-BR")),
@@ -56,7 +68,7 @@ export function ProjectFileExplorer({ projectId }: { projectId: string }) {
             <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-petrobras-green text-primary-foreground"><FoldersIcon className="size-5" aria-hidden="true" /></div>
             <div className="flex flex-col gap-1"><CardTitle className="text-xl tracking-tight">Pastas da área de rede</CardTitle><CardDescription>Visualize a estrutura real de pastas, sem arquivos e sem edição.</CardDescription></div>
           </div>
-          <div className="flex flex-wrap items-center gap-2"><Badge variant="secondary">{folders.length} {folders.length === 1 ? "pasta" : "pastas"}</Badge><Badge variant="outline">Somente leitura</Badge><button type="button" onClick={handleSync} disabled={isSyncing} className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-petrobras-green/30 bg-background px-3 text-sm font-semibold text-foreground transition-colors hover:bg-petrobras-green/10 disabled:cursor-not-allowed disabled:opacity-60" aria-label="Atualizar pastas da área de rede">{isSyncing ? <Loader2Icon className="size-4 animate-spin" aria-hidden="true" /> : <RefreshCwIcon className="size-4" aria-hidden="true" />}<span>{isSyncing ? "Atualizando..." : "Atualizar pastas"}</span></button></div>
+          <div className="flex flex-wrap items-center gap-2"><Badge variant="secondary">{folders.length} {folders.length === 1 ? "pasta" : "pastas"}</Badge><Badge variant="outline">Total: {formatBytes(totalSize)}</Badge><Badge variant="outline">Somente leitura</Badge><button type="button" onClick={handleSync} disabled={isSyncing} className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-petrobras-green/30 bg-background px-3 text-sm font-semibold text-foreground transition-colors hover:bg-petrobras-green/10 disabled:cursor-not-allowed disabled:opacity-60" aria-label="Atualizar pastas da área de rede">{isSyncing ? <Loader2Icon className="size-4 animate-spin" aria-hidden="true" /> : <RefreshCwIcon className="size-4" aria-hidden="true" />}<span>{isSyncing ? "Atualizando..." : "Atualizar pastas"}</span></button></div>
         </div>
         <CardAction className="sr-only">Somente leitura</CardAction>
       </CardHeader>
@@ -70,7 +82,7 @@ export function ProjectFileExplorer({ projectId }: { projectId: string }) {
           <InputGroup className="w-full sm:w-64"><InputGroupAddon><SearchIcon /></InputGroupAddon><InputGroupInput placeholder="Buscar todas as pastas..." value={search} onChange={(event) => setSearch(event.target.value)} /></InputGroup>
         </div>
 
-        {isLoading ? <div className="flex flex-col gap-2">{Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} className="h-12 rounded-lg" />)}</div> : error ? <Empty><EmptyHeader><EmptyTitle>Não foi possível carregar as pastas</EmptyTitle><EmptyDescription>Verifique seu acesso ao projeto e tente novamente.</EmptyDescription></EmptyHeader></Empty> : visibleFolders.length === 0 ? <Empty><EmptyHeader><EmptyMedia variant="icon">{search.trim() ? <SearchXIcon /> : <FoldersIcon />}</EmptyMedia><EmptyTitle>{search.trim() ? "Nenhum resultado" : "Nenhuma pasta disponível"}</EmptyTitle><EmptyDescription>{search.trim() ? "Nenhuma pasta corresponde à busca." : "Este projeto ainda não possui pastas cadastradas."}</EmptyDescription></EmptyHeader></Empty> : <div className="overflow-hidden rounded-xl border border-border/80 bg-background"><div className="border-b bg-muted/30 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{search.trim() ? "Resultado da busca" : currentFolder ? `Pastas em ${folderName(currentFolder)}` : "Pastas na raiz"}</div><div className="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{visibleFolders.map((folder) => <button type="button" key={folder.id} onClick={() => { setSearch(""); setCurrentFolderId(folder.id) }} className="flex min-w-0 items-center gap-3 rounded-lg border border-border/70 bg-background px-3 py-3 text-left transition-colors hover:border-petrobras-green/40 hover:bg-petrobras-green/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-petrobras-green"><div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-petrobras-green/10"><FolderIcon className="size-5 text-petrobras-green" aria-hidden="true" /></div><span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" title={folderName(folder)}>{folderName(folder)}</span><ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" /></button>)}</div></div>}
+        {isLoading ? <div className="flex flex-col gap-2">{Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} className="h-12 rounded-lg" />)}</div> : error ? <Empty><EmptyHeader><EmptyTitle>Não foi possível carregar as pastas</EmptyTitle><EmptyDescription>Verifique seu acesso ao projeto e tente novamente.</EmptyDescription></EmptyHeader></Empty> : visibleFolders.length === 0 ? <Empty><EmptyHeader><EmptyMedia variant="icon">{search.trim() ? <SearchXIcon /> : <FoldersIcon />}</EmptyMedia><EmptyTitle>{search.trim() ? "Nenhum resultado" : "Nenhuma pasta disponível"}</EmptyTitle><EmptyDescription>{search.trim() ? "Nenhuma pasta corresponde à busca." : "Este projeto ainda não possui pastas cadastradas."}</EmptyDescription></EmptyHeader></Empty> : <div className="overflow-hidden rounded-xl border border-border/80 bg-background"><div className="border-b bg-muted/30 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{search.trim() ? "Resultado da busca" : currentFolder ? `Pastas em ${folderName(currentFolder)}` : "Pastas na raiz"}</div><div className="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{visibleFolders.map((folder) => <button type="button" key={folder.id} onClick={() => { setSearch(""); setCurrentFolderId(folder.id) }} className="flex min-w-0 items-center gap-3 rounded-lg border border-border/70 bg-background px-3 py-3 text-left transition-colors hover:border-petrobras-green/40 hover:bg-petrobras-green/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-petrobras-green"><div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-petrobras-green/10"><FolderIcon className="size-5 text-petrobras-green" aria-hidden="true" /></div><span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" title={folderName(folder)}><span className="block truncate">{folderName(folder)}</span><span className="block text-xs font-normal text-muted-foreground">{formatBytes(folderSize(folder))}</span></span><ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" /></button>)}</div></div>}
       </CardContent>
     </Card>
   )
