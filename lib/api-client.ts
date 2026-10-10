@@ -138,7 +138,13 @@ export function recordAuditEvent(event: {
 
   return request<void>("/api/audit/events", {
     method: "POST",
-    body: JSON.stringify({ entity: "interface", result: "sucesso", ...event, details }),
+    body: JSON.stringify({
+      entity: "interface",
+      result: "sucesso",
+      ...event,
+      entity_id: event.entity_id?.slice(0, 36),
+      details,
+    }),
   })
 }
 

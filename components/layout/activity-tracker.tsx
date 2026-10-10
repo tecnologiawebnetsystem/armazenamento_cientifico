@@ -8,7 +8,7 @@ export function ActivityTracker() {
   const pathname = usePathname()
 
   useEffect(() => {
-    void recordAuditEvent({ action: "visualizar_pagina", entity: "pagina", entity_id: pathname, details: { rota: pathname } }).catch(() => undefined)
+    void recordAuditEvent({ action: "visualizar_pagina", entity: "pagina", details: { rota: pathname } }).catch(() => undefined)
   }, [pathname])
 
   useEffect(() => {

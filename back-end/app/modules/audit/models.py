@@ -13,7 +13,7 @@ class ActivityLog(Base):
     user_id: Mapped[str | None] = mapped_column(String(80), ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True, index=True)
     action: Mapped[str] = mapped_column(String(100), index=True)
     entity: Mapped[str] = mapped_column(String(100), index=True)
-    entity_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    entity_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     details: Mapped[str] = mapped_column(Text, default="")
     result: Mapped[str] = mapped_column(String(30), default="success", nullable=False)
     correlation_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)

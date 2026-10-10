@@ -264,6 +264,9 @@ BEGIN
   END IF;
 
   IF to_regclass('public.activity_logs') IS NOT NULL THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'activity_logs' AND column_name = 'entity_id') THEN
+      ALTER TABLE activity_logs ALTER COLUMN entity_id TYPE varchar(255);
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'activity_logs' AND column_name = 'correlation_id') THEN
       ALTER TABLE activity_logs ADD COLUMN correlation_id varchar(36);
     END IF;
