@@ -77,25 +77,34 @@ class FolderService:
             raise FileNotFoundError(f"Área de rede indisponível: {parent_folder}")
         now = datetime.now(UTC).replace(tzinfo=None)
         discovered: list[Folder] = []
-        paths = sorted((path for path in root.rglob("*") if path.is_dir()), key=lambda path: str(path).casefold())
-        ids_by_path: dict[Path, str] = {}
-        sizes_by_path: dict[Path, int] = {path: 0 for path in paths}
+        paths: list[Path] = []
+        sizes_by_path: dict[Path, int] = {}
 
-        # Uma única varredura calcula o tamanho de cada pasta, incluindo arquivos
-        # de subpastas, evitando uma consulta recursiva por pasta na rede.
-        for current_path, _, filenames in os.walk(root):
+        def handle_walk_error(error: OSError) -> None:
+            raise PermissionError(f"Não foi possível ler a área de rede: {error}") from error
+
+        # A mesma travessia coleta as pastas e calcula seus tamanhos. O callback
+        # transforma falhas de acesso em erro tratável, em vez de deixar o worker
+        # morrer silenciosamente durante uma varredura DFS.
+        for current_path, dirnames, filenames in os.walk(root, onerror=handle_walk_error, followlinks=False):
             current = Path(current_path)
+            paths.append(current)
+            sizes_by_path.setdefault(current, 0)
             for filename in filenames:
                 file_path = current / filename
                 try:
                     file_size = file_path.stat().st_size
-                except OSError:
+                except (FileNotFoundError, PermissionError):
                     continue
+                except OSError as error:
+                    raise OSError(f"Não foi possível consultar o arquivo {file_path}: {error}") from error
                 ancestor = current
                 while ancestor != root:
-                    if ancestor in sizes_by_path:
-                        sizes_by_path[ancestor] += file_size
+                    sizes_by_path[ancestor] = sizes_by_path.get(ancestor, 0) + file_size
                     ancestor = ancestor.parent
+
+        paths = sorted((path for path in paths if path != root), key=lambda path: str(path).casefold())
+        ids_by_path: dict[Path, str] = {}
 
         for path in paths:
             folder_id = str(uuid5(NAMESPACE_URL, f"{project_id}:{path}"))
