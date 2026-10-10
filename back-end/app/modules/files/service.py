@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid4, uuid5
@@ -31,10 +32,22 @@ class FolderService:
         if not parent_folder:
             raise ValueError("O projeto não possui área de rede configurada")
 
-        discovered = await asyncio.wait_for(
-            asyncio.to_thread(self._discover_folders, project_id, parent_folder, user_id),
-            timeout=120,
-        )
+        executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="folder-sync")
+        future = executor.submit(self._discover_folders, project_id, parent_folder, user_id)
+        wrapped_future = asyncio.wrap_future(future)
+        try:
+            discovered = await asyncio.wait_for(wrapped_future, timeout=30)
+        except asyncio.TimeoutError as exc:
+            # Não aguarde uma chamada de rede travada no encerramento do executor.
+            # O worker será descartado quando terminar; a API continua disponível.
+            future.cancel()
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise TimeoutError("A leitura da área de rede excedeu o tempo limite") from exc
+        except Exception:
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise
+        else:
+            executor.shutdown(wait=True, cancel_futures=False)
         current = await self.repository.find_by_project(project_id)
         current_by_id = {folder.id: folder for folder in current}
         desired_ids = {folder.id for folder in discovered}
