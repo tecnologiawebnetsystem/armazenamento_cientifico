@@ -80,7 +80,7 @@ class FolderService:
         future = executor.submit(self._discover_folders, project_id, parent_folder, user_id)
         wrapped_future = asyncio.wrap_future(future)
         try:
-            discovered = await asyncio.wait_for(wrapped_future, timeout=30)
+            discovered, has_walk_errors = await asyncio.wait_for(wrapped_future, timeout=30)
         except asyncio.TimeoutError as exc:
             # Não aguarde uma chamada de rede travada no encerramento do executor.
             # O worker será descartado quando terminar; a API continua disponível.
@@ -122,23 +122,22 @@ class FolderService:
                 existing.updated_at = now
                 updated += 1
 
-        if walk_errors:
+        if has_walk_errors:
             logger.warning(
-                "folder_sync_partial project_id=%s discovered=%s errors=%s",
+                "folder_sync_partial project_id=%s discovered=%s",
                 project_id,
                 len(discovered),
-                len(walk_errors),
             )
 
         # Em uma varredura parcial, mantemos registros antigos: remover uma
         # pasta apenas porque uma subpasta ficou inacessível seria destrutivo.
-        stale_ids = [] if walk_errors else [folder.id for folder in current if folder.id not in desired_ids]
+        stale_ids = [] if has_walk_errors else [folder.id for folder in current if folder.id not in desired_ids]
         await self.repository.save_sync([folder for folder in discovered if folder.id not in current_by_id], stale_ids)
         folders = await self.repository.find_by_project(project_id)
         return {"folders": folders, "added": added, "updated": updated, "removed": len(stale_ids), "synchronized_at": now}
 
     @staticmethod
-    def _discover_folders(project_id: str, parent_folder: str, user_id: str) -> list[Folder]:
+    def _discover_folders(project_id: str, parent_folder: str, user_id: str) -> tuple[list[Folder], bool]:
         root = Path(parent_folder)
         if not root.is_dir():
             raise FileNotFoundError(f"Área de rede indisponível: {parent_folder}")
@@ -160,18 +159,10 @@ class FolderService:
             current = Path(current_path)
             paths.append(current)
             sizes_by_path.setdefault(current, 0)
-            for filename in filenames:
-                file_path = current / filename
-                try:
-                    file_size = file_path.stat().st_size
-                except (FileNotFoundError, PermissionError):
-                    continue
-                except OSError as error:
-                    raise OSError(f"Não foi possível consultar o arquivo {file_path}: {error}") from error
-                ancestor = current
-                while ancestor != root:
-                    sizes_by_path[ancestor] = sizes_by_path.get(ancestor, 0) + file_size
-                    ancestor = ancestor.parent
+            # A sincronização persiste a estrutura; o tamanho é mantido em
+            # zero para evitar uma varredura recursiva lenta em compartilhamentos.
+            # O cálculo detalhado não pode bloquear o endpoint de atualização.
+            continue
 
         paths = sorted((path for path in paths if path != root), key=lambda path: str(path).casefold())
         ids_by_path: dict[Path, str] = {}
@@ -181,7 +172,7 @@ class FolderService:
             ids_by_path[path] = folder_id
             parent = path.parent if path.parent != root else None
             discovered.append(Folder(id=folder_id, project_id=project_id, parent_id=ids_by_path.get(parent), kind="pasta", name=path.name, created_by=user_id, created_at=now, updated_at=now, size=sizes_by_path[path]))
-        return discovered
+        return discovered, bool(walk_errors)
 
     async def get_folder_permissions(self, project_id: str, folder_id: str) -> dict:
         project = await self.repository.find_project(project_id)
