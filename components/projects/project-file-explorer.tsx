@@ -40,7 +40,8 @@ export function ProjectFileExplorer({ projectId }: { projectId: string }) {
     setIsSyncing(true)
     setSyncError(null)
     try {
-      await mutate(() => syncFolders(projectId), { revalidate: false })
+      const synchronized = await syncFolders(projectId)
+      await mutate(synchronized, { revalidate: false })
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         setSyncError("A atualização demorou mais que o esperado. A área de rede pode estar ocupada ou indisponível; tente novamente em instantes.")
