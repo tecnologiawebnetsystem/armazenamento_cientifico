@@ -1,4 +1,5 @@
 import json
+import logging
 import subprocess
 from typing import Annotated
 
@@ -12,6 +13,7 @@ from .repository import FolderRepository
 from .schemas import FolderListOut, FolderPermissionsOut, FolderSyncOut
 from .service import FolderService
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/folders", tags=["Folders"])
 Session = Annotated[AsyncSession, Depends(get_session)]
 
@@ -55,6 +57,12 @@ async def synchronize_folders(
         raise HTTPException(
             status_code=503,
             detail="Não foi possível ler a área de rede. Confirme a conexão e as permissões de acesso.",
+        ) from exc
+    except Exception as exc:
+        logger.exception("folder_sync_failed project_id=%s", project_id)
+        raise HTTPException(
+            status_code=500,
+            detail="A sincronização encontrou um erro interno. Tente novamente; se persistir, consulte os logs do servidor.",
         ) from exc
 
 
