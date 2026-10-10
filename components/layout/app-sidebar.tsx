@@ -51,13 +51,33 @@ function buildNavGroups(menus: PlatformMenu[]): NavGroup[] {
     ).values(),
   )
 
-  const items: NavItem[] = uniqueMenus.map((menu) => ({
-    title: menu.rota.replace(/\/$/, "") === "/pesquisas" ? "Mapa de Acessos" : menu.nome,
-    url: menu.rota,
-    icon: getIcon(menu.icone),
-  }))
+  const items: NavItem[] = uniqueMenus.map((menu) => {
+    const route = menu.rota.trim().replace(/\/$/, "") || "/"
+    return {
+      title: route === "/pesquisas" ? "Mapa de acessos" : route === "/projetos" ? "Áreas de rede" : menu.nome,
+      url: menu.rota,
+      icon: getIcon(menu.icone),
+    }
+  })
 
-  return items.length ? [{ label: "Sistema", items }] : []
+  const groups: Array<{ label: string; routes: string[] }> = [
+    { label: "Dashboard", routes: ["/dashboard"] },
+    { label: "Área de rede", routes: ["/projetos"] },
+    { label: "Mapa de acessos", routes: ["/pesquisas"] },
+  ]
+
+  const organized = groups
+    .map(({ label, routes }) => ({
+      label,
+      items: items.filter((item) => routes.includes(item.url.trim().replace(/\/$/, "") || "/")),
+    }))
+    .filter((group) => group.items.length)
+
+  const groupedRoutes = new Set(groups.flatMap((group) => group.routes))
+  const supportItems = items.filter((item) => !groupedRoutes.has(item.url.trim().replace(/\/$/, "") || "/"))
+  if (supportItems.length) organized.push({ label: "Apoio", items: supportItems })
+
+  return organized
 }
 
 export function AppSidebar() {
