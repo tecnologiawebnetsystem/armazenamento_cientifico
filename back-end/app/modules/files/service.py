@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
@@ -10,6 +11,9 @@ from uuid import NAMESPACE_URL, uuid4, uuid5
 from app.modules.files.models import Folder
 from app.modules.files.repository import FolderRepository
 from app.modules.files.schemas import FolderCreate
+
+
+logger = logging.getLogger(__name__)
 
 
 class FolderService:
@@ -118,7 +122,17 @@ class FolderService:
                 existing.updated_at = now
                 updated += 1
 
-        stale_ids = [folder.id for folder in current if folder.id not in desired_ids]
+        if walk_errors:
+            logger.warning(
+                "folder_sync_partial project_id=%s discovered=%s errors=%s",
+                project_id,
+                len(discovered),
+                len(walk_errors),
+            )
+
+        # Em uma varredura parcial, mantemos registros antigos: remover uma
+        # pasta apenas porque uma subpasta ficou inacessível seria destrutivo.
+        stale_ids = [] if walk_errors else [folder.id for folder in current if folder.id not in desired_ids]
         await self.repository.save_sync([folder for folder in discovered if folder.id not in current_by_id], stale_ids)
         folders = await self.repository.find_by_project(project_id)
         return {"folders": folders, "added": added, "updated": updated, "removed": len(stale_ids), "synchronized_at": now}
@@ -133,12 +147,15 @@ class FolderService:
         paths: list[Path] = []
         sizes_by_path: dict[Path, int] = {}
 
-        def handle_walk_error(error: OSError) -> None:
-            raise PermissionError(f"Não foi possível ler a área de rede: {error}") from error
+        walk_errors: list[OSError] = []
 
-        # A mesma travessia coleta as pastas e calcula seus tamanhos. O callback
-        # transforma falhas de acesso em erro tratável, em vez de deixar o worker
-        # morrer silenciosamente durante uma varredura DFS.
+        def handle_walk_error(error: OSError) -> None:
+            # Uma subpasta sem permissão não deve impedir o cadastro das demais
+            # pastas reais que já foram lidas da área de rede.
+            walk_errors.append(error)
+
+        # A mesma travessia coleta as pastas e calcula seus tamanhos. Erros de
+        # subpastas são registrados e tratados depois, sem descartar a raiz.
         for current_path, dirnames, filenames in os.walk(root, onerror=handle_walk_error, followlinks=False):
             current = Path(current_path)
             paths.append(current)
