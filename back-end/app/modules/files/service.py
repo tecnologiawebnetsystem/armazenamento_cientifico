@@ -47,9 +47,21 @@ class FolderService:
             if existing is None:
                 added += 1
                 continue
-            if existing.name != folder.name or existing.parent_id != folder.parent_id:
+            sync_changed = any(
+                (
+                    existing.name != folder.name,
+                    existing.parent_id != folder.parent_id,
+                    existing.kind != folder.kind,
+                    existing.size != folder.size,
+                    existing.mime_type != folder.mime_type,
+                )
+            )
+            if sync_changed:
                 existing.name = folder.name
                 existing.parent_id = folder.parent_id
+                existing.kind = folder.kind
+                existing.size = folder.size
+                existing.mime_type = folder.mime_type
                 existing.updated_at = now
                 updated += 1
 
