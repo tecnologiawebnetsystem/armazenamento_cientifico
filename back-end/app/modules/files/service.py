@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid4, uuid5
@@ -31,10 +32,22 @@ class FolderService:
         if not parent_folder:
             raise ValueError("O projeto não possui área de rede configurada")
 
-        discovered = await asyncio.wait_for(
-            asyncio.to_thread(self._discover_folders, project_id, parent_folder, user_id),
-            timeout=120,
-        )
+        executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="folder-sync")
+        future = executor.submit(self._discover_folders, project_id, parent_folder, user_id)
+        wrapped_future = asyncio.wrap_future(future)
+        try:
+            discovered = await asyncio.wait_for(wrapped_future, timeout=30)
+        except asyncio.TimeoutError as exc:
+            # Não aguarde uma chamada de rede travada no encerramento do executor.
+            # O worker será descartado quando terminar; a API continua disponível.
+            future.cancel()
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise TimeoutError("A leitura da área de rede excedeu o tempo limite") from exc
+        except Exception:
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise
+        else:
+            executor.shutdown(wait=True, cancel_futures=False)
         current = await self.repository.find_by_project(project_id)
         current_by_id = {folder.id: folder for folder in current}
         desired_ids = {folder.id for folder in discovered}
@@ -77,25 +90,34 @@ class FolderService:
             raise FileNotFoundError(f"Área de rede indisponível: {parent_folder}")
         now = datetime.now(UTC).replace(tzinfo=None)
         discovered: list[Folder] = []
-        paths = sorted((path for path in root.rglob("*") if path.is_dir()), key=lambda path: str(path).casefold())
-        ids_by_path: dict[Path, str] = {}
-        sizes_by_path: dict[Path, int] = {path: 0 for path in paths}
+        paths: list[Path] = []
+        sizes_by_path: dict[Path, int] = {}
 
-        # Uma única varredura calcula o tamanho de cada pasta, incluindo arquivos
-        # de subpastas, evitando uma consulta recursiva por pasta na rede.
-        for current_path, _, filenames in os.walk(root):
+        def handle_walk_error(error: OSError) -> None:
+            raise PermissionError(f"Não foi possível ler a área de rede: {error}") from error
+
+        # A mesma travessia coleta as pastas e calcula seus tamanhos. O callback
+        # transforma falhas de acesso em erro tratável, em vez de deixar o worker
+        # morrer silenciosamente durante uma varredura DFS.
+        for current_path, dirnames, filenames in os.walk(root, onerror=handle_walk_error, followlinks=False):
             current = Path(current_path)
+            paths.append(current)
+            sizes_by_path.setdefault(current, 0)
             for filename in filenames:
                 file_path = current / filename
                 try:
                     file_size = file_path.stat().st_size
-                except OSError:
+                except (FileNotFoundError, PermissionError):
                     continue
+                except OSError as error:
+                    raise OSError(f"Não foi possível consultar o arquivo {file_path}: {error}") from error
                 ancestor = current
                 while ancestor != root:
-                    if ancestor in sizes_by_path:
-                        sizes_by_path[ancestor] += file_size
+                    sizes_by_path[ancestor] = sizes_by_path.get(ancestor, 0) + file_size
                     ancestor = ancestor.parent
+
+        paths = sorted((path for path in paths if path != root), key=lambda path: str(path).casefold())
+        ids_by_path: dict[Path, str] = {}
 
         for path in paths:
             folder_id = str(uuid5(NAMESPACE_URL, f"{project_id}:{path}"))

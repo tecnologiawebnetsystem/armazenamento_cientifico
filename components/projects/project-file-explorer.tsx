@@ -42,7 +42,9 @@ export function ProjectFileExplorer({ projectId }: { projectId: string }) {
     try {
       await mutate(() => syncFolders(projectId), { revalidate: false })
     } catch (error) {
-      if (error instanceof ApiError && error.status === 503) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setSyncError("A atualização demorou mais que o esperado. A área de rede pode estar ocupada ou indisponível; tente novamente em instantes.")
+      } else if (error instanceof ApiError && error.status === 503) {
         setSyncError("A área de rede está indisponível no momento. Verifique se o caminho está acessível e tente novamente.")
       } else if (error instanceof ApiError && error.status === 403) {
         setSyncError("Você não possui permissão para atualizar esta área de rede.")

@@ -20,11 +20,15 @@ class FolderRepository:
         return list(result)
 
     async def save_sync(self, folders: list[Folder], stale_ids: list[str]) -> None:
-        if stale_ids:
-            await self.session.execute(delete(Folder).where(Folder.id.in_(stale_ids)))
-        for folder in folders:
-            self.session.add(folder)
-        await self.session.commit()
+        try:
+            if stale_ids:
+                await self.session.execute(delete(Folder).where(Folder.id.in_(stale_ids)))
+            for folder in folders:
+                self.session.add(folder)
+            await self.session.commit()
+        except Exception:
+            await self.session.rollback()
+            raise
 
     async def project_exists(self, project_id: str) -> bool:
         from app.modules.projects.models import Project

@@ -1,4 +1,5 @@
 import json
+import logging
 import subprocess
 from typing import Annotated
 
@@ -12,6 +13,7 @@ from .repository import FolderRepository
 from .schemas import FolderListOut, FolderPermissionsOut, FolderSyncOut
 from .service import FolderService
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/folders", tags=["Folders"])
 Session = Annotated[AsyncSession, Depends(get_session)]
 
@@ -36,8 +38,32 @@ async def synchronize_folders(
         return await service.synchronize_project_folders(project_id, str(user["id"]))
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    except (FileNotFoundError, TimeoutError):
-        raise HTTPException(status_code=503, detail="A área de rede não está disponível para sincronização")
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="A área de rede não foi encontrada ou está desconectada. Verifique o caminho e tente novamente.",
+        ) from exc
+    except PermissionError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="A área de rede foi encontrada, mas o servidor não tem permissão para ler uma ou mais pastas.",
+        ) from exc
+    except TimeoutError as exc:
+        raise HTTPException(
+            status_code=504,
+            detail="A leitura da área de rede demorou mais que o permitido. Tente novamente quando houver menos movimentação na rede.",
+        ) from exc
+    except OSError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Não foi possível ler a área de rede. Confirme a conexão e as permissões de acesso.",
+        ) from exc
+    except Exception as exc:
+        logger.exception("folder_sync_failed project_id=%s", project_id)
+        raise HTTPException(
+            status_code=500,
+            detail="A sincronização encontrou um erro interno. Tente novamente; se persistir, consulte os logs do servidor.",
+        ) from exc
 
 
 @router.get("/{folder_id}/permissions", response_model=FolderPermissionsOut)
