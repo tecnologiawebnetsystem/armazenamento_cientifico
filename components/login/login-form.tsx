@@ -25,7 +25,7 @@ export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: s
 
   return (
     <div className="relative">
-      <div className="flex items-center gap-2 pb-5 text-sm font-medium text-[#31577f] lg:hidden">
+      <div className="flex items-center gap-2 pb-5 text-sm font-medium text-[#1b5a91] lg:hidden">
         <ShieldCheckIcon className="size-4 text-petrobras-green" />
         Acesso à plataforma
       </div>
