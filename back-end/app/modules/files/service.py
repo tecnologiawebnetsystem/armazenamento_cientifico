@@ -159,10 +159,17 @@ class FolderService:
             current = Path(current_path)
             paths.append(current)
             sizes_by_path.setdefault(current, 0)
-            # A sincronização persiste a estrutura; o tamanho é mantido em
-            # zero para evitar uma varredura recursiva lenta em compartilhamentos.
-            # O cálculo detalhado não pode bloquear o endpoint de atualização.
-            continue
+            for filename in filenames:
+                try:
+                    file_size = (current / filename).stat().st_size
+                except (FileNotFoundError, PermissionError, OSError):
+                    continue
+                ancestor = current
+                while True:
+                    sizes_by_path[ancestor] = sizes_by_path.get(ancestor, 0) + file_size
+                    if ancestor == root:
+                        break
+                    ancestor = ancestor.parent
 
         paths = sorted((path for path in paths if path != root), key=lambda path: str(path).casefold())
         ids_by_path: dict[Path, str] = {}
