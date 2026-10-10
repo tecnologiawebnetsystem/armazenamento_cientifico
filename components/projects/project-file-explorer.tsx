@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import { ChevronRightIcon, FolderIcon, FoldersIcon, Loader2Icon, RefreshCwIcon, SearchIcon, SearchXIcon, ShieldCheckIcon } from "lucide-react"
 import useSWR from "swr"
-import { getFolderPermissions, getFolders, syncFolders } from "@/lib/api-client"
+import { ApiError, getFolderPermissions, getFolders, syncFolders } from "@/lib/api-client"
 import type { FileNode } from "@/lib/types"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -41,8 +41,14 @@ export function ProjectFileExplorer({ projectId }: { projectId: string }) {
     setSyncError(null)
     try {
       await mutate(() => syncFolders(projectId), { revalidate: false })
-    } catch {
-      setSyncError("Não foi possível atualizar as pastas. Verifique a disponibilidade da área de rede.")
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 503) {
+        setSyncError("A área de rede está indisponível no momento. Verifique se o caminho está acessível e tente novamente.")
+      } else if (error instanceof ApiError && error.status === 403) {
+        setSyncError("Você não possui permissão para atualizar esta área de rede.")
+      } else {
+        setSyncError("Não foi possível concluir a atualização. Os dados exibidos continuam sendo os últimos dados salvos.")
+      }
     } finally {
       setIsSyncing(false)
     }
