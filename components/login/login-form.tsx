@@ -79,7 +79,7 @@ export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: s
                     <div className="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true"><span className="h-px flex-1 bg-border" /><span>ou</span><span className="h-px flex-1 bg-border" /></div>
                   </>
                 )}
-                <Button type="button" size="lg" variant="outline" onClick={corporateLogin} disabled={loading !== null} className="h-14 w-full border-[#2f6cb9] bg-[#2f6cb9] text-base font-semibold text-white shadow-none transition-colors hover:bg-[#255d9f]">
+                <Button type="button" size="lg" variant="outline" onClick={corporateLogin} disabled={loading !== null} className="h-14 w-full border-[#007f3e] bg-[#007f3e] text-base font-semibold text-white shadow-none transition-colors hover:bg-[#005c32]">
                   <span>Login Corporativo</span>
                   <span aria-hidden="true" className="text-xl leading-none">›</span>
                 </Button>
