@@ -51,7 +51,7 @@ async function fetchRequest(url: string, init?: RequestInit): Promise<Response> 
   }
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 35_000)
+  const timeout = setTimeout(() => controller.abort(), 60_000)
 
   try {
     return await fetch(url, {
@@ -138,13 +138,7 @@ export function recordAuditEvent(event: {
 
   return request<void>("/api/audit/events", {
     method: "POST",
-    body: JSON.stringify({
-      entity: "interface",
-      result: "sucesso",
-      ...event,
-      entity_id: event.entity_id?.slice(0, 36),
-      details,
-    }),
+    body: JSON.stringify({ entity: "interface", result: "sucesso", ...event, details }),
   })
 }
 
@@ -235,14 +229,6 @@ export async function getProjectMembers(projectId: string) {
 
 export function getFolders(projectId: string) {
   return request<{ folders: FileNode[] }>(`/api/folders?projectId=${encodeURIComponent(projectId)}`)
-}
-
-export function syncFolders(projectId: string) {
-  return request<{ folders: FileNode[]; added: number; updated: number; removed: number; synchronized_at: string }>(`/api/folders/sync?projectId=${encodeURIComponent(projectId)}`, { method: "POST" })
-}
-
-export function getFolderPermissions(projectId: string, folderId: string) {
-  return request<import("@/lib/types").FolderPermissions>(`/api/folders/${encodeURIComponent(folderId)}/permissions?projectId=${encodeURIComponent(projectId)}`)
 }
 
 /* -------------------------------- Dashboard -------------------------------- */

@@ -1,8 +1,5 @@
 import asyncio
-import json
-import logging
 import os
-import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid4, uuid5
@@ -10,9 +7,6 @@ from uuid import NAMESPACE_URL, uuid4, uuid5
 from app.modules.files.models import Folder
 from app.modules.files.repository import FolderRepository
 from app.modules.files.schemas import FolderCreate
-
-
-logger = logging.getLogger(__name__)
 
 
 class FolderService:
@@ -26,7 +20,12 @@ class FolderService:
         return await self.repository.find_by_project(project_id)
 
     async def list_project_folders(self, project_id: str) -> list[Folder]:
-        """Lista a raiz real da rede e usa o banco como fallback."""
+        """Lista somente as pastas imediatamente dentro do caminho do projeto.
+
+        A leitura do compartilhamento Windows acontece em uma thread para não
+        bloquear o FastAPI. Se o caminho não estiver disponível, a tabela local
+        continua sendo a fonte de fallback.
+        """
         project = await self.repository.find_project(project_id)
         parent_folder = (project.parent_folder if project else "").strip()
         if not parent_folder:
@@ -39,6 +38,9 @@ class FolderService:
             )
             return folders if folders else await self.list_folders_by_project(project_id)
         except Exception:
+            # Compartilhamentos UNC podem falhar com exceções específicas do
+            # Windows (ou permanecer indisponíveis sem gerar OSError). A API
+            # deve continuar respondendo usando a tabela local como fallback.
             return await self.list_folders_by_project(project_id)
 
     @staticmethod
@@ -68,180 +70,6 @@ class FolderService:
             )
             for entry in entries
         ]
-
-    async def synchronize_project_folders(self, project_id: str, user_id: str) -> dict:
-        logger.info("folder_sync_started project_id=%s user_id=%s", project_id, user_id)
-        project = await self.repository.find_project(project_id)
-        parent_folder = (project.parent_folder if project else "").strip()
-        logger.info(
-            "folder_sync_project_loaded project_id=%s project_found=%s network_path=%s",
-            project_id,
-            project is not None,
-            parent_folder or "<empty>",
-        )
-        if not parent_folder:
-            logger.error("folder_sync_missing_network_path project_id=%s", project_id)
-            raise ValueError("O projeto não possui área de rede configurada")
-
-        try:
-            logger.info("folder_sync_scan_started project_id=%s network_path=%s", project_id, parent_folder)
-            discovered, has_walk_errors = await asyncio.wait_for(
-                asyncio.to_thread(self._discover_folders, project_id, parent_folder, user_id),
-                timeout=30,
-            )
-            logger.info(
-                "folder_sync_scan_finished project_id=%s discovered=%s partial=%s",
-                project_id,
-                len(discovered),
-                has_walk_errors,
-            )
-        except asyncio.TimeoutError as exc:
-            logger.exception("folder_sync_scan_timeout project_id=%s network_path=%s", project_id, parent_folder)
-            raise TimeoutError("A leitura da área de rede excedeu o tempo limite") from exc
-        except Exception:
-            logger.exception("folder_sync_scan_failed project_id=%s network_path=%s", project_id, parent_folder)
-            raise
-        current = await self.repository.find_by_project(project_id)
-        logger.info("folder_sync_database_loaded project_id=%s current=%s", project_id, len(current))
-        current_by_id = {folder.id: folder for folder in current}
-        desired_ids = {folder.id for folder in discovered}
-        added = 0
-        updated = 0
-        now = datetime.now(UTC).replace(tzinfo=None)
-
-        for folder in discovered:
-            existing = current_by_id.get(folder.id)
-            if existing is None:
-                added += 1
-                continue
-            sync_changed = any(
-                (
-                    existing.name != folder.name,
-                    existing.parent_id != folder.parent_id,
-                    existing.kind != folder.kind,
-                    existing.size != folder.size,
-                    existing.mime_type != folder.mime_type,
-                )
-            )
-            if sync_changed:
-                existing.name = folder.name
-                existing.parent_id = folder.parent_id
-                existing.kind = folder.kind
-                existing.size = folder.size
-                existing.mime_type = folder.mime_type
-                existing.updated_at = now
-                updated += 1
-
-        if has_walk_errors:
-            logger.warning(
-                "folder_sync_partial project_id=%s discovered=%s",
-                project_id,
-                len(discovered),
-            )
-
-        # Em uma varredura parcial, mantemos registros antigos: remover uma
-        # pasta apenas porque uma subpasta ficou inacessível seria destrutivo.
-        stale_ids = [] if has_walk_errors else [folder.id for folder in current if folder.id not in desired_ids]
-        new_folders = [folder for folder in discovered if folder.id not in current_by_id]
-        logger.info(
-            "folder_sync_persist_started project_id=%s insert=%s update=%s remove=%s partial=%s",
-            project_id,
-            len(new_folders),
-            updated,
-            len(stale_ids),
-            has_walk_errors,
-        )
-        try:
-            await self.repository.save_sync(new_folders, stale_ids)
-        except Exception:
-            logger.exception(
-                "folder_sync_persist_failed project_id=%s insert=%s remove=%s",
-                project_id,
-                len(new_folders),
-                len(stale_ids),
-            )
-            raise
-        folders = await self.repository.find_by_project(project_id)
-        logger.info(
-            "folder_sync_finished project_id=%s total=%s added=%s updated=%s removed=%s",
-            project_id,
-            len(folders),
-            added,
-            updated,
-            len(stale_ids),
-        )
-        return {"folders": folders, "added": added, "updated": updated, "removed": len(stale_ids), "synchronized_at": now}
-
-    @staticmethod
-    def _discover_folders(project_id: str, parent_folder: str, user_id: str) -> tuple[list[Folder], bool]:
-        root = Path(parent_folder)
-        if not root.is_dir():
-            raise FileNotFoundError(f"Área de rede indisponível: {parent_folder}")
-        now = datetime.now(UTC).replace(tzinfo=None)
-        discovered: list[Folder] = []
-        paths: list[Path] = []
-        sizes_by_path: dict[Path, int] = {}
-
-        walk_errors: list[OSError] = []
-
-        def handle_walk_error(error: OSError) -> None:
-            # Uma subpasta sem permissão não deve impedir o cadastro das demais
-            # pastas reais que já foram lidas da área de rede.
-            walk_errors.append(error)
-
-        # A mesma travessia coleta as pastas e calcula seus tamanhos. Erros de
-        # subpastas são registrados e tratados depois, sem descartar a raiz.
-        for current_path, dirnames, filenames in os.walk(root, onerror=handle_walk_error, followlinks=False):
-            current = Path(current_path)
-            paths.append(current)
-            sizes_by_path.setdefault(current, 0)
-            for filename in filenames:
-                try:
-                    file_size = (current / filename).stat().st_size
-                except (FileNotFoundError, PermissionError, OSError):
-                    continue
-                ancestor = current
-                while True:
-                    sizes_by_path[ancestor] = sizes_by_path.get(ancestor, 0) + file_size
-                    if ancestor == root:
-                        break
-                    ancestor = ancestor.parent
-
-        paths = sorted((path for path in paths if path != root), key=lambda path: str(path).casefold())
-        ids_by_path: dict[Path, str] = {}
-
-        for path in paths:
-            folder_id = str(uuid5(NAMESPACE_URL, f"{project_id}:{path}"))
-            ids_by_path[path] = folder_id
-            parent = path.parent if path.parent != root else None
-            discovered.append(Folder(id=folder_id, project_id=project_id, parent_id=ids_by_path.get(parent), kind="pasta", name=path.name, created_by=user_id, created_at=now, updated_at=now, size=sizes_by_path[path]))
-        return discovered, bool(walk_errors)
-
-    async def get_folder_permissions(self, project_id: str, folder_id: str) -> dict:
-        project = await self.repository.find_project(project_id)
-        folders = await self.repository.find_by_project(project_id)
-        folder = next((item for item in folders if item.id == folder_id), None)
-        if not project or not folder:
-            raise ValueError("Pasta não encontrada")
-        path_by_id = {item.id: item for item in folders}
-        parts: list[str] = []
-        current = folder
-        while current:
-            parts.append(current.name)
-            current = path_by_id.get(current.parent_id)
-        root = Path((project.parent_folder or "").strip())
-        folder_path = root.joinpath(*reversed(parts))
-        permissions = await asyncio.to_thread(self._read_windows_permissions, folder_path)
-        return {"folder_id": folder.id, "folder_name": folder.name, "permissions": permissions, "source": "Windows ACL", "consulted_at": datetime.now(UTC).replace(tzinfo=None)}
-
-    @staticmethod
-    def _read_windows_permissions(folder_path: Path) -> list[dict]:
-        if os.name != "nt":
-            raise OSError("A leitura de permissões está disponível no servidor Windows da área de rede")
-        script = """$acl = Get-Acl -LiteralPath $args[0]; $acl.Access | ForEach-Object { [PSCustomObject]@{ identity=$_.IdentityReference.Value; access_type=$_.AccessControlType.ToString(); rights=([string]$_.FileSystemRights -split ', '); inherited=$_.IsInherited; inheritance_flags=([string]$_.InheritanceFlags -split ', '); propagation_flags=([string]$_.PropagationFlags -split ', ') } } | ConvertTo-Json -Compress"""
-        result = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script, str(folder_path)], capture_output=True, text=True, timeout=30, check=True)
-        payload = json.loads(result.stdout or "[]")
-        return payload if isinstance(payload, list) else [payload]
 
     async def can_list_project(self, project_id: str, user_id: str, role: str) -> bool:
         return await self.repository.can_view_project(project_id, user_id, role)
