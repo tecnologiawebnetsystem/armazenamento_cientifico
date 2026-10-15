@@ -2,13 +2,16 @@ import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
   output: "standalone",
+
   turbopack: {
     root: process.cwd(),
   },
+
   async rewrites() {
-    const backendUrl = process.env.NODE_ENV === "development"
-      ? "http://localhost:8080"
-      : process.env.BACKEND_INTERNAL_URL ?? "http://localhost:8080"
+    const backendUrl =
+      process.env.NODE_ENV === "development"
+        ? "http://localhost:8080"
+        : process.env.BACKEND_INTERNAL_URL ?? "http://localhost:8080"
 
     return [
       {
@@ -21,12 +24,6 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/api/openapi.json",
-        destination: `${backendUrl}/openapi.json`,
-      },
-      // O Swagger UI servido em /api/docs solicita o schema neste caminho
-      // absoluto. Mantemos o proxy também sem /api para a UI funcionar.
-      {
-        source: "/openapi.json",
         destination: `${backendUrl}/openapi.json`,
       },
       {
