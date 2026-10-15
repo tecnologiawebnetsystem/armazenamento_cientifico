@@ -9,7 +9,7 @@ export default async function ConfiguracaoResourcePage({ params }: { params: Pro
 
   const config = configurationResourceLabels[resource as ConfigurationResource]
   return (
-    <PageSection label="Configurações SIGAC" className="gap-5">
+    <PageSection label="Configurações SIGAC" className="configuration-petrobras gap-5">
       <PageHeader
         eyebrow={config.group}
         title={config.label}
