@@ -112,7 +112,7 @@ export function AppSidebar() {
                         <item.icon />
                         <span className="truncate">{item.title}</span>
                       </SidebarMenuButton>
-                      {item.children?.length ? <div className="ml-5 border-l border-sidebar-border/50 pl-2 group-data-[collapsible=icon]:hidden">
+                      {item.children?.length && (item.title !== "Configurações" || pathname.startsWith("/configuracoes")) ? <div className="ml-5 border-l border-sidebar-border/50 pl-2 group-data-[collapsible=icon]:hidden">
                         {item.children.map((child) => <div key={child.title} className="mt-1">
                           <p className="px-3 py-1.5 text-[10px] font-semibold tracking-wider text-sidebar-primary/70 uppercase">{child.title}</p>
                           {child.children?.map((subItem) => <Link key={subItem.url} href={subItem.url} className={`block rounded-md px-3 py-1.5 text-xs transition-colors hover:bg-sidebar-accent/60 ${pathname === subItem.url ? "bg-sidebar-accent font-semibold text-sidebar-foreground" : "text-sidebar-foreground/75"}`}>{subItem.title}</Link>)}
