@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { createConfiguration, deleteConfiguration, getConfigurations, updateConfiguration, type ConfigurationResource, type ConfigurationRow } from "@/lib/api-client"
 
@@ -36,8 +36,8 @@ const resourceList = Object.keys(resources) as ConfigurationResource[]
 const groupDescriptions: Record<string, string> = { "Segurança": "Perfis, permissões e vínculos de acesso.", "Acesso e navegação": "Módulos e menus exibidos no sistema.", "Relatórios": "Tipos e campos disponíveis para exportação.", "Operação": "Status e áreas usados nos projetos.", "Dashboard": "Cards, métricas e visibilidade." }
 const formatValue = (value: unknown) => typeof value === "boolean" ? (value ? "Ativo" : "Inativo") : value === null || value === undefined || value === "" ? "—" : String(value)
 
-export function ConfigurationPanel() {
-  const [resource, setResource] = useState<ConfigurationResource>("menus")
+export function ConfigurationPanel({ initialResource = "menus" }: { initialResource?: ConfigurationResource }) {
+  const resource = initialResource
   const [rows, setRows] = useState<ConfigurationRow[]>([])
   const [search, setSearch] = useState("")
   const [editor, setEditor] = useState<{ row?: ConfigurationRow; values: Record<string, string> } | null>(null)
@@ -55,42 +55,20 @@ export function ConfigurationPanel() {
   async function save() { if (!editor) return; try { const data = serialize(editor.values); if (editor.row) await updateConfiguration(resource, config.key.map((key) => String(editor.row?.[key] ?? "")).join("|"), data); else await createConfiguration(resource, data); toast.success("Registro salvo com sucesso"); setEditor(null); await load() } catch (error) { toast.error(error instanceof Error ? error.message : "Não foi possível salvar") } }
   async function remove(row: ConfigurationRow) { if (!window.confirm(`Excluir ${config.label.toLowerCase()}?`)) return; try { await deleteConfiguration(resource, config.key.map((key) => String(row[key] ?? "")).join("|")); toast.success("Registro excluído"); await load() } catch (error) { toast.error(error instanceof Error ? error.message : "Não foi possível excluir") } }
 
-  return <div className="flex flex-col gap-5">
-    <section className="rounded-2xl border bg-primary px-6 py-6 text-primary-foreground shadow-sm sm:px-8"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><Badge variant="secondary" className="mb-3 gap-2 bg-primary-foreground/15 text-primary-foreground"><Settings2Icon className="size-3.5" /> Central de parâmetros</Badge><h2 className="text-2xl font-semibold tracking-tight">Configure uma tabela por vez</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-primary-foreground/75">Escolha uma tabela, consulte os registros e use as ações de criar, visualizar, editar ou excluir.</p></div><CheckCircle2Icon className="hidden size-10 text-primary-foreground/70 sm:block" /></div></section>
+  return <div className="configuration-petrobras flex flex-col gap-5">
+    <section className="rounded-2xl border border-[#007f3e]/20 bg-[#007f3e] px-6 py-6 text-white shadow-sm sm:px-8"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><Badge variant="secondary" className="mb-3 gap-2 bg-[#fdbb30] text-[#003b24]"><Settings2Icon className="size-3.5" /> Central de parâmetros</Badge><h2 className="text-2xl font-semibold tracking-tight">Configure uma tabela por vez</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">Escolha uma tabela, consulte os registros e use as ações de criar, visualizar, editar ou excluir.</p></div><CheckCircle2Icon className="hidden size-10 text-[#fdbb30] sm:block" /></div></section>
     <Card>
-      <CardHeader className="gap-5 pb-5">
+      <CardHeader className="gap-3 pb-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle>1. Selecione uma tabela</CardTitle>
-            <CardDescription className="mt-1">Escolha uma área para consultar e administrar seus parâmetros.</CardDescription>
+            <CardTitle>Configuração de {config.label.toLowerCase()}</CardTitle>
+            <CardDescription className="mt-1">Administre os registros desta seção. Para acessar outra configuração, use o submenu lateral.</CardDescription>
           </div>
-          <Badge variant="outline" className="w-fit shrink-0">{resourceList.length} tabelas disponíveis</Badge>
+          <Badge variant="outline" className="w-fit shrink-0">{config.group}</Badge>
         </div>
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(16rem,0.8fr)] lg:items-end">
-          <div className="flex min-w-0 flex-col gap-2">
-            <Label htmlFor="configuration-resource">Tabela de configurações</Label>
-            <Select value={resource} onValueChange={(value) => { const next = value as ConfigurationResource; setResource(next); setSearch("") }}>
-              <SelectTrigger id="configuration-resource" className="h-11 w-full max-w-none min-w-0 text-base">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="w-[min(42rem,calc(100vw-2rem))]">
-                {Array.from(new Set(resourceList.map((item) => resources[item].group))).map((group) => (
-                  <SelectGroup key={group}>
-                    <SelectLabel className="px-3 pt-2 font-semibold">{group}</SelectLabel>
-                    {resourceList.filter((item) => resources[item].group === group).map((item) => (
-                      <SelectItem key={item} value={item} className="py-2.5 text-sm">
-                        {resources[item].label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex min-h-20 flex-col justify-center gap-1 rounded-xl border bg-muted/20 px-4 py-3">
-            <Badge variant="secondary" className="w-fit">{config.group}</Badge>
-            <p className="text-sm leading-6 text-muted-foreground">{groupDescriptions[config.group]}</p>
-          </div>
+        <div className="flex min-h-16 items-center gap-3 rounded-xl border bg-muted/20 px-4 py-3">
+          <Settings2Icon className="size-5 text-primary" />
+          <p className="text-sm leading-6 text-muted-foreground">{groupDescriptions[config.group]}</p>
         </div>
       </CardHeader>
     </Card>
@@ -101,4 +79,5 @@ export function ConfigurationPanel() {
 }
 
 export const configurationResourceLabels = resources
+export const configurationResources = resourceList
 
