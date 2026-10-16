@@ -192,52 +192,54 @@ export default function LogsPage() {
     />
 
     <Dialog open={Boolean(selectedLog)} onOpenChange={(open) => { if (!open) setSelectedLog(null) }}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Detalhes do evento</DialogTitle>
-          <DialogDescription>Registro completo da ação selecionada.</DialogDescription>
-        </DialogHeader>
-        {selectedLog && <div className="grid gap-4 text-sm">
-          <div className="grid gap-1 sm:grid-cols-2"><div><span className="text-muted-foreground">Ação</span><p className="font-semibold">{displayAction(selectedLog.acao)}</p></div><div><span className="text-muted-foreground">Resultado</span><p className="font-semibold">{selectedLog.resultado ?? "sucesso"}</p></div></div>
-          <div className="grid gap-1 sm:grid-cols-2"><div><span className="text-muted-foreground">Entidade</span><p className="font-mono">{displayEntity(selectedLog.entidade)}</p></div><div><span className="text-muted-foreground">Identificador</span><p className="break-all">{displayEntityId(selectedLog)}</p></div></div>
-          <div><span className="text-muted-foreground">Usuário</span><p>{selectedLog.userName ?? selectedLog.userId ?? "Usuário não identificado"}</p></div>
-          <div><span className="text-muted-foreground">Data e hora</span><p>{new Date(selectedLog.criadoEm).toLocaleString("pt-BR")}</p></div>
-          <div><span className="text-muted-foreground">Rota / método</span><p className="break-all font-mono">{selectedLog.metodoHttp ?? "—"} {selectedLog.rota ?? ""}</p></div> {/* ── Detalhes CAV4: message + campos estruturados ── */}
-          {selectedLog.acao === "cav4_authorization" && (() => {
-            let parsed: Record<string, unknown> | null = null
-            try {
-              parsed = typeof selectedLog.detalhes === "string" && selectedLog.detalhes
-                ? JSON.parse(selectedLog.detalhes) as Record<string, unknown>
-                : null
-            } catch { /* ignore */ }
-            if (!parsed) return null
-
-            const message = typeof parsed.message === "string" ? parsed.message : null
-            const entries = Object.entries(parsed).filter(([k]) => k !== "message")
-
-            return (
-              <>
-                {message && (
-                  <div className="rounded-lg border border-primary/20 bg-primary/[0.05] px-4 py-3">
-                    <p className="text-sm font-medium leading-relaxed">{message}</p>
-                  </div>
-                )}
-                {entries.length > 0 && (
-                  <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
-                    {entries.map(([key, value]) => (
-                      <div key={key}>
-                        <dt className="text-xs text-muted-foreground">{key}</dt>
-                        <dd className="break-all font-mono text-sm">
-                          {Array.isArray(value) ? value.join(", ") : String(value ?? "—")} 
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-                )}
-              </>
-            )
-          })()}          
-        </div>}
+      <DialogContent className="max-h-[min(90vh,760px)] max-w-3xl overflow-y-auto border-primary/15 p-0">
+        {selectedLog && <>
+          <DialogHeader className="border-b border-primary/10 bg-primary/[0.04] px-6 py-5 pr-12 sm:px-8">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="secondary" className="bg-primary/10 text-primary">Evento de auditoria</Badge>
+              <Badge variant="outline" className={selectedLog.resultado === "erro" ? "border-destructive/30 text-destructive" : "border-primary/30 text-primary"}>
+                {selectedLog.resultado === "erro" ? "Falha" : "Sucesso"}
+              </Badge>
+            </div>
+            <DialogTitle className="text-xl sm:text-2xl">{displayAction(selectedLog.acao)}</DialogTitle>
+            <DialogDescription>Registro completo da ação selecionada.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 px-6 py-6 text-sm sm:px-8">
+            <section className="grid gap-3 sm:grid-cols-2" aria-label="Resumo do evento">
+              <div className="rounded-xl border border-primary/15 bg-primary/[0.035] p-4 sm:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Entidade</span>
+                <p className="mt-1 font-medium">{displayEntity(selectedLog.entidade)}</p>
+              </div>
+              <div className="min-w-0 rounded-xl border bg-muted/20 p-4">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Identificador</span>
+                <p className="mt-1 break-all font-mono text-xs leading-5">{displayEntityId(selectedLog)}</p>
+              </div>
+              <div className="rounded-xl border bg-muted/20 p-4">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Data e hora</span>
+                <p className="mt-1 font-medium">{new Date(selectedLog.criadoEm).toLocaleString("pt-BR")}</p>
+              </div>
+            </section>
+            <section className="grid gap-x-6 gap-y-4 border-t pt-5 sm:grid-cols-2" aria-label="Contexto do usuário">
+              <div><span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Usuário</span><p className="mt-1 font-medium">{selectedLog.userName ?? selectedLog.userId ?? "Usuário não identificado"}</p></div>
+              {selectedLog.userEmail && <div className="min-w-0"><span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">E-mail</span><p className="mt-1 break-all font-mono text-xs leading-5">{selectedLog.userEmail}</p></div>}
+              <div><span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Rota / método</span><p className="mt-1 break-all font-mono text-xs leading-5">{selectedLog.metodoHttp ?? "—"} {selectedLog.rota ?? ""}</p></div>
+            </section>
+            {selectedLog.acao === "cav4_authorization" && (() => {
+              let parsed: Record<string, unknown> | null = null
+              try {
+                parsed = typeof selectedLog.detalhes === "string" && selectedLog.detalhes ? JSON.parse(selectedLog.detalhes) as Record<string, unknown> : null
+              } catch { /* ignore malformed audit metadata */ }
+              if (!parsed) return null
+              const message = typeof parsed.message === "string" ? parsed.message : null
+              const entries = Object.entries(parsed).filter(([key]) => key !== "message")
+              return <section className="grid gap-4 border-t pt-5" aria-label="Detalhes da autorização">
+                <div><h3 className="font-semibold">Detalhes da autorização</h3><p className="mt-1 text-xs text-muted-foreground">Informações complementares registradas pelo CAV4.</p></div>
+                {message && <div className="rounded-xl border border-primary/20 bg-primary/[0.05] px-4 py-3"><p className="leading-6">{message}</p></div>}
+                {entries.length > 0 && <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">{entries.map(([key, value]) => <div key={key} className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{key}</dt><dd className="mt-1 break-all font-mono text-xs leading-5">{Array.isArray(value) ? value.join(", ") : String(value ?? "—")}</dd></div>)}</dl>}
+              </section>
+            })()}
+          </div>
+        </>}
       </DialogContent>
     </Dialog>
   </PageLayout>
