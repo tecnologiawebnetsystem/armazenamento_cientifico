@@ -46,9 +46,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <div className="absolute inset-x-0 top-0 h-px bg-[#d8e6df] lg:inset-y-0 lg:left-0 lg:h-auto lg:w-px" />
         <div className="pointer-events-none absolute -right-28 -top-28 size-72 rounded-full border-[24px] border-petrobras-yellow/15" />
         <div className="pointer-events-none absolute -bottom-32 -left-28 size-80 rounded-full border-[34px] border-petrobras-green/10" />
-        <div className="relative w-full max-w-[31rem]">
+        <div className="relative w-full max-w-[23.5rem]">
           <div className="mb-8 flex flex-col gap-3 lg:hidden"><LogoFull className="h-11 w-52" /><span className="text-sm font-semibold tracking-wide text-[#063f58]">SIGAC · Petrobras</span></div>
-          <div className="mb-7 flex flex-col gap-3"><span className="h-1 w-12 rounded-full bg-petrobras-yellow" /><h2 id="login-title" className="text-3xl font-semibold tracking-tight text-[#063f58] sm:text-4xl">Acesse sua conta</h2><p className="max-w-md text-sm leading-6 text-muted-foreground">Entre no SIGAC para consultar suas áreas de rede, mapas de acesso e permissões.</p></div>
+          <div className="mb-8 flex flex-col gap-3"><span className="h-1 w-14 rounded-full bg-petrobras-yellow" /><h2 id="login-title" className="text-[2.35rem] font-semibold leading-tight tracking-[-0.04em] text-[#063f58]">Acesse sua conta</h2><p className="max-w-md text-sm leading-6 text-muted-foreground">Entre no SIGAC para consultar suas áreas de rede, mapas de acesso e permissões.</p></div>
           <LoginForm authError={authError} nextPath={nextPath} />
         </div>
       </section>
