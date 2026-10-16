@@ -4,7 +4,8 @@ import { PageHeader, PageSection } from "@/components/shared/page-layout"
 import type { ConfigurationResource } from "@/lib/api-client"
 
 export default async function ConfiguracaoResourcePage({ params }: { params: Promise<{ resource: string }> }) {
-  const { resource } = await params
+  const { resource: rawResource } = await params
+  const resource = rawResource.replaceAll("-", "_")
   if (!(resource in configurationResourceLabels)) notFound()
 
   const config = configurationResourceLabels[resource as ConfigurationResource]
