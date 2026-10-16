@@ -325,7 +325,8 @@ async def cav4_callback(request: Request, code: str, state: str):
                 },
             )
             profile_changed = str(previous_profile) != str(profile_id)
-            if profile_changed:
+            # Registra toda autorização, inclusive quando o perfil já estava atualizado.
+            if profile_changed or registered_profile == profile_id:
                 await database.execute(
                     text(
                         f"""

@@ -235,7 +235,7 @@ export default function LogsPage() {
             <section className="grid gap-x-6 gap-y-4 border-t pt-5 sm:grid-cols-2" aria-label="Contexto do usuário">
               <div><span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Usuário</span><p className="mt-1 font-medium">{selectedLog.userName ?? selectedLog.userId ?? "Usuário não identificado"}</p></div>
               {selectedLog.userEmail && <div className="min-w-0"><span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">E-mail</span><p className="mt-1 break-all font-mono text-xs leading-5">{selectedLog.userEmail}</p></div>}
-              <div><span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Rota / método</span><p className="mt-1 break-all font-mono text-xs leading-5">{selectedLog.metodoHttp ?? "—"} {selectedLog.rota ?? ""}</p></div>
+              <div><span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Rota / método</span><p className="mt-1 break-all font-mono text-xs leading-5">{selectedLog.metodoHttp ?? (selectedLog.acao === "cav4_authorization" ? "GET" : "")} {selectedLog.rota ?? (selectedLog.acao === "cav4_authorization" ? "/api/auth/cav4/callback" : "—")}</p></div>
             </section>
             {selectedLog.acao === "cav4_authorization" && (() => {
               let parsed: Record<string, unknown> | null = null
