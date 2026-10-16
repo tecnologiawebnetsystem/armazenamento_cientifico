@@ -1,5 +1,7 @@
 import asyncio
+import json
 import os
+import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid4, uuid5
@@ -45,31 +47,48 @@ class FolderService:
 
     @staticmethod
     def _read_root_folders(project_id: str, parent_folder: str) -> list[Folder]:
-        root = Path(parent_folder)
-        if not root.is_dir():
-            return []
-
+        root = Path(parent_folder.strip().strip('"'))
         now = datetime.now(UTC).replace(tzinfo=None)
-        with os.scandir(root) as directory:
-            entries = sorted(
-                (entry for entry in directory if entry.is_dir(follow_symlinks=False)),
-                key=lambda entry: entry.name.casefold(),
-            )
+
+        try:
+            with os.scandir(root) as directory:
+                paths = sorted(
+                    ((entry.name, entry.path) for entry in directory if entry.is_dir(follow_symlinks=False)),
+                    key=lambda item: item[0].casefold(),
+                )
+        except (OSError, ValueError):
+            paths = FolderService._read_root_folders_with_powershell(str(root))
 
         return [
             Folder(
-                id=str(uuid5(NAMESPACE_URL, f"{project_id}:{entry.path}")),
+                id=str(uuid5(NAMESPACE_URL, f"{project_id}:{path}")),
                 project_id=project_id,
                 parent_id=None,
                 kind="pasta",
-                name=entry.name,
+                name=name,
                 created_by="filesystem",
                 created_at=now,
                 updated_at=now,
                 size=0,
             )
-            for entry in entries
+            for name, path in paths
         ]
+
+    @staticmethod
+    def _read_root_folders_with_powershell(parent_folder: str) -> list[tuple[str, str]]:
+        if os.name != "nt":
+            return []
+        script = "Get-ChildItem -LiteralPath $args[0] -Directory -Force | Select-Object Name, FullName | ConvertTo-Json -Compress"
+        try:
+            result = subprocess.run(
+                ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script, parent_folder],
+                capture_output=True, text=True, timeout=40, check=True,
+            )
+            payload = json.loads(result.stdout or "[]")
+            items = payload if isinstance(payload, list) else [payload]
+            return [(str(item["Name"]), str(item["FullName"])) for item in items if item.get("Name") and item.get("FullName")]
+        except (OSError, subprocess.SubprocessError, json.JSONDecodeError, TypeError, KeyError):
+            return []
 
     async def can_list_project(self, project_id: str, user_id: str, role: str) -> bool:
         return await self.repository.can_view_project(project_id, user_id, role)
