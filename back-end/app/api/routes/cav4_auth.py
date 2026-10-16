@@ -338,6 +338,8 @@ async def cav4_callback(request: Request, code: str, state: str):
                             entity_id,
                             details,
                             result,
+                            http_method,
+                            route,
                             created_at
                         )
                         values
@@ -349,6 +351,8 @@ async def cav4_callback(request: Request, code: str, state: str):
                             :entity_id,
                             :details,
                             :result,
+                            :http_method,
+                            :route,
                             now()
                         )
                         """
@@ -359,10 +363,15 @@ async def cav4_callback(request: Request, code: str, state: str):
                         "action": "cav4_authorization",
                         "entity": "session",
                         "entity_id": session_id,
-                        "Metodo": request.method,
-                        "Rota": str(request.url.path),
+                        "http_method": request.method,
+                        "route": str(request.url.path),
                         "details": json.dumps(
                             {
+                                "message": (
+                                    f"Autorização concluída com sucesso. O perfil {profile_id} foi atualizado no SIGAC."
+                                    if profile_changed
+                                    else f"Autorização concluída com sucesso. O perfil {profile_id} já estava atualizado no SIGAC."
+                                ),
                                 "Perfil Anterior": previous_profile,
                                 "Perfil Atual": str(profile_id),
                                 "Email": identity.email,
