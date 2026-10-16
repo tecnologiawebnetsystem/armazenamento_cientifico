@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { CheckCircle2Icon, EyeIcon, PencilIcon, PlusIcon, SearchIcon, Settings2Icon, Trash2Icon } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -37,7 +38,9 @@ const groupDescriptions: Record<string, string> = { "Segurança": "Perfis, permi
 const formatValue = (value: unknown) => typeof value === "boolean" ? (value ? "Ativo" : "Inativo") : value === null || value === undefined || value === "" ? "—" : String(value)
 
 export function ConfigurationPanel() {
-  const [resource, setResource] = useState<ConfigurationResource>("menus")
+  const searchParams = useSearchParams()
+  const requestedResource = searchParams.get("tabela") as ConfigurationResource | null
+  const [resource, setResource] = useState<ConfigurationResource>(() => requestedResource && resourceList.includes(requestedResource) ? requestedResource : "menus")
   const [rows, setRows] = useState<ConfigurationRow[]>([])
   const [search, setSearch] = useState("")
   const [editor, setEditor] = useState<{ row?: ConfigurationRow; values: Record<string, string> } | null>(null)
@@ -48,6 +51,14 @@ export function ConfigurationPanel() {
   // A troca de recurso precisa sincronizar a tabela com a API na montagem e nas mudanças de seleção.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    if (requestedResource && resourceList.includes(requestedResource) && requestedResource !== resource) {
+      // A URL é a fonte de verdade quando o usuário navega pelos submenus.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setResource(requestedResource)
+      setSearch("")
+    }
+  }, [requestedResource, resource])
   const filteredRows = useMemo(() => rows.filter((row) => JSON.stringify(row).toLowerCase().includes(search.toLowerCase())), [rows, search])
   const activeRows = rows.filter((row) => row.active !== false)
   const openEditor = (row?: ConfigurationRow) => setEditor({ row, values: Object.fromEntries(config.fields.map(({ key }) => [key, String(row?.[key] ?? "")])) })
