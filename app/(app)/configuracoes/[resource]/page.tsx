@@ -5,7 +5,7 @@ import type { ConfigurationResource } from "@/lib/api-client"
 
 export default async function ConfiguracaoResourcePage({ params }: { params: Promise<{ resource: string }> }) {
   const { resource: rawResource } = await params
-  const normalizedResource = decodeURIComponent(rawResource).trim().toLowerCase().replaceAll("-", "_")
+  const normalizedResource = decodeURIComponent(rawResource).trim().toLowerCase().replaceAll("-", "_").replaceAll(" ", "_")
   const resourceAliases: Record<string, ConfigurationResource> = {
     menus: "menus",
     modulos: "modules",
