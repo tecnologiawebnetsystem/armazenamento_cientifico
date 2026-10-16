@@ -182,6 +182,7 @@ export interface ActivityLog {
   duracaoMs?: number | null
   ipAddress?: string | null
   projetoId?: string | null
+  projetoNome?: string | null
 }
 
 export interface AccessMapRow {
