@@ -216,11 +216,20 @@ export interface ProjectAccessMapAclEntry {
   inherited: boolean
 }
 
+export interface ProjectAccessMapFolderAcl {
+  name: string
+  status: string
+  path: string
+  entries: ProjectAccessMapAclEntry[]
+  message?: string | null
+}
+
 export interface ProjectAccessMapAcl {
   status: "consultado" | "nao_configurado" | "indisponivel" | "acesso_negado" | "tempo_esgotado" | string
   path: string
   entries: ProjectAccessMapAclEntry[]
   message?: string | null
+  subfolders: ProjectAccessMapFolderAcl[]
 }
 
 export interface ProjectAccessMapResponse {
