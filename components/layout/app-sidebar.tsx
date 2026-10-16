@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
+import { useState } from "react"
 import { LogoMark } from "@/components/brand/logo-mark"
 import {
   Sidebar,
@@ -21,7 +22,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { usePlatformContext } from "@/hooks/use-platform-context"
-import { ChartNoAxesCombinedIcon, FolderKanbanIcon, LayoutDashboardIcon, NetworkIcon, SettingsIcon, ShieldCheckIcon, type LucideIcon } from "lucide-react"
+import { ChartNoAxesCombinedIcon, ChevronDownIcon, FolderKanbanIcon, LayoutDashboardIcon, NetworkIcon, SettingsIcon, ShieldCheckIcon, type LucideIcon } from "lucide-react"
 import type { NavGroup, NavItem } from "@/lib/nav-config"
 
 import type { PlatformMenu } from "@/lib/types"
@@ -106,6 +107,9 @@ export function AppSidebar() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const { menus } = usePlatformContext()
+  const activeResource = searchParams.get("tabela")
+  const initialGroup = configurationGroups.find((group) => group.items.some((item) => item.key === activeResource))?.label ?? configurationGroups[0].label
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([initialGroup])
   const homeHref = menus[0]?.rota ?? "/forbidden"
   const groups = buildNavGroups(menus)
 
@@ -147,25 +151,34 @@ export function AppSidebar() {
                       </SidebarMenuButton>
                       {item.url === "/configuracoes" && isActive ? (
                         <SidebarMenuSub className="ml-3 border-sidebar-border/40 pl-3 group-data-[collapsible=icon]:hidden">
-                          {configurationGroups.map((group) => (
-                            <li key={group.label} className="mb-3 last:mb-0">
-                              <div className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-sidebar-primary/80">{group.label}</div>
-                              <div className="px-2 pb-1 text-[10px] leading-4 text-sidebar-foreground/45">{group.description}</div>
-                              <ul>
-                                {group.items.map((submenu) => {
-                                  const href = `/configuracoes?tabela=${submenu.key}`
-                                  const submenuActive = pathname === "/configuracoes" && searchParams.get("tabela") === submenu.key
-                                  return (
-                                    <SidebarMenuSubItem key={submenu.key}>
-                                      <SidebarMenuSubButton render={<Link href={href} />} isActive={submenuActive} className="h-8 rounded-md text-xs text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground data-active:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-foreground data-active:shadow-[inset_2px_0_0_var(--sidebar-primary)]">
-                                        <span className="truncate">{submenu.label}</span>
-                                      </SidebarMenuSubButton>
-                                    </SidebarMenuSubItem>
-                                  )
-                                })}
-                              </ul>
-                            </li>
-                          ))}
+                          {configurationGroups.map((group) => {
+                            const isExpanded = expandedGroups.includes(group.label)
+                            const containsActiveItem = group.items.some((item) => item.key === activeResource)
+                            return (
+                              <li key={group.label} className="mb-2 last:mb-0">
+                                <button type="button" aria-expanded={isExpanded} aria-controls={`configuration-group-${group.label}`} onClick={() => setExpandedGroups((current) => isExpanded ? current.filter((item) => item !== group.label) : [...current, group.label])} className={`flex w-full items-center justify-between rounded-md px-2 py-2 text-left transition-colors hover:bg-sidebar-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring ${containsActiveItem ? "text-sidebar-primary" : "text-sidebar-primary/80"}`}>
+                                  <span className="text-[10px] font-semibold uppercase tracking-wider">{group.label}</span>
+                                  <ChevronDownIcon aria-hidden className={`size-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                                </button>
+                                {isExpanded ? <div id={`configuration-group-${group.label}`}>
+                                  <div className="px-2 pb-1 text-[10px] leading-4 text-sidebar-foreground/45">{group.description}</div>
+                                  <ul>
+                                    {group.items.map((submenu) => {
+                                      const href = `/configuracoes?tabela=${submenu.key}`
+                                      const submenuActive = pathname === "/configuracoes" && searchParams.get("tabela") === submenu.key
+                                      return (
+                                        <SidebarMenuSubItem key={submenu.key}>
+                                          <SidebarMenuSubButton render={<Link href={href} />} isActive={submenuActive} className="h-8 rounded-md text-xs text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground data-active:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-foreground data-active:shadow-[inset_2px_0_0_var(--sidebar-primary)]">
+                                            <span className="truncate">{submenu.label}</span>
+                                          </SidebarMenuSubButton>
+                                        </SidebarMenuSubItem>
+                                      )
+                                    })}
+                                  </ul>
+                                </div> : null}
+                              </li>
+                            )
+                          })}
                         </SidebarMenuSub>
                       ) : null}
                     </SidebarMenuItem>
