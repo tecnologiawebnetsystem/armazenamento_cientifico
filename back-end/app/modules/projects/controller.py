@@ -9,6 +9,7 @@ from app.api.dependencies import CurrentUser, require_capabilities
 from app.core.authorization import require_capability
 from app.core.exceptions import ConflictException
 from app.db.session import get_session
+from app.modules.projects.acl_provider import read_folder_acl
 from app.modules.projects.models import Project
 from app.modules.projects.repository import ProjectRepository
 from app.modules.projects.schemas import (
@@ -156,11 +157,30 @@ async def get_project_access_map(
         groups.append(AccessMapGroupOut(nome=project.write_group, fonte="projeto", identificadores=[project.write_group], nivel="escrita"))
     else:
         gaps.append("grupo de escrita não configurado")
+    acl_result = await read_folder_acl(project.parent_folder or "")
+    if acl_result.status != "consultado":
+        gaps.append(acl_result.message or "não foi possível consultar as permissões da pasta")
     if not members:
         gaps.append("projeto sem membros vinculados")
     return AccessMapOut(
         project=serialize_project(project), projectId=project.id, groups=groups,
-        members=members, source="database", consultedAt=datetime.now(UTC), gaps=gaps,
+        members=members,
+        acl={
+            "status": acl_result.status,
+            "path": project.parent_folder or "",
+            "entries": [
+                {
+                    "principal": entry.principal,
+                    "principalType": entry.principal_type,
+                    "accessType": entry.access_type,
+                    "permissions": entry.permissions,
+                    "inherited": entry.inherited,
+                }
+                for entry in acl_result.entries
+            ],
+            "message": acl_result.message,
+        },
+        source="database + ACL da pasta", consultedAt=datetime.now(UTC), gaps=gaps,
     )
 
 
