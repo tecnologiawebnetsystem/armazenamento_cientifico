@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import subprocess
 from dataclasses import dataclass
@@ -33,8 +34,20 @@ async def read_folder_acl(path: str) -> AclResult:
         return await asyncio.to_thread(_read_with_powershell, path)
     except subprocess.TimeoutExpired:
         return AclResult("tempo_esgotado", [], "A consulta à pasta de rede excedeu o tempo limite.")
-    except OSError:
-        return AclResult("acesso_negado", [], "Não foi possível ler as permissões desta pasta com a conta atual.")
+    except subprocess.CalledProcessError as error:
+        detail = (error.stderr or "").strip()
+        if "Access is denied" in detail or "Acesso negado" in detail:
+            message = "A conta atual não tem permissão para ler a segurança desta pasta mãe."
+            status = "acesso_negado"
+        elif "Cannot find path" in detail or "não pode encontrar" in detail.lower():
+            message = "A pasta mãe não foi encontrada ou não está acessível na rede."
+            status = "indisponivel"
+        else:
+            message = "Não foi possível consultar as permissões da pasta mãe no host Windows."
+            status = "indisponivel"
+        return AclResult(status, [], message)
+    except (OSError, json.JSONDecodeError):
+        return AclResult("indisponivel", [], "Não foi possível interpretar a resposta de segurança da pasta mãe.")
 
 
 def _read_with_powershell(path: str) -> AclResult:
@@ -58,8 +71,6 @@ $acl.Access | ForEach-Object {
         timeout=20,
         check=True,
     )
-    import json
-
     raw = json.loads(completed.stdout or "[]")
     if isinstance(raw, dict):
         raw = [raw]
