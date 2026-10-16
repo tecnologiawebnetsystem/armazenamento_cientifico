@@ -160,6 +160,10 @@ export type ActivityAction =
   | "consultar-mapa-acessos"
   | "exportar-logs"
   | "exportar-relatorio"
+  | "cav4_authorization"   // ← adicionar
+  | "conceder-papel"       // ← opcional, para o futuro
+  | "revogar-papel"        // ← opcional, para o futuro
+  | string       
 
 export interface ActivityLog {
   id: string

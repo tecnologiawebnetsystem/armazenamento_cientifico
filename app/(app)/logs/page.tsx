@@ -202,7 +202,41 @@ export default function LogsPage() {
           <div className="grid gap-1 sm:grid-cols-2"><div><span className="text-muted-foreground">Entidade</span><p className="font-mono">{displayEntity(selectedLog.entidade)}</p></div><div><span className="text-muted-foreground">Identificador</span><p className="break-all">{displayEntityId(selectedLog)}</p></div></div>
           <div><span className="text-muted-foreground">Usuário</span><p>{selectedLog.userName ?? selectedLog.userId ?? "Usuário não identificado"}</p></div>
           <div><span className="text-muted-foreground">Data e hora</span><p>{new Date(selectedLog.criadoEm).toLocaleString("pt-BR")}</p></div>
-          <div><span className="text-muted-foreground">Rota / método</span><p className="break-all font-mono">{selectedLog.metodoHttp ?? "—"} {selectedLog.rota ?? ""}</p></div>
+          <div><span className="text-muted-foreground">Rota / método</span><p className="break-all font-mono">{selectedLog.metodoHttp ?? "—"} {selectedLog.rota ?? ""}</p></div> {/* ── Detalhes CAV4: message + campos estruturados ── */}
+          {selectedLog.acao === "cav4_authorization" && (() => {
+            let parsed: Record<string, unknown> | null = null
+            try {
+              parsed = typeof selectedLog.detalhes === "string" && selectedLog.detalhes
+                ? JSON.parse(selectedLog.detalhes) as Record<string, unknown>
+                : null
+            } catch { /* ignore */ }
+            if (!parsed) return null
+
+            const message = typeof parsed.message === "string" ? parsed.message : null
+            const entries = Object.entries(parsed).filter(([k]) => k !== "message")
+
+            return (
+              <>
+                {message && (
+                  <div className="rounded-lg border border-primary/20 bg-primary/[0.05] px-4 py-3">
+                    <p className="text-sm font-medium leading-relaxed">{message}</p>
+                  </div>
+                )}
+                {entries.length > 0 && (
+                  <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+                    {entries.map(([key, value]) => (
+                      <div key={key}>
+                        <dt className="text-xs text-muted-foreground">{key}</dt>
+                        <dd className="break-all font-mono text-sm">
+                          {Array.isArray(value) ? value.join(", ") : String(value ?? "—")} 
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+              </>
+            )
+          })()}          
         </div>}
       </DialogContent>
     </Dialog>
