@@ -31,7 +31,7 @@ export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: s
         className="pointer-events-none absolute -inset-5 -z-10 rounded-[2rem] bg-gradient-to-br from-petrobras-blue/12 via-transparent to-petrobras-green/12 blur-2xl"
       />
 
-      <div className="overflow-hidden rounded-[1.25rem] border border-[#d7e5dd] bg-white shadow-[0_22px_55px_rgba(0,59,36,0.14)] ring-1 ring-[#fdbb30]/15">
+      <div className="overflow-hidden rounded-[1.25rem] border border-[#d7e5dd] bg-white shadow-[0_22px_55px_rgba(0,59,36,0.14)] ring-1 ring-[#fdbb30]/15 lg:min-h-[31rem]">
         {/* Faixa verde/amarelo Petrobras */}
         <div className="h-1.5 bg-gradient-to-r from-petrobras-blue via-petrobras-green to-petrobras-yellow" />
 
