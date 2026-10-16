@@ -367,6 +367,11 @@ async def cav4_callback(request: Request, code: str, state: str):
                         "route": str(request.url.path),
                         "details": json.dumps(
                             {
+                                "message": (
+                                    f"Autorização concluída com sucesso. O perfil {profile_id} foi atualizado no SIGAC."
+                                    if profile_changed
+                                    else f"Autorização concluída com sucesso. O perfil {profile_id} já estava atualizado no SIGAC."
+                                ),
                                 "Perfil Anterior": previous_profile,
                                 "Perfil Atual": str(profile_id),
                                 "Email": identity.email,
