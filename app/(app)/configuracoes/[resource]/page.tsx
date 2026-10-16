@@ -5,7 +5,22 @@ import type { ConfigurationResource } from "@/lib/api-client"
 
 export default async function ConfiguracaoResourcePage({ params }: { params: Promise<{ resource: string }> }) {
   const { resource: rawResource } = await params
-  const resource = rawResource.replaceAll("-", "_")
+  const normalizedResource = decodeURIComponent(rawResource).trim().toLowerCase().replaceAll("-", "_").replaceAll(" ", "_")
+  const resourceAliases: Record<string, ConfigurationResource> = {
+    menus: "menus",
+    modulos: "modules",
+    permissoes: "permissions",
+    "permissoes_de_menu": "menu_permissions",
+    perfis: "profiles",
+    "permissoes_por_perfil": "profile_permissions",
+    "modulos_por_perfil": "profile_modules",
+    "status_de_projetos": "project_statuses",
+    "areas_responsaveis": "responsible_areas",
+    "tipos_de_relatorio": "report_types",
+    "campos_de_relatorio": "report_fields",
+    "cards_do_dashboard": "dashboard_cards",
+  }
+  const resource = resourceAliases[normalizedResource] ?? normalizedResource
   if (!(resource in configurationResourceLabels)) notFound()
 
   const config = configurationResourceLabels[resource as ConfigurationResource]
