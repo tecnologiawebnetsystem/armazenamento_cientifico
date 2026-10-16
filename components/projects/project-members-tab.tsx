@@ -45,7 +45,7 @@ export function ProjectMembersTab({ projectId }: { projectId: string; canManage?
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-3">
             <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-petrobras-green text-primary-foreground"><ShieldCheckIcon className="size-5" aria-hidden="true" /></div>
-            <div className="flex flex-col gap-1"><CardTitle className="text-xl tracking-tight">Membros e mapa de acessos</CardTitle><CardDescription>Usuários, grupos e permissões da pasta mãe configurada. Subpastas não são consultadas.</CardDescription></div>
+            <div className="flex flex-col gap-1"><CardTitle className="text-xl tracking-tight">Membros e mapa de acessos</CardTitle><CardDescription>Usuários, grupos e permissões da pasta mãe configurada e das subpastas imediatas.</CardDescription></div>
           </div>
           <div className="flex items-center gap-2"><Badge variant="secondary">{groups.length} {groups.length === 1 ? "grupo" : "grupos"}</Badge><Badge variant="secondary">{acl?.entries.length ?? 0} ACLs</Badge></div>
         </div>
