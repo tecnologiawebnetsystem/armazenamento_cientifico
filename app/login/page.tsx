@@ -16,7 +16,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <main className="light relative grid min-h-svh overflow-hidden bg-[#f5f8f7] text-foreground lg:grid-cols-[minmax(0,1.16fr)_minmax(440px,0.84fr)]">
       <section aria-labelledby="sigac-hero-title" className="relative flex min-h-[520px] flex-col justify-between overflow-hidden bg-[#005c32] px-6 py-8 text-white sm:px-10 lg:min-h-svh lg:px-[clamp(2.5rem,7vw,7.5rem)] lg:py-12">
-        <Image src="/images/login-hero.png" alt="" fill priority className="pointer-events-none object-cover opacity-45 mix-blend-screen" />
+        <Image src="/images/login-hero.png" alt="" fill priority sizes="(max-width: 1023px) 100vw, 58vw" className="pointer-events-none object-cover opacity-45 mix-blend-screen" />
         <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(0,92,50,0.96)_0%,rgba(0,127,62,0.84)_48%,rgba(0,59,36,0.72)_100%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,59,36,0.18)_0%,rgba(0,59,36,0.08)_45%,rgba(0,31,20,0.72)_100%)]" />
         <div className="absolute -right-36 bottom-[-12rem] size-[34rem] rounded-full border-[44px] border-petrobras-yellow/20" />
