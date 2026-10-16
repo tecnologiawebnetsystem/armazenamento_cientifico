@@ -18,6 +18,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { usePlatformContext } from "@/hooks/use-platform-context"
+import { configurationResourceLabels, configurationResources } from "@/components/configuration/configuration-panel"
 import { ChartNoAxesCombinedIcon, FolderKanbanIcon, LayoutDashboardIcon, NetworkIcon, SettingsIcon, ShieldCheckIcon, type LucideIcon } from "lucide-react"
 import type { NavGroup, NavItem } from "@/lib/nav-config"
 
@@ -57,7 +58,16 @@ function buildNavGroups(menus: PlatformMenu[]): NavGroup[] {
     icon: getIcon(menu.icone),
   }))
 
-  return items.length ? [{ label: "Sistema", items }] : []
+  const configurationItem: NavItem = {
+    title: "Configurações",
+    url: "/configuracoes",
+    icon: getIcon("settings"),
+    children: Array.from(new Set(configurationResources.map((resource) => configurationResourceLabels[resource].group))).flatMap((group) => [
+      { title: group, url: "/configuracoes", icon: getIcon("settings"), children: configurationResources.filter((resource) => configurationResourceLabels[resource].group === group).map((resource) => ({ title: configurationResourceLabels[resource].label, url: `/configuracoes/${resource}`, icon: getIcon("settings") })) },
+    ]),
+  }
+
+  return [{ label: "Sistema", items: [...items.filter((item) => item.url !== "/configuracoes"), configurationItem] }]
 }
 
 export function AppSidebar() {
@@ -96,12 +106,18 @@ export function AppSidebar() {
                 {group.items.map((item) => {
                   const isActive = pathname === item.url || pathname.startsWith(`${item.url}/`)
                   return (
-                    <SidebarMenuItem key={item.url} className="relative">
+                    <SidebarMenuItem key={item.title} className="relative">
                       {isActive ? <span aria-hidden className="absolute top-1/2 left-0 h-6 w-0.5 -translate-y-1/2 rounded-r-full bg-sidebar-primary shadow-[0_0_8px_color-mix(in_oklch,var(--sidebar-primary)_55%,transparent)] group-data-[collapsible=icon]:hidden" /> : null}
                       <SidebarMenuButton render={<Link href={item.url} />} isActive={isActive} tooltip={item.title} className="h-10 gap-3 rounded-lg px-3 text-[13px] font-medium text-sidebar-foreground transition-colors duration-200 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring/70 data-active:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-foreground data-active:shadow-[inset_3px_0_0_var(--sidebar-primary)] [&_svg]:text-sidebar-foreground data-active:[&_svg]:text-sidebar-foreground">
                         <item.icon />
                         <span className="truncate">{item.title}</span>
                       </SidebarMenuButton>
+                      {item.children?.length && (item.title !== "Configurações" || pathname.startsWith("/configuracoes")) ? <div className="ml-5 border-l border-sidebar-border/50 pl-2 group-data-[collapsible=icon]:hidden">
+                        {item.children.map((child) => <div key={child.title} className="mt-1">
+                          <p className="px-3 py-1.5 text-[10px] font-semibold tracking-wider text-sidebar-primary/70 uppercase">{child.title}</p>
+                          {child.children?.map((subItem) => <Link key={subItem.url} href={subItem.url} className={`block rounded-md px-3 py-1.5 text-xs transition-colors hover:bg-sidebar-accent/60 ${pathname === subItem.url ? "bg-sidebar-accent font-semibold text-sidebar-foreground" : "text-sidebar-foreground/75"}`}>{subItem.title}</Link>)}
+                        </div>)}
+                      </div> : null}
                     </SidebarMenuItem>
                   )
                 })}
