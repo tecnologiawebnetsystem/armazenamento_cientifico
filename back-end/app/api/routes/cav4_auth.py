@@ -338,6 +338,8 @@ async def cav4_callback(request: Request, code: str, state: str):
                             entity_id,
                             details,
                             result,
+                            http_method,
+                            route,
                             created_at
                         )
                         values
@@ -349,6 +351,8 @@ async def cav4_callback(request: Request, code: str, state: str):
                             :entity_id,
                             :details,
                             :result,
+                            :http_method,
+                            :route,
                             now()
                         )
                         """
@@ -359,8 +363,8 @@ async def cav4_callback(request: Request, code: str, state: str):
                         "action": "cav4_authorization",
                         "entity": "session",
                         "entity_id": session_id,
-                        "Metodo": request.method,
-                        "Rota": str(request.url.path),
+                        "http_method": request.method,
+                        "route": str(request.url.path),
                         "details": json.dumps(
                             {
                                 "Perfil Anterior": previous_profile,
