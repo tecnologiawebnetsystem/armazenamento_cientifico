@@ -56,11 +56,20 @@ class AccessMapAclEntryOut(BaseModel):
     inherited: bool
 
 
+class AccessMapFolderAclOut(BaseModel):
+    name: str
+    status: str
+    path: str = ""
+    entries: list[AccessMapAclEntryOut] = Field(default_factory=list)
+    message: str | None = None
+
+
 class AccessMapAclOut(BaseModel):
     status: str
     path: str = ""
     entries: list[AccessMapAclEntryOut] = Field(default_factory=list)
     message: str | None = None
+    subfolders: list[AccessMapFolderAclOut] = Field(default_factory=list)
 
 
 class ProjectOut(BaseModel):

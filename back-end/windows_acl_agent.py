@@ -51,6 +51,33 @@ $acl.Access | ForEach-Object {
         raise HTTPException(status_code=503, detail="Não foi possível consultar a ACL") from error
 
 
+@app.post("/acls")
+def read_subfolder_acls(request: AclRequest, x_acl_agent_token: str | None = Header(default=None)) -> dict[str, Any]:
+    if TOKEN and x_acl_agent_token != TOKEN:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    if not request.path.startswith("\\\\"):
+        raise HTTPException(status_code=400, detail="Apenas caminhos UNC são permitidos")
+    script = r'''
+$ErrorActionPreference = 'Stop'
+Get-ChildItem -LiteralPath $args[0] -Directory -Force | ForEach-Object {
+  $folder = $_; $acl = Get-Acl -LiteralPath $folder.FullName
+  [pscustomobject]@{ name = $folder.Name; path = $folder.FullName; entries = @($acl.Access | ForEach-Object {
+    [pscustomobject]@{ principal = $_.IdentityReference.Value; principalType = if ($_.IdentityReference.Value -match '\\') { 'grupo_ou_usuario' } else { 'principal' }; accessType = $_.AccessControlType.ToString().ToLowerInvariant(); permissions = @($_.FileSystemRights.ToString().Split(',') | ForEach-Object { $_.Trim() }); inherited = [bool]$_.IsInherited }
+  }) }
+} | ConvertTo-Json -Compress -Depth 6
+'''
+    try:
+        result = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script, request.path], capture_output=True, text=True, timeout=40, check=True)
+        raw = json.loads(result.stdout or "[]")
+        return {"folders": raw if isinstance(raw, list) else [raw]}
+    except subprocess.TimeoutExpired as error:
+        raise HTTPException(status_code=504, detail="Consulta excedeu o tempo limite") from error
+    except subprocess.CalledProcessError as error:
+        raise HTTPException(status_code=403, detail=(error.stderr or "Acesso negado").strip()) from error
+    except (OSError, json.JSONDecodeError) as error:
+        raise HTTPException(status_code=503, detail="Não foi possível consultar as ACLs") from error
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("ACL_AGENT_PORT", "8765")))

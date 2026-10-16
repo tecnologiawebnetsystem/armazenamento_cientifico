@@ -9,7 +9,7 @@ from app.api.dependencies import CurrentUser, require_capabilities
 from app.core.authorization import require_capability
 from app.core.exceptions import ConflictException
 from app.db.session import get_session
-from app.modules.projects.acl_provider import read_folder_acl
+from app.modules.projects.acl_provider import read_folder_acl, read_subfolder_acls
 from app.modules.projects.models import Project
 from app.modules.projects.repository import ProjectRepository
 from app.modules.projects.schemas import (
@@ -158,6 +158,7 @@ async def get_project_access_map(
     else:
         gaps.append("grupo de escrita não configurado")
     acl_result = await read_folder_acl(project.parent_folder or "")
+    subfolder_results = await read_subfolder_acls(project.parent_folder or "")
     if acl_result.status != "consultado":
         gaps.append(acl_result.message or "não foi possível consultar as permissões da pasta")
     if not members:
@@ -179,6 +180,25 @@ async def get_project_access_map(
                 for entry in acl_result.entries
             ],
             "message": acl_result.message,
+            "subfolders": [
+                {
+                    "name": folder.name,
+                    "status": folder.status,
+                    "path": folder.path,
+                    "entries": [
+                        {
+                            "principal": entry.principal,
+                            "principalType": entry.principal_type,
+                            "accessType": entry.access_type,
+                            "permissions": entry.permissions,
+                            "inherited": entry.inherited,
+                        }
+                        for entry in folder.entries
+                    ],
+                    "message": folder.message,
+                }
+                for folder in subfolder_results
+            ],
         },
         source="database + ACL da pasta", consultedAt=datetime.now(UTC), gaps=gaps,
     )
