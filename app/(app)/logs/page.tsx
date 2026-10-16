@@ -189,7 +189,7 @@ export default function LogsPage() {
     />
 
     <Dialog open={Boolean(selectedLog)} onOpenChange={(open) => { if (!open) setSelectedLog(null) }}>
-<DialogContent className="w-[calc(100vw-2rem)] max-w-5xl border-primary/20 p-0 shadow-[0_18px_60px_color-mix(in_oklch,var(--petrobras-green)_18%,transparent)]">
+<DialogContent className="top-8 bottom-8 w-[calc(100vw-2rem)] max-w-6xl translate-y-0 overflow-y-auto border-primary/20 p-0 shadow-[0_18px_60px_color-mix(in_oklch,var(--petrobras-green)_18%,transparent)]">
   {selectedLog && <>
   <DialogHeader className="relative border-b-4 border-b-petrobras-yellow bg-petrobras-green px-6 py-5 pr-12 text-primary-foreground sm:px-8">
             <div className="flex flex-wrap items-center gap-2">
