@@ -122,6 +122,8 @@ def create_app() -> FastAPI:
                             ip_address=request.client.host if request.client else None,
                         )
                 except Exception:
+                    await audit_session.rollback()
+                    # Auditoria não pode converter uma resposta funcional em erro HTTP 500.
                     logger.exception("audit_persist_failed correlation_id=%s", request_id)
         if settings.security_headers_enabled:
             response.headers["X-Content-Type-Options"] = "nosniff"
