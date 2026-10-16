@@ -181,4 +181,4 @@ $acl.Access | ForEach-Object {
     return AclResult("consultado", entries)
 
 
-__all__ = ["AclEntry", "AclResult", "read_folder_acl"]
+__all__ = ["AclEntry", "AclResult", "AclFolderResult", "read_folder_acl", "read_subfolder_acls"]
