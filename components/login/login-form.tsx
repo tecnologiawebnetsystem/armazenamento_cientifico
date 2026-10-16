@@ -31,11 +31,11 @@ export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: s
         className="pointer-events-none absolute -inset-5 -z-10 rounded-[2rem] bg-gradient-to-br from-petrobras-blue/12 via-transparent to-petrobras-green/12 blur-2xl"
       />
 
-      <div className="overflow-hidden rounded-[1.25rem] border border-[#d7e5dd] bg-white shadow-[0_22px_55px_rgba(0,59,36,0.14)] ring-1 ring-[#fdbb30]/15">
+      <div className="overflow-hidden rounded-2xl border border-white/50 bg-white shadow-[0_24px_60px_rgba(0,40,24,0.28)] ring-1 ring-petrobras-yellow/20">
         {/* Faixa verde/amarelo Petrobras */}
         <div className="h-1.5 bg-gradient-to-r from-petrobras-blue via-petrobras-green to-petrobras-yellow" />
 
-        <header className="flex items-center gap-3 border-b border-[#e5ebef] bg-white px-7 py-6">
+        <header className="flex items-center gap-3 border-b border-[#e5ebef] bg-white px-6 py-5">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#063f58] text-white shadow-md shadow-[#063f58]/20">
             <ShieldCheckIcon className="size-5" />
           </span>
