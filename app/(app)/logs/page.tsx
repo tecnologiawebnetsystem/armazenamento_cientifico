@@ -189,17 +189,17 @@ export default function LogsPage() {
     />
 
     <Dialog open={Boolean(selectedLog)} onOpenChange={(open) => { if (!open) setSelectedLog(null) }}>
-      <DialogContent className="max-h-[min(90vh,760px)] max-w-3xl overflow-y-auto border-primary/15 p-0">
-        {selectedLog && <>
-          <DialogHeader className="border-b border-primary/10 bg-primary/[0.04] px-6 py-5 pr-12 sm:px-8">
+<DialogContent className="w-[calc(100vw-2rem)] max-w-5xl border-primary/20 p-0 shadow-[0_18px_60px_color-mix(in_oklch,var(--petrobras-green)_18%,transparent)]">
+  {selectedLog && <>
+  <DialogHeader className="relative border-b-4 border-b-petrobras-yellow bg-petrobras-green px-6 py-5 pr-12 text-primary-foreground sm:px-8">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary" className="bg-primary/10 text-primary">Evento de auditoria</Badge>
-              <Badge variant="outline" className={selectedLog.resultado === "erro" ? "border-destructive/30 text-destructive" : "border-primary/30 text-primary"}>
+<Badge variant="secondary" className="bg-primary-foreground/15 text-primary-foreground">Evento de auditoria</Badge>
+  <Badge variant="outline" className={selectedLog.resultado === "erro" ? "border-destructive/30 text-destructive" : "border-petrobras-yellow/70 bg-petrobras-yellow/15 text-primary-foreground"}>
                 {selectedLog.resultado === "erro" ? "Falha" : "Sucesso"}
               </Badge>
             </div>
-            <DialogTitle className="text-xl sm:text-2xl">{displayAction(selectedLog.acao)}</DialogTitle>
-            <DialogDescription>Registro completo da ação selecionada.</DialogDescription>
+<DialogTitle className="text-xl text-primary-foreground sm:text-2xl">{displayAction(selectedLog.acao)}</DialogTitle>
+  <DialogDescription className="text-primary-foreground/80">Registro completo da ação selecionada.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 px-6 py-6 text-sm sm:px-8">
             <section className="grid gap-3 sm:grid-cols-2" aria-label="Resumo do evento">
