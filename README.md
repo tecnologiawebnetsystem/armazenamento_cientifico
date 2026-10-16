@@ -192,7 +192,7 @@ O schema de referência está em [`back-end/database/postgresql-schema.sql`](bac
 
 ### Seed e usuários iniciais
 
-O seed é controlado por `SEED_DATABASE`. Quando habilitado em um ambiente de desenvolvimento, aplica os catálogos, permissões, menus, perfis e usuários iniciais de forma idempotente, além dos projetos de demonstração que ainda não existem. A migration `0001_initial_schema.py` contém somente estrutura, constraints e índices; ela não insere dados. Em ambientes compartilhados ou de produção, mantenha `SEED_DATABASE=false` após a carga inicial e altere dados por migrations ou rotinas administrativas controladas.
+O seed é controlado por `SEED_DATABASE`. Quando habilitado em um ambiente de desenvolvimento, cria apenas registros iniciais que ainda não existem. Em ambientes compartilhados ou de produção, mantenha `SEED_DATABASE=false` após a carga inicial e altere dados por migrations ou rotinas administrativas controladas.
 
 ### Verificar o banco
 
@@ -387,7 +387,7 @@ A API REST do SiGAC é fornecida pelo FastAPI em `back-end/`. O contrato publica
 | Login corporativo | `GET /api/auth/cav4/start`, `GET /api/auth/cav4/callback` | Autenticação CAV4/OIDC; o SIGAC localiza o usuário pelo e-mail. |
 | Catálogos e diretório | `GET /api/catalogos`, `/api/users`, `/api/perfis`, `/api/permissions` | Dados auxiliares para telas e autorização. |
 | Projetos | `GET/POST /api/projects`, `GET/PATCH/DELETE /api/projects/{id}` | CRUD, áreas, mapa de acesso e membros. |
-| Pastas | `GET /api/folders` | Consulta somente leitura das pastas da área de rede. |
+| Pastas | `GET /api/folders` | Consulta somente leitura das pastas do projeto. |
 | Dashboard | `GET /api/dashboard/summary` | Indicadores da área autenticada. |
 | Auditoria | `GET /api/activity-logs` | Consulta dos eventos do sistema. |
 | Relatórios | `GET /api/reports`, `/api/reports/export`, `/api/report-fields` | Consulta e exportação CSV, TXT e PDF. |

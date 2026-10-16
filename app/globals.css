@@ -227,35 +227,6 @@
     }
 }
 
-.configuration-petrobras {
-  --configuration-green: #007f3e;
-  --configuration-green-dark: #005c32;
-  --configuration-yellow: #fdbb30;
-  --configuration-blue: #17324d;
-}
-
-.configuration-petrobras [data-slot="card"] {
-  border-color: color-mix(in srgb, var(--configuration-green) 18%, var(--border));
-}
-
-.configuration-petrobras [data-slot="card-header"] {
-  background-color: color-mix(in srgb, var(--configuration-green) 4%, var(--background));
-}
-
-.configuration-petrobras [data-slot="button"]:not([data-variant="outline"]):not([data-variant="ghost"]):not([data-variant="link"]) {
-  background-color: var(--configuration-green);
-  color: #ffffff;
-}
-
-.configuration-petrobras [data-slot="button"]:not([data-variant="outline"]):not([data-variant="ghost"]):not([data-variant="link"]):hover {
-  background-color: var(--configuration-green-dark);
-}
-
-.configuration-petrobras [data-slot="badge"] {
-  border-color: color-mix(in srgb, var(--configuration-green) 28%, var(--border));
-  color: var(--configuration-green-dark);
-}
-
 @media print {
   body * {
     visibility: hidden !important;

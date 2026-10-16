@@ -3,7 +3,7 @@ import { PageHeader, PageSection } from "@/components/shared/page-layout"
 
 export default function ConfiguracoesPage() {
   return (
-    <PageSection label="Configurações SIGAC" className="configuration-petrobras gap-5">
+    <PageSection label="Configurações SIGAC" className="gap-5">
       <PageHeader
         eyebrow="Administração"
         title="Configurações"

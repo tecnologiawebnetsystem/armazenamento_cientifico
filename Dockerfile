@@ -1,35 +1,44 @@
-FROM node:20-alpine AS deps
+# =============================================================
+# STAGE 1: builder – instala dependências e gera build Next.js
+# =============================================================
+FROM imagens-base.petrobras.dev.br/petro-node24-alpine:latest AS builder
+
 WORKDIR /app
 
-RUN corepack enable
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+# Dependências primeiro 
+COPY package.json package-lock.json ./
+COPY .npmrc .npmrc
 
-FROM node:20-alpine AS builder
-WORKDIR /app
-ENV NEXT_TELEMETRY_DISABLED=1
-ARG BUILD_VERSION=local
-LABEL org.opencontainers.image.title="Armazenamento Científico Web" \
-      org.opencontainers.image.version="${BUILD_VERSION}" \
-      org.opencontainers.image.source="tecnologiawebnetsystem/armazenamento_cientifico"
+RUN npm ci --no-audit --no-fund
 
-RUN corepack enable
-COPY --from=deps /app/node_modules ./node_modules
+# Código da aplicação
 COPY . .
-RUN pnpm run build
 
-FROM node:20-alpine AS runner
+# Build Next.js (requer output: 'standalone' no next.config.js)
+RUN npm run build \
+    && test -f .next/standalone/server.js
+
+# =============================================================
+# STAGE 2: runner – imagem final mínima de produção
+# =============================================================
+
+FROM imagens-base.petrobras.dev.br/petro-node24-alpine:latest AS runner
+
 WORKDIR /app
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV HOSTNAME=0.0.0.0
 
-RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
-COPY --from=builder /app/public ./public
+ENV NODE_ENV=production \
+    PORT=3000
+
+# Segurança: executa como usuário não-root
+RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
+
+# Copia apenas os artefatos necessários do build (standalone)
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 USER nextjs
+
 EXPOSE 3000
-HEALTHCHECK --interval=10s --timeout=5s --retries=12 CMD node -e "fetch('http://127.0.0.1:3000/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
-CMD ["node", "server.js"]
+
+CMD ["sh", "-c", "HOSTNAME=0.0.0.0 node server.js"]

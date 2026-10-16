@@ -1,0 +1,29 @@
+env:
+  Repository: a25034
+  Name: sigac
+
+build:
+  python:
+    Name: "sigac"
+    PythonVersion: "3.11"
+    PythonSourcePath: "."
+    DependenciesManager: "pip"
+    TestingTool: "pytest"
+    SkipTests: false
+    SonarSources: app
+
+  docker:
+    Name: sigac
+    Repository: a25034
+    Dockerfile: ./Dockerfile
+    ContextRoot: .
+
+upload:
+  docker:
+    Repository: a25034
+    Images:
+      - sigac
+
+deploy:
+  SnapshotEnvs: DSV
+  StartReleaseEnvs: HMG

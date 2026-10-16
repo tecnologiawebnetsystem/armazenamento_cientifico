@@ -1,0 +1,31 @@
+# Para mais informações sobre a configuração do arquivo pipeline.yml,
+# acesse https://rigs.petrobras.com.br/docs/default/component/d9i3-templates/pipeline-yml
+###########################################################################################
+env:
+  Repository: a25034
+  Name: frontend
+
+build:
+  node:
+    Name: "frontend"
+    NodeVersion: "24"
+    NodeSourcePath: "."
+    PackageManager: "npm"
+    SkipTests: true
+    SonarSources: app,components,hooks,lib,types
+  
+  docker:
+    Name: frontend
+    Repository: a25034
+    Dockerfile: ./Dockerfile
+    ContextRoot: .
+
+upload:
+  docker:
+    Repository: a25034
+    Images:
+      - frontend
+
+deploy:
+  SnapshotEnvs: DSV
+  StartReleaseEnvs: HMG
