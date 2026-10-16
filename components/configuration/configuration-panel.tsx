@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
-import { CheckCircle2Icon, EyeIcon, PencilIcon, PlusIcon, SearchIcon, Settings2Icon, Trash2Icon } from "lucide-react"
+import { EyeIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { createConfiguration, deleteConfiguration, getConfigurations, updateConfiguration, type ConfigurationResource, type ConfigurationRow } from "@/lib/api-client"
 
@@ -34,7 +34,20 @@ const resources: Record<ConfigurationResource, ResourceConfig> = {
 }
 
 const resourceList = Object.keys(resources) as ConfigurationResource[]
-const groupDescriptions: Record<string, string> = { "Segurança": "Perfis, permissões e vínculos de acesso.", "Acesso e navegação": "Módulos e menus exibidos no sistema.", "Relatórios": "Tipos e campos disponíveis para exportação.", "Operação": "Status e áreas usados nos projetos.", "Dashboard": "Cards, métricas e visibilidade." }
+const resourceDescriptions: Record<ConfigurationResource, string> = {
+  menus: "Defina os itens de navegação exibidos para os usuários.",
+  modules: "Organize as áreas funcionais disponíveis no sistema.",
+  permissions: "Cadastre as ações que podem ser liberadas por perfil.",
+  menu_permissions: "Controle quais permissões cada menu exige.",
+  profiles: "Crie perfis para organizar os níveis de acesso.",
+  profile_permissions: "Associe ações permitidas a cada perfil.",
+  profile_modules: "Defina quais módulos cada perfil pode visualizar.",
+  project_statuses: "Mantenha os estados usados no acompanhamento dos projetos.",
+  responsible_areas: "Configure as áreas responsáveis pelos registros.",
+  report_types: "Cadastre os tipos de relatório disponibilizados.",
+  report_fields: "Configure os campos exibidos nos relatórios.",
+  dashboard_cards: "Defina os cards e métricas exibidos no dashboard.",
+}
 const formatValue = (value: unknown) => typeof value === "boolean" ? (value ? "Ativo" : "Inativo") : value === null || value === undefined || value === "" ? "—" : String(value)
 
 export function ConfigurationPanel() {
@@ -67,45 +80,7 @@ export function ConfigurationPanel() {
   async function remove(row: ConfigurationRow) { if (!window.confirm(`Excluir ${config.label.toLowerCase()}?`)) return; try { await deleteConfiguration(resource, config.key.map((key) => String(row[key] ?? "")).join("|")); toast.success("Registro excluído"); await load() } catch (error) { toast.error(error instanceof Error ? error.message : "Não foi possível excluir") } }
 
   return <div className="flex flex-col gap-5">
-    <section className="rounded-2xl border bg-primary px-6 py-6 text-primary-foreground shadow-sm sm:px-8"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><Badge variant="secondary" className="mb-3 gap-2 bg-primary-foreground/15 text-primary-foreground"><Settings2Icon className="size-3.5" /> Central de parâmetros</Badge><h2 className="text-2xl font-semibold tracking-tight">Configure uma tabela por vez</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-primary-foreground/75">Escolha uma tabela, consulte os registros e use as ações de criar, visualizar, editar ou excluir.</p></div><CheckCircle2Icon className="hidden size-10 text-primary-foreground/70 sm:block" /></div></section>
-    <Card>
-      <CardHeader className="gap-5 pb-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <CardTitle>1. Selecione uma tabela</CardTitle>
-            <CardDescription className="mt-1">Escolha uma área para consultar e administrar seus parâmetros.</CardDescription>
-          </div>
-          <Badge variant="outline" className="w-fit shrink-0">{resourceList.length} tabelas disponíveis</Badge>
-        </div>
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(16rem,0.8fr)] lg:items-end">
-          <div className="flex min-w-0 flex-col gap-2">
-            <Label htmlFor="configuration-resource">Tabela de configurações</Label>
-            <Select value={resource} onValueChange={(value) => { const next = value as ConfigurationResource; setResource(next); setSearch("") }}>
-              <SelectTrigger id="configuration-resource" className="h-11 w-full max-w-none min-w-0 text-base">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="w-[min(42rem,calc(100vw-2rem))]">
-                {Array.from(new Set(resourceList.map((item) => resources[item].group))).map((group) => (
-                  <SelectGroup key={group}>
-                    <SelectLabel className="px-3 pt-2 font-semibold">{group}</SelectLabel>
-                    {resourceList.filter((item) => resources[item].group === group).map((item) => (
-                      <SelectItem key={item} value={item} className="py-2.5 text-sm">
-                        {resources[item].label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex min-h-20 flex-col justify-center gap-1 rounded-xl border bg-muted/20 px-4 py-3">
-            <Badge variant="secondary" className="w-fit">{config.group}</Badge>
-            <p className="text-sm leading-6 text-muted-foreground">{groupDescriptions[config.group]}</p>
-          </div>
-        </div>
-      </CardHeader>
-    </Card>
-    <Card className="overflow-hidden"><CardHeader className="border-b bg-muted/20 pb-4"><div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between"><div><p className="mb-1 text-xs font-semibold uppercase tracking-widest text-primary">2. Consulte os registros</p><CardTitle>{config.label}</CardTitle><CardDescription className="mt-1">{rows.length} registros, {activeRows.length} ativos</CardDescription></div><Button onClick={() => openEditor()}><PlusIcon data-icon="inline-start" />Criar registro</Button></div><div className="mt-4 flex items-center gap-3 rounded-lg border bg-background px-3"><SearchIcon className="size-4 text-muted-foreground" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Filtrar ${config.label.toLowerCase()}...`} className="border-0 bg-transparent shadow-none focus-visible:ring-0" /><Badge variant="secondary">{filteredRows.length}</Badge></div></CardHeader><CardContent className="p-0">{loading ? <p className="p-12 text-center text-sm text-muted-foreground">Carregando registros...</p> : filteredRows.length === 0 ? <p className="p-12 text-center text-sm text-muted-foreground">Nenhum registro encontrado. Ajuste a busca ou crie um novo registro.</p> : <div className="overflow-x-auto"><Table><TableHeader><TableRow>{config.fields.slice(0, 5).map((field) => <TableHead key={field.key}>{field.label}</TableHead>)}<TableHead className="text-right">Ações</TableHead></TableRow></TableHeader><TableBody>{filteredRows.map((row, index) => <TableRow key={config.key.map((key) => String(row[key] ?? index)).join("-")}>{config.fields.slice(0, 5).map((field) => <TableCell key={field.key} className="max-w-56 truncate">{formatValue(row[field.key])}</TableCell>)}<TableCell><div className="flex justify-end gap-1"><Button variant="ghost" size="icon" aria-label="Visualizar registro" onClick={() => setViewing(row)}><EyeIcon /></Button><Button variant="ghost" size="icon" aria-label="Editar registro" onClick={() => openEditor(row)}><PencilIcon /></Button><Button variant="ghost" size="icon" aria-label="Excluir registro" onClick={() => void remove(row)}><Trash2Icon /></Button></div></TableCell></TableRow>)}</TableBody></Table></div>}</CardContent></Card>
+    <Card className="overflow-hidden"><CardHeader className="border-b bg-muted/20 pb-4"><div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between"><div><div className="mb-2 flex flex-wrap items-center gap-2"><Badge variant="secondary">{config.group}</Badge><span className="text-xs text-muted-foreground">Configurações</span></div><CardTitle>{config.label}</CardTitle><CardDescription className="mt-1 max-w-2xl">{resourceDescriptions[resource]}</CardDescription><p className="mt-2 text-xs text-muted-foreground">{rows.length} registros · {activeRows.length} ativos</p></div><Button onClick={() => openEditor()}><PlusIcon data-icon="inline-start" />Criar registro</Button></div><div className="mt-4 flex items-center gap-3 rounded-lg border bg-background px-3"><SearchIcon className="size-4 text-muted-foreground" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Filtrar ${config.label.toLowerCase()}...`} className="border-0 bg-transparent shadow-none focus-visible:ring-0" /><Badge variant="secondary">{filteredRows.length}</Badge></div></CardHeader><CardContent className="p-0">{loading ? <p className="p-12 text-center text-sm text-muted-foreground">Carregando registros...</p> : filteredRows.length === 0 ? <div className="flex flex-col items-center gap-3 px-6 py-14 text-center"><div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground"><SearchIcon className="size-5" /></div><div><p className="font-medium">{search ? "Nenhum resultado encontrado" : `Ainda não há ${config.label.toLowerCase()}`}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{search ? "Tente outro termo ou limpe a busca." : resourceDescriptions[resource]}</p></div>{search ? <Button variant="outline" size="sm" onClick={() => setSearch("")}>Limpar busca</Button> : <Button size="sm" onClick={() => openEditor()}><PlusIcon data-icon="inline-start" />Criar primeiro registro</Button>}</div> : <div className="overflow-x-auto"><Table><TableHeader><TableRow>{config.fields.slice(0, 5).map((field) => <TableHead key={field.key}>{field.label}</TableHead>)}<TableHead className="text-right">Ações</TableHead></TableRow></TableHeader><TableBody>{filteredRows.map((row, index) => <TableRow key={config.key.map((key) => String(row[key] ?? index)).join("-")}>{config.fields.slice(0, 5).map((field) => <TableCell key={field.key} className="max-w-56 truncate">{formatValue(row[field.key])}</TableCell>)}<TableCell><div className="flex justify-end gap-1"><Button variant="ghost" size="icon" aria-label="Visualizar registro" onClick={() => setViewing(row)}><EyeIcon /></Button><Button variant="ghost" size="icon" aria-label="Editar registro" onClick={() => openEditor(row)}><PencilIcon /></Button><Button variant="ghost" size="icon" aria-label="Excluir registro" onClick={() => void remove(row)}><Trash2Icon /></Button></div></TableCell></TableRow>)}</TableBody></Table></div>}</CardContent></Card>
     <Dialog open={viewing !== null} onOpenChange={(open) => !open && setViewing(null)}><DialogContent><DialogHeader><DialogTitle>Visualizar — {config.label}</DialogTitle></DialogHeader><div className="grid gap-3 sm:grid-cols-2">{config.fields.map((field) => <div key={field.key} className="rounded-lg border bg-muted/20 p-3"><p className="text-xs text-muted-foreground">{field.label}</p><p className="mt-1 break-words text-sm font-medium">{formatValue(viewing?.[field.key])}</p></div>)}</div></DialogContent></Dialog>
     <Dialog open={editor !== null} onOpenChange={(open) => !open && setEditor(null)}><DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl"><DialogHeader><DialogTitle>{editor?.row ? "Editar" : "Criar"} — {config.label}</DialogTitle><CardDescription>Preencha os parâmetros e salve a alteração.</CardDescription></DialogHeader><div className="grid gap-4 py-2 sm:grid-cols-2">{config.fields.map((item) => <div className="flex flex-col gap-2" key={item.key}><Label htmlFor={`config-${item.key}`}>{item.label}</Label>{item.type === "boolean" ? <Select value={editor?.values[item.key] || "false"} onValueChange={(value) => setEditor((current) => current && { ...current, values: { ...current.values, [item.key]: value ?? "" } })}><SelectTrigger id={`config-${item.key}`}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="true">Ativo / Sim</SelectItem><SelectItem value="false">Inativo / Não</SelectItem></SelectContent></Select> : <Input id={`config-${item.key}`} type={item.type === "number" ? "number" : "text"} disabled={Boolean(editor?.row && config.key.includes(item.key))} value={editor?.values[item.key] ?? ""} onChange={(event) => setEditor((current) => current && { ...current, values: { ...current.values, [item.key]: event.target.value } })} />}</div>)}</div><DialogFooter><Button variant="outline" onClick={() => setEditor(null)}>Cancelar</Button><Button onClick={() => void save()}>Salvar</Button></DialogFooter></DialogContent></Dialog>
   </div>

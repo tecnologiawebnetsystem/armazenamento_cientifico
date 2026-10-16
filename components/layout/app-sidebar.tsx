@@ -27,17 +27,17 @@ import type { NavGroup, NavItem } from "@/lib/nav-config"
 import type { PlatformMenu } from "@/lib/types"
 
 const configurationSubmenus = [
-  { label: "Menus", key: "menus" },
-  { label: "Módulos", key: "modules" },
-  { label: "Permissões", key: "permissions" },
-  { label: "Permissões de menu", key: "menu_permissions" },
-  { label: "Perfis", key: "profiles" },
+  { label: "Menus do sistema", key: "menus" },
+  { label: "Módulos do sistema", key: "modules" },
+  { label: "Permissões disponíveis", key: "permissions" },
+  { label: "Acesso aos menus", key: "menu_permissions" },
+  { label: "Perfis de acesso", key: "profiles" },
   { label: "Permissões por perfil", key: "profile_permissions" },
   { label: "Módulos por perfil", key: "profile_modules" },
-  { label: "Status de projetos", key: "project_statuses" },
+  { label: "Status dos projetos", key: "project_statuses" },
   { label: "Áreas responsáveis", key: "responsible_areas" },
   { label: "Tipos de relatório", key: "report_types" },
-  { label: "Campos de relatório", key: "report_fields" },
+  { label: "Campos dos relatórios", key: "report_fields" },
   { label: "Cards do dashboard", key: "dashboard_cards" },
 ] as const
 
