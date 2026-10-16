@@ -14,13 +14,13 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   if (user && !authError) redirect(nextPath)
 
   return (
-    <main style={{ fontFamily: "Arial, sans-serif" }} className="light relative grid min-h-svh overflow-hidden bg-[#f5f8f7] text-foreground lg:grid-cols-[minmax(0,1.35fr)_minmax(500px,0.65fr)]">
-      <section aria-labelledby="sigac-hero-title" className="relative flex min-h-[520px] flex-col justify-between overflow-hidden bg-[#005c32] px-6 py-8 text-white sm:px-10 lg:min-h-svh lg:px-[clamp(2.5rem,7vw,7.5rem)] lg:py-12 lg:[clip-path:polygon(0_0,100%_0,88%_100%,0_100%)]">
-        <Image src="/images/login-hero.png" alt="" fill priority sizes="(max-width: 1023px) 100vw, 58vw" className="pointer-events-none object-cover opacity-45 mix-blend-screen" />
-        <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(0,92,50,0.96)_0%,rgba(0,127,62,0.84)_48%,rgba(0,59,36,0.72)_100%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,59,36,0.18)_0%,rgba(0,59,36,0.08)_45%,rgba(0,31,20,0.72)_100%)]" />
-        <div className="absolute -right-36 bottom-[-12rem] size-[34rem] rounded-full border-[44px] border-petrobras-yellow/20" />
-        <div className="absolute inset-x-0 top-0 h-1.5 bg-[#fdbb30]" />
+    <main className="light relative grid min-h-svh overflow-hidden bg-[#f4f7f6] text-foreground lg:grid-cols-[minmax(0,1.08fr)_minmax(420px,0.92fr)]">
+      <Image src="/images/login-hero.png" alt="" fill priority className="pointer-events-none object-cover opacity-[0.08] mix-blend-multiply" />
+      <section aria-labelledby="sigac-hero-title" className="relative flex min-h-[520px] flex-col justify-between overflow-hidden bg-[#063f58] px-6 py-8 text-white sm:px-10 lg:min-h-svh lg:px-[clamp(2.5rem,7vw,8rem)] lg:py-12">
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(6,63,88,0.98)_0%,rgba(0,127,62,0.94)_70%,rgba(0,92,50,0.98)_100%)]" />
+        <div className="absolute inset-0 opacity-[0.1] [background-image:linear-gradient(rgba(255,255,255,0.22)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.22)_1px,transparent_1px)] [background-size:36px_36px]" />
+        <div className="absolute -right-28 bottom-[-8rem] size-[28rem] rounded-full border-[36px] border-petrobras-yellow/15" />
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-petrobras-yellow via-petrobras-yellow to-petrobras-green" />
         <div className="relative z-10 flex items-center gap-4">
           <LogoFull className="h-12 w-56" />
           <div className="hidden border-l border-white/30 pl-4 sm:flex sm:flex-col sm:leading-tight">
@@ -28,7 +28,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             <span className="max-w-[18rem] text-[10px] leading-4 text-white/75">Sistema de Gestão de Acesso ao Armazenamento Científico</span>
           </div>
         </div>
-        <div className="relative z-10 max-w-2xl py-10 lg:translate-y-0 lg:py-0 lg:pr-16">
+        <div className="relative z-10 max-w-2xl py-10 lg:translate-y-0 lg:py-0">
           <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-petrobras-yellow/40 bg-petrobras-yellow/10 px-3 py-1.5 text-xs font-medium tracking-wide text-petrobras-yellow">
             <span className="size-1.5 rounded-full bg-petrobras-yellow" /> Plataforma corporativa Petrobras
           </span>
@@ -42,13 +42,12 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </div>
         </div>
       </section>
-      <section aria-labelledby="login-title" className="relative flex items-center justify-center overflow-hidden bg-[#f5f8f7] px-5 py-12 sm:px-10 lg:px-16">
-        <div className="absolute inset-x-0 top-0 h-px bg-[#d8e6df] lg:inset-y-0 lg:left-0 lg:h-auto lg:w-px" />
-        <div className="pointer-events-none absolute -right-28 -top-28 size-72 rounded-full border-[24px] border-petrobras-yellow/15" />
-        <div className="pointer-events-none absolute -bottom-32 -left-28 size-80 rounded-full border-[34px] border-petrobras-green/10" />
-        <div className="relative w-full max-w-[31rem] lg:-ml-8">
+      <section aria-labelledby="login-title" className="relative flex items-center justify-center overflow-hidden bg-[#f4f7f6] px-5 py-12 sm:px-10 lg:px-16">
+        <div className="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full border-[28px] border-petrobras-yellow/20" />
+        <div className="pointer-events-none absolute -bottom-28 -left-24 size-80 rounded-full border-[34px] border-petrobras-green/15" />
+        <div className="relative w-full max-w-xl">
           <div className="mb-8 flex flex-col gap-3 lg:hidden"><LogoFull className="h-11 w-52" /><span className="text-sm font-semibold tracking-wide text-[#063f58]">SIGAC · Petrobras</span></div>
-          <div className="mb-8 flex flex-col gap-3"><span className="h-1 w-14 rounded-full bg-petrobras-yellow" /><h2 id="login-title" className="text-[2.35rem] font-semibold leading-tight tracking-[-0.04em] text-[#063f58]">Acesse sua conta</h2><p className="max-w-md text-sm leading-6 text-muted-foreground">Entre no SIGAC para consultar suas áreas de rede, mapas de acesso e permissões.</p></div>
+          <div className="mb-7 flex flex-col gap-3"><span className="h-1 w-12 rounded-full bg-petrobras-yellow" /><h2 id="login-title" className="text-3xl font-semibold tracking-tight text-[#063f58] sm:text-4xl">Acesse sua conta</h2><p className="max-w-md text-sm leading-6 text-muted-foreground">Entre no SIGAC para consultar suas áreas de rede, mapas de acesso e permissões.</p></div>
           <LoginForm authError={authError} nextPath={nextPath} />
         </div>
       </section>
