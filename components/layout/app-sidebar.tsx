@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import { LogoMark } from "@/components/brand/logo-mark"
 import {
   Sidebar,
@@ -14,6 +14,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
   SidebarSeparator,
 } from "@/components/ui/sidebar"
@@ -22,6 +25,21 @@ import { ChartNoAxesCombinedIcon, FolderKanbanIcon, LayoutDashboardIcon, Network
 import type { NavGroup, NavItem } from "@/lib/nav-config"
 
 import type { PlatformMenu } from "@/lib/types"
+
+const configurationSubmenus = [
+  { label: "Menus", key: "menus" },
+  { label: "Módulos", key: "modules" },
+  { label: "Permissões", key: "permissions" },
+  { label: "Permissões de menu", key: "menu_permissions" },
+  { label: "Perfis", key: "profiles" },
+  { label: "Permissões por perfil", key: "profile_permissions" },
+  { label: "Módulos por perfil", key: "profile_modules" },
+  { label: "Status de projetos", key: "project_statuses" },
+  { label: "Áreas responsáveis", key: "responsible_areas" },
+  { label: "Tipos de relatório", key: "report_types" },
+  { label: "Campos de relatório", key: "report_fields" },
+  { label: "Cards do dashboard", key: "dashboard_cards" },
+] as const
 
 const iconMap: Record<string, LucideIcon> = {
   dashboard: LayoutDashboardIcon,
@@ -62,7 +80,8 @@ function buildNavGroups(menus: PlatformMenu[]): NavGroup[] {
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { menus, data } = usePlatformContext()
+  const searchParams = useSearchParams()
+  const { menus } = usePlatformContext()
   const homeHref = menus[0]?.rota ?? "/forbidden"
   const groups = buildNavGroups(menus)
 
@@ -102,6 +121,21 @@ export function AppSidebar() {
                         <item.icon />
                         <span className="truncate">{item.title}</span>
                       </SidebarMenuButton>
+                      {item.url === "/configuracoes" && isActive ? (
+                        <SidebarMenuSub className="ml-3 border-sidebar-border/40 pl-3 group-data-[collapsible=icon]:hidden">
+                          {configurationSubmenus.map((submenu) => {
+                            const href = `/configuracoes?tabela=${submenu.key}`
+                            const submenuActive = pathname === "/configuracoes" && searchParams.get("tabela") === submenu.key
+                            return (
+                              <SidebarMenuSubItem key={submenu.key}>
+                                <SidebarMenuSubButton render={<Link href={href} />} isActive={submenuActive} className="h-8 rounded-md text-xs text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground data-active:bg-sidebar-accent/70 data-active:text-sidebar-foreground">
+                                  <span className="truncate">{submenu.label}</span>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            )
+                          })}
+                        </SidebarMenuSub>
+                      ) : null}
                     </SidebarMenuItem>
                   )
                 })}
