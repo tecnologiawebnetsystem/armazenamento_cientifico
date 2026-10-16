@@ -20,6 +20,7 @@ class AclResult:
     status: str
     entries: list[AclEntry]
     message: str | None = None
+    scope: str = "pasta_mae"
 
 
 async def read_folder_acl(path: str) -> AclResult:
