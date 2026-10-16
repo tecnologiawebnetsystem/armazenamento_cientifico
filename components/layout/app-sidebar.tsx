@@ -26,19 +26,43 @@ import type { NavGroup, NavItem } from "@/lib/nav-config"
 
 import type { PlatformMenu } from "@/lib/types"
 
-const configurationSubmenus = [
-  { label: "Menus do sistema", key: "menus" },
-  { label: "Módulos do sistema", key: "modules" },
-  { label: "Permissões disponíveis", key: "permissions" },
-  { label: "Acesso aos menus", key: "menu_permissions" },
-  { label: "Perfis de acesso", key: "profiles" },
-  { label: "Permissões por perfil", key: "profile_permissions" },
-  { label: "Módulos por perfil", key: "profile_modules" },
-  { label: "Status dos projetos", key: "project_statuses" },
-  { label: "Áreas responsáveis", key: "responsible_areas" },
-  { label: "Tipos de relatório", key: "report_types" },
-  { label: "Campos dos relatórios", key: "report_fields" },
-  { label: "Cards do dashboard", key: "dashboard_cards" },
+const configurationGroups = [
+  {
+    label: "Estrutura do sistema",
+    description: "Defina a base da navegação e dos módulos.",
+    items: [
+      { label: "Módulos do sistema", key: "modules" },
+      { label: "Menus do sistema", key: "menus" },
+    ],
+  },
+  {
+    label: "Acesso e segurança",
+    description: "Organize perfis, permissões e vínculos de acesso.",
+    items: [
+      { label: "Perfis de acesso", key: "profiles" },
+      { label: "Permissões disponíveis", key: "permissions" },
+      { label: "Permissões por perfil", key: "profile_permissions" },
+      { label: "Módulos por perfil", key: "profile_modules" },
+      { label: "Acesso aos menus", key: "menu_permissions" },
+    ],
+  },
+  {
+    label: "Operação",
+    description: "Configure os cadastros usados no dia a dia.",
+    items: [
+      { label: "Status dos projetos", key: "project_statuses" },
+      { label: "Áreas responsáveis", key: "responsible_areas" },
+    ],
+  },
+  {
+    label: "Relatórios e dashboard",
+    description: "Defina as informações exibidas nas análises.",
+    items: [
+      { label: "Tipos de relatório", key: "report_types" },
+      { label: "Campos dos relatórios", key: "report_fields" },
+      { label: "Cards do dashboard", key: "dashboard_cards" },
+    ],
+  },
 ] as const
 
 const iconMap: Record<string, LucideIcon> = {
@@ -123,17 +147,25 @@ export function AppSidebar() {
                       </SidebarMenuButton>
                       {item.url === "/configuracoes" && isActive ? (
                         <SidebarMenuSub className="ml-3 border-sidebar-border/40 pl-3 group-data-[collapsible=icon]:hidden">
-                          {configurationSubmenus.map((submenu) => {
-                            const href = `/configuracoes?tabela=${submenu.key}`
-                            const submenuActive = pathname === "/configuracoes" && searchParams.get("tabela") === submenu.key
-                            return (
-                              <SidebarMenuSubItem key={submenu.key}>
-                                <SidebarMenuSubButton render={<Link href={href} />} isActive={submenuActive} className="h-8 rounded-md text-xs text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground data-active:bg-sidebar-accent/70 data-active:text-sidebar-foreground">
-                                  <span className="truncate">{submenu.label}</span>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            )
-                          })}
+                          {configurationGroups.map((group) => (
+                            <li key={group.label} className="mb-3 last:mb-0">
+                              <div className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-sidebar-primary/80">{group.label}</div>
+                              <div className="px-2 pb-1 text-[10px] leading-4 text-sidebar-foreground/45">{group.description}</div>
+                              <ul>
+                                {group.items.map((submenu) => {
+                                  const href = `/configuracoes?tabela=${submenu.key}`
+                                  const submenuActive = pathname === "/configuracoes" && searchParams.get("tabela") === submenu.key
+                                  return (
+                                    <SidebarMenuSubItem key={submenu.key}>
+                                      <SidebarMenuSubButton render={<Link href={href} />} isActive={submenuActive} className="h-8 rounded-md text-xs text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground data-active:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-foreground data-active:shadow-[inset_2px_0_0_var(--sidebar-primary)]">
+                                        <span className="truncate">{submenu.label}</span>
+                                      </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+                                  )
+                                })}
+                              </ul>
+                            </li>
+                          ))}
                         </SidebarMenuSub>
                       ) : null}
                     </SidebarMenuItem>
