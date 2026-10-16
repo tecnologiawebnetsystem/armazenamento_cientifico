@@ -63,7 +63,7 @@ function buildNavGroups(menus: PlatformMenu[]): NavGroup[] {
     url: "/configuracoes",
     icon: getIcon("settings"),
     children: Array.from(new Set(configurationResources.map((resource) => configurationResourceLabels[resource].group))).flatMap((group) => [
-      { title: group, url: "/configuracoes", icon: getIcon("settings"), children: configurationResources.filter((resource) => configurationResourceLabels[resource].group === group).map((resource) => ({ title: configurationResourceLabels[resource].label, url: `/configuracoes/${resource}`, icon: getIcon("settings") })) },
+      { title: group, url: "/configuracoes", icon: getIcon("settings"), children: configurationResources.filter((resource) => configurationResourceLabels[resource].group === group).map((resource) => ({ title: configurationResourceLabels[resource].label, url: `/configuracoes/${resource.replaceAll("_", "-")}`, icon: getIcon("settings") })) },
     ]),
   }
 
