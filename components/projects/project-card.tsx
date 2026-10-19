@@ -35,15 +35,16 @@ interface Props {
   canManage?: boolean
   showMeta?: boolean
   onToggleStatus?: (project: Project) => void
+  inconsistent?: boolean
 }
 
-export function ProjectCard({ project, canManage = false, showMeta = true, onToggleStatus }: Props) {
+export function ProjectCard({ project, canManage = false, showMeta = true, onToggleStatus, inconsistent = false }: Props) {
   const membros = project.participantesIds?.length ?? 0
   const gestores = project.gestoresIds?.length ?? 0
   const pausado = project.status === "pausado"
 
   return (
-    <Card className="group relative overflow-hidden rounded-xl border-border/70 bg-card shadow-sm shadow-petrobras-blue/5 transition-all duration-200 hover:-translate-y-0.5 hover:border-petrobras-green/35 hover:shadow-md hover:shadow-petrobras-green/10">
+    <Card className={`group relative overflow-hidden rounded-xl border-border/70 bg-card shadow-sm shadow-petrobras-blue/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${inconsistent ? "border-amber-300 bg-amber-50/60 shadow-amber-100 hover:border-amber-400" : "hover:border-petrobras-green/35 hover:shadow-petrobras-green/10"}`}>
       {/* Faixa superior com a cor da marca */}
       <span
         aria-hidden
@@ -63,7 +64,7 @@ export function ProjectCard({ project, canManage = false, showMeta = true, onTog
             <FolderIcon className="size-4 text-primary" />
           </div>
           <div className="relative z-10 flex items-center gap-1.5">
-            <ProjectStatusBadge status={project.status} />
+            <div className="flex items-center gap-1.5">{inconsistent && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">Inconsistente</span>}<ProjectStatusBadge status={project.status} /></div>
             {canManage && (
               <DropdownMenu>
                 <DropdownMenuTrigger
