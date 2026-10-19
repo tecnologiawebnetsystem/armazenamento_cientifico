@@ -56,8 +56,6 @@ class Settings(BaseSettings):
     db_ssl_ca_file: str = ""
     db_schema: str = ""
     api_prefix: str = "/api"
-    acl_agent_url: str = Field(default="", validation_alias=AliasChoices("ACL_AGENT_URL", "WINDOWS_ACL_AGENT_URL"))
-    acl_agent_token: str = Field(default="", validation_alias=AliasChoices("ACL_AGENT_TOKEN", "WINDOWS_ACL_AGENT_TOKEN"))
     log_level: str = "INFO"
     environment: str = "development"
     # A documentação da API fica desativada por padrão; habilite apenas em ambientes controlados.

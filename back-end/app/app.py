@@ -40,12 +40,14 @@ async def lifespan(_: FastAPI):
         settings.db_ssl_verify,
         settings.frontend_url,
     )
-    try:
-        await connect()
-    except (SQLAlchemyError, OSError, RuntimeError) as exc:
-        logger.warning("application_startup database_connection=unavailable error=%s", type(exc).__name__)
-    else:
-        logger.info("application_ready database_connection=ok")
+    # TODO: Reativar checagem de banco após estabilização do deploy.
+    # try:
+    #     await connect()
+    # except (SQLAlchemyError, OSError, RuntimeError) as exc:
+    #     logger.warning("application_startup database_connection=unavailable error=%s", type(exc).__name__)
+    # else:
+    #     logger.info("application_ready database_connection=ok")
+    logger.info("application_ready database_connection=skipped")
     try:
         yield
     finally:
@@ -122,8 +124,6 @@ def create_app() -> FastAPI:
                             ip_address=request.client.host if request.client else None,
                         )
                 except Exception:
-                    await audit_session.rollback()
-                    # Auditoria não pode converter uma resposta funcional em erro HTTP 500.
                     logger.exception("audit_persist_failed correlation_id=%s", request_id)
         if settings.security_headers_enabled:
             response.headers["X-Content-Type-Options"] = "nosniff"

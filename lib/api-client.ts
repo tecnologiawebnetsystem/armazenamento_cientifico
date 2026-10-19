@@ -5,7 +5,6 @@ import type {
   FileNode,
   Project,
   ProjectMember,
-  ProjectAccessMapResponse,
   User,
   SessionUser,
   PlatformCatalogs,
@@ -218,7 +217,7 @@ export function deleteProject(id: string) {
 }
 
 export function getProjectAccessMap(projectId: string) {
-  return request<ProjectAccessMapResponse>(`/api/projects/${projectId}/access-map`)
+  return request<{ project: Project; projectId: string; groups: Array<{ nome: string; fonte: string; identificadores: string[]; nivel: string }>; members: Array<ProjectMember & { user: User }>; source: string; consultedAt: string; gaps?: string[] }>(`/api/projects/${projectId}/access-map`)
 }
 
 export async function getProjectMembers(projectId: string) {

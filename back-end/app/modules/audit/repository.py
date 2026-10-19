@@ -29,14 +29,12 @@ class ActivityLogRepository:
         if resolved_user_id is None and user_id:
             safe_details = {**safe_details, "usuario_auditoria_nao_localizado": user_id}
 
-        # entity_id é legado e possui limite de 36 caracteres; a rota completa permanece em route.
-        normalized_entity_id = entity_id[:36] if entity_id else None
         log = ActivityLog(
             id=str(uuid4()),
             user_id=resolved_user_id,
             action=action,
             entity=entity,
-            entity_id=normalized_entity_id,
+            entity_id=entity_id,
             details=json.dumps(safe_details, ensure_ascii=False, default=str),
             result=result,
             correlation_id=correlation_id,

@@ -208,39 +208,12 @@ export interface ProjectAccessMapGroup {
   nivel: string
 }
 
-export interface ProjectAccessMapAclEntry {
-  principal: string
-  principalType: string
-  accessType: "allow" | "deny" | string
-  permissions: string[]
-  inherited: boolean
-}
-
-export interface ProjectAccessMapFolderAcl {
-  name: string
-  status: string
-  path: string
-  entries: ProjectAccessMapAclEntry[]
-  message?: string | null
-}
-
-export interface ProjectAccessMapAcl {
-  status: "consultado" | "nao_configurado" | "indisponivel" | "acesso_negado" | "tempo_esgotado" | string
-  path: string
-  entries: ProjectAccessMapAclEntry[]
-  message?: string | null
-  subfolders: ProjectAccessMapFolderAcl[]
-}
-
 export interface ProjectAccessMapResponse {
   projectId: string
-  project?: Project
   groups: ProjectAccessMapGroup[]
   members: (ProjectMember & { user: User })[]
-  acl: ProjectAccessMapAcl
   source: string
   consultedAt: string
-  gaps?: string[]
 }
 
 export interface DashboardSummary {
