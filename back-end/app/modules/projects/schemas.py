@@ -56,6 +56,8 @@ class ProjectOut(BaseModel):
     descricao: str
     status: str
     gestoresIds: list[str]
+    # Nomes/identificadores corporativos dos responsáveis pela área de rede.
+    responsaveis: list[str] = Field(default_factory=list)
     participantesIds: list[str]
     criadoEm: datetime
     atualizadoEm: datetime

@@ -58,6 +58,8 @@ export interface Project {
   areaResponsavel: string
   /** Gestores do projeto — um projeto pode ter mais de um gerente. */
   gestoresIds: string[]
+  /** Nomes dos responsáveis pela área de rede, quando retornados pelo mapa. */
+  responsaveis?: string[]
   /** Grupo do Azure AD com acesso de escrita no projeto. */
   grupoAdEscrita: string
   /** Grupo do Azure AD com acesso de leitura no projeto. */
@@ -209,6 +211,7 @@ export interface ProjectAccessMapGroup {
 }
 
 export interface ProjectAccessMapResponse {
+  project?: Project
   projectId: string
   groups: ProjectAccessMapGroup[]
   members: (ProjectMember & { user: User })[]
