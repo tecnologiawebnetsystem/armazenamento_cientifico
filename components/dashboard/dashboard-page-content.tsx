@@ -12,9 +12,13 @@ const fetcher = () => getDashboardSummary()
 
 export function DashboardPageContent() {
   const { user } = useSession()
-  const { data, error, isLoading } = useSWR<DashboardSummary>("dashboard-summary", fetcher, {
+  const { data, error, isLoading } = useSWR<DashboardSummary>(user ? "dashboard-summary" : null, fetcher, {
     revalidateOnFocus: false,
   })
+
+  if (!user) {
+    return <PageLayout><PageHeader title="Dashboard" description="Visão executiva das áreas de rede e acessos autorizados." /><PageLoading label="Validando sessão..." /></PageLayout>
+  }
 
   if (isLoading) {
     return <PageLayout><PageHeader title="Dashboard" description="Visão executiva das áreas de rede e acessos autorizados." /><PageLoading label="Consultando indicadores no banco de dados..." /></PageLayout>

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import useSWR from "swr"
-import { AlertTriangle, BarChart3, Download, Filter, FolderKanban, Map, RefreshCw, Search, SlidersHorizontal, Users } from "lucide-react"
+import { AlertTriangle, Download, Filter, RefreshCw, Search, SlidersHorizontal } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,8 +10,7 @@ import { Input } from "@/components/ui/input"
 import { downloadFile, getCatalogs, getInconsistencyReport, getProjectReport, getProjectReportExportPath, getReportFields, getResponsibleAreas, recordAuditEvent } from "@/lib/api-client"
 import type { ProjectReport } from "@/lib/types"
 import { PetrobrasLoading } from "@/components/petrobras-loading"
-import { KpiCards, type KpiItem } from "@/components/dashboard/kpi-cards"
-import { PageHeader, PageLayout, PageSection } from "@/components/shared/page-layout"
+import { PageHeader, PageLayout } from "@/components/shared/page-layout"
 import { ExportButton, ExportFieldsDialog, type ExportField } from "@/components/export-fields-dialog"
 
 const fetcher = () => getProjectReport()
@@ -56,17 +55,10 @@ export default function ReportsPage() {
     const blob = await downloadFile(path); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `relatorio-projetos.${format}`; document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url)
     await recordAuditEvent({ action: "exportacao", entity: "relatorio_projetos", details: { formato: format, filtros: { status, area, gestorId: gestor || null }, campos: fields } }).catch(() => undefined)
   }
-  const cards: KpiItem[] = data ? [
-    { label: "Área de rede no escopo", value: String(data.indicadores.totalProjetos), icon: FolderKanban, tone: "green" },
-    { label: "Área de rede ativos", value: String(data.indicadores.ativos), icon: BarChart3, tone: "teal" },
-    { label: "Mapas catalogados", value: String(data.indicadores.totalMapas), icon: Map, tone: "blue" },
-    { label: "Membros vinculados", value: String(data.indicadores.totalMembros), icon: Users, tone: "yellow" },
-  ] : []
   if (isLoading) return <PageLayout><PageHeader eyebrow="Gestão e análise" title="Relatórios" description="Leitura executiva do universo autorizado." /><PetrobrasLoading label="Consolidando o portfólio autorizado..." /></PageLayout>
   if (error || !data) return <PageLayout><PageHeader title="Consultas e relatórios" /><p className="text-destructive">Não foi possível carregar o relatório.</p></PageLayout>
   return <PageLayout>
     <PageHeader eyebrow="Inteligência do portfólio" title="Consultas e relatórios" description="Consulte áreas de rede por responsável, área e status. Use os filtros e exporte os resultados em CSV ou TXT." actions={<div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => void mutate()}><RefreshCw data-icon="inline-start" />Atualizar</Button><ExportButton onClick={() => setExportOpen(true)} disabled={!exportFields.length} /></div>} />
-    <PageSection label="Visão geral" className="gap-3"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Panorama executivo</p><p className="mt-1 text-sm text-muted-foreground">Indicadores consolidados do portfólio autorizado.</p></div></div><KpiCards items={cards} /></PageSection>
     <Card className="sigac-surface overflow-hidden">
       <CardHeader className="sigac-section-header border-b border-border/70 pb-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-petrobras-green"><SlidersHorizontal className="size-4" />Painel de pesquisa</div><CardTitle>Filtros da consulta</CardTitle><CardDescription className="mt-1">Combine área, status e responsável para encontrar exatamente o que precisa.</CardDescription></div><Badge variant="outline" className="w-fit bg-background/70">{filtered.length} resultados</Badge></div>
