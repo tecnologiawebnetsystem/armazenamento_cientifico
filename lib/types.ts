@@ -256,5 +256,5 @@ export interface ProjectReport {
   }
   porArea: { area: string; total: number }[]
   porStatus: { status: ProjectStatus; total: number }[]
-  projetos: (Project & { totalMapas: number; totalMembros: number })[]
+  projetos: (Project & { totalMapas: number; totalMembros: number; responsaveis?: string[] })[]
 }
