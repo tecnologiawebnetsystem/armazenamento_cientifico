@@ -28,10 +28,10 @@ def get_service(session: Annotated[AsyncSession, Depends(get_session)]) -> Proje
     return ProjectService(ProjectRepository(session))
 
 
-def serialize_project(project: Project, responsaveis: list[str] | None = None) -> ProjectOut:
+def serialize_project(project: Project, responsaveis: list[str] | None = None, area_nome: str | None = None) -> ProjectOut:
     return ProjectOut(
         id=project.id, nome=project.name, codigo=project.code,
-        areaResponsavel=project.responsible_area, descricao=project.description,
+        areaResponsavel=area_nome or project.responsible_area, descricao=project.description,
         status=project.status, gestoresIds=project.managers_ids or [],
         responsaveis=responsaveis or [], participantesIds=project.participants_ids or [],
         criadoEm=project.created_at, atualizadoEm=project.updated_at,
@@ -66,7 +66,8 @@ def serialize_members(rows) -> list[ProjectMemberOut]:
 async def list_projects(service: Annotated[ProjectService, Depends(get_service)], user: CurrentUser):
     role = user["role"] or "solicitante"
     projects = await service.list_projects(str(user["id"]), str(role))
-    return {"projects": [serialize_project(project) for project in projects]}
+    areas = {area.id: area.name for area in await service.list_areas()}
+    return {"projects": [serialize_project(project, area_nome=areas.get(project.responsible_area)) for project in projects]}
 
 
 @router.post("", response_model=dict, status_code=201)
@@ -166,8 +167,9 @@ async def get_project_access_map(
         gaps.append("grupo de escrita não configurado")
     if not members:
         gaps.append("projeto sem membros vinculados")
+    areas = {area.id: area.name for area in await service.list_areas()}
     return AccessMapOut(
-        project=serialize_project(project, await responsible_names(service, project)), projectId=project.id, groups=groups,
+        project=serialize_project(project, await responsible_names(service, project), areas.get(project.responsible_area)), projectId=project.id, groups=groups,
         members=members, source="database", consultedAt=datetime.now(UTC), gaps=gaps,
     )
 
