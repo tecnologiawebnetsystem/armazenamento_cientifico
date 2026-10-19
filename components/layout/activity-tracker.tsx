@@ -3,15 +3,19 @@
 import { useEffect } from "react"
 import { usePathname } from "next/navigation"
 import { recordAuditEvent } from "@/lib/api-client"
+import { useSession } from "@/hooks/use-session"
 
 export function ActivityTracker() {
   const pathname = usePathname()
+  const { user, isLoading: sessionLoading } = useSession()
 
   useEffect(() => {
+    if (sessionLoading || !user) return
     void recordAuditEvent({ action: "visualizar_pagina", entity: "pagina", entity_id: pathname, details: { rota: pathname } }).catch(() => undefined)
-  }, [pathname])
+  }, [pathname, sessionLoading, user])
 
   useEffect(() => {
+    if (sessionLoading || !user) return
     const handleSubmit = (event: SubmitEvent) => {
       const form = event.target instanceof HTMLFormElement ? event.target : null
       if (!form) return
@@ -73,7 +77,7 @@ export function ActivityTracker() {
       window.removeEventListener("error", handleError)
       window.removeEventListener("unhandledrejection", handleUnhandledRejection)
     }
-  }, [])
+  }, [sessionLoading, user])
 
   return null
 }
