@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { downloadFile, getCatalogs, getProjectReport, getProjectReportExportPath, getReportFields, recordAuditEvent } from "@/lib/api-client"
+import { downloadFile, getCatalogs, getProjectReport, getProjectReportExportPath, getReportFields, getResponsibleAreas, recordAuditEvent } from "@/lib/api-client"
 import type { ProjectReport } from "@/lib/types"
 import { PetrobrasLoading } from "@/components/petrobras-loading"
 import { KpiCards, type KpiItem } from "@/components/dashboard/kpi-cards"
@@ -24,6 +24,7 @@ export default function ReportsPage() {
   const [gestor, setGestor] = useState("")
   const { data, error, isLoading, mutate } = useSWR<ProjectReport>(["/api/reports", status, area, gestor], () => getProjectReport({ status: status === "todos" ? undefined : status, area: area === "todas" ? undefined : area, gestorId: gestor || undefined }))
   const { data: catalogs } = useSWR("/api/catalogos", getCatalogs)
+  const { data: responsibleAreas } = useSWR("/api/projects/areas", getResponsibleAreas)
   const { data: configuredFields } = useSWR("/api/report-fields?report_code=projetos", () => getReportFields("projetos"))
   useEffect(() => {
     void recordAuditEvent({ action: "consultar", entity: "relatorio_projetos", details: { rota: "/relatorios" } }).catch(() => undefined)
@@ -39,10 +40,10 @@ export default function ReportsPage() {
     { field_key: "responsaveis", label: "Responsável" },
     { field_key: "status", label: "Status" },
   ]).map((field) => ({ key: field.field_key, label: field.label }))
-  const areas = Array.from(new Set(data?.projetos.map((project) => project.areaResponsavel) ?? []))
+  const areas = (responsibleAreas?.areas ?? []).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
   const filtered = useMemo(() => data?.projetos.filter((project) => {
     const text = `${project.nome} ${project.codigo} ${project.areaResponsavel} ${(project.responsaveis ?? []).join(" ")}`.toLowerCase()
-    return text.includes(query.toLowerCase()) && (status === "todos" || project.status === status) && (area === "todas" || project.areaResponsavel === area) && (!gestor || project.gestoresIds?.some((id) => id.toLowerCase().includes(gestor.toLowerCase())))
+    return text.includes(query.toLowerCase()) && (status === "todos" || project.status === status) && (area === "todas" || project.areaResponsavel === area || project.areaResponsavel === areas.find((item) => item.id === area)?.nome) && (!gestor || (project.responsaveis ?? project.gestoresIds ?? []).some((id) => id.toLowerCase().includes(gestor.toLowerCase())))
   }).sort((a, b) => (sortAsc ? -1 : 1) * a.nome.localeCompare(b.nome, "pt-BR")) ?? [], [data, query, status, area, gestor, sortAsc])
   const pageSize = 8
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
@@ -70,7 +71,7 @@ export default function ReportsPage() {
         <div className="grid gap-3 pt-2 md:grid-cols-2 lg:grid-cols-[minmax(220px,1.5fr)_repeat(3,minmax(150px,1fr))]">
           <div className="relative"><Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" /><Input className="bg-background/80 pl-9" aria-label="Buscar projeto" placeholder="Buscar por nome, código ou área" value={query} onChange={(e) => { setQuery(e.target.value); setPage(1) }} /></div>
           <select aria-label="Filtrar status" className="h-9 rounded-md border border-input bg-background/80 px-3 text-sm" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1) }}><option value="todos">Todos os status</option>{statusOptions.map((item) => <option key={item.codigo} value={item.codigo}>{item.nome}</option>)}</select>
-          <select aria-label="Filtrar área" className="h-9 rounded-md border border-input bg-background/80 px-3 text-sm" value={area} onChange={(e) => { setArea(e.target.value); setPage(1) }}><option value="todas">Todas as áreas</option>{areas.map((item) => <option key={item} value={item}>{item}</option>)}</select>
+          <select aria-label="Filtrar área" className="h-9 rounded-md border border-input bg-background/80 px-3 text-sm" value={area} onChange={(e) => { setArea(e.target.value); setPage(1) }}><option value="todas">Todas as áreas</option>{areas.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select>
           <Input aria-label="Filtrar responsável" className="bg-background/80" placeholder="Nome ou ID do responsável" value={gestor} onChange={(e) => { setGestor(e.target.value); setPage(1) }} />
         </div>
         <div className="flex flex-wrap items-center gap-2 pt-1"><Button variant="outline" size="sm" onClick={() => setSortAsc((value) => !value)}>Ordenação: {sortAsc ? "A–Z" : "Z–A"}</Button><Button variant="ghost" size="sm" onClick={clearFilters}><Filter className="mr-2 size-4" />Limpar filtros</Button>{(query || status !== "todos" || area !== "todas" || gestor) && <span className="text-xs text-muted-foreground">Filtros ativos aplicados à exportação</span>}</div>
