@@ -28,14 +28,20 @@ def get_service(session: Annotated[AsyncSession, Depends(get_session)]) -> Proje
     return ProjectService(ProjectRepository(session))
 
 
-def serialize_project(project: Project) -> ProjectOut:
+def serialize_project(project: Project, responsaveis: list[str] | None = None) -> ProjectOut:
     return ProjectOut(
         id=project.id, nome=project.name, codigo=project.code,
         areaResponsavel=project.responsible_area, descricao=project.description,
         status=project.status, gestoresIds=project.managers_ids or [],
-        participantesIds=project.participants_ids or [], criadoEm=project.created_at,
-        atualizadoEm=project.updated_at, pastaMae=project.parent_folder or "",
+        responsaveis=responsaveis or [], participantesIds=project.participants_ids or [],
+        criadoEm=project.created_at, atualizadoEm=project.updated_at,
+        pastaMae=project.parent_folder or "",
     )
+
+
+async def responsible_names(service: ProjectService, project: Project) -> list[str]:
+    rows = await service.list_users_by_ids(project.managers_ids or [])
+    return [user.user_id for user in rows]
 
 
 def project_not_found() -> HTTPException:
@@ -159,7 +165,7 @@ async def get_project_access_map(
     if not members:
         gaps.append("projeto sem membros vinculados")
     return AccessMapOut(
-        project=serialize_project(project), projectId=project.id, groups=groups,
+        project=serialize_project(project, await responsible_names(service, project)), projectId=project.id, groups=groups,
         members=members, source="database", consultedAt=datetime.now(UTC), gaps=gaps,
     )
 

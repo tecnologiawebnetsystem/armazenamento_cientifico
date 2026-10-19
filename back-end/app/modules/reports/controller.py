@@ -43,10 +43,10 @@ async def export_reports(
     query: Annotated[ReportExportQuery, Depends()],
 ):
     report = await service.projects(query.status, query.area, query.gestor_id, user)
-    rows = report["projetos"]
+    rows = [{**row, "responsaveis": ", ".join(row.get("responsaveis") or [])} for row in report["projetos"]]
     output = io.StringIO()
     columns = [column for column in query.fields.split(",") if column] or (list(rows[0].keys()) if rows else ["id", "nome", "status"])
     writer = csv.DictWriter(output, fieldnames=columns, extrasaction="ignore")
     writer.writeheader()
     writer.writerows(rows)
-    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv" if query.format == "csv" else "text/plain", headers={"Content-Disposition": "attachment; filename=relatorio-projetos.csv"})
+    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv" if query.format == "csv" else "text/plain", headers={"Content-Disposition": f"attachment; filename=relatorio-areas-rede.{query.format}"})

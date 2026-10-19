@@ -76,6 +76,11 @@ class ProjectRepository:
     async def commit(self) -> None:
         await self.session.commit()
 
+    async def list_users_by_ids(self, user_ids: list[str]) -> list[User]:
+        if not user_ids:
+            return []
+        return list(await self.session.scalars(select(User).where(User.id.in_(user_ids))))
+
     async def list_members(self, project_id: str) -> list[tuple[ProjectMember, User]]:
         statement = (
             select(ProjectMember, User)

@@ -78,3 +78,6 @@ class ProjectService:
 
     async def list_members(self, project_id: str):
         return await self.repository.list_members(project_id)
+
+    async def list_users_by_ids(self, user_ids: list[str]):
+        return await self.repository.list_users_by_ids(user_ids)
