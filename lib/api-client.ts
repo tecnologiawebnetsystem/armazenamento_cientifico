@@ -255,6 +255,12 @@ export function getAccessMapExportUrl(params: { format: string; fields: string; 
   return `${API_BASE_URL}/api/access-map/export?${query.toString()}`
 }
 
+export function getInconsistencyReport(params: { area?: string; gestorId?: string; tipo?: string } = {}) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => value && query.set(key, value))
+  return request<import("@/lib/types").InconsistencyReport>(`/api/reports/inconsistencies${query.size ? `?${query.toString()}` : ""}`)
+}
+
 export function getProjectReport(params: { status?: string; area?: string; gestorId?: string } = {}) {
   const query = new URLSearchParams()
   Object.entries(params).forEach(([key, value]) => value && query.set(key, value))
