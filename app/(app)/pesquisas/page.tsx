@@ -104,13 +104,19 @@ async function exportAccessMap(project: Project, folders: FileNode[], accessMap:
 
 export default function AccessMapPage() {
   const [search, setSearch] = useState('')
+  const [responsibleFilter, setResponsibleFilter] = useState('')
   const [selectedProjectId, setSelectedProjectId] = useState('')
   const { data: projectsData, isLoading: projectsLoading, error: projectsError } = useSWR('access-map-projects', () => getProjects({ limit: 100 }))
   const projects = useMemo(() => projectsData?.projects ?? [], [projectsData?.projects])
   const filteredProjects = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('pt-BR')
-    return projects.filter((project) => !term || `${project.nome} ${project.codigo} ${project.areaResponsavel}`.toLocaleLowerCase('pt-BR').includes(term))
-  }, [projects, search])
+    const responsibleTerm = responsibleFilter.trim().toLocaleLowerCase('pt-BR')
+    return projects.filter((project) => {
+      const searchableText = `${project.nome} ${project.codigo} ${project.areaResponsavel}`.toLocaleLowerCase('pt-BR')
+      const responsibleText = `${project.responsaveis?.join(' ') ?? ''} ${project.gestoresIds?.join(' ') ?? ''}`.toLocaleLowerCase('pt-BR')
+      return (!term || searchableText.includes(term)) && (!responsibleTerm || responsibleText.includes(responsibleTerm))
+    })
+  }, [projects, search, responsibleFilter])
   const selectedProject = projects.find((project) => project.id === selectedProjectId)
   const { data: accessMap, isLoading: accessLoading, error: accessError, mutate: retryAccess } = useSWR<ProjectAccessMapResponse>(selectedProjectId ? ['project-access-map-page', selectedProjectId] : null, () => getProjectAccessMap(selectedProjectId))
   const { data: foldersData, isLoading: foldersLoading } = useSWR(selectedProjectId ? ['access-map-folders', selectedProjectId] : null, () => getFolders(selectedProjectId))
@@ -140,8 +146,8 @@ export default function AccessMapPage() {
           <CardDescription>Selecione uma área de rede para abrir o mapa de acessos.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 p-5">
-          <div className="relative"><Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" /><Input aria-label="Pesquisar projeto" className="pl-9" placeholder="Nome, código ou área responsável" value={search} onChange={(event) => setSearch(event.target.value)} /></div>
-          {projectsLoading ? <PetrobrasLoading label="Carregando área de redes..." /> : projectsError ? <p className="text-sm text-destructive">Não foi possível carregar a área de rede.</p> : <div className="max-h-[520px] space-y-2 overflow-y-auto pr-1">{filteredProjects.map((project) => <button type="button" key={project.id} onClick={() => selectProject(project)} className={`flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left transition-colors ${selectedProjectId === project.id ? 'border-primary bg-primary/10' : 'border-border/70 hover:bg-muted/50'}`}><span className="min-w-0"><span className="block truncate text-sm font-semibold">{project.nome}</span><span className="block truncate font-mono text-xs text-muted-foreground">{project.codigo}</span></span><ChevronRight className="size-4 shrink-0 text-muted-foreground" /></button>)}{!filteredProjects.length ? <p className="py-8 text-center text-sm text-muted-foreground">Nenhum projeto encontrado.</p> : null}</div>}
+          <div className="space-y-3"><div className="relative"><Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" /><Input aria-label="Pesquisar área de rede" className="pl-9" placeholder="Nome, código ou área responsável" value={search} onChange={(event) => setSearch(event.target.value)} /></div><Input aria-label="Filtrar por responsável" placeholder="Responsável ou ID do responsável" value={responsibleFilter} onChange={(event) => setResponsibleFilter(event.target.value)} /></div>
+          {projectsLoading ? <PetrobrasLoading label="Carregando área de redes..." /> : projectsError ? <p className="text-sm text-destructive">Não foi possível carregar a área de rede.</p> : <div className="max-h-[520px] space-y-2 overflow-y-auto pr-1">{filteredProjects.map((project) => <button type="button" key={project.id} onClick={() => selectProject(project)} className={`flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left transition-colors ${selectedProjectId === project.id ? 'border-primary bg-primary/10' : 'border-border/70 hover:bg-muted/50'}`}><span className="min-w-0"><span className="block truncate text-sm font-semibold">{project.nome}</span><span className="block truncate font-mono text-xs text-muted-foreground">{project.codigo}</span></span><ChevronRight className="size-4 shrink-0 text-muted-foreground" /></button>)}{!filteredProjects.length ? <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma área de rede encontrada para os filtros informados.</p> : null}</div>}
         </CardContent>
       </Card>
 
