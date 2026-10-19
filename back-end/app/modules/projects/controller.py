@@ -40,8 +40,10 @@ def serialize_project(project: Project, responsaveis: list[str] | None = None) -
 
 
 async def responsible_names(service: ProjectService, project: Project) -> list[str]:
-    rows = await service.list_users_by_ids(project.managers_ids or [])
-    return [user.user_id for user in rows]
+    manager_ids = [str(value) for value in (project.managers_ids or [])]
+    rows = await service.list_users_by_ids(manager_ids)
+    resolved = {key: user.user_id for user in rows for key in (user.id, user.user_id)}
+    return [resolved.get(manager_id, manager_id) for manager_id in manager_ids]
 
 
 def project_not_found() -> HTTPException:
