@@ -36,6 +36,11 @@ async def reports(
     return await service.projects(status, area, gestorId, user)
 
 
+@router.get("/reports/inconsistencies")
+async def report_inconsistencies(service: Annotated[ReportService, Depends(get_service)], user: Annotated[dict, Depends(require_capabilities("reports"))], area: str | None = None, gestorId: str | None = None, tipo: str | None = None):
+    return await service.inconsistencies(area, gestorId, tipo, user)
+
+
 @router.get("/reports/export")
 async def export_reports(
     service: Annotated[ReportService, Depends(get_service)],

@@ -243,6 +243,23 @@ export interface AccessMapResponse {
   rows: AccessMapRow[]
 }
 
+export interface ReportInconsistency {
+  areaId: string
+  area: string
+  projetoId?: string
+  projeto?: string
+  codigo?: string
+  status?: string
+  grupo?: string
+  tipo: "area-sem-projeto" | "projeto-sem-grupo" | "grupo-incompleto"
+  descricao: string
+}
+
+export interface InconsistencyReport {
+  total: number
+  inconsistencias: ReportInconsistency[]
+}
+
 export interface ProjectReport {
   filtros: { periodoDe?: string; periodoAte?: string; status?: ProjectStatus | "todos"; area?: string; projectId?: string; gestorId?: string }
   indicadores: {
