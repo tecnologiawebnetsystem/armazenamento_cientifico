@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState, useEffect } from "react"
+import useSWR from "swr"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import {
@@ -17,7 +18,7 @@ import {
 import { useProjects } from "@/hooks/use-projects"
 import { useCatalogs } from "@/hooks/use-catalogs"
 import { useSession } from "@/hooks/use-session"
-import { recordAuditEvent, updateProject } from "@/lib/api-client"
+import { getInconsistencyReport, recordAuditEvent, updateProject } from "@/lib/api-client"
 import { ProjectCard } from "@/components/projects/project-card"
 import {
   ProjectFilters,
@@ -82,6 +83,8 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
   const currentPage = Math.max(1, Number(searchParams.get("page") ?? "1") || 1)
   const apiStatus = initialStatus === "suspenso" ? "pausado" : initialStatus
   const { projects, refresh, isLoading } = useProjects({ nome: initialSearch, status: apiStatus, area: initialArea === "todas" ? undefined : initialArea, limit: 500 })
+  const { data: inconsistencyData } = useSWR("project-inconsistencies", () => getInconsistencyReport(), { revalidateOnFocus: false })
+  const inconsistentProjectIds = useMemo(() => new Set((inconsistencyData?.inconsistencias ?? []).map((item) => item.projetoId).filter(Boolean)), [inconsistencyData])
   const { areas: catalogAreas } = useCatalogs()
   const { user } = useSession()
   const [search, setSearch] = useState(initialSearch)
@@ -260,6 +263,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
               showMeta={showMeta}
               canManage={canManage()}
               onToggleStatus={setTarget}
+              inconsistent={inconsistentProjectIds.has(project.id)}
             />
           ))}
         </div>
@@ -272,6 +276,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
               showMeta={showMeta}
               canManage={canManage()}
               onToggleStatus={setTarget}
+              inconsistent={inconsistentProjectIds.has(project.id)}
               className={i > 0 ? "border-t" : ""}
             />
           ))}

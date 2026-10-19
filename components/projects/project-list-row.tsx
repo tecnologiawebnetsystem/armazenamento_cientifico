@@ -34,15 +34,16 @@ interface Props {
   canManage?: boolean
   showMeta?: boolean
   onToggleStatus?: (project: Project) => void
+  inconsistent?: boolean
   className?: string
 }
 
-export function ProjectListRow({ project, canManage = false, showMeta = true, onToggleStatus, className }: Props) {
+export function ProjectListRow({ project, canManage = false, showMeta = true, onToggleStatus, inconsistent = false, className }: Props) {
   const membros = project.participantesIds?.length ?? 0
   const pausado = project.status === "pausado"
 
   return (
-    <div className={cn("relative flex items-center gap-4 bg-card px-4 py-3 transition-colors hover:bg-muted/40", className)}>
+    <div className={cn("relative flex items-center gap-4 px-4 py-3 transition-colors", inconsistent ? "bg-amber-50/70 hover:bg-amber-100/70" : "bg-card hover:bg-muted/40", className)}>
       <Link
         href={`/projetos/${project.id}`}
         className="absolute inset-0 z-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -69,7 +70,7 @@ export function ProjectListRow({ project, canManage = false, showMeta = true, on
         {formatStorage(project.armazenamentoUsadoMb)}
       </div>
 
-      <ProjectStatusBadge status={project.status} />
+      <div className="flex items-center gap-1.5">{inconsistent && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">Inconsistente</span>}<ProjectStatusBadge status={project.status} /></div>
 
       {canManage && (
         <div className="relative z-10">

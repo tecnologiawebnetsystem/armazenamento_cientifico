@@ -11,6 +11,7 @@ interface Props {
   totalMapas: number
   armazenamentoMb: number
   pendencias: number
+  inconsistencias: number
   activity: ActivityLog[]
   consultedAt: string
 }
@@ -51,7 +52,7 @@ function activityContext(item: ActivityLog) {
   return `${item.entidade} · ${formatActivityDate(item.criadoEm)}`
 }
 
-export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, armazenamentoMb, pendencias, activity, consultedAt }: Props) {
+export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, armazenamentoMb, pendencias, inconsistencias, activity, consultedAt }: Props) {
   const view = profileView[role] ?? profileView.solicitante
   const activeProjects = projects.filter((project) => project.status === "ativo").length
   const attention = projects.filter((project) => project.status === "pausado").length
@@ -61,6 +62,7 @@ export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, a
     { label: "Área de rede ativos", value: activeProjects, icon: FolderKanbanIcon, href: "/projetos" },
     { label: role === "auditor" ? "Mapas de acesso" : "Pessoas no escopo", value: role === "auditor" ? totalMapas : totalMembros, icon: role === "auditor" ? MapIcon : UsersIcon, href: role === "auditor" ? "/pesquisas" : "/projetos" },
     { label: "Armazenamento", value: formatStorage(armazenamentoMb), icon: DatabaseIcon, href: "/projetos" },
+    { label: "Inconsistências", value: inconsistencias, icon: ShieldAlertIcon, href: "/relatorios" },
   ]
 
   return (
@@ -86,7 +88,7 @@ export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, a
         <Link href={role === "auditor" ? "/logs" : "/pesquisas"} className="sigac-focus-ring inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-primary/5"><ActivityIcon className="size-4 text-primary" />{role === "auditor" ? "Consultar auditoria" : "Consultar acessos"}</Link>
       </section>
 
-      <section aria-label="Indicadores essenciais" className="grid gap-3 sm:grid-cols-3">
+      <section aria-label="Indicadores essenciais" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {indicators.map((item) => (
           <Link key={item.label} href={item.href} className="group">
             <Card className="sigac-surface h-full border-0 ring-1 ring-border/70 transition-all duration-300 hover:-translate-y-0.5 hover:ring-petrobras-green/50 hover:shadow-md">
