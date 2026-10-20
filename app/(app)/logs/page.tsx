@@ -34,6 +34,17 @@ const actionLabels: Record<string, string> = {
   "atualizar-papel-usuario": "Atualização de papel de usuário",
   "atualizar-matriz-permissoes": "Atualização da matriz de permissões",
   "atualizar-parametros": "Atualização de parâmetros",
+  alterar_status: "Alteração de status",
+  visualizar_pagina: "Consulta de página",
+  exportacao: "Exportação de dados",
+}
+
+const routeLabels: Record<string, string> = {
+  "/dashboard": "Painel principal",
+  "/projetos": "Áreas de rede",
+  "/pesquisas": "Mapa de acessos",
+  "/logs": "Logs e auditoria",
+  "/relatorios": "Relatórios",
 }
 
 const entityLabels: Record<string, string> = {
@@ -57,12 +68,13 @@ function displayEntity(entity: string) {
 
 function displayEntityId(log: LogWithUser) {
   try {
-    const details = JSON.parse(log.detalhes || "{}") as { projeto?: string; projeto_nome?: string; codigo?: string; nome?: string; rota?: string }
+    const details = JSON.parse(log.detalhes || "{}") as { projeto?: string; projeto_nome?: string; codigo?: string; nome?: string; rota?: string; status_novo?: string }
     if (log.acao === "login") return "Acesso autenticado"
     if (log.acao === "logout") return "Sessão encerrada"
     if (log.acao === "cav4_authorization") return "Autorização CAV4 concluída"
     if (log.acao === "consultar" && log.entidade === "relatorio_projetos") return "Relatório de Área de Rede"
-    if ((log.acao as string) === "visualizar_pagina") return details.rota || log.entidadeId || "Página consultada"
+    if ((log.acao as string) === "visualizar_pagina") return routeLabels[details.rota ?? ""] || details.rota || "Página consultada"
+    if (log.acao === "alterar_status") return details.projeto || details.projeto_nome || details.codigo || "Área de rede atualizada"
     if (log.acao === "consultar-mapa-acessos" || log.acao === "exportar-relatorio") {
       return details.projeto_nome || details.projeto || details.nome || details.codigo || log.entidadeId || "—"
     }
@@ -183,7 +195,7 @@ export default function LogsPage() {
           <div className="flex items-end gap-2 md:col-span-2 xl:col-span-3"><div className="grid min-w-0 flex-1 gap-1"><span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Período inicial</span><Input type="date" className="h-9 min-w-0 text-sm" value={dateFrom} onChange={(event) => { setDateFrom(event.target.value); setPage(1) }} /></div><span className="pb-2 text-xs text-muted-foreground">até</span><div className="grid min-w-0 flex-1 gap-1"><span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Período final</span><Input type="date" className="h-9 min-w-0 text-sm" value={dateTo} onChange={(event) => { setDateTo(event.target.value); setPage(1) }} /></div></div>
         </div>
       </CardHeader>
-      <CardContent className="p-0"><div className="hidden grid-cols-[1.4fr_1.1fr_1fr_0.8fr_1.2fr] gap-4 border-b bg-muted/10 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground md:grid"><span>Evento / entidade</span><span>Usuário</span><span>Identificador</span><span>Resultado</span><span className="text-right">Data e hora</span></div><div className="divide-y">{logs.length ? logs.map((log) => <div className="grid gap-3 px-5 py-4 transition-colors hover:bg-primary/[0.03] md:grid-cols-[1.4fr_1.1fr_1fr_0.8fr_1.2fr] md:items-center md:gap-4" key={log.id}>        <div><p className="font-medium">{displayAction(log.acao)}</p><p className="mt-1 text-xs text-muted-foreground">{log.acao === "cav4_authorization" ? "Sessão de acesso autorizada com sucesso" : `${displayEntity(log.entidade)}${log.entidadeId ? ` · ${displayEntityId(log)}` : ""}`}</p><p className="mt-1 text-xs text-muted-foreground/80">{log.detalhes ? "Detalhes disponíveis para consulta" : "Nenhum detalhe adicional registrado"}</p></div><div className="flex items-center gap-2 text-sm"><span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{(log.userName ?? log.userId ?? "?").charAt(0).toUpperCase()}</span><span className="truncate">{log.userName ?? log.userId ?? "Usuário não identificado"}</span></div><span className="text-xs text-muted-foreground">{displayEntityId(log)}</span><Badge variant={log.resultado === "erro" ? "destructive" : "secondary"} className="w-fit">{log.resultado ?? "sucesso"}</Badge><div className="flex items-center justify-between gap-2 md:justify-end"><time className="text-sm text-muted-foreground md:text-right" dateTime={log.criadoEm}>{new Date(log.criadoEm).toLocaleString("pt-BR")}</time><Button variant="ghost" size="sm" className="shrink-0" aria-label={`Ver detalhes do evento ${displayAction(log.acao)}`} onClick={() => setSelectedLog(log)}><EyeIcon data-icon="inline-start" />Detalhes</Button></div></div>) : <div className="p-12 text-center text-muted-foreground">Nenhum evento encontrado para os filtros informados.</div>}</div></CardContent>
+      <CardContent className="p-0"><div className="hidden grid-cols-[1.4fr_1.1fr_1fr_0.8fr_1.2fr] gap-4 border-b bg-muted/10 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground md:grid"><span>Evento / entidade</span><span>Usuário</span><span>Identificador</span><span>Resultado</span><span className="text-right">Data e hora</span></div><div className="divide-y">{logs.length ? logs.map((log) => <div className="grid gap-3 px-5 py-4 transition-colors hover:bg-primary/[0.03] md:grid-cols-[1.4fr_1.1fr_1fr_0.8fr_1.2fr] md:items-center md:gap-4" key={log.id}>        <div><p className="font-medium">{displayAction(log.acao)}</p><p className="mt-1 text-xs text-muted-foreground">{log.acao === "cav4_authorization" ? "Sessão de acesso autorizada com sucesso" : `${displayEntity(log.entidade)}${log.entidadeId ? ` · ${displayEntityId(log)}` : ""}`}</p><p className="mt-1 text-xs text-muted-foreground/80">{log.detalhes ? "Informações adicionais disponíveis" : "Nenhuma informação adicional registrada"}</p></div><div className="flex items-center gap-2 text-sm"><span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{(log.userName ?? log.userId ?? "?").charAt(0).toUpperCase()}</span><span className="truncate">{log.userName ?? log.userId ?? "Usuário não identificado"}</span></div><span className="text-xs text-muted-foreground">{displayEntityId(log)}</span><Badge variant={log.resultado === "erro" ? "destructive" : "secondary"} className="w-fit">{log.resultado === "erro" ? "Falha" : "Sucesso"}</Badge><div className="flex items-center justify-between gap-2 md:justify-end"><time className="text-sm text-muted-foreground md:text-right" dateTime={log.criadoEm}>{new Date(log.criadoEm).toLocaleString("pt-BR")}</time><Button variant="ghost" size="sm" className="shrink-0" aria-label={`Ver detalhes do evento ${displayAction(log.acao)}`} onClick={() => setSelectedLog(log)}><EyeIcon data-icon="inline-start" />Detalhes</Button></div></div>) : <div className="p-12 text-center text-muted-foreground">Nenhum evento encontrado para os filtros informados.</div>}</div></CardContent>
       {pagination.totalPages > 1 && <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 px-4 py-3 sm:px-5">
         <p className="text-sm text-muted-foreground">Página {pagination.page} de {pagination.totalPages} · {pagination.total} registros</p>
         <div className="flex items-center gap-2">
