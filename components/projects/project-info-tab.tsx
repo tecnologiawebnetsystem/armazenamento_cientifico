@@ -27,6 +27,7 @@ export function ProjectInfoTab({
   const searchParams = useSearchParams()
   const [isEditing, setIsEditing] = useState(searchParams.get("editar") === "1")
   const [areaResponsavel, setAreaResponsavel] = useState(project.areaResponsavel)
+  const [pastaMae, setPastaMae] = useState(project.pastaMae)
   const [descricao, setDescricao] = useState(project.descricao)
   const [status, setStatus] = useState(project.status)
   const [saving, setSaving] = useState(false)
@@ -35,7 +36,7 @@ export function ProjectInfoTab({
   async function handleSave() {
     setSaving(true)
     try {
-      await updateProject(project.id, { areaResponsavel, descricao, status })
+      await updateProject(project.id, { areaResponsavel, pastaMae, descricao, status })
       setIsEditing(false)
       router.refresh()
     } finally {
@@ -90,7 +91,7 @@ export function ProjectInfoTab({
         <div className="grid gap-5 md:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="caminho-pasta">Caminho da pasta mãe</FieldLabel>
-            <Input id="caminho-pasta" value={project.pastaMae || "Não informado"} disabled className="h-11 bg-muted/50 font-mono text-sm" />
+            <Input id="caminho-pasta" value={pastaMae} onChange={(event) => setPastaMae(event.target.value)} disabled={!isEditing} placeholder="Ex.: \\servidor\\pasta-mae" className="h-11 bg-muted/50 font-mono text-sm" />
           </Field>
           <Field>
             <FieldLabel htmlFor="area">Área responsável</FieldLabel>
