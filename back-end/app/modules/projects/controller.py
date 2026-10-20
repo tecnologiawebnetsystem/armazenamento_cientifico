@@ -30,11 +30,11 @@ def get_service(session: Annotated[AsyncSession, Depends(get_session)]) -> Proje
 
 def serialize_project(project: Project, responsaveis: list[str] | None = None, area_nome: str | None = None) -> ProjectOut:
     return ProjectOut(
-        id=project.id, nome=project.name, codigo=project.code,
-        areaResponsavel=area_nome or project.responsible_area, descricao=project.description,
-        status=project.status, gestoresIds=project.managers_ids or [],
-        responsaveis=responsaveis or [], participantesIds=project.participants_ids or [],
-        criadoEm=project.created_at, atualizadoEm=project.updated_at,
+        id=project.id, nome=project.name or "", codigo=project.code or "",
+        areaResponsavel=area_nome or project.responsible_area or "", descricao=project.description or "",
+        status=project.status or "ativo", gestoresIds=project.managers_ids or [],
+        responsaveis=responsaveis or [],         participantesIds=project.participants_ids or [],
+        criadoEm=project.created_at or datetime.now(UTC), atualizadoEm=project.updated_at or datetime.now(UTC),
         pastaMae=project.parent_folder or "",
     )
 
@@ -97,6 +97,8 @@ async def update_project(
         project = await service.update_project(project_id, data)
     except LookupError as error:
         raise project_not_found() from error
+    except SQLAlchemyError as error:
+        raise HTTPException(status_code=409, detail="Não foi possível atualizar a área de rede no banco de dados") from error
     return {"project": serialize_project(project)}
 
 
