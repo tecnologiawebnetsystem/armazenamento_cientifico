@@ -27,5 +27,5 @@ export function DashboardPageContent() {
     return <PageLayout><PageHeader title="Dashboard" description="Visão executiva das áreas de rede e acessos autorizados." /><PageError title="Não foi possível consultar o dashboard" message="Verifique a sessão e a disponibilidade da API." /></PageLayout>
   }
 
-  return <ExecutiveDashboard role={user?.role ?? "auditor"} projects={data.projects} totalMembros={data.totalMembros} totalMapas={data.totalMapas} armazenamentoMb={data.armazenamentoMb} pendencias={data.pendencias} inconsistencias={inconsistencyData?.total ?? 0} activity={data.activity} consultedAt={data.consultedAt} />
+  return <ExecutiveDashboard role={user?.role ?? "auditor"} projects={data.projects} totalMembros={data.totalMembros} totalMapas={data.totalMapas} armazenamentoMb={data.armazenamentoMb} inconsistencias={inconsistencyData?.total ?? 0} activity={data.activity} consultedAt={data.consultedAt} />
 }
