@@ -82,7 +82,7 @@ export function ProjectCard({ project, canManage = false, showMeta = true, onTog
                   </DropdownMenuItem>
                   <DropdownMenuItem render={<Link href={`/projetos/${project.id}?aba=informacoes`} />}>
                     <PencilIcon />
-                    Editar no projeto
+                    Editar na área de rede
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
