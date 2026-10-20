@@ -74,7 +74,11 @@ class ProjectRepository:
         await self.session.delete(project)
 
     async def commit(self) -> None:
-        await self.session.commit()
+        try:
+            await self.session.commit()
+        except Exception:
+            await self.session.rollback()
+            raise
 
     async def list_users_by_ids(self, user_ids: list[str]) -> list[User]:
         if not user_ids:

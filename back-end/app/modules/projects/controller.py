@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -22,6 +23,7 @@ from app.modules.projects.schemas import (
 from app.modules.projects.service import ProjectService
 
 router = APIRouter(prefix="/api/projects", tags=["Projects"])
+logger = logging.getLogger(__name__)
 
 
 def get_service(session: Annotated[AsyncSession, Depends(get_session)]) -> ProjectService:
@@ -98,6 +100,7 @@ async def update_project(
     except LookupError as error:
         raise project_not_found() from error
     except SQLAlchemyError as error:
+        logger.exception("project_status_update_failed project_id=%s", project_id)
         raise HTTPException(status_code=409, detail="Não foi possível atualizar a área de rede no banco de dados") from error
     return {"project": serialize_project(project)}
 
