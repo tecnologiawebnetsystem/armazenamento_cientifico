@@ -34,7 +34,7 @@ const statusOptions: { value: StatusFilter; label: string }[] = [
   { value: "todos", label: "Todos os status" },
   { value: "ativo", label: "Ativo" },
   { value: "concluido", label: "Concluído" },
-  { value: "suspenso", label: "Suspenso" },
+  { value: "suspenso", label: "Pausado" },
 ]
 
 const sortOptions: { value: SortOption; label: string }[] = [

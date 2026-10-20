@@ -200,7 +200,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         />
         <StatCard
           icon={PauseCircleIcon}
-          label="Suspensos"
+          label="Pausados"
           value={stats.pausados}
           accent="bg-warning/10 text-warning"
         />
