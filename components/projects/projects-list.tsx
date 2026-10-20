@@ -169,10 +169,10 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
       await updateProject(target.id, { status: novoStatus })
       void recordAuditEvent({ action: "alterar_status", entity: "projeto", entity_id: target.id, details: { projeto: target.nome, codigo: target.codigo, status_anterior: target.status, status_novo: novoStatus } }).catch(() => undefined)
       await refresh()
-      toast.success(novoStatus === "pausado" ? "Projeto desativado." : "Projeto reativado.")
+      toast.success(novoStatus === "pausado" ? "Área de Rede desativada." : "Área de Rede reativada.")
       setTarget(null)
     } catch {
-      toast.error("Não foi possível atualizar o projeto.")
+      toast.error("Não foi possível atualizar a área de rede.")
     } finally {
       setPending(false)
     }
@@ -308,8 +308,8 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {target?.status === "pausado"
-                ? `O projeto "${target?.nome}" voltará a ficar ativo e acessível aos membros.`
-                : `O projeto "${target?.nome}" ficará pausado. Os dados são mantidos, mas o projeto sai da operação ativa.`}
+                ? `A área de rede "${target?.nome}" voltará a ficar ativo e acessível aos membros.`
+                : `A área de rede "${target?.nome}" ficará pausado. Os dados são mantidos, mas a área de rede sai da operação ativa.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
