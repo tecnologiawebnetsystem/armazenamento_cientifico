@@ -34,8 +34,12 @@ export function ProjectInfoTab({
   const [saving, setSaving] = useState(false)
   const { data: responsibleAreasData } = useSWR("responsible-areas", getResponsibleAreas, { revalidateOnFocus: false })
   const responsibleAreas = useMemo(() => {
-    const options = responsibleAreasData?.areas?.map((area) => area.nome).filter(Boolean) ?? []
-    return Array.from(new Set([areaResponsavel, ...options].filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR"))
+    const areas = responsibleAreasData?.areas ?? []
+    const options = areas.map((area) => ({ value: area.id, label: area.nome })).filter((area) => area.value && area.label)
+    if (areaResponsavel && !options.some((area) => area.value === areaResponsavel)) {
+      options.push({ value: areaResponsavel, label: areaResponsavel })
+    }
+    return Array.from(new Map(options.map((area) => [area.value, area])).values()).sort((a, b) => a.label.localeCompare(b.label, "pt-BR"))
   }, [areaResponsavel, responsibleAreasData?.areas])
 
   const statusLabel = statusOptions.find((option) => option.value === status)?.label ?? status
@@ -103,7 +107,7 @@ export function ProjectInfoTab({
             <FieldLabel htmlFor="area">Área responsável</FieldLabel>
             <Select value={areaResponsavel || undefined} onValueChange={(value) => setAreaResponsavel(value ?? "")} disabled={!isEditing}>
               <SelectTrigger id="area" className="h-11 w-full bg-muted/50"><SelectValue placeholder="Selecione a área responsável" /></SelectTrigger>
-              <SelectContent><SelectGroup>{responsibleAreas.map((area) => <SelectItem key={area} value={area}>{area}</SelectItem>)}</SelectGroup></SelectContent>
+              <SelectContent><SelectGroup>{responsibleAreas.map((area) => <SelectItem key={area.value} value={area.value}>{area.label}</SelectItem>)}</SelectGroup></SelectContent>
             </Select>
           </Field>
           <Field>
