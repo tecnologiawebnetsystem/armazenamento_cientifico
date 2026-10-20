@@ -61,6 +61,7 @@ function displayEntityId(log: LogWithUser) {
     if (log.acao === "login") return "Acesso autenticado"
     if (log.acao === "logout") return "Sessão encerrada"
     if (log.acao === "cav4_authorization") return "Autorização CAV4 concluída"
+    if (log.acao === "consultar" && log.entidade === "relatorio_projetos") return "Relatório de Área de Rede"
     if ((log.acao as string) === "visualizar_pagina") return details.rota || log.entidadeId || "Página consultada"
     if (log.acao === "consultar-mapa-acessos" || log.acao === "exportar-relatorio") {
       return details.projeto_nome || details.projeto || details.nome || details.codigo || log.entidadeId || "—"
