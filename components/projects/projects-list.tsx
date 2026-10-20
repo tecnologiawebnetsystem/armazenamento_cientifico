@@ -93,6 +93,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
   const [sort, setSort] = useState<SortOption>("recentes")
   const [view, setView] = useState<ViewMode>("grade")
   const [showMeta, setShowMeta] = useState(true)
+  const [onlyInconsistent, setOnlyInconsistent] = useState(false)
   const [target, setTarget] = useState<Project | null>(null)
   const [pending, setPending] = useState(false)
 
@@ -138,7 +139,8 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         p.nome.toLowerCase().includes(term) ||
         p.areaResponsavel.toLowerCase().includes(term) ||
         (p.codigo ?? "").toLowerCase().includes(term)
-      return matchesStatus && matchesArea && matchesSearch
+      const matchesConsistency = !onlyInconsistent || inconsistentProjectIds.has(p.id)
+      return matchesStatus && matchesArea && matchesSearch && matchesConsistency
     })
 
     return [...list].sort((a, b) => {
@@ -147,7 +149,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
       // recentes
       return (b.criadoEm ?? "").localeCompare(a.criadoEm ?? "")
     })
-  }, [projects, search, status, area, sort])
+  }, [projects, search, status, area, sort, onlyInconsistent, inconsistentProjectIds])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const page = Math.min(currentPage, totalPages)
@@ -224,7 +226,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         onViewChange={setView}
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"><span aria-live="polite">Exibindo {visibleProjects.length} de {filtered.length} áreas de rede</span><div className="flex items-center gap-3"><Button nativeButton variant="ghost" size="sm" onClick={() => void refresh()}><RefreshCwIcon data-icon="inline-start" />Atualizar</Button><Button nativeButton variant="ghost" size="sm" onClick={() => { setSearch(""); setStatus("todos"); setArea("todas") }} disabled={!search && status === "todos" && area === "todas"}><XIcon data-icon="inline-start" />Limpar filtros</Button><label className="flex items-center gap-2"><Columns3Icon className="size-4" /><input type="checkbox" checked={showMeta} onChange={(event) => setShowMeta(event.target.checked)} />Mostrar detalhes</label></div></div>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"><span aria-live="polite">Exibindo {visibleProjects.length} de {filtered.length} áreas de rede{onlyInconsistent ? " inconsistentes" : ""}</span><div className="flex items-center gap-3"><Button nativeButton variant="ghost" size="sm" onClick={() => void refresh()}><RefreshCwIcon data-icon="inline-start" />Atualizar</Button><Button nativeButton variant="ghost" size="sm" onClick={() => { setSearch(""); setStatus("todos"); setArea("todas"); setOnlyInconsistent(false) }} disabled={!search && status === "todos" && area === "todas" && !onlyInconsistent}><XIcon data-icon="inline-start" />Limpar filtros</Button><label className="flex items-center gap-2"><Columns3Icon className="size-4" /><input type="checkbox" checked={showMeta} onChange={(event) => setShowMeta(event.target.checked)} />Mostrar detalhes</label><label className="flex items-center gap-2 font-medium text-amber-800"><input type="checkbox" checked={onlyInconsistent} onChange={(event) => { setOnlyInconsistent(event.target.checked); goToPage(1) }} />Somente inconsistentes <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[11px]">{inconsistentProjectIds.size}</span></label></div></div>
 
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
