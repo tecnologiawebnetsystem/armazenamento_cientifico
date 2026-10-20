@@ -1,6 +1,9 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { updateProject } from "@/lib/api-client"
 import { Building2Icon, CircleCheckIcon, ClipboardListIcon } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Field, FieldLabel, FieldDescription } from "@/components/ui/field"
@@ -20,11 +23,25 @@ export function ProjectInfoTab({
 }: {
   project: Project
 }) {
-  const [areaResponsavel] = useState(project.areaResponsavel)
-  const [descricao] = useState(project.descricao)
-  const status = project.status
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [isEditing, setIsEditing] = useState(searchParams.get("editar") === "1")
+  const [areaResponsavel, setAreaResponsavel] = useState(project.areaResponsavel)
+  const [descricao, setDescricao] = useState(project.descricao)
+  const [status, setStatus] = useState(project.status)
+  const [saving, setSaving] = useState(false)
 
   const statusLabel = statusOptions.find((option) => option.value === status)?.label ?? status
+  async function handleSave() {
+    setSaving(true)
+    try {
+      await updateProject(project.id, { areaResponsavel, descricao, status })
+      setIsEditing(false)
+      router.refresh()
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -46,12 +63,15 @@ export function ProjectInfoTab({
             <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-petrobras-green">Área de rede científica</p>
             <div className="flex items-center gap-3"><div className="flex size-11 items-center justify-center rounded-xl bg-petrobras-green text-primary-foreground"><ClipboardListIcon className="size-6" aria-hidden="true" /></div><CardTitle className="text-2xl tracking-tight">{project.nome}</CardTitle></div>
             <CardDescription>
-              Visão geral dos dados desta área de rede em modo somente leitura.
+              {isEditing ? "Edite os dados da área de rede e salve as alterações." : "Visão geral dos dados desta área de rede em modo somente leitura."}
             </CardDescription>
           </div>
-          <div className="flex shrink-0 items-center gap-2 rounded-full border border-petrobras-green/30 bg-petrobras-green/10 px-3 py-1.5 text-sm font-semibold text-petrobras-green">
+          <div className="flex shrink-0 items-center gap-2">
+            {isEditing ? <><Button variant="outline" onClick={() => setIsEditing(false)} disabled={saving}>Cancelar</Button><Button onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : "Salvar alterações"}</Button></> : <Button variant="outline" onClick={() => setIsEditing(true)}>Editar</Button>}
+            <div className="flex items-center gap-2 rounded-full border border-petrobras-green/30 bg-petrobras-green/10 px-3 py-1.5 text-sm font-semibold text-petrobras-green">
             <span className="size-2 rounded-full bg-petrobras-green" aria-hidden="true" />
             {statusOptions.find((option) => option.value === status)?.label ?? status}
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -74,11 +94,11 @@ export function ProjectInfoTab({
           </Field>
           <Field>
             <FieldLabel htmlFor="area">Área responsável</FieldLabel>
-            <Input id="area" value={areaResponsavel} disabled className="h-11 bg-muted/50" />
+            <Input id="area" value={areaResponsavel} onChange={(event) => setAreaResponsavel(event.target.value)} disabled={!isEditing} className="h-11 bg-muted/50" />
           </Field>
           <Field>
             <FieldLabel htmlFor="status">Status do projeto</FieldLabel>
-            <Select value={status} disabled>
+            <Select value={status} onValueChange={(value) => setStatus(value as ProjectStatus)} disabled={!isEditing}>
               <SelectTrigger id="status" className="h-11 w-full"><SelectValue /></SelectTrigger>
               <SelectContent><SelectGroup>{statusOptions.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectGroup></SelectContent>
             </Select>
@@ -87,7 +107,7 @@ export function ProjectInfoTab({
 
         <Field>
           <FieldLabel htmlFor="descricao">Descrição e contexto</FieldLabel>
-          <Textarea id="descricao" rows={6} value={descricao} disabled className="resize-y bg-muted/50" />
+          <Textarea id="descricao" rows={6} value={descricao} onChange={(event) => setDescricao(event.target.value)} disabled={!isEditing} className="resize-y bg-muted/50" />
           <FieldDescription className="flex flex-wrap gap-x-2 gap-y-1">
             <span>Criado em {new Date(project.criadoEm).toLocaleDateString("pt-BR")}</span>
             <span aria-hidden="true">·</span>
