@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
+import useSWR from "swr"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { updateProject } from "@/lib/api-client"
+import { getResponsibleAreas, updateProject } from "@/lib/api-client"
 import { Building2Icon, CircleCheckIcon, ClipboardListIcon } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Field, FieldLabel, FieldDescription } from "@/components/ui/field"
@@ -31,6 +32,11 @@ export function ProjectInfoTab({
   const [descricao, setDescricao] = useState(project.descricao)
   const [status, setStatus] = useState(project.status)
   const [saving, setSaving] = useState(false)
+  const { data: responsibleAreasData } = useSWR("responsible-areas", getResponsibleAreas, { revalidateOnFocus: false })
+  const responsibleAreas = useMemo(() => {
+    const options = responsibleAreasData?.areas?.map((area) => area.nome).filter(Boolean) ?? []
+    return Array.from(new Set([areaResponsavel, ...options].filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR"))
+  }, [areaResponsavel, responsibleAreasData?.areas])
 
   const statusLabel = statusOptions.find((option) => option.value === status)?.label ?? status
   async function handleSave() {
@@ -95,7 +101,10 @@ export function ProjectInfoTab({
           </Field>
           <Field>
             <FieldLabel htmlFor="area">Área responsável</FieldLabel>
-            <Input id="area" value={areaResponsavel} onChange={(event) => setAreaResponsavel(event.target.value)} disabled={!isEditing} className="h-11 bg-muted/50" />
+            <Select value={areaResponsavel || undefined} onValueChange={(value) => setAreaResponsavel(value ?? "")} disabled={!isEditing}>
+              <SelectTrigger id="area" className="h-11 w-full bg-muted/50"><SelectValue placeholder="Selecione a área responsável" /></SelectTrigger>
+              <SelectContent><SelectGroup>{responsibleAreas.map((area) => <SelectItem key={area} value={area}>{area}</SelectItem>)}</SelectGroup></SelectContent>
+            </Select>
           </Field>
           <Field>
             <FieldLabel htmlFor="status">Status do projeto</FieldLabel>
