@@ -56,7 +56,7 @@ class ProjectService:
         for key, value in values.items():
             if value is not None:
                 setattr(project, key, value)
-        project.updated_at = datetime.now(UTC)
+        project.updated_at = datetime.now(UTC).replace(tzinfo=None)
         await self.repository.commit()
         return project
 
