@@ -36,7 +36,7 @@ def serialize_project(project: Project, responsaveis: list[str] | None = None, a
         areaResponsavel=area_nome or project.responsible_area or "", descricao=project.description or "",
         status=project.status or "ativo", gestoresIds=project.managers_ids or [],
         responsaveis=responsaveis or [],         participantesIds=project.participants_ids or [],
-        criadoEm=project.created_at or datetime.now(UTC), atualizadoEm=project.updated_at or datetime.now(UTC),
+        criadoEm=project.created_at or datetime.now(UTC).replace(tzinfo=None), atualizadoEm=project.updated_at or datetime.now(UTC).replace(tzinfo=None),
         pastaMae=project.parent_folder or "",
     )
 
