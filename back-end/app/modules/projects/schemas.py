@@ -31,6 +31,7 @@ class ProjectPatch(BaseModel):
     grupoAdLeitura: str | None = None
     roleIdentidadeEscrita: str | None = None
     roleIdentidadeLeitura: str | None = None
+    pastaMae: str | None = None
 
 
 class ProjectMemberOut(BaseModel):
