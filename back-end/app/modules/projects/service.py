@@ -26,7 +26,7 @@ class ProjectService:
         if data.codigo and data.codigo != generated_code:
             raise ValueError("O código é gerado automaticamente pela área responsável")
         await self.ensure_code_available(generated_code)
-        now = datetime.now(UTC)
+        now = datetime.now(UTC).replace(tzinfo=None)
         area.updated_at = now
         project = Project(
             id=str(uuid4()), name=data.nome, code=generated_code,
@@ -47,6 +47,7 @@ class ProjectService:
             raise LookupError("Projeto não encontrado")
         values = {
             "name": data.nome, "responsible_area": data.areaResponsavel,
+            "parent_folder": data.pastaMae,
             "description": data.descricao, "status": data.status,
             "write_group": data.grupoAdEscrita, "read_group": data.grupoAdLeitura,
             "write_identity_role": data.roleIdentidadeEscrita,
