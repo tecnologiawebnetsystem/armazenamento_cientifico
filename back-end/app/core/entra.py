@@ -18,7 +18,17 @@ _token_cache: tuple[str, float] | None = None
 
 
 def configured() -> bool:
-    return bool(settings.entra_enabled and settings.entra_tenant_id and settings.entra_client_id and settings.entra_client_secret)
+    """O Graph fica ativo quando as credenciais obrigatórias estão presentes.
+
+    ENT​RA_ENABLED continua aceito como chave explícita de desligamento, mas não
+    é necessário adicioná-lo ao ambiente para habilitar a integração.
+    """
+    credentials_ready = bool(
+        settings.entra_tenant_id
+        and settings.entra_client_id
+        and settings.entra_client_secret
+    )
+    return credentials_ready and settings.entra_enabled is not False
 
 
 async def _app_token() -> str:
@@ -57,7 +67,9 @@ async def enrich_by_email(email: str) -> dict[str, Any] | None:
     """Busca o usuário no Graph usando o e-mail corporativo do CAV4."""
     normalized = email.strip().casefold()
     if not normalized or not configured():
+        logger.info("entra_lookup_skipped has_email=%s configured=%s", bool(normalized), configured())
         return None
+    logger.info("entra_lookup_start email_domain=%s", normalized.rsplit("@", 1)[-1] if "@" in normalized else "unknown")
     select = "id,displayName,givenName,surname,mail,userPrincipalName,jobTitle,department,officeLocation,mobilePhone,businessPhones,accountEnabled"
     direct = await _request(f"/users/{quote(normalized, safe='')}", params={"$select": select})
     if not direct:

@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse, Response
-from app.core.entra import enrich_by_email, profile_photo
+from app.core.entra import configured as entra_configured, enrich_by_email, profile_photo
 from sqlalchemy import bindparam, text
 from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 
@@ -199,7 +199,7 @@ async def cav4_callback(request: Request, code: str, state: str):
     if not profile_id:
         raise HTTPException(status_code=403, detail="Usuário CAV4 sem perfil corporativo configurado")
     entra_profile = None
-    if settings.entra_enabled:
+    if entra_configured():
         try:
             entra_profile = await enrich_by_email(identity.email)
         except PermissionError as exc:
