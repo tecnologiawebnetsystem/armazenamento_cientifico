@@ -82,6 +82,13 @@ class Settings(BaseSettings):
     cav4_logout_url: str = ""
     cav4_issuer: str = Field(default="", validation_alias=AliasChoices("CA_ISSUER", "CAV4_ISSUER"))
     cav4_jwks_url: str = ""
+    entra_enabled: bool = False
+    entra_tenant_id: str = ""
+    entra_client_id: str = ""
+    entra_client_secret: str = ""
+    entra_required_group_id: str = ""
+    entra_app_name: str = "SIGAC"
+    entra_timeout_seconds: float = 15.0
 
     @property
     def is_sqlite(self) -> bool:
