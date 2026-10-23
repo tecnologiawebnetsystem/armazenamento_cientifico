@@ -10,6 +10,11 @@ export function useSession() {
   })
 
   const rawUser = data?.user
+  const avatarUrl = rawUser?.avatarUrl
+    ? rawUser.avatarUrl.startsWith("/") && process.env.NEXT_PUBLIC_API_BASE_URL
+      ? `${process.env.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, "")}${rawUser.avatarUrl}`
+      : rawUser.avatarUrl
+    : undefined
   const user = rawUser
     ? {
         ...rawUser,
@@ -17,7 +22,7 @@ export function useSession() {
         email: rawUser.email || "",
         cargo: rawUser.cargo || "",
         area: rawUser.area || "",
-        avatarUrl: rawUser.avatarUrl || undefined,
+        avatarUrl,
         ultimoLogin: rawUser.ultimoLogin || null,
         role: rawUser.role || "visualizador",
       }
