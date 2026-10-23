@@ -38,6 +38,11 @@ export interface User {
   perfilId?: string
   perfilNome?: string
   chaveCav4?: string | null
+  entraId?: string | null
+  entraUserPrincipalName?: string | null
+  telefone?: string | null
+  localizacao?: string | null
+  contaAtiva?: boolean | null
   criadoEm: string
 }
 

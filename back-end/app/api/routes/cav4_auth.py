@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse, Response
+from app.core.entra import enrich_by_email, profile_photo
 from sqlalchemy import bindparam, text
 from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 
@@ -100,6 +101,20 @@ async def cav4_session(request: Request):
     return {"user": dict(user)}
 
 
+@email_router.get("/profile/photo")
+@router.get("/profile/photo")
+async def profile_photo_route(request: Request):
+    """Entrega a foto do Graph somente para a sessão autenticada."""
+    user = await get_current_user(request)
+    entra_id = (user.get("profile_data") or {}).get("entra_id")
+    if not entra_id:
+        return Response(status_code=404)
+    content = await profile_photo(str(entra_id))
+    if not content:
+        return Response(status_code=404)
+    return Response(content=content, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=300"})
+
+
 @email_router.post("/logout", status_code=204)
 @router.post("/logout", status_code=204)
 async def cav4_logout(request: Request):
@@ -183,6 +198,18 @@ async def cav4_callback(request: Request, code: str, state: str):
     profile_id = solicitante_role or next((role for role in identity.roles if canonical_role(role)), None)
     if not profile_id:
         raise HTTPException(status_code=403, detail="Usuário CAV4 sem perfil corporativo configurado")
+    entra_profile = None
+    if settings.entra_enabled:
+        try:
+            entra_profile = await enrich_by_email(identity.email)
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+        except Exception as exc:
+            if settings.entra_required_group_id:
+                logger.exception("entra_enrichment_required_failed app=%s", settings.entra_app_name)
+                raise HTTPException(status_code=503, detail="Não foi possível validar o acesso corporativo no Entra ID") from exc
+            logger.warning("entra_enrichment_skipped app=%s error_type=%s", settings.entra_app_name, type(exc).__name__)
+
     if solicitante_role:
         message = "Seu perfil de Solicitante no CAV4 não tem permissão para acessar o Dashboard SIGAC."
         login_url = f"{settings.frontend_url.rstrip('/')}/login?auth_error={quote(message)}&next={quote(next_path or '/dashboard', safe='')}"
@@ -231,6 +258,11 @@ async def cav4_callback(request: Request, code: str, state: str):
                 },
             )
             local_user = local_user_result.mappings().first()
+            if not local_user:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Usuário CAV4 não cadastrado no SIGAC: {identity.user_login or identity.subject}",
+                )
             registered_profile_result = await database.execute(
                 text(
                     f"""
@@ -239,9 +271,7 @@ async def cav4_callback(request: Request, code: str, state: str):
                     where id = :user_id
                     """
                 ),
-                {
-                    "user_id": local_user["id"]
-                }
+                {"user_id": local_user["id"]},
             )
             registered_profile = registered_profile_result.scalar()
             last_log_result = await database.execute(
@@ -280,11 +310,6 @@ async def cav4_callback(request: Request, code: str, state: str):
 
                 except Exception:
                     pass
-            if not local_user:
-                raise HTTPException(
-                    status_code=403,
-                    detail=f"Usuário CAV4 não cadastrado no SIGAC: {identity.user_login or identity.subject}",
-                )
             claims = identity.raw_claims or {}
             def claim(*names: str) -> str | None:
                 for name in names:
@@ -301,7 +326,13 @@ async def cav4_callback(request: Request, code: str, state: str):
                 "display_name": identity.display_name or claim("name", "display_name", "displayName", "full_name", "fullName", "nome", "nomeCompleto"),
                 "job_title": claim("job_title", "jobTitle", "cargo", "title", "occupation"),
                 "area": claim("area", "department", "departmentName", "organizational_unit", "organizationalUnit"),
-                "avatar_url": claim("picture", "avatar", "avatar_url", "photo", "photo_url"),
+                "avatar_url": "/api/auth/profile/photo" if entra_profile else claim("picture", "avatar", "avatar_url", "photo", "photo_url"),
+                "entra_id": entra_profile.get("id") if entra_profile else None,
+                "entra_user_principal_name": entra_profile.get("userPrincipalName") if entra_profile else None,
+                "phone": entra_profile.get("mobilePhone") if entra_profile else None,
+                "office_location": entra_profile.get("officeLocation") if entra_profile else None,
+                "account_enabled": entra_profile.get("accountEnabled") if entra_profile else None,
+                "entra_source": settings.entra_app_name if entra_profile else None,
             }
             await database.execute(
                 text(f"delete from {schema}.sessions where user_id=:user_id"),
