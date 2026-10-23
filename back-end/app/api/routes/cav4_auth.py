@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse, Response
-from app.core.entra import configured as entra_configured, enrich_by_email, profile_photo
+from app.core.entra import EntraPermissionError, configured as entra_configured, enrich_by_email, profile_photo
 from sqlalchemy import bindparam, text
 from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 
@@ -204,6 +204,9 @@ async def cav4_callback(request: Request, code: str, state: str):
             entra_profile = await enrich_by_email(identity.email)
         except PermissionError as exc:
             raise HTTPException(status_code=403, detail=str(exc)) from exc
+        except EntraPermissionError as exc:
+            logger.exception("entra_graph_permission_missing app=%s", settings.entra_app_name)
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
         except Exception as exc:
             if settings.entra_required_group_id:
                 logger.exception("entra_enrichment_required_failed app=%s", settings.entra_app_name)

@@ -17,6 +17,10 @@ _TOKEN = "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
 _token_cache: tuple[str, float] | None = None
 
 
+class EntraPermissionError(RuntimeError):
+    """Indica que o app registration não tem consentimento suficiente no Graph."""
+
+
 def configured() -> bool:
     """O Graph fica ativo quando as credenciais obrigatórias estão presentes.
 
@@ -59,6 +63,18 @@ async def _request(path: str, *, params: dict[str, str] | None = None, binary: b
         response = await client.get(f"{_GRAPH}{path}", params=params, headers={"Authorization": f"Bearer {token}"})
         if response.status_code == 404 and binary:
             return None
+        if response.status_code == 403:
+            logger.error(
+                "entra_graph_forbidden path=%s app=%s response=%s",
+                path,
+                settings.entra_app_name,
+                response.text[:500],
+            )
+            raise EntraPermissionError(
+                "O aplicativo Entra não tem permissão no Microsoft Graph. "
+                "Conceda Application permission User.Read.All e admin consent; "
+                "para validar grupo, conceda também GroupMember.Read.All."
+            )
         response.raise_for_status()
         return response.content if binary else response.json()
 
