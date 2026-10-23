@@ -11,25 +11,9 @@ import type {
   PlatformContext,
 } from "@/lib/types"
 
-/**
- * Client HTTP único da aplicação.
- *
- * Nenhum componente deve chamar `fetch` diretamente — toda comunicação com o
- * backend FastAPI passa por aqui. Configure `NEXT_PUBLIC_API_BASE_URL` para a
- * URL do serviço Python em desenvolvimento e produção. O cliente nunca usa
- * dados mockados, estado em memória ou API Routes locais.
- */
 const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
-const isProduction = process.env.NODE_ENV === "production"
-// No desenvolvimento, sempre use o proxy relativo `/api` para evitar CORS.
-// A URL absoluta fica reservada para o bundle de produção.
-const API_BASE_URL = (isProduction ? configuredApiBaseUrl || "" : "").replace(/\/$/, "")
+const API_BASE_URL = (configuredApiBaseUrl || "").replace(/\/$/, "")
 
-/**
- * Todas as chamadas são direcionadas ao FastAPI configurado. Em desenvolvimento,
- * uma base vazia usa o proxy/rewrite do Next.js; em produção a variável precisa
- * apontar para o serviço FastAPI/Aurora correspondente.
- */
 export const API_CONFIG = {
   baseUrl: API_BASE_URL,
   usingExternalBackend: true,
@@ -46,10 +30,6 @@ export class ApiError extends Error {
 }
 
 async function fetchRequest(url: string, init?: RequestInit): Promise<Response> {
-  if (isProduction && !configuredApiBaseUrl) {
-    throw new Error("NEXT_PUBLIC_API_BASE_URL precisa estar configurada em produção.")
-  }
-
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 60_000)
 

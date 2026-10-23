@@ -113,13 +113,38 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_settings(self) -> "Settings":
         if self.database_url and "://" not in self.database_url:
+            # DATABASE_URL sem esquema: pode ser "host", "host:port" ou
+            # "host:port/dbname" (comum em providers como Railway, Render).
+            # Extrai apenas o hostname para evitar duplicação de porta e banco
+            # ao montar a URL completa com as credenciais.
+            host_only = self.database_url
+            if ":" in self.database_url:
+                # Ex: "a25034d:5432/a25034d" -> host = "a25034d"
+                # Ex: "a25034d:5432"        -> host = "a25034d"
+                host_only = self.database_url.split(":")[0]
             if self.aurora_user and self.aurora_password and self.aurora_database:
                 self.database_url = (
                     f"postgresql://{quote(self.aurora_user, safe='')}:{quote(self.aurora_password, safe='')}"
-                    f"@{self.database_url}:5432/{quote(self.aurora_database, safe='')}"
+                    f"@{host_only}:5432/{quote(self.aurora_database, safe='')}"
                 )
             else:
                 raise ValueError("DATABASE_URL sem esquema requer usuário, senha e banco RDS_AURORA_POSTGRES_*.")
+        elif self.database_url and "://" in self.database_url:
+            # URL com esquema mas sem credenciais (ex.: postgres://host:port/db
+            # fornecido como endpoint). Injeta as credenciais das variáveis
+            # separadas apenas para URLs PostgreSQL; SQLite é ignorado.
+            _pg_schemes = ("postgresql://", "postgres://", "postgresql+asyncpg://", "postgresql+psycopg://")
+            if self.database_url.startswith(_pg_schemes):
+                from urllib.parse import urlsplit as _urlsplit
+                parts = _urlsplit(self.database_url)
+                if parts.username is None and self.aurora_user and self.aurora_password:
+                    rebuilt = (
+                        f"{parts.scheme}://{quote(self.aurora_user, safe='')}:{quote(self.aurora_password, safe='')}"
+                        f"@{parts.hostname}:{parts.port or 5432}{parts.path}"
+                    )
+                    if parts.query:
+                        rebuilt = f"{rebuilt}?{parts.query}"
+                    self.database_url = rebuilt
         if not self.database_url and self.aurora_host and self.aurora_user and self.aurora_password and self.aurora_database:
             self.database_url = f"postgresql://{quote(self.aurora_user, safe='')}:{quote(self.aurora_password, safe='')}@{self.aurora_host}:5432/{quote(self.aurora_database, safe='')}"
         postgres_schemes = ("postgresql://", "postgres://", "postgresql+asyncpg://", "postgresql+psycopg://")

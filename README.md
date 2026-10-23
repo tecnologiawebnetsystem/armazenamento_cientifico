@@ -572,7 +572,7 @@ Confirme que as dependências foram instaladas, que o Next foi iniciado na raiz 
 Verifique, nesta ordem:
 
 1. API disponível em `http://localhost:8080`;
-2. `NEXT_PUBLIC_API_BASE_URL` configurada em `.env.local`;
+2. API acessível pelo proxy `/api` ou por `NEXT_PUBLIC_API_BASE_URL` em outra origem;
 3. `CORS_ORIGINS` incluindo `http://localhost:3000`;
 4. [health check](http://localhost:8080/health) respondendo;
 5. aba Network para status, URL e payload da requisição;
@@ -607,7 +607,7 @@ Frontend e backend são serviços independentes e devem ser publicados separadam
 
 ### Frontend
 
-Configure `NEXT_PUBLIC_API_BASE_URL` com a URL HTTPS da API, instale dependências pelo lockfile e execute `pnpm typecheck`, `pnpm lint` e `pnpm build`. Não publique `.env.local`, cookies, tokens ou qualquer segredo no bundle do Next.js.
+Para mesma origem, configure `BACKEND_INTERNAL_URL` com o destino interno do proxy e deixe `NEXT_PUBLIC_API_BASE_URL` vazia. Para outra origem, configure `NEXT_PUBLIC_API_BASE_URL` com a URL HTTPS pública da API. Instale dependências pelo lockfile e execute `pnpm typecheck`, `pnpm lint` e `pnpm build`. Não publique `.env.local`, cookies, tokens ou qualquer segredo no bundle do Next.js.
 
 ### Backend
 
