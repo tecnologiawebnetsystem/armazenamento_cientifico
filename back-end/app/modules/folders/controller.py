@@ -50,7 +50,7 @@ async def sync_folders(
     operation_id = request_id or str(uuid4())
     logger.info("[folders] request_start request_id=%s project_id=%s", operation_id, project_id)
     try:
-        folders, inserted, existing, integrity = await service.sync_project_folders(
+        folders, inserted, existing, integrity, trace = await service.sync_project_folders(
             project_id, str(user["id"]), operation_id
         )
     except ValueError as error:
@@ -74,4 +74,5 @@ async def sync_folders(
         ) from error
     return {"folders": folders, "inserted": inserted, "existing": existing,
             "integrity": integrity,
+            "trace": trace,
             "message": "A estrutura já estava cadastrada" if existing else f"{inserted} pastas cadastradas"}

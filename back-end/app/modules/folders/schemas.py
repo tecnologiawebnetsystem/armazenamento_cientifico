@@ -36,3 +36,4 @@ class FolderSyncOut(FolderListOut):
     existing: bool
     message: str
     integrity: dict[str, int]
+    trace: list[dict[str, object]]

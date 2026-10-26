@@ -230,12 +230,12 @@ export async function syncFolders(projectId: string) {
   const requestId = crypto.randomUUID()
   console.info("[v0] folders_sync_start", { requestId, projectId })
   try {
-    const result = await request<{ folders: FileNode[]; inserted: number; existing: boolean; message: string; integrity: Record<string, number> }>(
+    const result = await request<{ folders: FileNode[]; inserted: number; existing: boolean; message: string; integrity: Record<string, number>; trace: Array<Record<string, unknown>> }>(
       `/api/folders/sync?projectId=${encodeURIComponent(projectId)}`,
       { method: "POST", headers: { "X-Request-Id": requestId } },
       310_000,
     )
-    console.info("[v0] folders_sync_complete", { requestId, projectId, inserted: result.inserted, integrity: result.integrity })
+    console.info("[v0] folders_sync_complete", { requestId, projectId, inserted: result.inserted, integrity: result.integrity, trace: result.trace })
     return result
   } catch (error) {
     console.error("[v0] folders_sync_error", { requestId, projectId, error: describeApiError(error) })
