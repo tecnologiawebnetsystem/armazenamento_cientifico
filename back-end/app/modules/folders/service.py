@@ -56,6 +56,20 @@ class FolderService:
             "[folders] filesystem_identity user=%s platform=%s cwd=%s path_exists_check_start",
             getpass.getuser(), os.name, os.getcwd(),
         )
+        existing_ids = await self.repository.existing_ids(project_id)
+        if existing_ids:
+            persisted = await self.repository.find_by_project(project_id)
+            integrity = await self.repository.verify_project_folders(project_id)
+            mark("sync_plan", "already_registered", existing=len(existing_ids))
+            mark("integrity", "ok", **integrity)
+            logger.info(
+                "[folders] sync_skipped_existing request_id=%s project_id=%s total=%d",
+                request_id,
+                project_id,
+                len(persisted),
+            )
+            return persisted, 0, True, integrity, trace
+
         try:
             discovered = await asyncio.wait_for(
                 asyncio.to_thread(self._discover_folders, project_id, root, created_by),
@@ -73,7 +87,6 @@ class FolderService:
         logger.info("[folders] discovery_complete request_id=%s project_id=%s quantity=%d", request_id, project_id, len(discovered))
         if not discovered:
             raise ValueError("Nenhuma pasta foi encontrada na pasta-mãe")
-        existing_ids = await self.repository.existing_ids(project_id)
         pending = [folder for folder in discovered if folder.id not in existing_ids]
         mark("sync_plan", "ok", discovered=len(discovered), existing=len(existing_ids), pending=len(pending))
         logger.info(
