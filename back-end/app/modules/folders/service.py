@@ -23,28 +23,12 @@ class FolderService:
         return await self.repository.find_by_project(project_id)
 
     async def list_project_folders(self, project_id: str) -> list[Folder]:
-        """Lista somente as pastas imediatamente dentro do caminho do projeto.
+        """Lista as pastas já persistidas para a área de rede.
 
-        A leitura do compartilhamento Windows acontece em uma thread para não
-        bloquear o FastAPI. Se o caminho não estiver disponível, a tabela local
-        continua sendo a fonte de fallback.
+        A rede só é acessada pela operação explícita de sincronização. Assim,
+        abrir a aba Pastas é sempre uma leitura da tabela `folders`.
         """
-        project = await self.repository.find_project(project_id)
-        parent_folder = (project.parent_folder if project else "").strip()
-        if not parent_folder:
-            return await self.list_folders_by_project(project_id)
-
-        try:
-            folders = await asyncio.wait_for(
-                asyncio.to_thread(self._read_root_folders, project_id, parent_folder),
-                timeout=45,
-            )
-            return folders if folders else await self.list_folders_by_project(project_id)
-        except Exception:  # noqa: BLE001 - UNC pode lançar exceções do Windows sem tipo documentado
-            # Compartilhamentos UNC podem falhar com exceções específicas do
-            # Windows (ou permanecer indisponíveis sem gerar OSError). A API
-            # deve continuar respondendo usando a tabela local como fallback.
-            return await self.list_folders_by_project(project_id)
+        return await self.list_folders_by_project(project_id)
 
     @staticmethod
     def _read_root_folders(project_id: str, parent_folder: str) -> list[Folder]:
@@ -85,6 +69,20 @@ class FolderService:
         if not root.is_dir():
             raise ValueError("A pasta-mãe não existe ou não está acessível")
 
+        try:
+            discovered = await asyncio.wait_for(
+                asyncio.to_thread(self._discover_folders, project_id, root, created_by),
+                timeout=300,
+            )
+        except asyncio.TimeoutError as error:
+            raise ValueError("A atualização excedeu o limite de 5 minutos") from error
+        if not discovered:
+            raise ValueError("Nenhuma pasta foi encontrada na pasta-mãe")
+        await self.repository.create_many(discovered)
+        return discovered, len(discovered), False
+
+    @staticmethod
+    def _discover_folders(project_id: str, root: Path, created_by: str) -> list[Folder]:
         now = datetime.now(UTC)
         discovered: list[Folder] = []
         ids_by_path: dict[str, str] = {}
@@ -95,10 +93,9 @@ class FolderService:
                 continue
             folder_id = str(uuid5(NAMESPACE_URL, f"{project_id}:{current_path}"))
             ids_by_path[str(current_path)] = folder_id
-            parent_path = str(current_path.parent)
             size = 0
             try:
-                for file_path in current_path.rglob("*"):
+                for file_path in current_path.iterdir():
                     if file_path.is_file() and not file_path.is_symlink():
                         try:
                             size += file_path.stat().st_size
@@ -107,10 +104,9 @@ class FolderService:
             except OSError:
                 pass
             discovered.append(Folder(id=folder_id, project_id=project_id,
-                parent_id=ids_by_path.get(parent_path), kind="pasta", name=current_path.name,
+                parent_id=ids_by_path.get(str(current_path.parent)), kind="pasta", name=current_path.name,
                 created_by=created_by, created_at=now, updated_at=now, size=size))
-        await self.repository.create_many(discovered)
-        return discovered, len(discovered), False
+        return discovered
 
     async def can_list_project(self, project_id: str, user_id: str, role: str) -> bool:
         return await self.repository.can_view_project(project_id, user_id, role)
