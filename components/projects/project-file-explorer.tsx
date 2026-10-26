@@ -33,7 +33,10 @@ export function ProjectFileExplorer({ projectId }: { projectId: string }) {
       setSearch("")
       window.alert(result.message)
     } catch (syncError) {
-      console.error("[v0] Falha ao atualizar a área de rede", { projectId, error: syncError })
+      console.error("[v0] Falha ao atualizar a área de rede", {
+        projectId,
+        error: syncError instanceof Error ? { name: syncError.name, message: syncError.message, stack: syncError.stack } : syncError,
+      })
       const message = syncError instanceof Error && syncError.name !== "AbortError"
         ? `${syncError.message} Consulte o log do backend para o request_id da operação.`
         : "A atualização da área de rede foi interrompida. Verifique se a pasta-mãe está acessível e tente novamente."
