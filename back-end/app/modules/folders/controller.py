@@ -54,8 +54,14 @@ async def sync_folders(
             project_id, str(user["id"]), operation_id
         )
     except ValueError as error:
-        logger.warning("[folders] sync_validation_error request_id=%s project_id=%s error=%s", operation_id, project_id, error)
-        raise HTTPException(status_code=422, detail=str(error)) from error
+        logger.warning(
+            "[folders] sync_validation_error request_id=%s project_id=%s message=%s",
+            operation_id, project_id, str(error),
+        )
+        raise HTTPException(
+            status_code=422,
+            detail={"message": str(error), "request_id": operation_id, "stage": "discovery"},
+        ) from error
     except Exception as error:
         logger.exception("[folders] sync_unexpected_error request_id=%s project_id=%s", operation_id, project_id)
         raise HTTPException(
