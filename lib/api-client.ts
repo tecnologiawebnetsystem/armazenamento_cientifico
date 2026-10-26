@@ -27,7 +27,14 @@ export class ApiError extends Error {
     super(message)
     this.status = status
     this.name = "ApiError"
+    Object.setPrototypeOf(this, ApiError.prototype)
   }
+}
+
+export function describeApiError(error: unknown) {
+  if (error instanceof ApiError) return { name: error.name, status: error.status, message: error.message }
+  if (error instanceof Error) return { name: error.name, message: error.message, stack: error.stack }
+  return { value: error }
 }
 
 async function fetchRequest(url: string, init?: RequestInit, timeoutMs = 60_000): Promise<Response> {
@@ -224,7 +231,7 @@ export async function syncFolders(projectId: string) {
     console.info("[v0] folders_sync_complete", { requestId, projectId, inserted: result.inserted, integrity: result.integrity })
     return result
   } catch (error) {
-    console.error("[v0] folders_sync_error", { requestId, projectId, error })
+    console.error("[v0] folders_sync_error", { requestId, projectId, error: describeApiError(error) })
     throw error
   }
 }

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import { ChevronRightIcon, FolderIcon, FoldersIcon, RefreshCwIcon, SearchIcon, SearchXIcon } from "lucide-react"
 import useSWR from "swr"
-import { getFolders, syncFolders } from "@/lib/api-client"
+import { describeApiError, getFolders, syncFolders } from "@/lib/api-client"
 import type { FileNode } from "@/lib/types"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -33,7 +33,10 @@ export function ProjectFileExplorer({ projectId }: { projectId: string }) {
       setSearch("")
       window.alert(result.message)
     } catch (syncError) {
-      console.error("[v0] Falha ao atualizar a área de rede", { projectId, error: syncError })
+      console.error("[v0] Falha ao atualizar a área de rede", {
+        projectId,
+        error: describeApiError(syncError),
+      })
       const message = syncError instanceof Error && syncError.name !== "AbortError"
         ? `${syncError.message} Consulte o log do backend para o request_id da operação.`
         : "A atualização da área de rede foi interrompida. Verifique se a pasta-mãe está acessível e tente novamente."
