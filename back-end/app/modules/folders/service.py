@@ -1,4 +1,5 @@
 import asyncio
+import getpass
 import logging
 import os
 from datetime import UTC, datetime
@@ -42,6 +43,10 @@ class FolderService:
             raise ValueError("A área de rede não possui uma pasta-mãe configurada")
         root = Path(parent_folder)
         logger.info("[folders] parent_folder project_id=%s path=%s", project_id, parent_folder)
+        logger.info(
+            "[folders] filesystem_identity user=%s platform=%s cwd=%s path_exists_check_start",
+            getpass.getuser(), os.name, os.getcwd(),
+        )
         try:
             discovered = await asyncio.wait_for(
                 asyncio.to_thread(self._discover_folders, project_id, root, created_by),
@@ -84,12 +89,17 @@ class FolderService:
 
     @staticmethod
     def _discover_folders(project_id: str, root: Path, created_by: str) -> list[Folder]:
+        logger.info("[folders] filesystem_is_dir_start path=%s", root)
         if not root.is_dir():
+            logger.warning("[folders] filesystem_is_dir_false path=%s", root)
             raise ValueError("A pasta-mãe não existe ou não está acessível")
+        logger.info("[folders] filesystem_is_dir_ok path=%s", root)
         now = datetime.now(UTC)
         discovered: list[Folder] = []
         ids_by_path: dict[str, str] = {}
+        logger.info("[folders] filesystem_walk_start path=%s", root)
         for current, dirs, _ in os.walk(root, followlinks=False):
+            logger.info("[folders] filesystem_walk_entry current=%s dirs=%d", current, len(dirs))
             dirs[:] = sorted([name for name in dirs if not (Path(current) / name).is_symlink()], key=str.casefold)
             current_path = Path(current)
             if current_path == root:
@@ -109,6 +119,7 @@ class FolderService:
             discovered.append(Folder(id=folder_id, project_id=project_id,
                 parent_id=ids_by_path.get(str(current_path.parent)), kind="pasta", name=current_path.name,
                 created_by=created_by, created_at=now, updated_at=now, size=size))
+        logger.info("[folders] filesystem_walk_complete path=%s discovered=%d", root, len(discovered))
         return discovered
 
     async def can_list_project(self, project_id: str, user_id: str, role: str) -> bool:
