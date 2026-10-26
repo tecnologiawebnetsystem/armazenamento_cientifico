@@ -1,11 +1,8 @@
-from datetime import datetime
-
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.catalogs.project_catalog_models import ResponsibleArea
-from app.modules.projects.member_model import ProjectMember
-from app.modules.projects.models import Project
+from app.modules.catalogs.models import ResponsibleArea
+from app.modules.projects.models import Project, ProjectMember
 from app.modules.users.models import User
 
 
@@ -100,16 +97,19 @@ class ProjectRepository:
         return list((await self.session.execute(statement)).all())
 
 
-class ProjectAccessRepository:
-    def __init__(self, repository: ProjectRepository):
-        self.repository = repository
-
-    async def list_members(self, project_id: str) -> list[tuple[ProjectMember, User]]:
-        return await self.repository.list_members(project_id)
-
-    async def commit(self) -> None:
-        await self.repository.commit()
-
-
-def touch(entity: Project | ResponsibleArea, timestamp: datetime) -> None:
-    entity.updated_at = timestamp
+# TODO(verificar com a equipe de devs): `ProjectAccessRepository` e `touch` não têm referências no
+# repositório (varredura de 2026-10-14); comentados em vez de excluídos. Se voltarem, importar
+# `datetime` de datetime.
+# class ProjectAccessRepository:
+#     def __init__(self, repository: ProjectRepository):
+#         self.repository = repository
+#
+#     async def list_members(self, project_id: str) -> list[tuple[ProjectMember, User]]:
+#         return await self.repository.list_members(project_id)
+#
+#     async def commit(self) -> None:
+#         await self.repository.commit()
+#
+#
+# def touch(entity: Project | ResponsibleArea, timestamp: datetime) -> None:
+#     entity.updated_at = timestamp

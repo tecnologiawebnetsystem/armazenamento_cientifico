@@ -158,15 +158,12 @@ class CAV4OIDCProvider:
                 )
                 return self._discovery_cache
         except (httpx.HTTPError, OSError, ssl.SSLError, ValueError) as e:
-            logger.error(
-                "[CAV4] Falha no discovery verify=%s truststore=%s ca_file=%s url=%s tipo=%s erro=%s",
+            logger.exception(
+                "[CAV4] Falha no discovery verify=%s truststore=%s ca_file=%s url=%s",
                 settings.ca_ssl_verify,
                 settings.ca_ssl_use_truststore,
                 bool(settings.ca_ssl_cert_file),
                 settings.oidc_discovery_url,
-                type(e).__name__,
-                str(e),
-                exc_info=True,
             )
             raise CAV4AuthenticationError(
                 "Não foi possível conectar ao CAV4. Verifique a URL de discovery, DNS, firewall e a configuração CA_SSL_VERIFY/CA_SSL_CERT_FILE."

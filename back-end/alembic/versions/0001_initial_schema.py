@@ -86,7 +86,7 @@ def upgrade() -> None:
         # As sessões referenciam o código funcional do usuário, não o UUID técnico.
         sa.Column("user_id", sa.String(length=80), nullable=False),
         sa.Column("profile_id", sa.String(length=20), nullable=True),
-        sa.Column("last_login_at", sa.DateTime(), nullable=True),
+        sa.Column("last_login_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.ForeignKeyConstraint(["profile_id"], ["profiles.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),

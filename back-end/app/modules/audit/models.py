@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -10,7 +10,7 @@ class ActivityLog(Base):
     __tablename__ = "activity_logs"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    user_id: Mapped[str | None] = mapped_column(String(80), ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True, index=True)
+    user_id: Mapped[str | None] = mapped_column(String(255), ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True, index=True)
     action: Mapped[str] = mapped_column(String(100), index=True)
     entity: Mapped[str] = mapped_column(String(100), index=True)
     entity_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
@@ -22,4 +22,4 @@ class ActivityLog(Base):
     duration_ms: Mapped[float | None] = mapped_column(nullable=True)
     ip_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
     project_id: Mapped[str | None] = mapped_column(ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, index=True)
-    created_at: Mapped[datetime] = mapped_column(nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)

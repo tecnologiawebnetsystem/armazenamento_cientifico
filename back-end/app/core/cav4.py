@@ -1,3 +1,5 @@
+# TODO(verificar com a equipe de devs): módulo sem nenhum importador no repositório (varredura de
+# 2026-10-14); o login usa app/infrastructure/cav4/provider.py. Mantido até a confirmação da equipe.
 import base64
 import binascii
 import hashlib

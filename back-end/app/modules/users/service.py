@@ -1,5 +1,8 @@
-from datetime import UTC, datetime
+# TODO(verificar com a equipe de devs): `UserService` e `ProfileService` sem nenhum importador no
+# repositório (varredura de 2026-10-14). Mantidos até a confirmação da equipe.
 import hashlib
+from datetime import UTC, datetime
+from typing import Any
 
 from app.modules.users.models import Profile, User
 from app.modules.users.repository import ProfileRepository, UserRepository
@@ -19,12 +22,15 @@ class UserService:
     async def list_users(self, skip: int = 0, limit: int = 100) -> list[User]:
         return await self.repository.list_all(skip, limit)
 
+    async def list_users_dict(self) -> list[dict[str, Any]]:
+        return await self.repository.list_as_dict()
+
     async def create_user(self, data: UserCreate) -> User:
         user = User(
             id=hashlib.md5(data.user_id.encode("utf-8"), usedforsecurity=False).hexdigest(),
             user_id=data.user_id,
             profile_id=data.perfil_id,
-            created_at=datetime.now(UTC).replace(tzinfo=None),
+            created_at=datetime.now(UTC),
         )
         return await self.repository.create(user)
 
@@ -55,7 +61,7 @@ class ProfileService:
         return await self.repository.list_all()
 
     async def create_profile(self, data: ProfileCreate) -> Profile:
-        now = datetime.now(UTC).replace(tzinfo=None)
+        now = datetime.now(UTC)
         profile = Profile(
             id=data.name[:3].upper(),
             name=data.name,

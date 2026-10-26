@@ -1,3 +1,7 @@
+# TODO(verificar com a equipe de devs): só é importado por users/service.py, que não tem importador
+# (varredura de 2026-10-14). Mantido até a confirmação da equipe.
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,8 +30,15 @@ class UserRepository:
 
     async def update(self, user: User) -> User:
         await self.session.merge(user)
-        await self.session.flush()
         return user
+
+    async def list_as_dict(self) -> list[dict[str, Any]]:
+        result = await self.session.execute(
+            select(User.id, User.user_id.label("userId"), User.profile_id.label("perfilId"),
+                   User.last_login_at.label("ultimoLogin"), User.created_at.label("criadoEm"))
+            .order_by(User.user_id)
+        )
+        return [dict(row) for row in result.mappings().all()]
 
     async def delete(self, user_id: str) -> bool:
         user = await self.find_by_id(user_id)

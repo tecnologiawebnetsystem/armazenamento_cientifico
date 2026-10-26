@@ -1,29 +1,31 @@
-from datetime import UTC, datetime
-from typing import Any, ClassVar
+﻿from datetime import UTC, datetime
+from typing import Any
 
-from sqlalchemy import text
+from sqlalchemy import and_, func, literal_column, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
-from app.core.config import settings
+from app.modules.catalogs.models import (
+    DashboardCard,
+    MenuItem,
+    MenuPermission,
+    Module,
+    Permission,
+    ProfileModule,
+    ProfilePermission,
+)
+from app.modules.folders.models import Folder
+from app.modules.projects.models import Project, ProjectMember
+from app.modules.users.models import User
 
 
 class PlatformRepository:
+    """Contexto da plataforma: menus, permissões, dashboard e mapa de acessos."""
+
     def __init__(self, session: AsyncSession):
         self.session = session
-        self.schema = f'"{settings.db_schema}"'
 
-    async def rows(self, sql: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-        result = await self.session.execute(text(sql), params or {})
-        return [dict(row) for row in result.mappings().all()]
-
-    async def one(self, sql: str, params: dict[str, Any] | None = None) -> dict[str, Any] | None:
-        result = await self.session.execute(text(sql), params or {})
-        row = result.mappings().first()
-        return dict(row) if row else None
-
-    async def execute(self, sql: str, params: dict[str, Any] | None = None) -> None:
-        await self.session.execute(text(sql), params or {})
-        await self.session.commit()
+    # ── context (ORM) ─────────────────────────────────────────────────
 
     async def context(self, session_user: dict[str, Any]) -> dict[str, Any]:
         profile_id = session_user.get("profile_id")
@@ -36,127 +38,156 @@ class PlatformRepository:
         }
         if not profile_id:
             return {"user": user, "permissions": [], "modules": [], "menus": [], "dashboardCards": []}
-        permissions = await self.rows(f"select pp.permission_id as id from {self.schema}.profile_permissions pp join {self.schema}.permissions p on p.id = pp.permission_id where pp.profile_id = :profile_id and pp.allowed = true and p.active = true", {"profile_id": profile_id})
-        modules = await self.rows(f"select m.id, m.name as nome, m.route as rota, m.icon as icone, m.display_order as ordem from {self.schema}.profile_modules pm join {self.schema}.modules m on m.id = pm.module_id where pm.profile_id = :profile_id and pm.can_view = true and m.active = true order by m.display_order, m.name", {"profile_id": profile_id})
-        menus = await self.rows(
-            f"""
-            select distinct
-                mi.id,
-                mi.name as nome,
-                mi.route as rota,
-                mi.icon as icone,
-                mi.display_order as ordem,
-                mi.parent_id
-            from {self.schema}.menus mi
-            left join {self.schema}.modules md
-                on md.id = mi.module_id
-               and md.active = true
-            where mi.active = true
-              and (mi.module_id is null or md.id is not null)
-              and (mi.module_id is null or exists (
-                  select 1
-                  from {self.schema}.profile_modules pm
-                  where pm.profile_id = :profile_id
-                    and pm.module_id = mi.module_id
-                    and pm.can_view = true
-              ))
-              and (mi.module_id is null or exists (
-                  select 1
-                  from {self.schema}.menu_permissions mp
-                  join {self.schema}.profile_permissions pp
-                    on pp.permission_id = mp.permission_id
-                   and pp.profile_id = :profile_id
-                   and pp.allowed = true
-                  join {self.schema}.permissions p
-                    on p.id = mp.permission_id
-                   and p.module_id = mi.module_id
-                   and p.active = true
-                  where mp.menu_id = mi.id
-                    and mp.allowed = true
-              ))
-            order by mi.display_order, mi.name
-            """,
-            {"profile_id": profile_id},
-        )
-        cards = await self.rows(f"select id, key, title as titulo, description as descricao, metric_key as metrica, route as rota, display_order as ordem from {self.schema}.dashboard_cards where active = true and (profile_ids = '' or position(',' || :profile_id || ',' in ',' || replace(profile_ids, ' ', '') || ',') > 0) order by display_order, title", {"profile_id": profile_id})
-        return {"user": user, "permissions": [row["id"] for row in permissions], "modules": modules, "menus": menus, "dashboardCards": cards}
 
-    async def catalogs(self) -> dict[str, list[dict[str, Any]]]:
-        return {"areas": await self.rows(f"select id, name as nome, prefix as prefixo, next_number from {self.schema}.responsible_areas where active = true order by name"), "perfis": await self.rows(f"select id, name as nome, description as descricao from {self.schema}.profiles order by name"), "modulos": await self.rows(f"select id, name as nome, route as rota, icon as icone, display_order as ordem, active as ativo from {self.schema}.modules where active = true order by display_order, name"), "permissoes": await self.rows(f"select id, module_id as modulo_id, name as nome, description as descricao, active as ativo from {self.schema}.permissions where active = true order by name"), "statusProjetos": await self.rows(f"select id, code as codigo, name as nome, color as cor, display_order as ordem, active as ativo, allows_edit as permite_edicao from {self.schema}.project_statuses where active = true order by display_order"), "tiposRelatorios": await self.rows(f"select id, code as codigo, name as nome, description as descricao, formats as formatos, active as ativo from {self.schema}.report_types where active = true order by name")}
+        permissions = list((await self.session.execute(
+            select(Permission.id)
+            .join(ProfilePermission, ProfilePermission.permission_id == Permission.id)
+            .where(
+                ProfilePermission.profile_id == profile_id,
+                ProfilePermission.allowed.is_(True),
+                Permission.active.is_(True),
+            )
+        )).scalars())
 
-    CONFIGURATION_TABLES: ClassVar[dict[str, tuple[str, tuple[str, ...], tuple[str, ...]]]] = {
-        "menus": ("menus", ("id", "module_id", "parent_id", "name", "route", "icon", "display_order", "active"), ("id",)),
-        "modules": ("modules", ("id", "name", "route", "icon", "display_order", "active"), ("id",)),
-        "permissions": ("permissions", ("id", "module_id", "name", "description", "active"), ("id",)),
-        "profiles": ("profiles", ("id", "name", "description"), ("id",)),
-        "project_statuses": ("project_statuses", ("id", "code", "name", "color", "display_order", "active", "allows_edit"), ("id",)),
-        "responsible_areas": ("responsible_areas", ("id", "name", "prefix", "next_number", "active"), ("id",)),
-        "report_types": ("report_types", ("id", "code", "name", "description", "formats", "active"), ("id",)),
-        "report_fields": ("report_fields", ("id", "report_code", "field_key", "label", "source_key", "display_order", "active"), ("id",)),
-        "dashboard_cards": ("dashboard_cards", ("id", "module_id", "key", "title", "description", "metric_key", "route", "profile_ids", "display_order", "active"), ("id",)),
-        "menu_permissions": ("menu_permissions", ("menu_id", "permission_id", "allowed"), ("menu_id", "permission_id")),
-        "profile_permissions": ("profile_permissions", ("profile_id", "permission_id", "allowed"), ("profile_id", "permission_id")),
-        "profile_modules": ("profile_modules", ("profile_id", "module_id", "can_view"), ("profile_id", "module_id")),
-    }
+        modules = [dict(row) for row in (await self.session.execute(
+            select(
+                Module.id, Module.name.label("nome"), Module.route.label("rota"),
+                Module.icon.label("icone"), Module.display_order.label("ordem"),
+            )
+            .select_from(ProfileModule.__table__.join(Module, Module.id == ProfileModule.module_id))
+            .where(ProfileModule.profile_id == profile_id, ProfileModule.can_view.is_(True), Module.active.is_(True))
+            .order_by(Module.display_order, Module.name)
+        )).mappings().all()]
 
-    def _configuration_filter(self, keys: tuple[str, ...], identifier: str) -> tuple[str, dict[str, Any]]:
-        values = identifier.split("|")
-        if len(values) != len(keys) or any(not value for value in values):
-            raise ValueError("Identificador de configuração inválido")
-        params = {f"key_{index}": value for index, value in enumerate(values)}
-        return " and ".join(f"{key} = :key_{index}" for index, key in enumerate(keys)), params
+        visible_module = (
+            select(ProfileModule.module_id)
+            .where(ProfileModule.profile_id == profile_id, ProfileModule.can_view.is_(True))
+        ).scalar_subquery()
 
-    async def configuration_rows(self, resource: str) -> list[dict[str, Any]]:
-        table, columns, _ = self.CONFIGURATION_TABLES[resource]
-        return await self.rows(f"select {', '.join(columns)} from {self.schema}.{table} order by 1")
+        menu_with_permission = (
+            select(1)
+            .select_from(MenuPermission.__table__.join(ProfilePermission,
+                ProfilePermission.permission_id == MenuPermission.permission_id))
+            .join(Permission, Permission.id == MenuPermission.permission_id)
+            .where(
+                MenuPermission.menu_id == MenuItem.id,
+                MenuPermission.allowed.is_(True),
+                ProfilePermission.profile_id == profile_id,
+                ProfilePermission.allowed.is_(True),
+                Permission.module_id == MenuItem.module_id,
+                Permission.active.is_(True),
+            )
+        ).exists()
 
-    async def create_configuration(self, resource: str, data: dict[str, Any]) -> dict[str, Any]:
-        table, columns, keys = self.CONFIGURATION_TABLES[resource]
-        values = {key: data[key] for key in columns if key in data}
-        if any(key not in values for key in keys):
-            raise ValueError("Todos os campos de identificação são obrigatórios")
-        names = tuple(values)
-        await self.execute(f"insert into {self.schema}.{table} ({', '.join(names)}) values ({', '.join(':' + name for name in names)})", values)
-        where = " and ".join(f"{key} = :{key}" for key in keys)
-        return (await self.rows(f"select {', '.join(columns)} from {self.schema}.{table} where {where}", {key: values[key] for key in keys}))[0]
+        menus = [dict(row) for row in (await self.session.execute(
+            select(
+                MenuItem.id, MenuItem.name.label("nome"), MenuItem.route.label("rota"),
+                MenuItem.icon.label("icone"), MenuItem.display_order.label("ordem"),
+                MenuItem.parent_id,
+            )
+            .outerjoin(Module, and_(Module.id == MenuItem.module_id, Module.active.is_(True)))
+            .where(
+                MenuItem.active.is_(True),
+                or_(
+                    MenuItem.module_id.is_(None),
+                    and_(MenuItem.module_id.in_(visible_module), Module.id.is_not(None)),
+                ),
+                or_(
+                    MenuItem.module_id.is_(None),
+                    menu_with_permission,
+                ),
+            )
+            .order_by(MenuItem.display_order, MenuItem.name)
+        )).mappings().all()]
 
-    async def update_configuration(
-    self,
-    resource: str,
-    identifier: str,
-    data: dict[str, Any],
-    current_user: dict[str, Any],
-) -> dict[str, Any]:
-        table, columns, keys = self.CONFIGURATION_TABLES[resource]
-        where, key_params = self._configuration_filter(keys, identifier)
-        values = {name: data[name] for name in columns if name not in keys and name in data}
-        if not values:
-            raise ValueError("Nenhum campo informado")
-        await self.execute(f"update {self.schema}.{table} set {', '.join(f'{name} = :{name}' for name in values)} where {where}", {**values, **key_params})
-        return (await self.rows(f"select {', '.join(columns)} from {self.schema}.{table} where {where}", key_params))[0]
+        cards = [dict(row) for row in (await self.session.execute(
+            select(
+                DashboardCard.id, DashboardCard.key, DashboardCard.title.label("titulo"),
+                DashboardCard.description.label("descricao"), DashboardCard.metric_key.label("metrica"),
+                DashboardCard.route.label("rota"), DashboardCard.display_order.label("ordem"),
+            )
+            .where(
+                DashboardCard.active.is_(True),
+                or_(
+                    DashboardCard.profile_ids == "",
+                    DashboardCard.profile_ids.like(f"%{profile_id}%"),
+                ),
+            )
+            .order_by(DashboardCard.display_order, DashboardCard.title)
+        )).mappings().all()]
 
-    async def delete_configuration(self, resource: str, identifier: str) -> None:
-        table, _, keys = self.CONFIGURATION_TABLES[resource]
-        where, params = self._configuration_filter(keys, identifier)
-        await self.execute(f"delete from {self.schema}.{table} where {where}", params)
+        return {"user": user, "permissions": permissions, "modules": modules, "menus": menus, "dashboardCards": cards}
 
-    async def users(self) -> list[dict[str, Any]]:
-        return await self.rows(f"select id, user_id as \"userId\", profile_id as \"perfilId\", last_login_at as \"ultimoLogin\", created_at as \"criadoEm\" from {self.schema}.users order by user_id")
-
-    async def folders(self, project_id: str) -> list[dict[str, Any]]:
-        return await self.rows(f"select id, project_id as \"projectId\", parent_id as \"parentId\", kind as tipo, name as nome, size_bytes as tamanho, mime_type as \"mimeType\", created_by as \"criadoPor\", created_at as \"criadoEm\", updated_at as \"atualizadoEm\" from {self.schema}.folders where project_id = :project_id order by name", {"project_id": project_id})
+    # ── dashboard (ORM) ───────────────────────────────────────────────
 
     async def dashboard(self) -> dict[str, Any]:
-        projects = await self.rows(f'''select p.id, p.name as nome, p.code as codigo, p.responsible_area as "areaResponsavel", p.status, p.description as descricao, p.created_at as "criadoEm", p.updated_at as "atualizadoEm", coalesce((select sum(f.size_bytes) from {self.schema}.folders f where f.project_id = p.id), 0) as "armazenamentoUsadoMb" from {self.schema}.projects p order by p.updated_at desc''')
-        counts = await self.one(f"select (select count(*) from {self.schema}.project_members) as membros, (select count(*) from {self.schema}.folders) as mapas, (select coalesce(sum(size_bytes), 0) from {self.schema}.folders) as armazenamento")
-        activity = await self.rows(f"select id, user_id as \"userId\", action as acao, entity as entidade, entity_id as \"entidadeId\", details as detalhes, created_at as \"criadoEm\", result as resultado, project_id as \"projetoId\" from {self.schema}.activity_logs order by created_at desc limit 10")
-        return {"projects": projects, "totalMembros": counts["membros"], "totalMapas": counts["mapas"], "armazenamentoMb": counts["armazenamento"], "activity": activity, "source": "database", "consultedAt": datetime.now(UTC).isoformat()}
+        storage_sub = select(func.coalesce(func.sum(Folder.size), 0)).where(Folder.project_id == Project.id).correlate(Project).scalar_subquery()
+        projects = [dict(row) for row in (await self.session.execute(
+            select(Project.id, Project.name.label("nome"), Project.code.label("codigo"),
+                   Project.responsible_area.label("areaResponsavel"), Project.status,
+                   Project.description.label("descricao"), Project.created_at.label("criadoEm"),
+                   Project.updated_at.label("atualizadoEm"), storage_sub.label("armazenamentoUsadoMb"))
+            .order_by(Project.updated_at.desc())
+        )).mappings().all()]
 
-    async def activity_logs(self, page: int, limit: int) -> tuple[list[dict[str, Any]], int]:
-        rows = await self.rows(f"select al.id, coalesce(nullif(al.user_id, ''), 'não informado') as \"userId\", coalesce(nullif(u.user_id, ''), nullif(al.user_id, ''), 'não informado') as \"userName\", al.action as acao, al.entity as entidade, al.entity_id as \"entidadeId\", al.details as detalhes, al.created_at as \"criadoEm\", al.result as resultado, al.project_id as \"projetoId\" from {self.schema}.activity_logs al left join {self.schema}.users u on u.user_id = al.user_id order by al.created_at desc limit :limit offset :offset", {"limit": limit, "offset": (page - 1) * limit})
-        count = await self.one(f"select count(*) as total from {self.schema}.activity_logs")
-        return rows, int(count["total"])
+        counts_result = (await self.session.execute(
+            select(
+                func.count(func.distinct(ProjectMember.project_id)).label("membros"),
+                func.count(func.distinct(Folder.id)).label("mapas"),
+                func.coalesce(func.sum(Folder.size), 0).label("armazenamento"),
+            )
+        )).mappings().first()
+        counts = dict(counts_result) if counts_result else {"membros": 0, "mapas": 0, "armazenamento": 0}
+
+        from app.modules.audit.models import ActivityLog
+
+        activity = [dict(row) for row in (await self.session.execute(
+            select(ActivityLog.id, ActivityLog.user_id.label("userId"),
+                   ActivityLog.action.label("acao"), ActivityLog.entity.label("entidade"),
+                   ActivityLog.entity_id.label("entidadeId"), ActivityLog.details.label("detalhes"),
+                   ActivityLog.created_at.label("criadoEm"), ActivityLog.result.label("resultado"),
+                   ActivityLog.project_id.label("projetoId"))
+            .order_by(ActivityLog.created_at.desc())
+            .limit(10)
+        )).mappings().all()]
+
+        return {
+            "projects": projects, "totalMembros": counts["membros"],
+            "totalMapas": counts["mapas"], "armazenamentoMb": counts["armazenamento"],
+            "activity": activity, "source": "database",
+            "consultedAt": datetime.now(UTC).isoformat(),
+        }
+
+    # ── access_map (ORM) ──────────────────────────────────────────────
 
     async def access_map(self) -> dict[str, Any]:
-        rows = await self.rows(f'''select pm.user_id as "userId", coalesce(nullif(u.user_id, ''), pm.user_id) as "userName", p.id as "projectId", p.name as "projectName", p.status as "projectStatus", f.id as "resourceId", f.name as "resourceName", 'pasta' as "resourceType", pm.role as "accessLevel", f.updated_at as "lastViewedAt" from {self.schema}.project_members pm left join {self.schema}.users u on u.id = pm.user_id join {self.schema}.projects p on p.id = pm.project_id left join {self.schema}.folders f on f.project_id = p.id order by p.name, u.user_id''')
-        return {"source": "database", "consultedAt": datetime.now(UTC).isoformat(), "summary": {"users": len({r["userId"] for r in rows}), "projects": len({r["projectId"] for r in rows}), "folders": len([r for r in rows if r["resourceId"]]), "files": 0, "relationships": len(rows)}, "rows": rows}
+        pa = aliased(Project)
+        rows = [dict(row) for row in (await self.session.execute(
+            select(
+                ProjectMember.user_id.label("userId"),
+                func.coalesce(User.user_id, ProjectMember.user_id).label("userName"),
+                pa.id.label("projectId"), pa.name.label("projectName"),
+                pa.status.label("projectStatus"), Folder.id.label("resourceId"),
+                Folder.name.label("resourceName"), literal_column("'pasta'").label("resourceType"),
+                ProjectMember.role.label("accessLevel"), Folder.updated_at.label("lastViewedAt"),
+            )
+            .select_from(ProjectMember.__table__
+                .join(pa, pa.id == ProjectMember.project_id)
+                .outerjoin(User, User.id == ProjectMember.user_id)
+                .outerjoin(Folder, Folder.project_id == pa.id))
+            .order_by(pa.name, User.user_id)
+        )).mappings().all()]
+
+        for row in rows:
+            row["resourceType"] = "pasta"
+
+        return {
+            "source": "database", "consultedAt": datetime.now(UTC).isoformat(),
+            "summary": {
+                "users": len({r["userId"] for r in rows}),
+                "projects": len({r["projectId"] for r in rows}),
+                "folders": len([r for r in rows if r["resourceId"]]),
+                "files": 0, "relationships": len(rows),
+            },
+            "rows": rows,
+        }

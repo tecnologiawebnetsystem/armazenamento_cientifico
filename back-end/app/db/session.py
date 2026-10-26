@@ -1,4 +1,5 @@
 import ssl
+from asyncio import wait_for
 from collections.abc import AsyncIterator
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -24,7 +25,8 @@ def _async_database_url() -> str:
         url = url.replace("postgres://", "postgresql+asyncpg://", 1)
     parts = urlsplit(url)
     if parts.query:
-        query = [(key, value) for key, value in parse_qsl(parts.query) if key not in {"channel_binding", "sslmode"}]
+        # O search_path vem de DB_SCHEMA (server_settings); o asyncpg não aceita `options` na URL.
+        query = [(key, value) for key, value in parse_qsl(parts.query) if key not in {"channel_binding", "sslmode", "options"}]
         url = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
     return url
 
@@ -57,11 +59,17 @@ def configure_engine() -> None:
 
     engine_options = {
         "echo": False,
+        "hide_parameters": True,
         "pool_pre_ping": True,
         "pool_size": settings.db_max_size,
         "max_overflow": 0,
         "pool_timeout": settings.db_command_timeout,
-        "connect_args": {"ssl": ssl_context, "server_settings": {"search_path": settings.db_schema}},
+        "connect_args": {
+            "ssl": ssl_context,
+            "server_settings": {"search_path": settings.db_schema},
+            "timeout": settings.db_command_timeout,
+            "command_timeout": settings.db_command_timeout,
+        },
     }
     engine = create_async_engine(_async_database_url(), **engine_options)
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
@@ -83,13 +91,30 @@ async def get_session() -> AsyncIterator[AsyncSession]:
         yield session
 
 
+async def probe_database_connection() -> None:
+    configure_engine()
+    if engine is None:
+        raise RuntimeError("Database engine is not configured")
+
+    async def execute_probe() -> None:
+        async with engine.connect() as connection:
+            await connection.execute(text("SELECT 1"))
+
+    await wait_for(execute_probe(), timeout=settings.db_command_timeout)
+
+
 async def connect() -> None:
     import logging
 
     logger = logging.getLogger(__name__)
     configure_engine()
     if engine is None:
-        raise RuntimeError("Configuração Aurora PostgreSQL não disponível")
+        raise RuntimeError("Configuração de banco não disponível")
+    if settings.is_sqlite:
+        async with engine.connect() as connection:
+            await connection.execute(text("SELECT 1"))
+        logger.info("database_connect_ok engine=sqlite")
+        return
     logger.info("database_connect_start engine=postgresql pool_max=%s", settings.db_max_size)
     async with engine.connect() as connection:
         result = await connection.execute(text("SELECT current_database(), current_user, current_schema()"))

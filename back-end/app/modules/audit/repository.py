@@ -3,20 +3,20 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from sqlalchemy import and_, func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import mask_sensitive
-from app.modules.users.models import User
 from app.modules.projects.models import Project
-from sqlalchemy.ext.asyncio import AsyncSession
+from app.modules.users.models import User
 
 from .models import ActivityLog
 
 
 def _database_datetime(value: datetime) -> datetime:
-    """Converte datas para UTC sem tzinfo, compatível com TIMESTAMP WITHOUT TIME ZONE."""
+    """Normaliza para UTC com fuso; uma data sem tzinfo é tratada como UTC."""
     if value.tzinfo is None:
-        return value
-    return value.astimezone(UTC).replace(tzinfo=None)
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 class ActivityLogRepository:

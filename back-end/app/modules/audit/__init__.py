@@ -1,0 +1,1 @@
+"""Registro e consulta de auditoria."""

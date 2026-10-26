@@ -24,42 +24,45 @@ class AppException(Exception):
         super().__init__(self.message)
 
 
-class NotFoundException(AppException):
-    """Recurso não encontrado (404)."""
-
-    def __init__(
-        self, message: str = "Recurso não encontrado", details: dict[str, Any] | None = None
-    ):
-        super().__init__(
-            message=message,
-            error_code="NotFound",
-            status_code=404,
-            details=details,
-        )
-
-
-class UnauthorizedException(AppException):
-    """Credenciais ausentes ou inválidas (401)."""
-
-    def __init__(self, message: str = "Não autenticado", details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="Unauthorized",
-            status_code=401,
-            details=details,
-        )
-
-
-class ForbiddenException(AppException):
-    """Autenticado, mas sem permissão (403)."""
-
-    def __init__(self, message: str = "Sem permissão", details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="Forbidden",
-            status_code=403,
-            details=details,
-        )
+# TODO(verificar com a equipe de devs): `NotFoundException`, `UnauthorizedException` e
+# `ForbiddenException` não têm referências no repositório (varredura de 2026-10-14); comentadas em vez
+# de excluídas. Excluir depois da confirmação da equipe.
+# class NotFoundException(AppException):
+#     """Recurso não encontrado (404)."""
+#
+#     def __init__(
+#         self, message: str = "Recurso não encontrado", details: dict[str, Any] | None = None
+#     ):
+#         super().__init__(
+#             message=message,
+#             error_code="NotFound",
+#             status_code=404,
+#             details=details,
+#         )
+#
+#
+# class UnauthorizedException(AppException):
+#     """Credenciais ausentes ou inválidas (401)."""
+#
+#     def __init__(self, message: str = "Não autenticado", details: dict[str, Any] | None = None):
+#         super().__init__(
+#             message=message,
+#             error_code="Unauthorized",
+#             status_code=401,
+#             details=details,
+#         )
+#
+#
+# class ForbiddenException(AppException):
+#     """Autenticado, mas sem permissão (403)."""
+#
+#     def __init__(self, message: str = "Sem permissão", details: dict[str, Any] | None = None):
+#         super().__init__(
+#             message=message,
+#             error_code="Forbidden",
+#             status_code=403,
+#             details=details,
+#         )
 
 
 class ConflictException(AppException):
@@ -74,13 +77,15 @@ class ConflictException(AppException):
         )
 
 
-class ValidationException(AppException):
-    """Regra de negócio inválida (422)."""
-
-    def __init__(self, message: str = "Validação falhou", details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="ValidationError",
-            status_code=422,
-            details=details,
-        )
+# TODO(verificar com a equipe de devs): sem referências no repositório (varredura de 2026-10-14);
+# comentada em vez de excluída. Excluir depois da confirmação da equipe.
+# class ValidationException(AppException):
+#     """Regra de negócio inválida (422)."""
+#
+#     def __init__(self, message: str = "Validação falhou", details: dict[str, Any] | None = None):
+#         super().__init__(
+#             message=message,
+#             error_code="ValidationError",
+#             status_code=422,
+#             details=details,
+#         )

@@ -3,7 +3,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request
 
-from app.core.authorization import ensure_role, require_capability
+from app.core.authorization import require_capability
 from app.core.config import settings
 from app.db.session import get_session
 from app.modules.auth.repository import AuthRepository
@@ -23,7 +23,7 @@ async def get_current_user(request: Request):
     else:
         async for database in get_session():
             service = CurrentUserService(
-                repository=AuthRepository(database, settings.db_schema),
+                repository=AuthRepository(database),
                 temporary=False,
             )
             user = await service.get(session_id)
@@ -46,13 +46,16 @@ async def get_current_user(request: Request):
     return user
 
 
-def require_roles(*roles: str):
-    async def dependency(user=Depends(get_current_user)):
-        if roles:
-            ensure_role(user, *roles)
-        return user
-
-    return dependency
+# TODO(verificar com a equipe de devs): sem referências no repositório (varredura de 2026-10-14);
+# as rotas usam `require_capabilities`. Comentada em vez de excluída. Se voltar, importar `ensure_role`
+# de app.core.authorization.
+# def require_roles(*roles: str):
+#     async def dependency(user=Depends(get_current_user)):
+#         if roles:
+#             ensure_role(user, *roles)
+#         return user
+#
+#     return dependency
 
 
 def require_capabilities(*capabilities: str):

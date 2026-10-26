@@ -60,27 +60,31 @@ def require_capability(user: Any, capability: str) -> Any:
     return user
 
 
-def resolve_cav4_role(roles: list[str] | tuple[str, ...] | None) -> str | None:
-    """Converte os papéis do CAV4 no único perfil efetivo do SIGAC.
-
-    A ordem evita que a ordem dos claims do provedor altere a autorização.
-    Papéis desconhecidos não recebem acesso por fallback.
-    """
-    priority = ("admin", "gerente", "patrocinador", "auditor", "operador", "solicitante")
-    canonical = {canonical_role(role) for role in (roles or [])}
-    return next((role for role in priority if role in canonical), None)
+# TODO(verificar com a equipe de devs): sem referências no repositório (varredura de 2026-10-14);
+# comentado em vez de excluído. Excluir depois da confirmação da equipe.
+# def resolve_cav4_role(roles: list[str] | tuple[str, ...] | None) -> str | None:
+#     """Converte os papéis do CAV4 no único perfil efetivo do SIGAC.
+#
+#     A ordem evita que a ordem dos claims do provedor altere a autorização.
+#     Papéis desconhecidos não recebem acesso por fallback.
+#     """
+#     priority = ("admin", "gerente", "patrocinador", "auditor", "operador", "solicitante")
+#     canonical = {canonical_role(role) for role in (roles or [])}
+#     return next((role for role in priority if role in canonical), None)
 
 
 def role_capabilities(role: str | None) -> frozenset[str]:
     return ROLE_CAPABILITIES.get(canonical_role(role), frozenset())
 
 
-def is_official_role(role: str | None) -> bool:
-    return canonical_role(role) in OFFICIAL_ROLES
-
-
-def can_crud(user: Any) -> bool:
-    return has_capability(user, "create") or has_capability(user, "update") or has_capability(user, "delete")
+# TODO(verificar com a equipe de devs): sem referências no repositório (varredura de 2026-10-14);
+# comentado em vez de excluído. Excluir depois da confirmação da equipe.
+# def is_official_role(role: str | None) -> bool:
+#     return canonical_role(role) in OFFICIAL_ROLES
+#
+#
+# def can_crud(user: Any) -> bool:
+#     return has_capability(user, "create") or has_capability(user, "update") or has_capability(user, "delete")
 
 
 def can_view_project(user: Any, project_user_ids: set[str] | None = None) -> bool:
@@ -90,19 +94,18 @@ def can_view_project(user: Any, project_user_ids: set[str] | None = None) -> boo
     return user_id in (project_user_ids or set())
 
 
-def can_view_folder(user: Any, allowed_user_ids: set[str] | None = None) -> bool:
-    if has_capability(user, "all_folders"):
-        return True
-    user_id = str(user.get("id")) if isinstance(user, Mapping) else str(getattr(user, "id", ""))
-    return user_id in (allowed_user_ids or set())
-
-
-class AuthorizationError(HTTPException):
-    def __init__(self) -> None:
-        super().__init__(status_code=403, detail="Usuário sem permissão para esta operação")
-
-
-
+# TODO(verificar com a equipe de devs): sem referências no repositório (varredura de 2026-10-14);
+# comentado em vez de excluído. Excluir depois da confirmação da equipe.
+# def can_view_folder(user: Any, allowed_user_ids: set[str] | None = None) -> bool:
+#     if has_capability(user, "all_folders"):
+#         return True
+#     user_id = str(user.get("id")) if isinstance(user, Mapping) else str(getattr(user, "id", ""))
+#     return user_id in (allowed_user_ids or set())
+#
+#
+# class AuthorizationError(HTTPException):
+#     def __init__(self) -> None:
+#         super().__init__(status_code=403, detail="Usuário sem permissão para esta operação")
 
 
 def canonical_role(role: str | None) -> str:
@@ -123,8 +126,10 @@ def ensure_role(user: Any, *allowed_roles: str) -> Any:
     return user
 
 
-def require_read(user: Any) -> Any:
-    return user
+# TODO(verificar com a equipe de devs): sem referências no repositório (varredura de 2026-10-14);
+# comentado em vez de excluído. Excluir depois da confirmação da equipe.
+# def require_read(user: Any) -> Any:
+#     return user
 
 
 def is_operator_user(user: Any) -> bool:
@@ -148,9 +153,11 @@ def require_operator(user: Any) -> Any:
     return user
 
 
-def require_manage(user: Any) -> Any:
-    return ensure_role(user, "admin", "gerente")
-
-
-def require_admin(user: Any) -> Any:
-    return ensure_role(user, "admin")
+# TODO(verificar com a equipe de devs): sem referências no repositório (varredura de 2026-10-14);
+# comentado em vez de excluído. Excluir depois da confirmação da equipe.
+# def require_manage(user: Any) -> Any:
+#     return ensure_role(user, "admin", "gerente")
+#
+#
+# def require_admin(user: Any) -> Any:
+#     return ensure_role(user, "admin")

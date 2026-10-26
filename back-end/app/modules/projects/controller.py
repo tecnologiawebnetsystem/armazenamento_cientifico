@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -179,14 +179,18 @@ async def get_project_access_map(
     )
 
 
-@router.get("/layered", response_model=list[ProjectOut])
-async def list_projects_layered(
-    service: Annotated[ProjectService, Depends(get_service)],
-    _: CurrentUser,
-    x_user_id: Annotated[str, Header()] = "",
-    x_user_role: Annotated[str, Header()] = "solicitante",
-):
-    return [serialize_project(project) for project in await service.list_projects(x_user_id, x_user_role)]
+# TODO(verificar com a equipe de devs): rota sem chamador no repositório (varredura de 2026-10-14) e que
+# decide o escopo por cabeçalhos X-User-Id/X-User-Role enviados pelo cliente, em vez da sessão. Comentada
+# em vez de excluída; a listagem oficial é GET /api/projects. Se algum sistema externo a usa, confirmar antes.
+# Se voltar, importar `Header` de fastapi.
+# @router.get("/layered", response_model=list[ProjectOut])
+# async def list_projects_layered(
+#     service: Annotated[ProjectService, Depends(get_service)],
+#     _: CurrentUser,
+#     x_user_id: Annotated[str, Header()] = "",
+#     x_user_role: Annotated[str, Header()] = "solicitante",
+# ):
+#     return [serialize_project(project) for project in await service.list_projects(x_user_id, x_user_role)]
 
 
 @router.get("/{project_id}/members", response_model=list[ProjectMemberOut])

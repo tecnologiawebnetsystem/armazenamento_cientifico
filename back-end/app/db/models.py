@@ -6,15 +6,22 @@ Importar este módulo garante que todos os modelos estejam registrados em
 
 from app.modules.audit.models import ActivityLog
 from app.modules.auth.models import UserSession
-from app.modules.catalogs.authorization_models import Permission, ProfileModule, ProfilePermission
-from app.modules.catalogs.navigation_models import DashboardCard, MenuItem, MenuPermission, Module
-from app.modules.catalogs.project_catalog_models import ProjectStatus, ResponsibleArea
-from app.modules.catalogs.reporting_models import ReportField, ReportType
-from app.modules.files.models import Folder
-from app.modules.projects.member_model import ProjectMember
-from app.modules.projects.models import Project
-from app.modules.users.models import User
-from app.modules.users.profile_model import Profile
+from app.modules.catalogs.models import (
+    DashboardCard,
+    MenuItem,
+    MenuPermission,
+    Module,
+    Permission,
+    ProfileModule,
+    ProfilePermission,
+    ProjectStatus,
+    ReportField,
+    ReportType,
+    ResponsibleArea,
+)
+from app.modules.folders.models import Folder
+from app.modules.projects.models import Project, ProjectMember
+from app.modules.users.models import Profile, User
 
 __all__ = [
     "ActivityLog",

@@ -1,240 +1,287 @@
-# SIGAC Back-end
+# SIGAC — Backend
 
-API FastAPI do SIGAC, com documentação OpenAPI em `/docs` e `/redoc` quando `EXPOSE_API_DOCS=true`. O inventário completo dos endpoints é gerado pelo próprio app em `/openapi.json`.
+API FastAPI do **SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico**. O backend concentra autenticação, autorização, regras de negócio, gerenciamento de projetos, membros, permissões de projeto, consulta de arquivos, relatórios, auditoria e persistência dos dados.
 
-## Instalação e validação
+> 📖 **Documento de arquitetura completo:** [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md)
 
-```bash
-uv sync --dev
-uv run ruff check app alembic scripts tests
-uv run pytest -q
-uv run alembic check
-uv run uvicorn app.app:app --reload --port 8080
-```
+---
 
-## Endpoints principais
-
-- `/health` — disponibilidade da API.
-- `/api/auth/*` — login, logout, sessão e CAV4.
-- `/api/projects/*` — projetos e membros.
-- `/api/folders` — consulta somente leitura das pastas autorizadas pelo projeto.
-- `/api/dashboard/*` — indicadores.
-- `/api/reports/*` — relatórios e exportações.
-  - `/api/settings` — configurações da plataforma.
-
-- `/api/activity-logs/*` — auditoria.
-
-
-API do **SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico**. O back-end concentra autenticação, autorização, regras de negócio, gerenciamento de projetos, membros, permissões de projeto, consulta de arquivos, relatórios, auditoria e persistência dos dados.
-
-## O que é o SIGAC
+## Visão geral
 
 O SIGAC é uma plataforma corporativa para controlar o acesso ao armazenamento de elementos científicos. O sistema centraliza projetos, arquivos, usuários, permissões e solicitações de acesso, garantindo que cada operação siga as regras de segurança e possa ser auditada.
+
+| Componente | Descrição |
+|-----------|-----------|
+| **Backend** (este repositório) | API HTTP FastAPI — valida requisições, aplica regras de negócio, controla acesso e persiste dados |
+| **Frontend** (`../frontend/`) | Interface web Next.js — consumida pelos usuários finais |
 
 ### Regras principais do sistema
 
 - A autorização é aplicada no servidor e considera o usuário, o projeto e o nível de acesso solicitado.
 - Um usuário só pode consultar ou alterar projetos, membros e arquivos para os quais possui permissão.
-- Solicitações de acesso devem passar pelo fluxo de análise antes da liberação.
 - Alterações relevantes, acessos e eventos de segurança devem ser registrados em auditoria.
-- O back-end é a fonte definitiva das regras de negócio; validações do front-end não substituem as validações da API.
+- O backend é a fonte definitiva das regras de negócio; validações do frontend não substituem as validações da API.
 - Segredos, tokens, credenciais e dados corporativos reais nunca devem ser versionados.
 
-## Visão geral do sistema
+---
 
-O SIGAC é uma solução corporativa dividida em aplicação web e back-end independentes:
+## Tecnologias
 
+| Tecnologia | Versão |
+|-----------|--------|
+| Python | 3.11+ (imagem Docker com 3.12) |
+| FastAPI | ≥0.115 |
+| SQLAlchemy (async) | 2.0+ |
+| PostgreSQL Aurora (via asyncpg) | asyncpg ≥0.29 |
+| Alembic | 1.16+ |
+| Pydantic v2 | 2.x |
+| pydantic-settings | 2.x |
+| pytest + pytest-asyncio | 9.x + 1.x |
+| Docker + Compose | v2 |
+| ruff (lint/formatter) | ≥0.8 |
 
-- **Front-end:** interface web acessada pelos usuários.
-- **Back-end:** API HTTP responsável por validar requisições, aplicar regras de negócio, controlar acesso e salvar os dados.
+---
 
-Este diretório contém exclusivamente o serviço de API. Ele possui Dockerfile, Compose, configurações, migrations e documentação próprios para que possa ser levado a um repositório corporativo separado.
-
-## Tecnologias e versões
-
-- **Python 3.11 ou superior** (`requires-python = ">=3.11"`; alvo do Ruff: `py311`).
-- **FastAPI** `>=0.115,<1.0`.
-- **Uvicorn** `>=0.30,<1.0`.
-- **Pydantic** `>=2.8,<3.0` para validação e schemas.
-- **SQLAlchemy** `>=2.0,<3.0` com suporte assíncrono.
-- **Alembic** `>=1.16,<2.0` para migrations.
-- **PostgreSQL/Aurora PostgreSQL** via `asyncpg` em todos os ambientes suportados.
-- **Alembic** como única fonte de criação e alteração estrutural do schema.
-- **Pytest** `>=8.3,<9.0` e `pytest-asyncio` para testes automatizados.
-- Docker e Docker Compose.
-
-As versões e faixas oficiais ficam registradas em `pyproject.toml` e devem ser atualizadas por ele, evitando divergência entre a documentação e o ambiente instalado.
-
-## Arquitetura e padrões de projeto
-
-O back-end utiliza uma arquitetura **modular por domínio**, em evolução para **Clean Architecture** e **Hexagonal Architecture (Ports and Adapters)**. O FastAPI funciona como camada de entrada HTTP, enquanto os casos de uso, regras de negócio e integrações permanecem separados para facilitar testes, manutenção e troca de infraestrutura.
-
-Principais padrões utilizados:
-
-- **Layered Architecture:** separação entre rotas/controllers, serviços de aplicação, domínio, persistência e infraestrutura.
-- **Clean Architecture:** regras de negócio independentes de FastAPI, banco de dados e serviços externos.
-- **Hexagonal Architecture:** integrações acessadas por portas/interfaces e implementadas por adapters.
-- **Service Layer:** casos de uso e orquestração das transações ficam nos serviços, não nas rotas.
-- **Repository Pattern:** acesso a PostgreSQL/Aurora encapsulado em repositories.
-- **Dependency Injection:** dependências, sessão de banco e segurança fornecidas pelo sistema de dependências do FastAPI.
-- **Schema/DTO Pattern:** Pydantic valida entradas e saídas da API sem expor diretamente os modelos de persistência.
-- **Adapters:** CAV4 e integrações externas ficam isolados dos serviços de aplicação.
-
-Fluxo padrão:
-
-```text
-Request -> Route/Controller -> Application Service -> Repository -> SQLAlchemy -> Database
-                                      -> Port -> External Adapter
-```
-
-As rotas não devem acessar o banco diretamente, e toda alteração estrutural deve passar por uma migration do Alembic. O back-end é a fonte definitiva de autenticação, autorização e regras de negócio.
-
-## Pré-requisitos
-
-Para execução sem Docker:
-
-- Python 3.11 ou superior
-- pip ou uv
-- Ambiente virtual recomendado
-
-Para execução em container:
-
-- Docker Desktop ou Docker Engine
-- Docker Compose v2
-
-## Banco de dados: PostgreSQL/Aurora
-
-O único banco suportado é **PostgreSQL**, incluindo Amazon Aurora PostgreSQL. A API não cria schema no startup, não usa SQLite e não possui fallback local. O schema é criado e alterado exclusivamente pelo Alembic.
-
-A conexão deve ser informada preferencialmente por `DATABASE_URL` ou `POSTGRES_URL` para PostgreSQL/Neon, ou por `RDS_AURORA_POSTGRES_URL` para Aurora. Como alternativa, use o conjunto `RDS_AURORA_POSTGRES_HOST`, `RDS_AURORA_POSTGRES_USERNAME` e `RDS_AURORA_POSTGRES_PASSWORD`. Em produção, use TLS obrigatório.
-
-```dotenv
-RDS_AURORA_POSTGRES_URL=postgresql+asyncpg://usuario:senha@host:5432/sigac
-DB_MIN_SIZE=1
-DB_MAX_SIZE=10
-DB_COMMAND_TIMEOUT=30
-```
-
-Não versionar `.env`, credenciais, tokens ou dados reais. A conexão real só será validada quando o Aurora estiver configurado no ambiente.
-
-## Configuração de ambiente
-
-Copie o arquivo de exemplo:
+## Instalação rápida
 
 ```bash
-cd back-end
+# Criar ambiente virtual
+python -m venv .venv
+
+# Ativar (Windows)
+.venv\Scripts\activate
+
+# Ativar (Linux/macOS)
+source .venv/bin/activate
+
+# Instalar dependências
+pip install -r requirements.txt
+```
+
+---
+
+## Configuração
+
+Copie o arquivo de exemplo e ajuste para seu ambiente:
+
+```bash
 cp .env.example .env
 ```
 
-Configuração mínima recomendada para desenvolvimento conectado ao Aurora/PostgreSQL:
+O arquivo [`.env.example`](.env.example) está completamente documentado com todas as variáveis, aliases aceitos e avisos de segurança para produção.
+
+### Formato de DATABASE_URL (3 cenários)
+
+O `app/core/config.py` aceita 3 formatos para `DATABASE_URL` / `RDS_AURORA_POSTGRES_URL`:
+
+| # | Formato | Exemplo | Quando usar |
+|---|---------|---------|-------------|
+| 1 | URL completa | `postgresql://user:pass@host:5432/db` | Ambiente que já fornece URL pronta |
+| 2 | Só host (sem `://`) | `sigac-dsv.petrobras.com.br` | Proxy/DNS corporativo acessível via VPN |
+| 3 | Vazio | `""` | Monta a partir de `RDS_AURORA_POSTGRES_HOST` + credenciais |
+
+Quando host, usuário, senha e banco separados estiverem todos preenchidos, eles
+têm prioridade sobre as URLs PostgreSQL e endpoints legados, inclusive os vindos
+de `.env`. Uma URL explícita de SQLite continua selecionando o modo local.
+Para usar uma URL PostgreSQL pronta ou um proxy diferente, não configure o conjunto
+completo de variáveis separadas ao mesmo tempo.
+
+Na AWS, basta injetar como variáveis de ambiente as chaves
+`rds_aurora_postgres_host`, `rds_aurora_postgres_username`,
+`rds_aurora_postgres_password` e `rds_aurora_postgres_dbname`, além de `db_schema`.
+Maiúsculas e minúsculas são aceitas. Host deve conter somente o hostname e banco
+somente o nome do banco; a porta usada nesse formato é 5432.
+Para outra porta, defina `RDS_AURORA_POSTGRES_PORT` (aliases: `POSTGRES_PORT`,
+`PGPORT`). No formato host-only, `host:porta/banco` preserva a porta e o banco
+informados; valores ausentes usam a porta configurada e o banco separado.
+O deploy precisa mapear as chaves do Secrets Manager/Parameter Store para o
+ambiente do container: a aplicação não busca esses serviços diretamente.
+Recrie as tarefas/pods após atualizar os secrets.
+
+Os aliases de banco `RDS_AURORA_POSTGRES_DATABASE` e `RDS_AURORA_POSTGRES_DB`
+têm prioridade sobre `RDS_AURORA_POSTGRES_DBNAME`; evite defini-los simultaneamente.
+Quando uma URL é ignorada em favor do conjunto completo, o log registra
+`database_configuration source=separate_variables url_override_ignored=true`,
+sem imprimir credenciais ou a URL.
+
+O runtime usa `create_async_engine` e `asyncpg`, declarado nas dependências
+instaladas pelo Dockerfile. URLs `postgres://`, `postgresql://` e
+`postgresql+psycopg://` são adaptadas para `postgresql+asyncpg://` ao criar o
+engine; não é necessário instalar ou trocar para psycopg.
+
+`DB_SCHEMA` define `search_path` pelo parâmetro `server_settings` do asyncpg.
+Os parâmetros legados `options`, `sslmode` e `channel_binding` da URL são
+removidos: TLS é controlado por `DB_SSL_VERIFY` e `DB_SSL_CA_FILE`, não por
+essas opções nem pelas variáveis `CA_*` do CAV4. TLS permanece ativo quando
+`DB_SSL_VERIFY=false`; apenas a validação do certificado é desligada.
+Para validar certificados, use `DB_SSL_VERIFY=true` e a CA apropriada.
+
+`DB_COMMAND_TIMEOUT` deve ser positivo e limita, em segundos, a espera pelo
+pool, a abertura da conexão, as consultas e o probe de diagnóstico.
+`/api/health/database/config` executa `SELECT 1` e retorna `database=connected`
+ou HTTP 503 com `database=unavailable` e `error_id`. Esse probe não comprova
+acesso às tabelas nem permissões de escrita usadas pelo login.
+
+### SQLite local (apenas desenvolvimento)
 
 ```dotenv
-RDS_AURORA_POSTGRES_URL=postgresql+asyncpg://usuario:senha@localhost:5432/sigac
-DB_MIN_SIZE=1
-DB_MAX_SIZE=10
-DB_COMMAND_TIMEOUT=30
-ENVIRONMENT=development
-COOKIE_SECURE=false
-CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
-PORT=8080
+DATABASE_URL=sqlite:///./local.db
+# equivalente: RDS_AURORA_POSTGRES_URL=sqlite+aiosqlite:///./local.db
 ```
 
-Não versionar `.env`, credenciais, tokens ou bancos com dados reais.
+O `app/core/config.py` troca o engine pelo prefixo da URL e normaliza `sqlite:///` para o driver assíncrono `aiosqlite`. Nesse modo `DB_SCHEMA` é ignorado.
 
-## Execução local sem Docker
+> ⚠️ **Limite atual:** a conexão e os testes funcionam em SQLite, mas a API completa ainda não roda nele, porque parte das consultas (`auth`, `platform` e o callback CAV4) usa SQL específico de PostgreSQL e a migration `0001` usa tipos PostgreSQL.
+>
+> **Nunca use SQLite em homologação ou produção.**
 
-Crie o ambiente do backend com `uv` (recomendado; evita o travamento do `ensurepip` observado no Windows/Python 3.14):
+---
+
+## Execução
 
 ```bash
-cd back-end
-uv sync --dev
-uv run uvicorn app.app:app --reload --port 8080
+# Aplicar migrations
+alembic upgrade head
+
+# Iniciar servidor de desenvolvimento
+uvicorn app.main:app --reload --port 8080
 ```
 
-No Windows, use Python 3.11–3.13 para este projeto. Se precisar usar `venv`, abra o PowerShell como usuário normal e execute:
+### Primeira carga de um banco novo (seed)
 
-```powershell
-py -3.12 -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-```
-
-Se o `venv` continuar travando em `ensurepip`, instale/repare o Python pelo instalador oficial com **pip** e **Tcl/Tk** habilitados ou use `uv sync --dev`, que não depende do `ensurepip`.
-
-Execute as migrations e inicie a API:
-
-```bash
-uv run alembic upgrade head
-uv run uvicorn app.app:app --reload --host 0.0.0.0 --port 8080
-```
-
-Endpoints úteis:
-
-- Health check: http://localhost:8080/health
-- OpenAPI: http://localhost:8080/docs, quando habilitado
-- ReDoc: http://localhost:8080/redoc, quando habilitado
-
-## Execução com Docker Compose
-
-O back-end possui Compose independente. Para iniciar a API apontando para o PostgreSQL/Aurora configurado no ambiente:
-
-```bash
-cd back-end
-docker compose up --build
-```
-
-Para executar em segundo plano:
-
-```bash
-docker compose up --build -d
-```
-
-Para consultar logs:
-
-```bash
-docker compose logs -f back-end
-```
-
-Para parar a aplicação:
-
-```bash
-docker compose down
-```
-
-A imagem não deve conter dados de banco pré-populados nem segredos. O container deve receber a configuração PostgreSQL/Aurora por variáveis de ambiente.
-
-## Migrations com Alembic
-
-As alterações estruturais do banco devem ser feitas por migrations versionadas:
+Quando o banco é novo ou foi recriado, o `alembic upgrade head` cria as tabelas, mas as de catálogo ficam vazias (a migration `0001` não carrega dados). O `app/db/seed.py` faz essa primeira carga com os dados que **não são do domínio do projeto** e que existem no DSV: perfis, módulos, permissões, menus, cards do dashboard, status, áreas e relatórios.
 
 ```bash
 alembic upgrade head
+
+python -m app.db.seed                    # DSV: referência + usuários de teste
+python -m app.db.seed --sample-projects  # DSV: inclui 4 projetos fictícios
+python -m app.db.seed --confirm          # staging e produção: somente referência
 ```
 
-Comandos úteis:
+| `ENVIRONMENT` | O que carrega | Exige |
+|---------------|---------------|-------|
+| `development`, `test` | Referência e os usuários de teste; projetos fictícios com `--sample-projects` | — |
+| `staging`, `production` | **Somente** referência (sem usuários e sem projetos) | `--confirm` |
+| qualquer outro | Nada: o comando recusa | — |
+
+- Só insere o que falta: nunca altera nem apaga um registro existente, então pode ser repetido sem risco.
+- Em um banco que já tem os dados (como o DSV atual) ele não insere nada.
+- Os dados são uma cópia do DSV de uma data; se os catálogos mudarem lá, atualize o arquivo.
+
+### Endpoints principais
+
+| Rota | Descrição |
+|------|-----------|
+| `/health`, `/health/live` | Disponibilidade da API (não consulta o banco) |
+| `/health/ready`, `/health/database` | Disponibilidade com consulta ao banco e à revisão do Alembic |
+| `/api/health*` | Mesmas rotas de health sob `/api` (usadas pelo deploy) |
+| `/docs`, `/redoc` | OpenAPI/Swagger e ReDoc (quando `EXPOSE_API_DOCS=true`) |
+| `/api/auth/session`, `/api/auth/logout` | Sessão atual e logout |
+| `/api/auth/cav4/start`, `/callback`, `/session`, `/logout` | Login corporativo CAV4 (OIDC) |
+| `/api/projects`, `/api/projects/{id}` | CRUD de projetos |
+| `/api/projects/areas`, `/{id}/members` | Áreas responsáveis e membros |
+| `/api/folders?projectId=` | Pastas/arquivos por projeto (leitura) |
+| `/api/reports`, `/api/reports/export`, `/api/report-fields` | Relatórios, exportação e campos configuráveis |
+| `/api/audit/events`, `/api/audit/logs` | Registro e consulta de auditoria |
+| `/api/activity-logs` | Logs de atividade (visão da plataforma) |
+| `/api/platform/context` | Contexto da plataforma (menus, permissões) |
+| `/api/catalogos` | Catálogos de dados |
+| `/api/configurations/{resource}` | Manutenção das tabelas de configuração |
+| `/api/dashboard/summary` | Indicadores do dashboard |
+| `/api/users` | Lista de usuários |
+| `/api/access-map`, `/api/access-map/export` | Mapa de acesso e exportação |
+
+> O login por e-mail (`EMAIL_LOGIN_ENABLED`) está previsto na configuração e no schema `EmailLoginRequest`, mas o backend ainda não expõe a rota `POST /api/auth/login`.
+
+---
+
+## Testes e validação
 
 ```bash
-alembic current
-alembic history
+# Todos os testes (os de integração são pulados sem banco acessível)
+pytest -q
+
+# Verificar sincronia modelos ↔ migrations (exige banco acessível)
+alembic check
+
+# Lint
+ruff check app alembic scripts tests
+
+# Compilar (sintaxe)
+python -m compileall app
+```
+
+### Antes de publicar (PR)
+
+- [ ] `pytest -q` passa
+- [ ] `alembic check` passa (sem drift)
+- [ ] `ruff check` passa
+- [ ] Novas variáveis adicionadas ao `.env.example`
+- [ ] Nenhum segredo/credencial commitado
+
+---
+
+## Migrations com Alembic
+
+O Alembic é a **única** fonte de criação e alteração do schema. A API nunca cria tabelas no startup e `Base.metadata.create_all()` não deve ser usado.
+
+### Regras
+
+- Revisão já aplicada em qualquer ambiente **nunca é editada**: a mudança vira uma nova revisão.
+- Uma revisão por mudança lógica, com mensagem descritiva (`-m "add sessions table"`).
+- Sempre revise o script gerado pelo `--autogenerate`: renomeações aparecem como `drop` + `create`, e índices, constraints e `server_default` podem faltar.
+- Toda revisão implementa `upgrade()` e `downgrade()`.
+- A cadeia é linear, com um único `head` (o teste `tests/test_migrations.py` valida isso).
+- Novas revisões são nomeadas `AAAAMMDD_<id>_<descricao>.py` (`file_template` do `alembic.ini`). A baseline `0001_production_baseline` mantém o nome original.
+
+### Fluxo de uma nova migration
+
+```bash
+# 1. Altere o model e registre-o em app/db/models.py
+# 2. Gere a revisão contra um banco de desenvolvimento descartável
+alembic revision --autogenerate -m "descricao da mudanca"
+# 3. Revise e ajuste o arquivo gerado em alembic/versions/
+# 4. Teste o ciclo completo
+alembic upgrade head
 alembic downgrade -1
+alembic upgrade head
+# 5. Confirme que não há diferença entre models e migrations
+alembic check
+# 6. Commite a revisão junto com a mudança do model
 ```
 
-Não altere tabelas manualmente em ambientes compartilhados sem criar a migration correspondente. O comando `alembic check` deve ser executado antes da publicação para detectar divergências entre o metadata ORM e as migrations.
+Para ler o SQL sem executar: `alembic upgrade <de>:<para> --sql`.
 
-## API e integração com o aplicação web
+### Comandos úteis
 
-O aplicação web deve apontar para:
-
-```dotenv
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+```bash
+alembic current     # revisão aplicada no banco
+alembic heads       # head do código (deve haver apenas um)
+alembic history     # histórico de revisões
 ```
 
-A API deve permitir a origem do aplicação web em `CORS_ORIGINS`. Em ambiente publicado, substitua as origens locais por URLs explícitas e confiáveis; não use `*` quando houver autenticação ou cookies de sessão.
+---
 
-## Publicação no JFrog Artifactory
+## Docker
 
-A imagem do back-end é publicada separadamente da imagem do aplicação web. Configure no `.env`:
+```bash
+# Build e execução
+docker compose up --build
+
+# Segundo plano
+docker compose up --build -d
+
+# Logs
+docker compose logs -f back-end
+
+# Parar
+docker compose down
+```
+
+### Publicação no JFrog Artifactory
+
+Configure no `.env`:
 
 ```dotenv
 JFROG_REGISTRY=jfrog.petrobras.dev.br
@@ -244,114 +291,36 @@ JFROG_USER=seu-usuario
 JFROG_TOKEN=seu-token
 ```
 
-O endereço `jfrog.petrobras.dev.br/artifactory/api/pypi/.../simple` é um repositório PyPI e não deve ser utilizado como endpoint ou nome de imagem Docker.
-
 ```bash
-printf '%s' "$JFROG_TOKEN" | docker login "$JFROG_REGISTRY" \
-  --username "$JFROG_USER" --password-stdin
-
+docker login "$JFROG_REGISTRY" --username "$JFROG_USER" --password-stdin <<< "$JFROG_TOKEN"
 docker compose build
 docker compose push
-docker compose pull
-docker compose up -d
 ```
 
-O nome esperado da imagem é:
+---
 
-```text
-<JFROG_REGISTRY>/<JFROG_DOCKER_REPOSITORY>/armazenamento-cientifico-back-end:<IMAGE_TAG>
+## Integração com o Frontend
+
+O frontend (Next.js em `../frontend/`) fala com o backend assim:
+
+| Ambiente | Como a URL do backend é resolvida |
+|----------|-----------------------------------|
+| Desenvolvimento | O Next reescreve `/api/*` para `BACKEND_INTERNAL_URL` (padrão `http://localhost:8080`); `NEXT_PUBLIC_API_BASE_URL` não é necessária |
+| Produção | `NEXT_PUBLIC_API_BASE_URL` é obrigatória no navegador; `BACKEND_INTERNAL_URL` é usada pelo servidor do Next para validar a sessão |
+
+```dotenv
+NEXT_PUBLIC_API_BASE_URL=https://<dominio-do-sigac>
+BACKEND_INTERNAL_URL=http://localhost:8080
 ```
 
-Use tags imutáveis em ambientes corporativos, preferencialmente relacionadas ao commit ou à versão liberada.
+A API deve permitir a origem do frontend em `CORS_ORIGINS`. Em produção, use URLs explícitas — **nunca** use `*` com autenticação ou cookies de sessão.
 
-## Testes e validações
+---
 
-Com o ambiente virtual ativo:
+## Documentação adicional
 
-```bash
-pytest -q
-python -m compileall app
-```
-
-Antes da publicação, confirme também:
-
-```bash
-alembic upgrade head
-curl http://localhost:8080/health
-```
-
-## Arquitetura
-
-O back-end utiliza uma arquitetura modular por domínio, com separação em camadas: controllers/rotas HTTP, services para regras de negócio e repositories para persistência. A API legada foi removida; novos recursos devem seguir esse fluxo.
-
-### Camadas e padrões
-
-- **API/Controllers:** HTTP, validação de entrada, dependências e serialização.
-- **Application Services:** casos de uso e orquestração das transações.
-- **Repositories:** persistência encapsulada atrás de interfaces estáveis.
-- **Domain modules:** regras específicas de projetos, arquivos, auditoria e identidade.
-- **Adapters:** PostgreSQL/Aurora, CAV4 (somente autenticação) e integrações externas.
-- **Core:** configuração, segurança, autorização, logging e exceções.
-- **Alembic:** única fonte versionada para evolução estrutural do banco.
-
-O fluxo recomendado é:
-
-```text
-Route/Controller -> Application Service -> Repository -> SQLAlchemy -> Database
-                                   -> Port -> External Adapter
-```
-
-### Regras de evolução
-
-1. Rotas não acessam o banco diretamente.
-2. Regras de negócio não ficam em controllers.
-3. Integrações externas são acessadas por ports/adapters.
-4. Toda alteração de banco exige migration Alembic.
-5. PostgreSQL/Aurora é o único banco suportado.
-6. Logs de conexão, Alembic e CAV4 nunca exibem segredos, tokens, cookies ou dados sensíveis.
-
-> Estado atual: a conexão real e `alembic check` dependem de um Aurora PostgreSQL configurado no ambiente; sem essa configuração, a aplicação falha explicitamente em vez de usar armazenamento local.
-
-## Estrutura de diretórios
-
-- `app/`: aplicação FastAPI, módulos, controllers, services, repositories, schemas e autenticação.
-- `alembic/`: migrations versionadas, única fonte estrutural do banco.
-- `database/`: schemas SQL e referências de dados.
-- `scripts/`: scripts auxiliares de desenvolvimento e migração.
-- `tests/`: testes automatizados.
-- `Dockerfile`: imagem independente da API.
-- `docker-compose.yml`: execução local e publicação da imagem.
-- `.env.example`: referência das variáveis necessárias.
-
-## Segurança
-
-- Nunca versione `.env`, tokens, senhas ou dados reais do banco.
-- O único banco suportado pela aplicação é PostgreSQL/Aurora PostgreSQL.
-- Configure `COOKIE_SECURE=true` quando a aplicação estiver atrás de HTTPS.
-- Restrinja `CORS_ORIGINS` às origens conhecidas.
-- Desabilite a documentação OpenAPI pública em produção quando a política do ambiente exigir.
-- Faça validação de entrada, autorização por usuário e controle de acesso no servidor.
-- Execute o container com usuário não-root.
-- Use imagens base atualizadas e faça varredura de vulnerabilidades antes da publicação.
-
-## Operação PostgreSQL/Aurora
-
-A sequência de publicação é:
-
-1. configurar as variáveis PostgreSQL/Aurora no ambiente;
-2. executar `alembic upgrade head`;
-3. validar `alembic check` e `python -m compileall app`;
-4. iniciar a API e verificar `/health` e `/health/ready`;
-5. confirmar nos logs apenas o host, banco, versão Alembic e resultado de `SELECT 1`, sem segredos.
-
-Não há migração automática de SQLite. Dados existentes devem ser exportados e tratados por um procedimento controlado fora do startup da aplicação.
-
-## Separação para repositório próprio
-
-Para criar o repositório corporativo do back-end, copie o conteúdo desta pasta como raiz do novo repositório. Mantenha juntos `app`, `alembic`, `database`, `scripts`, `tests`, `requirements.txt`, `Dockerfile`, `docker-compose.yml`, `.dockerignore`, `.gitignore`, `.env.example` e os arquivos de configuração necessários.
-
-O back-end não deve depender de arquivos fora desta pasta para instalar dependências, executar migrations, gerar a imagem ou iniciar a API.
-
-## Uso corporativo
-
-Este projeto é destinado ao uso corporativo da Petrobras. A publicação do código, das imagens e das configurações deve seguir os processos internos de segurança, revisão, gestão de acessos, JFrog Artifactory e aprovação de mudanças.
+| Documento | Conteúdo |
+|-----------|----------|
+| [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) | Arquitetura completa: camadas, diretórios, fluxos, regras, checklist de PR |
+| [`.env.example`](.env.example) | Todas as variáveis de ambiente documentadas |
+| [`alembic/versions/`](alembic/versions/) | Histórico completo de migrations |

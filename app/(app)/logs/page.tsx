@@ -258,13 +258,38 @@ export default function LogsPage() {
               } catch { /* ignore malformed audit metadata */ }
               if (!parsed) return null
               const message = typeof parsed.message === "string" ? parsed.message : null
-              const entries = Object.entries(parsed).filter(([key]) => key !== "message")
-              return <section className="grid gap-4 border-t pt-5" aria-label="Detalhes da autorização">
-                <div><h3 className="font-semibold">Detalhes da autorização</h3><p className="mt-1 text-xs text-muted-foreground">Informações complementares registradas pelo CAV4.</p></div>
-                {message && <div className="rounded-xl border border-primary/20 bg-primary/[0.05] px-4 py-3"><p className="leading-6">{message}</p></div>}
-                {entries.length > 0 && <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">{entries.map(([key, value]) => <div key={key} className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{key}</dt><dd className="mt-1 break-all font-mono text-xs leading-5">{Array.isArray(value) ? value.join(", ") : String(value ?? "—")}</dd></div>)}</dl>}
-              </section>
-            })()}
+                          const profileChanged = parsed.profile_changed === true
+                          const fieldLabels: Record<string, string> = {
+                            user_login: "Login funcional",
+                            email: "E-mail",
+                            registered_profile: "Perfil anterior",
+                            selected_profile: "Perfil atribuído",
+                            profile_changed: "Houve troca de perfil",
+                            roles_received: "Papéis CAV4 recebidos",
+                            provider: "Provedor",
+                          }
+                          const entries = Object.entries(parsed).filter(([key]) => key !== "message")
+                          return <section className="grid gap-4 border-t pt-5" aria-label="Detalhes da autorização">
+                            <div>
+                              <h3 className="font-semibold">Detalhes da autorização</h3>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {profileChanged
+                                  ? "O perfil do usuário foi alterado pelo CAV4. O perfil anterior foi substituído pelo de maior grandeza."
+                                  : "Informações complementares registradas pelo CAV4."}
+                              </p>
+                            </div>
+                            {message && <div className="rounded-xl border border-primary/20 bg-primary/[0.05] px-4 py-3"><p className="leading-6">{message}</p></div>}
+                            {entries.length > 0 && <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">{entries.map(([key, value]) => {
+                              const displayValue = key === "profile_changed"
+                                ? (value ? "Sim" : "Não")
+                                : Array.isArray(value) ? value.join(", ") : String(value ?? "—")
+                              return <div key={key} className="min-w-0">
+                                <dt className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{fieldLabels[key] ?? key}</dt>
+                                <dd className={`mt-1 break-all font-mono text-xs leading-5${key === "selected_profile" && profileChanged ? " font-semibold text-primary" : ""}`}>{displayValue}</dd>
+                              </div>
+                            })}</dl>}
+                          </section>
+                        })()}
           </div>
         </>}
       </DialogContent>

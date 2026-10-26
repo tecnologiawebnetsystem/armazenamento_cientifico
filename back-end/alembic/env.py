@@ -16,7 +16,9 @@ def _async_database_url(url: str) -> str:
         # SQLite não usa querystring de sslmode/channel_binding; evita que
         # urlsplit/urlunsplit colapse a barra tripla do caminho do arquivo.
         return url
-    if url.startswith("postgresql://"):
+    if url.startswith("postgresql+psycopg://"):
+        url = url.replace("postgresql+psycopg://", "postgresql+asyncpg://", 1)
+    elif url.startswith("postgresql://"):
         url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
     elif url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql+asyncpg://", 1)
@@ -24,7 +26,7 @@ def _async_database_url(url: str) -> str:
     query = [
         (key, value)
         for key, value in parse_qsl(parts.query)
-        if key not in {"sslmode", "channel_binding"}
+        if key not in {"sslmode", "channel_binding", "options"}
     ]
     return urlunsplit(
         (parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment)

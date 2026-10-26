@@ -1,0 +1,1 @@
+"""Catálogos do sistema (módulos, menus, permissões, áreas, status, relatórios)."""

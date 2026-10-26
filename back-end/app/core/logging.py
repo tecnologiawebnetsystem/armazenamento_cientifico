@@ -53,8 +53,10 @@ def configure_logging(level: str = "INFO") -> None:
     root.setLevel(level.upper())
 
 
-def set_request_context(user_id: str = "-") -> Token[str]:
-    return user_id_var.set(user_id)
+# TODO(verificar com a equipe de devs): `set_request_context` e `reset_request_context` não têm
+# referências no repositório (varredura de 2026-10-14); comentadas em vez de excluídas.
+# def set_request_context(user_id: str = "-") -> Token[str]:
+#     return user_id_var.set(user_id)
 
 
 def set_request_id(request_id: str) -> Token[str]:
@@ -65,5 +67,5 @@ def reset_request_id(token: Token[str]) -> None:
     request_id_var.reset(token)
 
 
-def reset_request_context(token: Token[str]) -> None:
-    user_id_var.reset(token)
+# def reset_request_context(token: Token[str]) -> None:
+#     user_id_var.reset(token)

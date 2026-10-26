@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.files.models import Folder
+from app.modules.folders.models import Folder
 
 
 class FolderRepository:
@@ -31,12 +31,14 @@ class FolderRepository:
         from app.modules.projects.repository import ProjectRepository
         return await ProjectRepository(self.session).can_view(project_id, user_id, role)
 
-    async def find_by_path(self, project_id: str, path: str) -> Folder | None:
-        return await self.session.scalar(
-            select(Folder).where(
-                Folder.project_id == project_id, Folder.name == path
-            )
-        )
+    # TODO(verificar com a equipe de devs): sem referências no repositório (varredura de 2026-10-14);
+    # comentado em vez de excluído.
+    # async def find_by_path(self, project_id: str, path: str) -> Folder | None:
+    #     return await self.session.scalar(
+    #         select(Folder).where(
+    #             Folder.project_id == project_id, Folder.name == path
+    #         )
+    #     )
 
     async def list_by_parent(self, parent_id: str) -> list[Folder]:
         result = await self.session.scalars(

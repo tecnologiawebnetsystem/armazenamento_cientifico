@@ -1,13 +1,15 @@
+import logging
 import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated
-from urllib.parse import quote
 
 from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+from sqlalchemy.engine import URL, make_url
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -16,6 +18,7 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,
+        hide_input_in_errors=True,
     )
 
     app_name: str = "SIGAC — Sistema de Gestão de Acesso ao Armazenamento Científico API"
@@ -29,6 +32,10 @@ class Settings(BaseSettings):
         ),
     )
     aurora_host: str = Field(default="", validation_alias=AliasChoices("RDS_AURORA_POSTGRES_HOST", "POSTGRES_HOST", "PGHOST"))
+    aurora_port: int = Field(
+        default=5432, ge=1, le=65535,
+        validation_alias=AliasChoices("RDS_AURORA_POSTGRES_PORT", "POSTGRES_PORT", "PGPORT"),
+    )
     aurora_user: str = Field(default="", validation_alias=AliasChoices("RDS_AURORA_POSTGRES_USERNAME", "RDS_AURORA_POSTGRES_USER", "POSTGRES_USER", "PGUSER"))
     aurora_password: str = Field(default="", validation_alias=AliasChoices("RDS_AURORA_POSTGRES_PASSWORD", "POSTGRES_PASSWORD", "PGPASSWORD"))
     aurora_database: str = Field(default="", validation_alias=AliasChoices("RDS_AURORA_POSTGRES_DATABASE", "RDS_AURORA_POSTGRES_DB", "RDS_AURORA_POSTGRES_DBNAME", "POSTGRES_DATABASE", "PGDATABASE"))
@@ -51,10 +58,10 @@ class Settings(BaseSettings):
     )
     db_min_size: int = 1
     db_max_size: int = 10
-    db_command_timeout: int = 30
+    db_command_timeout: int = Field(default=30, gt=0)
     db_ssl_verify: bool = True
     db_ssl_ca_file: str = ""
-    db_schema: str = ""
+    db_schema: str = "a25034"
     api_prefix: str = "/api"
     log_level: str = "INFO"
     environment: str = "development"
@@ -82,13 +89,6 @@ class Settings(BaseSettings):
     cav4_logout_url: str = ""
     cav4_issuer: str = Field(default="", validation_alias=AliasChoices("CA_ISSUER", "CAV4_ISSUER"))
     cav4_jwks_url: str = ""
-    entra_enabled: bool | None = None
-    entra_tenant_id: str = ""
-    entra_client_id: str = ""
-    entra_client_secret: str = ""
-    entra_required_group_id: str = ""
-    entra_app_name: str = "SIGAC"
-    entra_timeout_seconds: float = 15.0
 
     @property
     def is_sqlite(self) -> bool:
@@ -103,13 +103,6 @@ class Settings(BaseSettings):
             data["cors_origins"] = ["http://localhost:3000"]
         elif isinstance(data["cors_origins"], str):
             data["cors_origins"] = [x.strip() for x in data["cors_origins"].split(",") if x.strip()]
-        if not data.get("database_url"):
-            host = data.get("RDS_AURORA_POSTGRES_HOST") or data.get("POSTGRES_HOST") or data.get("PGHOST")
-            user = data.get("RDS_AURORA_POSTGRES_USERNAME") or data.get("RDS_AURORA_POSTGRES_USER") or data.get("POSTGRES_USER") or data.get("PGUSER")
-            password = data.get("RDS_AURORA_POSTGRES_PASSWORD") or data.get("POSTGRES_PASSWORD") or data.get("PGPASSWORD")
-            database = data.get("RDS_AURORA_POSTGRES_DATABASE") or data.get("RDS_AURORA_POSTGRES_DB") or data.get("RDS_AURORA_POSTGRES_DBNAME") or data.get("POSTGRES_DATABASE") or data.get("PGDATABASE")
-            if host and user and password and database:
-                data["database_url"] = f"postgresql://{quote(user, safe='')}:{quote(password, safe='')}@{host}:5432/{quote(database, safe='')}"
         data.setdefault("cookie_secure", env == "production")
         data.setdefault("email_login_enabled", env != "production")
         data.setdefault("expose_api_docs", env != "production")
@@ -119,47 +112,76 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_settings(self) -> "Settings":
-        if self.database_url and "://" not in self.database_url:
-            # DATABASE_URL sem esquema: pode ser "host", "host:port" ou
-            # "host:port/dbname" (comum em providers como Railway, Render).
-            # Extrai apenas o hostname para evitar duplicação de porta e banco
-            # ao montar a URL completa com as credenciais.
-            host_only = self.database_url
-            if ":" in self.database_url:
-                # Ex: "a25034d:5432/a25034d" -> host = "a25034d"
-                # Ex: "a25034d:5432"        -> host = "a25034d"
-                host_only = self.database_url.split(":")[0]
-            if self.aurora_user and self.aurora_password and self.aurora_database:
-                self.database_url = (
-                    f"postgresql://{quote(self.aurora_user, safe='')}:{quote(self.aurora_password, safe='')}"
-                    f"@{host_only}:5432/{quote(self.aurora_database, safe='')}"
+        sqlite_schemes = ("sqlite://", "sqlite+aiosqlite://")
+        # Resolve aliases first, then give the complete separate configuration priority.
+        if (
+            not self.database_url.startswith(sqlite_schemes)
+            and self.aurora_host
+            and self.aurora_user
+            and self.aurora_password
+            and self.aurora_database
+        ):
+            if self.database_url:
+                logger.warning(
+                    "database_configuration source=separate_variables url_override_ignored=true"
                 )
-            else:
-                raise ValueError("DATABASE_URL sem esquema requer usuário, senha e banco RDS_AURORA_POSTGRES_*.")
+            self.database_url = URL.create(
+                "postgresql",
+                username=self.aurora_user,
+                password=self.aurora_password,
+                host=self.aurora_host,
+                port=self.aurora_port,
+                database=self.aurora_database,
+            ).render_as_string(hide_password=False)
+        if self.database_url and "://" not in self.database_url:
+            endpoint = make_url(f"postgresql://{self.database_url}")
+            if not endpoint.host or endpoint.username is not None or endpoint.query:
+                raise ValueError("DATABASE_URL sem esquema deve conter somente host, porta e banco opcionais.")
+            required = {
+                "RDS_AURORA_POSTGRES_USERNAME": self.aurora_user,
+                "RDS_AURORA_POSTGRES_PASSWORD": self.aurora_password,
+                "RDS_AURORA_POSTGRES_DBNAME": endpoint.database or self.aurora_database,
+            }
+            missing = [name for name, value in required.items() if not value]
+            if missing:
+                raise ValueError(f"DATABASE_URL sem esquema requer: {', '.join(missing)}.")
+            self.database_url = URL.create(
+                "postgresql",
+                username=self.aurora_user,
+                password=self.aurora_password,
+                host=endpoint.host,
+                port=endpoint.port or self.aurora_port,
+                database=endpoint.database or self.aurora_database,
+            ).render_as_string(hide_password=False)
         elif self.database_url and "://" in self.database_url:
             # URL com esquema mas sem credenciais (ex.: postgres://host:port/db
             # fornecido como endpoint). Injeta as credenciais das variáveis
             # separadas apenas para URLs PostgreSQL; SQLite é ignorado.
             _pg_schemes = ("postgresql://", "postgres://", "postgresql+asyncpg://", "postgresql+psycopg://")
             if self.database_url.startswith(_pg_schemes):
-                from urllib.parse import urlsplit as _urlsplit
-                parts = _urlsplit(self.database_url)
+                parts = make_url(self.database_url)
                 if parts.username is None and self.aurora_user and self.aurora_password:
-                    rebuilt = (
-                        f"{parts.scheme}://{quote(self.aurora_user, safe='')}:{quote(self.aurora_password, safe='')}"
-                        f"@{parts.hostname}:{parts.port or 5432}{parts.path}"
-                    )
-                    if parts.query:
-                        rebuilt = f"{rebuilt}?{parts.query}"
-                    self.database_url = rebuilt
-        if not self.database_url and self.aurora_host and self.aurora_user and self.aurora_password and self.aurora_database:
-            self.database_url = f"postgresql://{quote(self.aurora_user, safe='')}:{quote(self.aurora_password, safe='')}@{self.aurora_host}:5432/{quote(self.aurora_database, safe='')}"
+                    self.database_url = parts.set(
+                        username=self.aurora_user, password=self.aurora_password,
+                    ).render_as_string(hide_password=False)
         postgres_schemes = ("postgresql://", "postgres://", "postgresql+asyncpg://", "postgresql+psycopg://")
-        sqlite_schemes = ("sqlite://", "sqlite+aiosqlite://")
+        if self.database_url.startswith("sqlite://"):
+            # O engine é assíncrono: a forma curta sqlite:/// ganha o driver aiosqlite.
+            self.database_url = self.database_url.replace("sqlite://", "sqlite+aiosqlite://", 1)
         if self.database_url and not self.database_url.startswith((*postgres_schemes, *sqlite_schemes)):
             raise ValueError("DATABASE_URL/RDS_AURORA_POSTGRES_URL deve usar o esquema PostgreSQL/Aurora (padrão) ou SQLite (sqlite+aiosqlite://)")
         if not self.database_url and not self.temporary_cav4_session:
-            raise ValueError("Configuração PostgreSQL ausente. Defina RDS_AURORA_POSTGRES_URL ou as variáveis PG/RDS_AURORA_POSTGRES_*.")
+            required = {
+                "RDS_AURORA_POSTGRES_HOST": self.aurora_host,
+                "RDS_AURORA_POSTGRES_USERNAME": self.aurora_user,
+                "RDS_AURORA_POSTGRES_PASSWORD": self.aurora_password,
+                "RDS_AURORA_POSTGRES_DBNAME": self.aurora_database,
+            }
+            missing = [name for name, value in required.items() if not value]
+            raise ValueError(
+                "Configuração PostgreSQL ausente. Defina RDS_AURORA_POSTGRES_URL "
+                f"ou complete: {', '.join(missing)}."
+            )
         # PostgreSQL é o padrão do projeto; SQLite é uma alternativa opcional só para desenvolvimento local.
         self.database_engine = "sqlite" if self.database_url.startswith(sqlite_schemes) else "postgresql"
         if not self.is_sqlite and (not self.db_schema or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", self.db_schema)):

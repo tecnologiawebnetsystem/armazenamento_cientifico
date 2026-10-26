@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import CurrentUser, require_capabilities
+from app.api.dependencies import require_capabilities
 from app.db.session import get_session
 
 from .repository import ReportRepository

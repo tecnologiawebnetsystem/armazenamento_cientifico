@@ -1,3 +1,5 @@
+# TODO(verificar com a equipe de devs): schemas sem nenhuma referência no repositório (varredura de
+# 2026-10-14). Mantidos até a confirmação da equipe.
 from pydantic import BaseModel
 
 

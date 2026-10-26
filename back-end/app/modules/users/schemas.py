@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from pydantic import BaseModel, Field
 
 
@@ -21,12 +19,14 @@ class UserUpdate(BaseModel):
     perfil_id: str | None = Field(None, max_length=36)
 
 
-class UserOut(UserBase):
-    id: str
-    last_login_at: datetime | None
-    created_at: datetime
-
-    model_config = {"from_attributes": True}
+# TODO(verificar com a equipe de devs): `UserOut` e `ProfileOut` não têm referências no repositório
+# (varredura de 2026-10-14); comentadas em vez de excluídas. Se voltarem, importar `datetime` de datetime.
+# class UserOut(UserBase):
+#     id: str
+#     last_login_at: datetime | None
+#     created_at: datetime
+#
+#     model_config = {"from_attributes": True}
 
 
 class ProfileBase(BaseModel):
@@ -38,8 +38,8 @@ class ProfileCreate(ProfileBase):
     pass
 
 
-class ProfileOut(ProfileBase):
-    id: str
-    created_at: datetime
-
-    model_config = {"from_attributes": True}
+# class ProfileOut(ProfileBase):
+#     id: str
+#     created_at: datetime
+#
+#     model_config = {"from_attributes": True}

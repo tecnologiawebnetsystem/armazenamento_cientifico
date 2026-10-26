@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from .controller import router as audit_controller
+from .controller import router as controller_router
 
 router = APIRouter()
-router.include_router(audit_controller)
+router.include_router(controller_router)

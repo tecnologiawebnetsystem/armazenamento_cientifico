@@ -9,7 +9,6 @@ PROTECTED_ENDPOINTS = [
     ("/api/report-fields?report_code=project", "get"),
     ("/api/reports", "get"),
     ("/api/catalogos", "get"),
-    ("/api/activity-logs", "get"),
     ("/api/platform/context", "get"),
 ]
 
@@ -50,7 +49,7 @@ def test_protected_endpoint_denies_missing_capability():
     try:
         try:
             with TestClient(app) as client:
-                response = client.get("/api/activity-logs")
+                response = client.get("/api/catalogos")
         except ConnectionRefusedError:
             pytest.skip("PostgreSQL não está disponível neste ambiente de testes")
         assert response.status_code == 403

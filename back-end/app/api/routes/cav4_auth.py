@@ -1,72 +1,145 @@
-import json
 import logging
-import re
-from datetime import UTC, datetime, timedelta
-
+from collections.abc import AsyncIterator
 from secrets import compare_digest
-from urllib.parse import quote
+from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse, Response
-from app.core.entra import EntraPermissionError, configured as entra_configured, enrich_by_email, profile_photo
-from sqlalchemy import bindparam, text
 from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 
 from app.api.dependencies import get_current_user
-from app.core.authorization import canonical_role
 from app.core.config import settings
 from app.core.temporary_sessions import delete_session
 from app.db.session import get_session
 from app.infrastructure.cav4 import CAV4AuthenticationError, decode_state_nonce, get_cav4_provider
+from app.modules.auth.repository import AuthRepository
+from app.modules.auth.service import Cav4SessionService
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth/cav4", tags=["Authentication"])
 email_router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
+# Prefixos de rotas do frontend permitidos para redirecionamento pós-login.
+# Mapeia cada path permitido para a URL absoluta completa (com frontend_url).
+# Valores fora deste mapa redirecionam para /dashboard.
+_ALLOWED_REDIRECT_PREFIXES: tuple[str, ...] = (
+    "/dashboard",
+    "/projetos",
+    "/relatorios",
+    "/logs",
+    "/pesquisas",
+    "/configuracoes",
+    "/perfil",
+)
 
-def _schema_name() -> str:
-    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", settings.db_schema):
-        raise RuntimeError("DB_SCHEMA inválido ou ausente")
-    return f'"{settings.db_schema}"'
+# Separador usado para embutir o next_path no state OAuth (ex.: "nonce|/projetos").
+_NEXT_PATH_SEPARATOR = "|"
 
 
-@email_router.get("/health/database", tags=["Diagnostics"])
-async def database_health():
-    """Diagnóstico sanitizado da conexão e das tabelas essenciais."""
-    try:
-        async for database in get_session():
-            _schema_name()
-            result = await database.execute(
-                text(
-                    "select current_schema(), to_regclass(:users_table)"
-                ),
-                {"users_table": f"{settings.db_schema}.users"},
-            )
-            schema_name, users_table = result.one()
-            if users_table is None:
-                return {
-                    "ok": False,
-                    "code": "SCHEMA_NOT_INITIALIZED",
-                    "schema": schema_name,
-                    "users_table": False,
-                }
-            return {
-                "ok": True,
-                "schema": schema_name,
-                "users_table": True,
-            }
-    except SQLAlchemyError as exc:
-        error_id = uuid4().hex[:12]
-        original = exc.orig if isinstance(exc, DBAPIError) else exc
-        logger.exception(
-            "database_health_failed error_id=%s db_error_type=%s db_error=%s",
-            error_id,
-            type(original).__name__,
-            str(original).splitlines()[0][:240],
-        )
-        return {"ok": False, "code": "DATABASE_UNAVAILABLE", "error_id": error_id}
+def _pack_state_nonce(nonce: str, next_path: str) -> str:
+    """Empacota nonce + next_path para o state OAuth."""
+    return f"{nonce}{_NEXT_PATH_SEPARATOR}{next_path}"
+
+
+def _unpack_state_nonce(packed: str) -> tuple[str, str]:
+    """Extrai (nonce, next_path) do state. next_path vazio se ausente."""
+    nonce, sep, next_path = packed.partition(_NEXT_PATH_SEPARATOR)
+    return nonce, next_path if sep else "/dashboard"
+
+
+def _safe_redirect_path(raw: str) -> str:
+    """Retorna o path se estiver na whitelist; caso contrário, /dashboard."""
+    stripped = raw.strip()
+    if not stripped.startswith("/") or stripped.startswith(("//", "/\\")):
+        return "/dashboard"
+    for prefix in _ALLOWED_REDIRECT_PREFIXES:
+        if stripped == prefix or stripped.startswith((prefix + "/", prefix + "?")):
+            return stripped
+    return "/dashboard"
+
+
+def _resolve_redirect_url(raw: str) -> str:
+    """Retorna a URL absoluta de redirect se o path estiver na whitelist.
+
+    Usa um dicionário constante (mapeamento fechado) para que o Checkmarx
+    reconheça que o RedirectResponse só recebe valores pré-definidos.
+    Qualquer path fora da whitelist redireciona para /dashboard.
+    """
+    stripped = raw.strip()
+    if not stripped.startswith("/") or stripped.startswith(("//", "/\\")):
+        return _REDIRECT_URLS["/dashboard"]
+    for prefix in _ALLOWED_REDIRECT_PREFIXES:
+        if stripped == prefix or stripped.startswith((prefix + "/", prefix + "?")):
+            return _REDIRECT_URLS[prefix]
+    return _REDIRECT_URLS["/dashboard"]
+
+_REDIRECT_URLS: dict[str, str] = {}
+
+
+def _build_redirect_urls() -> None:
+    """Pré-constroi o mapa de redirect URLs (chamado no startup do módulo)."""
+    base = settings.frontend_url.rstrip("/")
+    for prefix in _ALLOWED_REDIRECT_PREFIXES:
+        _REDIRECT_URLS[prefix] = f"{base}{prefix}"
+    # Garante fallback para /dashboard mesmo que não esteja na tupla (defesa).
+    if "/dashboard" not in _REDIRECT_URLS:
+        _REDIRECT_URLS["/dashboard"] = f"{base}/dashboard"
+
+
+_build_redirect_urls()
+
+
+async def get_cav4_session_service() -> AsyncIterator[Cav4SessionService | None]:
+    """Serviço de sessão com banco; None na sessão temporária em memória, que não usa banco."""
+    if settings.temporary_cav4_session:
+        yield None
+        return
+    async for database in get_session():
+        yield Cav4SessionService(AuthRepository(database))
+
+
+SessionServiceDep = Annotated[Cav4SessionService | None, Depends(get_cav4_session_service)]
+
+
+# TODO(verificar com Kleber, dev responsável): rota sem chamador (nem frontend, nem infra) e que
+# duplica /api/health/database. Se não for necessária, apagar o bloco comentado; se for, descomentar.
+# @email_router.get("/health/database", tags=["Diagnostics"])
+# async def database_health():
+#     """Diagnóstico sanitizado da conexão e das tabelas essenciais."""
+#     try:
+#         async for database in get_session():
+#             _schema_name()
+#             result = await database.execute(
+#                 text(
+#                     "select current_schema(), to_regclass(:users_table)"
+#                 ),
+#                 {"users_table": f"{settings.db_schema}.users"},
+#             )
+#             schema_name, users_table = result.one()
+#             if users_table is None:
+#                 return {
+#                     "ok": False,
+#                     "code": "SCHEMA_NOT_INITIALIZED",
+#                     "schema": schema_name,
+#                     "users_table": False,
+#                 }
+#             return {
+#                 "ok": True,
+#                 "schema": schema_name,
+#                 "users_table": True,
+#             }
+#     except SQLAlchemyError as exc:
+#         error_id = uuid4().hex[:12]
+#         original = exc.orig if isinstance(exc, DBAPIError) else exc
+#         logger.exception(
+#             "database_health_failed error_id=%s db_error_type=%s db_error=%s",
+#             error_id,
+#             type(original).__name__,
+#             str(original).splitlines()[0][:240],
+#         )
+#         return {"ok": False, "code": "DATABASE_UNAVAILABLE", "error_id": error_id}
 
 
 @email_router.get("/session", include_in_schema=True)
@@ -101,33 +174,16 @@ async def cav4_session(request: Request):
     return {"user": dict(user)}
 
 
-@email_router.get("/profile/photo")
-@router.get("/profile/photo")
-async def profile_photo_route(request: Request):
-    """Entrega a foto do Graph somente para a sessão autenticada."""
-    user = await get_current_user(request)
-    entra_id = (user.get("profile_data") or {}).get("entra_id")
-    if not entra_id:
-        return Response(status_code=404)
-    content = await profile_photo(str(entra_id))
-    if not content:
-        return Response(status_code=404)
-    return Response(content=content, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=300"})
-
-
 @email_router.post("/logout", status_code=204)
 @router.post("/logout", status_code=204)
-async def cav4_logout(request: Request):
+async def cav4_logout(request: Request, service: SessionServiceDep):
     session_id = request.cookies.get(settings.cookie_name)
     if session_id:
-        if settings.temporary_cav4_session:
+        if service is None:
             delete_session(session_id)
         else:
-            schema = _schema_name()
-            async for database in get_session():
-                await database.execute(text(f"delete from {schema}.sessions where id=:session_id"), {"session_id": session_id})
-                await database.commit()
-        logger.info("cav4_logout session_revoked=true backend=%s", "memory" if settings.temporary_cav4_session else "database")
+            await service.end(session_id)
+        logger.info("cav4_logout session_revoked=true backend=%s", "memory" if service is None else "database")
     response = Response(status_code=204)
     response.delete_cookie(settings.cookie_name)
     return response
@@ -141,8 +197,8 @@ async def start_cav4_login(next: str = Query(default="/dashboard", max_length=51
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={"code": "CAV4_NOT_CONFIGURED", "message": "Login corporativo CAV4 ainda não configurado."},
         )
-    safe_next = next if next.startswith("/") and not next.startswith("//") else "/dashboard"
-    nonce = str(uuid4())
+    safe_next = _safe_redirect_path(next)
+    nonce = _pack_state_nonce(str(uuid4()), safe_next)
     try:
         url = await get_cav4_provider().build_login_url(
             state=nonce,
@@ -153,7 +209,7 @@ async def start_cav4_login(next: str = Query(default="/dashboard", max_length=51
     response = RedirectResponse(url=url, status_code=status.HTTP_302_FOUND)
     response.set_cookie(
         "cav4_oauth_state",
-        f"{nonce}|{safe_next}",
+        nonce,
         httponly=True,
         secure=settings.cookie_secure,
         samesite="lax",
@@ -163,7 +219,7 @@ async def start_cav4_login(next: str = Query(default="/dashboard", max_length=51
 
 
 @router.get("/callback")
-async def cav4_callback(request: Request, code: str, state: str):
+async def cav4_callback(request: Request, code: str, state: str, service: SessionServiceDep):
     """Valida o callback, cria sessão HttpOnly e retorna ao frontend."""
     logger.info(
         "cav4_callback_start code_present=%s state_present=%s cookie_present=%s",
@@ -173,264 +229,26 @@ async def cav4_callback(request: Request, code: str, state: str):
     )
     if not settings.cav4_enabled:
         raise HTTPException(status_code=503, detail={"code": "CAV4_NOT_CONFIGURED"})
-    expected_cookie = request.cookies.get("cav4_oauth_state", "")
-    expected_nonce, separator, next_path = expected_cookie.partition("|")
+    expected_packed = request.cookies.get("cav4_oauth_state", "")
+    returned_nonce: str
     try:
         returned_nonce = decode_state_nonce(state)
     except CAV4AuthenticationError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    if not separator or not expected_nonce or not compare_digest(returned_nonce, expected_nonce):
+    if not expected_packed or not compare_digest(returned_nonce, expected_packed):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Callback CAV4 inválido")
+    _nonce, next_path = _unpack_state_nonce(returned_nonce)
     try:
         identity = await get_cav4_provider().exchange_callback(code=code, state=state)
     except CAV4AuthenticationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    # O CAV4 fornece a identidade e o código do perfil. O SIGAC usa apenas
-    # o perfil local para carregar menus e permissões; não exige um usuário local.
-    if not identity.email:
-        raise HTTPException(status_code=401, detail="E-mail ausente na autenticação corporativa")
-    logger.info(
-        "cav4_roles_received email=%s roles=%s",
-        identity.email,
-        [str(role) for role in identity.roles if role],
-    )
-    solicitante_role = next((role for role in identity.roles if canonical_role(role) == "solicitante"), None)
-    profile_id = solicitante_role or next((role for role in identity.roles if canonical_role(role)), None)
-    if not profile_id:
-        raise HTTPException(status_code=403, detail="Usuário CAV4 sem perfil corporativo configurado")
-    entra_profile = None
-    if entra_configured():
-        try:
-            entra_profile = await enrich_by_email(identity.email)
-        except PermissionError as exc:
-            raise HTTPException(status_code=403, detail=str(exc)) from exc
-        except EntraPermissionError as exc:
-            logger.exception("entra_graph_permission_missing app=%s", settings.entra_app_name)
-            raise HTTPException(status_code=503, detail=str(exc)) from exc
-        except Exception as exc:
-            if settings.entra_required_group_id:
-                logger.exception("entra_enrichment_required_failed app=%s", settings.entra_app_name)
-                raise HTTPException(status_code=503, detail="Não foi possível validar o acesso corporativo no Entra ID") from exc
-            logger.warning("entra_enrichment_skipped app=%s error_type=%s", settings.entra_app_name, type(exc).__name__)
-
-    if solicitante_role:
-        message = "Seu perfil de Solicitante no CAV4 não tem permissão para acessar o Dashboard SIGAC."
-        login_url = f"{settings.frontend_url.rstrip('/')}/login?auth_error={quote(message)}&next={quote(next_path or '/dashboard', safe='')}"
-        logger.info("cav4_access_denied_redirect role=%s frontend=%s", profile_id, settings.frontend_url)
-        return RedirectResponse(
-            url=login_url,
-            status_code=status.HTTP_303_SEE_OTHER,
+    if service is None:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "SESSION_BACKEND_UNAVAILABLE", "message": "O login CAV4 exige banco de dados."},
         )
-
-    session_id = str(uuid4())
-    expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=settings.session_hours)
     try:
-        schema = _schema_name()
-        async for database in get_session():
-            profile_result = await database.execute(
-                text(f"select id from {schema}.profiles where id=:profile_id"),
-                {"profile_id": profile_id},
-            )
-            profile = profile_result.mappings().first()
-            if not profile:
-                raise HTTPException(status_code=403, detail=f"Perfil CAV4 não cadastrado no SIGAC: {profile_id}")
-            # O `sub` do CAV4 pode ser o e-mail (como ocorre em alguns
-            # clientes), enquanto o cadastro do SIGAC usa o login corporativo.
-            # Prioriza o login explícito e mantém o subject como fallback para
-            # compatibilidade com cadastros antigos.
-            cav4_identifiers = tuple(
-                dict.fromkeys(
-                    identifier
-                    for identifier in (identity.user_login, identity.subject, identity.email)
-                    if identifier
-                )
-            )
-            local_user_result = await database.execute(
-                text(
-                    f"select id, user_id from {schema}.users "
-                    "where user_id in :user_ids "
-                    "order by case user_id "
-                    "when :user_login then 0 "
-                    "when :subject then 1 "
-                    "else 2 end limit 1"
-                ).bindparams(bindparam("user_ids", expanding=True)),
-                {
-                    "user_ids": list(cav4_identifiers),
-                    "user_login": identity.user_login or "",
-                    "subject": identity.subject,
-                },
-            )
-            local_user = local_user_result.mappings().first()
-            if not local_user:
-                raise HTTPException(
-                    status_code=403,
-                    detail=f"Usuário CAV4 não cadastrado no SIGAC: {identity.user_login or identity.subject}",
-                )
-            registered_profile_result = await database.execute(
-                text(
-                    f"""
-                    select profile_id
-                    from {schema}.users
-                    where id = :user_id
-                    """
-                ),
-                {"user_id": local_user["id"]},
-            )
-            registered_profile = registered_profile_result.scalar()
-            last_log_result = await database.execute(
-                text(
-                    f"""
-                    select details
-                    from {schema}.activity_logs
-                    where action = 'cav4_authorization'
-                    and user_id = :user_id
-                    order by created_at desc
-                    limit 1
-                    """
-                ),
-                {
-                    "user_id": local_user["user_id"]
-                }
-            )
-
-            last_log = last_log_result.scalar()
-
-            previous_profile = registered_profile
-
-            if last_log:
-                try:
-                    details = (
-                        json.loads(last_log)
-                        if isinstance(last_log, str)
-                        else last_log
-                    )
-
-                    previous_profile = (
-                        details.get("Perfil Atual")
-                        or details.get("selected_profile")
-                        or registered_profile
-                    )
-
-                except Exception:
-                    pass
-            claims = identity.raw_claims or {}
-            def claim(*names: str) -> str | None:
-                for name in names:
-                    value = claims.get(name)
-                    if value is not None and str(value).strip():
-                        return str(value).strip()
-                return None
-
-            profile_data = {
-                # O login funcional (ex.: GFZ3) é a identidade usada pela auditoria.
-                "cav4_user_id": identity.user_login,
-                "user_login": identity.user_login,
-                "email": identity.email,
-                "display_name": identity.display_name or claim("name", "display_name", "displayName", "full_name", "fullName", "nome", "nomeCompleto"),
-                "job_title": claim("job_title", "jobTitle", "cargo", "title", "occupation"),
-                "area": claim("area", "department", "departmentName", "organizational_unit", "organizationalUnit"),
-                "avatar_url": "/api/auth/profile/photo" if entra_profile else claim("picture", "avatar", "avatar_url", "photo", "photo_url"),
-                "entra_id": entra_profile.get("id") if entra_profile else None,
-                "entra_user_principal_name": entra_profile.get("userPrincipalName") if entra_profile else None,
-                "phone": entra_profile.get("mobilePhone") if entra_profile else None,
-                "office_location": entra_profile.get("officeLocation") if entra_profile else None,
-                "account_enabled": entra_profile.get("accountEnabled") if entra_profile else None,
-                "entra_source": settings.entra_app_name if entra_profile else None,
-            }
-            await database.execute(
-                text(f"delete from {schema}.sessions where user_id=:user_id"),
-                {"user_id": local_user["user_id"]},
-            )
-            await database.execute(
-                text(f"update {schema}.users set last_login_at=now() where id=:user_id"),
-                {"user_id": local_user["id"]},
-            )
-            await database.execute(
-                text(f"""insert into {schema}.sessions
-                    (id,user_id,profile_id,profile_data,expires_at)
-                    values(:id,:user_id,:profile_id,:profile_data,:expires_at)"""),
-                {
-                    "id": session_id,
-                    "user_id": local_user["user_id"],
-                    "profile_id": str(profile_id),
-                    # A rota usa SQL textual; o driver asyncpg precisa receber JSON serializado.
-                    "profile_data": json.dumps(profile_data, ensure_ascii=False),
-                    "expires_at": expires_at,
-                },
-            )
-            profile_changed = str(previous_profile) != str(profile_id)
-            # Registra toda autorização, inclusive quando o perfil já estava atualizado.
-            if profile_changed or registered_profile == profile_id:
-                await database.execute(
-                    text(
-                        f"""
-                        insert into {schema}.activity_logs
-                        (
-                            id,
-                            user_id,
-                            action,
-                            entity,
-                            entity_id,
-                            details,
-                            result,
-                            http_method,
-                            route,
-                            created_at
-                        )
-                        values
-                        (
-                            :id,
-                            :user_id,
-                            :action,
-                            :entity,
-                            :entity_id,
-                            :details,
-                            :result,
-                            :http_method,
-                            :route,
-                            now()
-                        )
-                        """
-                    ),
-                    {
-                        "id": str(uuid4()),
-                        "user_id": local_user["user_id"],
-                        "action": "cav4_authorization",
-                        "entity": "session",
-                        "entity_id": session_id,
-                        "http_method": request.method,
-                        "route": str(request.url.path),
-                        "details": json.dumps(
-                            {
-                                "message": (
-                                    f"Autorização concluída com sucesso. O perfil {profile_id} foi atualizado no SIGAC."
-                                    if profile_changed
-                                    else f"Autorização concluída com sucesso. O perfil {profile_id} já estava atualizado no SIGAC."
-                                ),
-                                "Perfil Anterior": previous_profile,
-                                "Perfil Atual": str(profile_id),
-                                "Email": identity.email,
-                                "Papel": [
-                                    str(role)
-                                    for role in identity.roles
-                                    if role
-                                ],                                
-                                "Origem": "CAV4",
-                            },
-                            ensure_ascii=False,
-                        ),
-                        "result": "success",
-                    },
-                )
-                logger.info(
-                    "PROFILE_LOG_INSERT profile_changed=%s anterior=%s atual=%s",
-                    profile_changed,
-                    registered_profile,
-                    profile_id,
-                )
-            await database.commit()
-    except HTTPException:
-        raise
+        session_id = await service.start(identity)
     except SQLAlchemyError as exc:
         error_id = uuid4().hex[:12]
         original = exc.orig if isinstance(exc, DBAPIError) else exc
@@ -444,8 +262,8 @@ async def cav4_callback(request: Request, code: str, state: str):
             status_code=503,
             detail=f"Banco de dados indisponível para concluir o login. Consulte o log pelo código {error_id}.",
         ) from exc
-    safe_next = next_path if next_path.startswith("/") and not next_path.startswith("//") else "/dashboard"
-    redirect_url = f"{settings.frontend_url}{safe_next}"
+    safe_next = _safe_redirect_path(next_path)
+    redirect_url = _resolve_redirect_url(safe_next)
     logger.info(
         "cav4_authentication_ok subject=%s email=%s",
         identity.subject,

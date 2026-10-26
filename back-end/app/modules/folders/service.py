@@ -2,19 +2,22 @@ import asyncio
 import os
 from datetime import UTC, datetime
 from pathlib import Path
-from uuid import NAMESPACE_URL, uuid4, uuid5
+from uuid import NAMESPACE_URL, uuid5
 
-from app.modules.files.models import Folder
-from app.modules.files.repository import FolderRepository
-from app.modules.files.schemas import FolderCreate
+from app.modules.folders.models import Folder
+from app.modules.folders.repository import FolderRepository
 
 
 class FolderService:
     def __init__(self, repository: FolderRepository):
         self.repository = repository
 
-    async def get_folder(self, folder_id: str) -> Folder | None:
-        return await self.repository.find_by_id(folder_id)
+    # TODO(verificar com a equipe de devs): `get_folder`, `list_subfolders`, `create_folder` e
+    # `delete_folder` não têm referências no repositório (varredura de 2026-10-14); podem ser
+    # funcionalidade planejada. Comentados em vez de excluídos. Se voltarem, importar `uuid4` de uuid
+    # e `FolderCreate` de app.modules.files.schemas.
+    # async def get_folder(self, folder_id: str) -> Folder | None:
+    #     return await self.repository.find_by_id(folder_id)
 
     async def list_folders_by_project(self, project_id: str) -> list[Folder]:
         return await self.repository.find_by_project(project_id)
@@ -37,7 +40,7 @@ class FolderService:
                 timeout=45,
             )
             return folders if folders else await self.list_folders_by_project(project_id)
-        except Exception:
+        except Exception:  # noqa: BLE001 - UNC pode lançar exceções do Windows sem tipo documentado
             # Compartilhamentos UNC podem falhar com exceções específicas do
             # Windows (ou permanecer indisponíveis sem gerar OSError). A API
             # deve continuar respondendo usando a tabela local como fallback.
@@ -49,7 +52,7 @@ class FolderService:
         if not root.is_dir():
             return []
 
-        now = datetime.now(UTC).replace(tzinfo=None)
+        now = datetime.now(UTC)
         with os.scandir(root) as directory:
             entries = sorted(
                 (entry for entry in directory if entry.is_dir(follow_symlinks=False)),
@@ -77,24 +80,24 @@ class FolderService:
     async def project_exists(self, project_id: str) -> bool:
         return await self.repository.project_exists(project_id)
 
-    async def list_subfolders(self, parent_id: str) -> list[Folder]:
-        return await self.repository.list_by_parent(parent_id)
-
-    async def create_folder(self, data: FolderCreate) -> Folder:
-        now = datetime.now(UTC).replace(tzinfo=None)
-        folder = Folder(
-            id=str(uuid4()),
-            name=data.name,
-            project_id=data.project_id,
-            parent_id=data.parent_id,
-            kind=data.kind,
-            mime_type=data.mime_type,
-            created_by=data.created_by,
-            created_at=now,
-            updated_at=now,
-            size=0,
-        )
-        return await self.repository.create(folder)
-
-    async def delete_folder(self, folder_id: str) -> bool:
-        return await self.repository.delete(folder_id)
+    # async def list_subfolders(self, parent_id: str) -> list[Folder]:
+    #     return await self.repository.list_by_parent(parent_id)
+    #
+    # async def create_folder(self, data: FolderCreate) -> Folder:
+    #     now = datetime.now(UTC)
+    #     folder = Folder(
+    #         id=str(uuid4()),
+    #         name=data.name,
+    #         project_id=data.project_id,
+    #         parent_id=data.parent_id,
+    #         kind=data.kind,
+    #         mime_type=data.mime_type,
+    #         created_by=data.created_by,
+    #         created_at=now,
+    #         updated_at=now,
+    #         size=0,
+    #     )
+    #     return await self.repository.create(folder)
+    #
+    # async def delete_folder(self, folder_id: str) -> bool:
+    #     return await self.repository.delete(folder_id)

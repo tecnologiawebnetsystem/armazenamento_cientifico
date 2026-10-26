@@ -1,80 +1,170 @@
+"""Primeira carga de um banco novo (ou recriado).
+
+Reproduz os dados que não são do domínio do projeto e que existem no banco de DSV:
+perfis, módulos, permissões, menus, cards, status, áreas e relatórios.
+
+    python -m app.db.seed                    # DSV: referência + usuários de teste
+    python -m app.db.seed --sample-projects  # DSV: inclui projetos fictícios
+    python -m app.db.seed --confirm          # staging e produção: só referência
+
+O que é carregado depende de ENVIRONMENT:
+- development e test: dados de referência e os usuários de teste;
+- staging e produção: **somente** dados de referência (sem usuários nem projetos) e
+  só com --confirm;
+- qualquer outro valor é recusado.
+
+Regras:
+- só insere o que falta e nunca altera ou apaga um registro existente, então pode
+  ser repetido;
+- o schema deve existir antes (alembic upgrade head).
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import sys
 from datetime import UTC, datetime
-import hashlib
 from uuid import uuid4
 
-from app.modules.catalogs.authorization_models import Permission, ProfileModule, ProfilePermission
-from app.modules.catalogs.navigation_models import MenuItem, MenuPermission, Module
-from app.modules.catalogs.project_catalog_models import ProjectStatus, ResponsibleArea
-from app.modules.catalogs.reporting_models import ReportField, ReportType
-from app.modules.projects.member_model import ProjectMember
-from app.modules.projects.models import Project
-from app.modules.users.models import User
-from app.modules.users.profile_model import Profile
-from app.modules.auth.models import UserSession
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
-SEED_PERFIS = [
-    ("ADM", "administrador", "Administra a plataforma, configura parâmetros e gerencia acessos."),
-    ("GER", "Responsável", "Acessa áreas de rede sob sua gestão ou supervisão."),
-    ("AUD", "auditor", "Consulta informações e acompanha os registros de auditoria."),
-    ("PAT", "patrocinador", "Acompanha resultados e aprova solicitações sob sua responsabilidade."),
-    ("SOL", "solicitante", "Solicita acessos e acompanha o andamento das solicitações."),
-    ("OPR", "operador", "Acessa exclusivamente as configurações da plataforma."),
+from app.core.config import settings
+from app.modules.catalogs.models import (
+    DashboardCard,
+    MenuItem,
+    MenuPermission,
+    Module,
+    Permission,
+    ProfileModule,
+    ProfilePermission,
+    ProjectStatus,
+    ReportField,
+    ReportType,
+    ResponsibleArea,
+)
+from app.modules.projects.models import Project, ProjectMember
+from app.modules.users.models import Profile, User
+
+FULL_LOAD_ENVIRONMENTS = {"development", "test"}
+REFERENCE_ONLY_ENVIRONMENTS = {"staging", "production"}
+
+PROFILES = [
+    ("ADM", "administrador", "admin", "Acesso administrativo total à plataforma."),
+    ("AUD", "auditor", "auditor", "Consulta registros de auditoria."),
+    ("GER", "Responsável", "gerente", "Acesso às áreas de rede sob sua gestão ou supervisão."),
+    ("OPR", "operador", "operador", "Acessa exclusivamente as configurações autorizadas."),
+    ("PAT", "patrocinador", "patrocinador", "Acompanha áreas de rede e relatórios autorizados."),
+    ("SOL", "solicitante", "solicitante", "Acompanha solicitações autorizadas."),
 ]
 
-SEED_MODULES = [
+MODULES = [
     ("dashboard", "Dashboard", "/dashboard", "layout-dashboard", 1),
     ("projetos", "Área de Rede", "/projetos", "folder", 10),
-    ("usuarios", "Usuários", "/usuarios", "users", 20),
     ("relatorios", "Relatórios", "/relatorios", "chart", 30),
     ("auditoria", "Logs e Auditoria", "/logs", "history", 50),
     ("pesquisas", "Mapa de Acessos", "/pesquisas", "search", 60),
     ("configuracoes", "Configurações", "/configuracoes", "settings", 70),
 ]
-SEED_PERMISSIONS = [
-    ("projeto.visualizar", "projetos", "Visualizar área de rede"), ("projeto.criar", "projetos", "Criar área de rede"),
-    ("projeto.editar", "projetos", "Editar área de rede"), ("projeto.status", "projetos", "Ativar ou desativar área de rede"),
-    ("usuario.editar", "usuarios", "Editar usuários e perfis"), ("relatorio.exportar", "relatorios", "Exportar relatórios"),
-    ("administracao.configurar", "administracao", "Configurar parâmetros"),
-    ("pesquisa.visualizar", "pesquisas", "Visualizar mapa de acessos"),
+
+PERMISSIONS = [
+    ("administracao.configurar", "configuracoes", "Configurar administração", "Gerenciar os catálogos administrativos"),
+    ("auditoria.visualizar", "auditoria", "Visualizar auditoria", "Consultar registros de auditoria"),
+    ("dashboard.visualizar", "dashboard", "Visualizar Dashboard", "Acessar o Dashboard"),
+    ("pesquisa.visualizar", "pesquisas", "Visualizar mapa de acessos", "Consultar o mapa de acessos"),
+    ("projeto.criar", "projetos", "Criar área de rede", "Cadastrar uma nova área de rede"),
+    ("projeto.editar", "projetos", "Editar área de rede", "Alterar dados de uma área de rede"),
+    ("projeto.excluir", "projetos", "Excluir área de rede", "Excluir uma área de rede"),
+    ("projeto.status", "projetos", "Alterar status da área de rede", "Alterar o status de uma área de rede"),
+    ("projeto.visualizar", "projetos", "Visualizar área de rede", "Consultar áreas de rede autorizadas"),
+    ("relatorio.exportar", "relatorios", "Exportar relatórios", "Exportar relatórios nos formatos habilitados"),
+    ("relatorio.visualizar", "relatorios", "Visualizar relatórios", "Consultar relatórios autorizados"),
 ]
-SEED_PERMISSION_MATRIX = {
-    "ADM": {permission_id: True for permission_id, _, _ in SEED_PERMISSIONS},
-    "GER": {permission_id: permission_id in {"projeto.visualizar", "relatorio.visualizar", "relatorio.exportar", "pesquisa.visualizar", "dashboard.visualizar"} for permission_id, _, _ in SEED_PERMISSIONS},
-    "AUD": {permission_id: permission_id == "auditoria.visualizar" for permission_id, _, _ in SEED_PERMISSIONS},
-    "PAT": {permission_id: permission_id in {"projeto.visualizar", "relatorio.visualizar", "pesquisa.visualizar", "dashboard.visualizar"} for permission_id, _, _ in SEED_PERMISSIONS},
-    "SOL": {permission_id: False for permission_id, _, _ in SEED_PERMISSIONS},
-    "OPR": {permission_id: permission_id == "administracao.configurar" for permission_id, _, _ in SEED_PERMISSIONS},
+
+# Módulos que cada perfil enxerga; os demais ficam com can_view = False.
+PROFILE_MODULES = {
+    "ADM": {"auditoria", "dashboard", "pesquisas", "projetos", "relatorios"},
+    "AUD": {"auditoria"},
+    "GER": {"dashboard", "pesquisas", "projetos", "relatorios"},
+    "OPR": {"configuracoes"},
+    "PAT": {"dashboard", "pesquisas", "projetos", "relatorios"},
+    "SOL": set(),
 }
-SEED_STATUS = [("ATIVO", "ativo", "Ativo", "green", 10, True), ("INATIVO", "inativo", "Inativo", "slate", 20, False), ("CONCLUIDO", "concluido", "Concluído", "blue", 30, False), ("SUSPENSO", "suspenso", "Suspenso", "amber", 40, True)]
-SEED_REPORTS = [("PROJETOS", "projetos", "Relatório da área de rede", "csv,xlsx,pdf"), ("ACESSOS", "acessos", "Mapa de acessos", "csv,xlsx,pdf")]
-SEED_AREAS = [
-    ("tecnologia-informacao", "Tecnologia da Informação", "TI"),
-    ("governanca-compliance", "Governança e Compliance", "GC"),
-    ("gestao-documental", "Gestão Documental", "GD"),
-    ("pesquisa-desenvolvimento", "Pesquisa e Desenvolvimento", "PD"),
-    ("engenharia", "Engenharia", "ENG"),
-    ("pesquisa", "Pesquisa", "PES"),
-    ("operacoes", "Operações", "OP"),
+
+# Permissões concedidas a cada perfil; as demais ficam com allowed = False.
+PROFILE_PERMISSIONS = {
+    "ADM": {
+        "auditoria.visualizar", "dashboard.visualizar", "pesquisa.visualizar", "projeto.criar", "projeto.editar",
+        "projeto.excluir", "projeto.status", "projeto.visualizar", "relatorio.exportar", "relatorio.visualizar",
+    },
+    "AUD": {"auditoria.visualizar"},
+    "GER": {"dashboard.visualizar", "pesquisa.visualizar", "projeto.visualizar", "relatorio.exportar", "relatorio.visualizar"},
+    "OPR": {"administracao.configurar"},
+    "PAT": {"dashboard.visualizar", "pesquisa.visualizar", "projeto.visualizar", "relatorio.visualizar"},
+    "SOL": set(),
+}
+
+MENUS = [
+    ("menu-dashboard", "dashboard", "Dashboard", "/dashboard", "layout-dashboard", 1),
+    ("menu-projetos", "projetos", "Área de Rede", "/projetos", "folder", 10),
+    ("menu-relatorios", "relatorios", "Relatórios", "/relatorios", "chart", 30),
+    ("menu-auditoria", "auditoria", "Logs e Auditoria", "/logs", "history", 50),
+    ("menu-pesquisas", "pesquisas", "Mapa de Acessos", "/pesquisas", "search", 60),
+    ("menu-configuracoes", "configuracoes", "Configurações", "/configuracoes", "settings", 70),
+]
+
+MENU_PERMISSIONS = [
+    ("menu-auditoria", "auditoria.visualizar"),
+    ("menu-configuracoes", "administracao.configurar"),
+    ("menu-dashboard", "dashboard.visualizar"),
+    ("menu-pesquisas", "pesquisa.visualizar"),
+    ("menu-projetos", "projeto.visualizar"),
+    ("menu-relatorios", "relatorio.visualizar"),
+]
+
+DASHBOARD_CARDS = [
+    ("dashboard-projetos", "projetos", "projetos", "Projetos", "Projetos disponíveis no seu escopo.", "total_projetos", "/projetos", "ADM,GER,AUD,PAT", 10),
+    ("dashboard-pendencias", "relatorios", "pendencias", "Pendências", "Itens que precisam de atenção.", "pendencias", "/relatorios", "ADM,GER,PAT", 20),
+    ("dashboard-auditoria", "auditoria", "auditoria", "Auditoria", "Eventos recentes para acompanhamento.", "eventos_auditoria", "/logs", "ADM,AUD", 30),
+]
+
+PROJECT_STATUSES = [
+    ("ativo", "ativo", "Ativo", "green", 10),
+    ("em-implantacao", "em_implantacao", "Em implantação", "blue", 20),
+    ("pausado", "pausado", "Pausado", "amber", 30),
+    ("encerrado", "encerrado", "Encerrado", "slate", 40),
+]
+
+RESPONSIBLE_AREAS = [
     ("documentacao", "Documentação", "DOC"),
+    ("engenharia", "Engenharia", "ENG"),
+    ("governanca-compliance", "Governança e Compliance", "GC"),
+    ("operacoes", "Operações", "OP"),
+    ("pesquisa", "Pesquisa", "PES"),
     ("tecnologia", "Tecnologia", "TEC"),
 ]
-SEED_REPORT_FIELDS = [
-    ("projetos-nome", "projetos", "nome", "Área de Rede", "projectName", 10),
-    ("projetos-codigo", "projetos", "codigo", "Código", "projectCode", 20),
-    ("projetos-area", "projetos", "area", "Área responsável", "area", 30),
-    ("projetos-status", "projetos", "status", "Status", "status", 40),
-    ("projetos-mapas", "projetos", "mapas", "Mapas", "totalMapas", 50),
-    ("projetos-membros", "projetos", "membros", "Membros", "totalMembros", 60),
-    ("acessos-usuario", "acessos", "usuario", "Usuário", "userName", 10),
-    ("acessos-email", "acessos", "email", "E-mail", "userEmail", 20),
-    ("acessos-perfil", "acessos", "perfil", "Perfil", "userRole", 30),
-    ("acessos-area", "acessos", "area", "Área", "area", 40),
-    ("acessos-projeto", "acessos", "projeto", "Área de Rede", "projectName", 50),
-    ("acessos-recurso", "acessos", "recurso", "Recurso", "resourceName", 60),
-    ("acessos-tipo", "acessos", "tipo", "Tipo de recurso", "resourceType", 70),
-    ("acessos-acesso", "acessos", "acesso", "Nível de acesso", "accessLevel", 80),
-    ("acessos-ultima", "acessos", "ultimaVisualizacao", "Última visualização", "lastViewedAt", 90),
-    ("acessos-projeto-codigo", "acessos", "projetoCodigo", "Código da área de rede", "projectCode", 100),
+
+REPORT_TYPES = [
+    ("ACESSOS", "acessos", "Mapa de acessos", "Relatório consolidado de projetos, pastas, grupos, membros e permissões."),
+    ("AUDITORIA", "auditoria", "Logs de Auditoria", "Rastreabilidade de ações, usuários, entidades e resultados."),
+    ("PROJETOS", "projetos", "Relatório Executivo de Áreas de Rede", "Portfólio, status, áreas, gestores e indicadores das áreas de rede."),
+]
+
+# (id, report_code, field_key, label, source_key, display_order)
+REPORT_FIELDS = [
+    ("acessos-usuario-id", "acessos", "userId", "Identificador do usuário", "userId", 10),
+    ("acessos-usuario", "acessos", "userName", "Membro", "userName", 20),
+    ("acessos-email", "acessos", "userEmail", "E-mail", "userEmail", 30),
+    ("acessos-perfil", "acessos", "userRole", "Perfil", "userRole", 40),
+    ("acessos-area", "acessos", "area", "Área", "area", 50),
+    ("acessos-projeto-id", "acessos", "projectId", "Identificador da área de rede", "projectId", 60),
+    ("acessos-projeto", "acessos", "projectName", "Área de Rede", "projectName", 70),
+    ("acessos-status", "acessos", "projectStatus", "Status da área de rede", "projectStatus", 80),
+    ("acessos-recurso", "acessos", "resourceName", "Recurso", "resourceName", 90),
+    ("acessos-projeto-codigo", "acessos", "projetoCodigo", "Código do área de rede", "projectCode", 100),
+    ("acessos-tipo", "acessos", "resourceType", "Tipo de recurso", "resourceType", 100),
+    ("acessos-atualizacao", "acessos", "lastViewedAt", "Último acesso", "lastViewedAt", 110),
     ("acessos-pasta", "acessos", "pasta", "Pasta", "folderName", 110),
     ("acessos-caminho-pasta", "acessos", "caminhoPasta", "Caminho da pasta", "folderPath", 120),
     ("acessos-grupo", "acessos", "grupo", "Grupo de acesso", "groupName", 130),
@@ -84,187 +174,186 @@ SEED_REPORT_FIELDS = [
     ("acessos-membro-papel", "acessos", "membroPapel", "Papel do membro", "memberRole", 170),
     ("acessos-fonte", "acessos", "fonte", "Fonte da consulta", "source", 180),
     ("acessos-consultado-em", "acessos", "consultadoEm", "Consultado em", "queriedAt", 190),
-]
-SEED_PROFILE_MODULES = [
-    ("ADM", "dashboard", True), ("ADM", "projetos", True), ("ADM", "relatorios", True), ("ADM", "auditoria", True), ("ADM", "pesquisas", True), ("ADM", "configuracoes", True),
-    ("GER", "dashboard", True), ("GER", "projetos", True), ("GER", "relatorios", True), ("GER", "auditoria", False), ("GER", "pesquisas", True), ("GER", "configuracoes", False),
-    ("AUD", "dashboard", False), ("AUD", "projetos", False), ("AUD", "relatorios", False), ("AUD", "auditoria", True), ("AUD", "pesquisas", False), ("AUD", "configuracoes", False),
-    ("PAT", "dashboard", True), ("PAT", "projetos", True), ("PAT", "relatorios", True), ("PAT", "auditoria", False), ("PAT", "pesquisas", True), ("PAT", "configuracoes", False),
-    ("SOL", "dashboard", False), ("SOL", "projetos", False), ("SOL", "relatorios", False), ("SOL", "auditoria", False), ("SOL", "pesquisas", False), ("SOL", "configuracoes", False),
-    ("OPR", "dashboard", False), ("OPR", "projetos", False), ("OPR", "relatorios", False), ("OPR", "auditoria", False), ("OPR", "pesquisas", False), ("OPR", "configuracoes", True),
-]
-SEED_MENU_PERMISSIONS = [
-    ("menu-dashboard", "dashboard.visualizar"), ("menu-projetos", "projeto.visualizar"),
-    ("menu-relatorios", "relatorio.visualizar"), ("menu-auditoria", "auditoria.visualizar"),
-    ("menu-pesquisas", "pesquisa.visualizar"), ("menu-configuracoes", "administracao.configurar"),
-]
-SEED_MENUS = [
-    ("menu-dashboard", "dashboard", "Dashboard", "/dashboard", "layout-dashboard", 1),
-    ("menu-projetos", "projetos", "Área de Rede", "/projetos", "folder", 10),
-    ("menu-usuarios", "usuarios", "Usuários", "/usuarios", "users", 20),
-    ("menu-relatorios", "relatorios", "Relatórios", "/relatorios", "chart", 30),
-    ("menu-auditoria", "auditoria", "Logs e Auditoria", "/logs", "history", 50),
-    ("menu-pesquisas", "pesquisas", "Mapa de Acessos", "/pesquisas", "search", 60),
-    ("menu-configuracoes", "configuracoes", "Configurações", "/configuracoes", "settings", 70),
+    ("auditoria-id", "auditoria", "id", "Identificador", "id", 10),
+    ("auditoria-data", "auditoria", "criadoEm", "Data e hora", "criadoEm", 20),
+    ("auditoria-usuario", "auditoria", "userName", "Usuário", "userName", 30),
+    ("auditoria-email", "auditoria", "userEmail", "E-mail", "userEmail", 40),
+    ("auditoria-acao", "auditoria", "acao", "Ação", "acao", 50),
+    ("auditoria-entidade", "auditoria", "entidade", "Entidade", "entidade", 60),
+    ("auditoria-entidade-id", "auditoria", "entidadeId", "Identificador da entidade", "entidadeId", 70),
+    ("auditoria-resultado", "auditoria", "resultado", "Resultado", "resultado", 80),
+    ("auditoria-detalhes", "auditoria", "detalhes", "Detalhes", "detalhes", 90),
+    ("projetos-codigo", "projetos", "codigo", "Código", "codigo", 10),
+    ("projetos-nome", "projetos", "nome", "Área de Rede", "nome", 20),
+    ("projetos-area", "projetos", "areaResponsavel", "Área responsável", "areaResponsavel", 30),
+    ("projetos-status", "projetos", "status", "Status", "status", 40),
+    ("projetos-gestores", "projetos", "gestoresIds", "Gestores", "gestoresIds", 50),
+    ("projetos-membros", "projetos", "totalMembros", "Total de membros", "totalMembros", 60),
+    ("projetos-criado", "projetos", "criadoEm", "Criado em", "criadoEm", 70),
+    ("projetos-atualizado", "projetos", "atualizadoEm", "Atualizado em", "atualizadoEm", 80),
 ]
 
-SEED_USERS = [("GFZ3", "ADM"), ("GCTL", "ADM"), ("GBTF", "ADM"), ("Y1R9", "GER")]
-
-
-SEED_PROJECTS = [
-    ("SIGAC Modernização", "SIGAC-001", "Tecnologia da Informação", "Projeto de modernização do acervo científico e dos fluxos de consulta.", "ativo"),
-    ("Governança de Dados", "GOV-002", "Governança e Compliance", "Padronização de políticas, acessos e trilhas de auditoria.", "ativo"),
-    ("Migração do Acervo 2025", "MIG-003", "Gestão Documental", "Projeto histórico para validação de filtros e relatórios.", "concluido"),
-    ("Portal de Pesquisa", "PES-004", "Pesquisa e Desenvolvimento", "Projeto arquivado para testar inativação e filtros de status.", "inativo"),
+# (id técnico, user_id, profile_id): os ids são os do banco de DSV (não são um hash reproduzível do user_id).
+USERS = [
+    ("00d6e9c2068263fc359f60e88bedc875", "GBTF", "ADM"),
+    ("c160beaab7af277a659ae74c0dc5d31b", "GCTL", "ADM"),
+    ("1e9fcfa43f8f3fae305c85633f8f0b0f", "GFZ3", "ADM"),
+    ("8256d1545f02148a93fad44a0c79646d", "Y1R9", "GER"),
 ]
 
-async def initialize_database(engine) -> None:
-    # O schema deve existir exclusivamente via Alembic antes da execução deste seed.
+# Dados fictícios, só com --sample-projects: (nome, código, área, descrição, status).
+SAMPLE_PROJECTS = [
+    ("SIGAC Modernização", "SIGAC-001", "Tecnologia", "Projeto de exemplo para testes de consulta.", "ativo"),
+    ("Governança de Dados", "GOV-002", "Governança e Compliance", "Projeto de exemplo para testes de auditoria.", "ativo"),
+    ("Migração do Acervo", "MIG-003", "Documentação", "Projeto de exemplo para testes de filtros e relatórios.", "encerrado"),
+    ("Portal de Pesquisa", "PES-004", "Pesquisa", "Projeto de exemplo para testes de status.", "pausado"),
+]
 
-    from sqlalchemy import select
-    from sqlalchemy.ext.asyncio import async_sessionmaker
 
+def load_scope(environment: str) -> str:
+    """"full" (referência e usuários de teste) ou "reference" (só referência)."""
+    name = environment.lower()
+    if name in FULL_LOAD_ENVIRONMENTS:
+        return "full"
+    if name in REFERENCE_ONLY_ENVIRONMENTS:
+        return "reference"
+    known = sorted(FULL_LOAD_ENVIRONMENTS | REFERENCE_ONLY_ENVIRONMENTS)
+    raise RuntimeError(f"ENVIRONMENT {environment!r} desconhecido para o seed; use um de {known}")
+
+
+async def _add_if_missing(session, model, primary_key, /, **values) -> bool:
+    if await session.get(model, primary_key) is not None:
+        return False
+    session.add(model(**values))
+    return True
+
+
+async def seed_reference_data(session, now: datetime) -> dict[str, int]:
+    """Insere só o que falta, respeitando a ordem das chaves estrangeiras."""
+    added: dict[str, int] = {}
+
+    def count(name: str, created: bool) -> None:
+        added[name] = added.get(name, 0) + int(created)
+
+    for pid, name, role, description in PROFILES:
+        count("profiles", await _add_if_missing(session, Profile, pid, id=pid, name=name, role=role, description=description, created_at=now))
+    for mid, name, route, icon, order in MODULES:
+        count("modules", await _add_if_missing(session, Module, mid, id=mid, name=name, route=route, icon=icon, display_order=order, active=True))
+    await session.flush()
+
+    for pid, module_id, name, description in PERMISSIONS:
+        count("permissions", await _add_if_missing(session, Permission, pid, id=pid, module_id=module_id, name=name, description=description, active=True))
+    for sid, code, name, color, order in PROJECT_STATUSES:
+        count("project_statuses", await _add_if_missing(session, ProjectStatus, sid, id=sid, code=code, name=name, color=color, display_order=order, active=True, allows_edit=True))
+    for aid, name, prefix in RESPONSIBLE_AREAS:
+        count("responsible_areas", await _add_if_missing(session, ResponsibleArea, aid, id=aid, name=name, prefix=prefix, next_number=1, active=True, created_at=now, updated_at=now))
+    for rid, code, name, description in REPORT_TYPES:
+        count("report_types", await _add_if_missing(session, ReportType, rid, id=rid, code=code, name=name, description=description, formats="csv,txt,pdf", active=True))
+    await session.flush()
+
+    for fid, report_code, field_key, label, source_key, order in REPORT_FIELDS:
+        count("report_fields", await _add_if_missing(session, ReportField, fid, id=fid, report_code=report_code, field_key=field_key, label=label, source_key=source_key, display_order=order, active=True))
+    for mid, module_id, name, route, icon, order in MENUS:
+        count("menus", await _add_if_missing(session, MenuItem, mid, id=mid, module_id=module_id, parent_id=None, name=name, route=route, icon=icon, display_order=order, active=True))
+    for cid, module_id, key, title, description, metric, route, profiles, order in DASHBOARD_CARDS:
+        count("dashboard_cards", await _add_if_missing(session, DashboardCard, cid, id=cid, module_id=module_id, key=key, title=title, description=description, metric_key=metric, route=route, profile_ids=profiles, display_order=order, active=True))
+    await session.flush()
+
+    for menu_id, permission_id in MENU_PERMISSIONS:
+        count("menu_permissions", await _add_if_missing(session, MenuPermission, {"menu_id": menu_id, "permission_id": permission_id}, menu_id=menu_id, permission_id=permission_id, allowed=True))
+    for profile_id, *_ in PROFILES:
+        for module_id, *_ in MODULES:
+            count("profile_modules", await _add_if_missing(session, ProfileModule, {"profile_id": profile_id, "module_id": module_id}, profile_id=profile_id, module_id=module_id, can_view=module_id in PROFILE_MODULES[profile_id]))
+        for permission_id, *_ in PERMISSIONS:
+            count("profile_permissions", await _add_if_missing(session, ProfilePermission, {"profile_id": profile_id, "permission_id": permission_id}, profile_id=profile_id, permission_id=permission_id, allowed=permission_id in PROFILE_PERMISSIONS[profile_id]))
+    await session.flush()
+    return added
+
+
+async def seed_users(session, now: datetime) -> int:
+    created = 0
+    for technical_id, user_id, profile_id in USERS:
+        exists = await session.scalar(select(User).where(User.user_id == user_id))
+        if exists is None:
+            session.add(User(id=technical_id, user_id=user_id, profile_id=profile_id, created_at=now))
+            created += 1
+    await session.flush()
+    return created
+
+
+async def seed_sample_projects(session, now: datetime) -> int:
+    admin = await session.scalar(select(User).where(User.user_id == USERS[0][1]))
+    existing_codes = set((await session.scalars(select(Project.code))).all())
+    created = 0
+    for index, (name, code, area, description, status) in enumerate(SAMPLE_PROJECTS, start=1):
+        if code in existing_codes:
+            continue
+        project = Project(
+            id=str(uuid4()), name=name, code=code, responsible_area=area, managers_ids=[admin.id],
+            write_group="SIGAC-Escrita", read_group="SIGAC-Leitura", write_identity_role="administrador",
+            read_identity_role="consultor", snow_task_number=f"TASK{1000 + index}", parent_folder=f"/Projetos/{code}",
+            description=description, status=status, participants_ids=[admin.id], created_at=now, updated_at=now,
+        )
+        session.add(project)
+        await session.flush()
+        session.add(ProjectMember(project_id=project.id, user_id=admin.id, role="administrador", created_at=now))
+        created += 1
+    await session.flush()
+    return created
+
+
+async def initialize_database(engine: AsyncEngine, *, sample_projects: bool = False) -> dict[str, int]:
+    scope = load_scope(settings.environment)
+    if sample_projects and scope != "full":
+        raise RuntimeError("Projetos de exemplo só podem ser carregados em development ou test")
     factory = async_sessionmaker(engine, expire_on_commit=False)
+    now = datetime.now(UTC)
     async with factory() as session:
-        existing_users = {row.user_id: row for row in (await session.scalars(select(User))).all()}
-        now = datetime.now(UTC).replace(tzinfo=None)
-        existing_profiles = {row.id: row for row in (await session.scalars(select(Profile))).all()}
-        for perfil_id, nome, descricao in SEED_PERFIS:
-            profile = existing_profiles.get(perfil_id)
-            if profile is None:
-                session.add(Profile(id=perfil_id, name=nome, description=descricao, created_at=now))
-            else:
-                profile.name = nome
-                profile.description = descricao
-        await session.flush()
-        profile_ids = {row.name: row.id for row in (await session.scalars(select(Profile))).all()}
-        existing_areas = {row.id for row in (await session.scalars(select(ResponsibleArea))).all()}
-        for area_id, name, prefix in SEED_AREAS:
-            if area_id not in existing_areas:
-                session.add(ResponsibleArea(id=area_id, name=name, prefix=prefix, next_number=1, active=True, created_at=now, updated_at=now))
-        await session.flush()
-        for module_id, name, route, icon, display_order in SEED_MODULES:
-            module = await session.get(Module, module_id)
-            if module is None:
-                session.add(Module(id=module_id, name=name, route=route, icon=icon, display_order=display_order, active=True))
-            else:
-                module.name = name
-                module.route = route
-                module.icon = icon
-                module.display_order = display_order
-                module.active = True
-        await session.flush()
-        for permission_id, module_id, name in SEED_PERMISSIONS:
-            permission = await session.get(Permission, permission_id)
-            if permission is None:
-                session.add(Permission(id=permission_id, module_id=module_id, name=name, description=name, active=True))
-            else:
-                permission.module_id = module_id
-                permission.name = name
-                permission.description = name
-                permission.active = True
-        for status_id, code, name, color, order, editable in SEED_STATUS:
-            if not await session.get(ProjectStatus, status_id):
-                session.add(ProjectStatus(id=status_id, code=code, name=name, color=color, display_order=order, active=True, allows_edit=editable))
-
-        for report_id, code, name, formats in SEED_REPORTS:
-            if not await session.get(ReportType, report_id):
-                session.add(ReportType(id=report_id, code=code, name=name, description=name, formats=formats, active=True))
-        for field_id, report_code, field_key, label, source_key, display_order in SEED_REPORT_FIELDS:
-            if not await session.get(ReportField, field_id):
-                session.add(ReportField(id=field_id, report_code=report_code, field_key=field_key, label=label, source_key=source_key, display_order=display_order, active=True))
-
-        for menu_id, module_id, name, route, icon, order in SEED_MENUS:
-            menu = await session.get(MenuItem, menu_id)
-            if menu is None:
-                session.add(MenuItem(id=menu_id, module_id=module_id, name=name, route=route, icon=icon, display_order=order, active=True))
-            else:
-                menu.module_id = module_id
-                menu.name = name
-                menu.route = route
-                menu.icon = icon
-                menu.display_order = order
-                menu.active = True
-        await session.flush()
-        for menu_id, permission_id in SEED_MENU_PERMISSIONS:
-            link = await session.get(MenuPermission, {"menu_id": menu_id, "permission_id": permission_id})
-            if link is None:
-                session.add(MenuPermission(menu_id=menu_id, permission_id=permission_id, allowed=True))
-            else:
-                link.allowed = True
-        for profile_id, module_id, can_view in SEED_PROFILE_MODULES:
-            profile_module = await session.get(ProfileModule, {"profile_id": profile_id, "module_id": module_id})
-            if profile_module is None:
-                session.add(ProfileModule(profile_id=profile_id, module_id=module_id, can_view=can_view))
-            else:
-                profile_module.can_view = can_view
-        await session.flush()
-        for profile_id in profile_ids.values():
-            for permission_id, _, _ in SEED_PERMISSIONS:
-                    profile_code = next((code for code, _, _ in SEED_PERFIS if code == profile_id), profile_id)
-                    allowed = SEED_PERMISSION_MATRIX.get(profile_code, {}).get(permission_id, False)
-                    profile_permission = await session.get(ProfilePermission, {"profile_id": profile_id, "permission_id": permission_id})
-                    if profile_permission is None:
-                        session.add(ProfilePermission(profile_id=profile_id, permission_id=permission_id, allowed=allowed))
-                    else:
-                        profile_permission.allowed = allowed
-        users = []
-        seed_users = SEED_USERS
-        for user_id, profile_id in seed_users:
-            user = existing_users.get(user_id)
-            if user is None:
-                users.append(User(id=hashlib.md5(user_id.encode("utf-8"), usedforsecurity=False).hexdigest(), user_id=user_id, profile_id=profile_id, created_at=now))
-            else:
-                user.profile_id = profile_id
-        session.add_all(users)
-        await session.flush()
-
-        # Sessões usam o código funcional (GFZE), enquanto usuários legados podem
-        # ter armazenado o UUID técnico. Corrige esses registros durante o seed.
-        all_users = {row.user_id: row for row in (await session.scalars(select(User))).all()}
-        users_by_technical_id = {row.id: row for row in all_users.values()}
-        sessions = (await session.scalars(select(UserSession))).all()
-        for auth_session in sessions:
-            legacy_user = users_by_technical_id.get(auth_session.user_id)
-            if legacy_user is not None:
-                auth_session.user_id = legacy_user.user_id
-
-        await session.flush()
-
-        all_users = {row.user_id: row for row in (await session.scalars(select(User))).all()}
-        admin = all_users[SEED_USERS[0][0]]
-        manager = admin
-        auditor = admin
-
-        existing_codes = {row.code for row in (await session.scalars(select(Project))).all()}
-        projects = []
-        seed_projects = SEED_PROJECTS
-        seed_users_for_projects = list(all_users.values())
-        for index, (name, code, area, description, status) in enumerate(seed_projects, start=1):
-            participant_ids = [person.id for person in seed_users_for_projects[:min(4, len(seed_users_for_projects))]]
-            manager_ids = [admin.id, manager.id]
-            if code not in existing_codes:
-                project = Project(
-                    id=str(uuid4()), name=name, code=code,
-                    responsible_area=area, managers_ids=manager_ids,
-                    write_group="SIGAC-Escrita", read_group="SIGAC-Leitura",
-                    write_identity_role="administrador", read_identity_role="consultor",
-                    snow_task_number=f"TASK{1000 + index}", parent_folder=f"/Projetos/{code}",
-                    description=description, status=status,
-                    participants_ids=participant_ids,
-                    created_at=now, updated_at=now,
-                )
-                projects.append(project)
-        session.add_all(projects)
-        await session.flush()
-
-        all_projects = {row.code: row for row in (await session.scalars(select(Project))).all()}
-        for project in all_projects.values():
-            for member, papel in ((admin, "administrador"), (manager, "gerente"), (auditor, "auditor")):
-                if not await session.get(ProjectMember, {"project_id": project.id, "user_id": member.id}):
-                    session.add(ProjectMember(project_id=project.id, user_id=member.id, role=papel, created_at=now))
-        await session.flush()
-
+        added = await seed_reference_data(session, now)
+        if scope == "full":
+            added["users"] = await seed_users(session, now)
+        if sample_projects:
+            added["projects"] = await seed_sample_projects(session, now)
         await session.commit()
+    return added
 
-__all__ = ["initialize_database"]
+
+async def _main(sample_projects: bool) -> None:
+    from app.db import session as db_session
+
+    db_session.configure_engine()
+    if db_session.engine is None:
+        raise RuntimeError("Banco não configurado; defina DATABASE_URL ou RDS_AURORA_POSTGRES_*")
+    try:
+        added = await initialize_database(db_session.engine, sample_projects=sample_projects)
+    finally:
+        await db_session.dispose_engine()
+    print(f"Seed concluído (engine={settings.database_engine}, environment={settings.environment}, escopo={load_scope(settings.environment)}):")
+    for table, total in added.items():
+        print(f"  {table}: {total} inserido(s)")
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Primeira carga de dados de referência de um banco novo.")
+    parser.add_argument("--sample-projects", action="store_true", help="inclui projetos fictícios (só development e test)")
+    parser.add_argument("--confirm", action="store_true", help="obrigatório em staging e produção")
+    arguments = parser.parse_args(argv)
+    try:
+        scope = load_scope(settings.environment)
+        if arguments.sample_projects and scope != "full":
+            raise RuntimeError("--sample-projects só é permitido em development ou test")
+        if scope == "reference" and not arguments.confirm:
+            raise RuntimeError(
+                f"ENVIRONMENT={settings.environment!r} exige --confirm; serão carregados somente os dados de referência"
+            )
+    except RuntimeError as error:
+        print(error, file=sys.stderr)
+        return 2
+    asyncio.run(_main(arguments.sample_projects))
+    return 0
+
+
+__all__ = ["initialize_database", "main"]
+
+if __name__ == "__main__":
+    sys.exit(main())

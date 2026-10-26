@@ -18,13 +18,16 @@ from app.core.config import settings
 from app.core.exceptions import AppException
 from app.core.logging import configure_logging, reset_request_id, set_request_id
 from app.db.session import connect, disconnect, session_factory
+from app.modules.audit.module import router as audit_router
 from app.modules.audit.repository import ActivityLogRepository
+from app.modules.catalogs.module import router as catalogs_router
+from app.modules.folders.module import router as folders_router
+from app.modules.platform.module import router as platform_router
+from app.modules.projects.module import router as projects_router
+from app.modules.reports.module import router as reports_router
+from app.modules.users.module import router as users_router
 
 configure_logging(settings.log_level)
-from app.modules.files.module import router as folders_router
-from app.modules.platform.controller import router as platform_router
-from app.modules.projects.module import router as projects_router
-from app.modules.reports.controller import router as reports_router
 
 logger = logging.getLogger(__name__)
 
@@ -156,11 +159,12 @@ def create_app() -> FastAPI:
     application.include_router(cav4_auth_router)
     application.include_router(email_auth_router)
 
+    application.include_router(catalogs_router)
     application.include_router(projects_router)
     application.include_router(folders_router)
     application.include_router(platform_router)
     application.include_router(reports_router)
-    from app.modules.audit.controller import router as audit_router
+    application.include_router(users_router)
     application.include_router(audit_router)
     return application
 
