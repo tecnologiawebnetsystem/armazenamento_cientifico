@@ -58,7 +58,14 @@ async def sync_folders(
         raise HTTPException(status_code=422, detail=str(error)) from error
     except Exception as error:
         logger.exception("[folders] sync_unexpected_error request_id=%s project_id=%s", operation_id, project_id)
-        raise HTTPException(status_code=500, detail=f"Falha ao atualizar a área de rede: {type(error).__name__}") from error
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": str(error),
+                "request_id": operation_id,
+                "stage": "insert_or_integrity",
+            },
+        ) from error
     return {"folders": folders, "inserted": inserted, "existing": existing,
             "integrity": integrity,
             "message": "A estrutura já estava cadastrada" if existing else f"{inserted} pastas cadastradas"}

@@ -36,10 +36,6 @@ class FolderService:
 
     async def sync_project_folders(self, project_id: str, created_by: str, request_id: str) -> tuple[list[Folder], int, bool, dict[str, int]]:
         logger.info("[folders] sync_start request_id=%s project_id=%s created_by=%s", request_id, project_id, created_by)
-        if await self.repository.has_project_folders(project_id):
-            logger.info("[folders] sync_skip_existing request_id=%s project_id=%s", request_id, project_id)
-            existing = await self.repository.find_by_project(project_id)
-            return existing, 0, True, await self.repository.verify_project_folders(project_id)
         project = await self.repository.find_project(project_id)
         parent_folder = (getattr(project, "parent_folder", None) or "").strip()
         if not parent_folder:
@@ -55,15 +51,32 @@ class FolderService:
             )
         except asyncio.TimeoutError as error:
             raise ValueError("A atualização excedeu o limite de 5 minutos") from error
-        logger.info("[folders] discovery_complete project_id=%s quantity=%d", project_id, len(discovered))
+        logger.info("[folders] discovery_complete request_id=%s project_id=%s quantity=%d", request_id, project_id, len(discovered))
         if not discovered:
             raise ValueError("Nenhuma pasta foi encontrada na pasta-mãe")
-        await self.repository.create_many(discovered, request_id)
+        existing_ids = await self.repository.existing_ids(project_id)
+        pending = [folder for folder in discovered if folder.id not in existing_ids]
+        logger.info(
+            "[folders] sync_plan request_id=%s project_id=%s discovered=%d existing=%d pending=%d",
+            request_id, project_id, len(discovered), len(existing_ids), len(pending),
+        )
+        total = len(pending)
+        for index, folder in enumerate(pending, start=1):
+            try:
+                await self.repository.create_one(folder, request_id, index, total)
+            except Exception as error:
+                logger.exception(
+                    "[folders] sync_insert_failed request_id=%s project_id=%s item=%d/%d nome=%r",
+                    request_id, project_id, index, total, folder.name,
+                )
+                raise RuntimeError(
+                    f"Falha no insert da pasta {index}/{total} ({folder.name!r}): {type(error).__name__}"
+                ) from error
         integrity = await self.repository.verify_project_folders(project_id)
         if integrity["total"] != len(discovered) or integrity["invalid_parents"] or integrity["invalid_kinds"]:
             raise RuntimeError(f"Integridade inválida após o commit: {integrity}")
-        logger.info("[folders] sync_complete request_id=%s project_id=%s inserted=%d", request_id, project_id, len(discovered))
-        return discovered, len(discovered), False, integrity
+        logger.info("[folders] sync_complete request_id=%s project_id=%s inserted=%d total=%d", request_id, project_id, len(pending), len(discovered))
+        return discovered, len(pending), len(pending) == 0, integrity
 
     @staticmethod
     def _discover_folders(project_id: str, root: Path, created_by: str) -> list[Folder]:

@@ -57,7 +57,7 @@ async function fetchRequest(url: string, init?: RequestInit, timeoutMs = 60_000)
   }
 }
 
-type ApiErrorBody = { message?: string; detail?: string }
+type ApiErrorBody = { message?: string; detail?: string | Record<string, unknown> }
 
 export function isApiError(error: unknown, status?: number): error is ApiError {
   return error instanceof ApiError && (status === undefined || error.status === status)
@@ -67,7 +67,10 @@ async function request<T>(path: string, init?: RequestInit, timeoutMs?: number):
   const res = await fetchRequest(`${API_BASE_URL}${path}`, init, timeoutMs)
   if (!res.ok) {
     const body = (await res.json().catch(() => ({ message: res.statusText }))) as ApiErrorBody
-    throw new ApiError(res.status, body.message ?? body.detail ?? "Erro inesperado na requisição")
+    const detail = typeof body.detail === "object" && body.detail !== null
+      ? JSON.stringify(body.detail)
+      : body.detail
+    throw new ApiError(res.status, body.message ?? detail ?? "Erro inesperado na requisição")
   }
 
   if (res.status === 204) return undefined as T
