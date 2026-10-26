@@ -14,6 +14,8 @@ import type {
 const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
 // No desenvolvimento, chamadas relativas passam pelo rewrite do Next e evitam CORS entre :3000 e :8080.
 const API_BASE_URL = (process.env.NODE_ENV === "development" ? "" : configuredApiBaseUrl || "").replace(/\/$/, "")
+const API_FAILURE_COOLDOWN_MS = 15_000
+let apiUnavailableUntil = 0
 
 export const API_CONFIG = {
   baseUrl: API_BASE_URL,
@@ -66,7 +68,17 @@ export function isApiError(error: unknown, status?: number): error is ApiError {
 }
 
 async function request<T>(path: string, init?: RequestInit, timeoutMs?: number): Promise<T> {
-  const res = await fetchRequest(`${API_BASE_URL}${path}`, init, timeoutMs)
+  if (Date.now() < apiUnavailableUntil) {
+    throw new ApiError(503, "A API está temporariamente indisponível. A nova tentativa será feita automaticamente em alguns segundos.")
+  }
+  let res: Response
+  try {
+    res = await fetchRequest(`${API_BASE_URL}${path}`, init, timeoutMs)
+  } catch (error) {
+    apiUnavailableUntil = Date.now() + API_FAILURE_COOLDOWN_MS
+    throw error
+  }
+  if (res.status >= 500) apiUnavailableUntil = Date.now() + API_FAILURE_COOLDOWN_MS
   if (!res.ok) {
     const body = (await res.json().catch(() => ({ message: res.statusText }))) as ApiErrorBody
     const detail = typeof body.detail === "object" && body.detail !== null

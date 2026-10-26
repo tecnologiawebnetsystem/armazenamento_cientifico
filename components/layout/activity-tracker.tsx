@@ -5,10 +5,17 @@ import { usePathname } from "next/navigation"
 import { recordAuditEvent } from "@/lib/api-client"
 import { useSession } from "@/hooks/use-session"
 
+let auditDisabledUntil = 0
+
 function reportAuditFailure(error: unknown) {
   if (typeof window !== "undefined") {
-    console.warn("[v0] Evento de auditoria não persistido", error)
+    auditDisabledUntil = Date.now() + 30_000
+    console.warn("[v0] Auditoria pausada por 30 segundos após falha da API", error)
   }
+}
+
+function canSendAudit() {
+  return Date.now() >= auditDisabledUntil
 }
 
 export function ActivityTracker() {
@@ -16,13 +23,14 @@ export function ActivityTracker() {
   const { user, isLoading: sessionLoading } = useSession()
 
   useEffect(() => {
-    if (sessionLoading || !user) return
+    if (sessionLoading || !user || !canSendAudit()) return
     void recordAuditEvent({ action: "visualizar_pagina", entity: "pagina", entity_id: pathname, details: { rota: pathname } }).catch(reportAuditFailure)
   }, [pathname, sessionLoading, user])
 
   useEffect(() => {
     if (sessionLoading || !user) return
     const handleSubmit = (event: SubmitEvent) => {
+      if (!canSendAudit()) return
       const form = event.target instanceof HTMLFormElement ? event.target : null
       if (!form) return
       void recordAuditEvent({
@@ -42,6 +50,7 @@ export function ActivityTracker() {
     }
 
     const handleDownloadClick = (event: MouseEvent) => {
+      if (!canSendAudit()) return
       const anchor = event.target instanceof Element ? event.target.closest("a") as HTMLAnchorElement | null : null
       if (!anchor?.download && !anchor?.href) return
       const href = anchor.href
@@ -56,6 +65,7 @@ export function ActivityTracker() {
     }
 
     const handleError = (event: ErrorEvent) => {
+      if (!canSendAudit()) return
       void recordAuditEvent({
         action: "erro_frontend",
         entity: "aplicacao",
@@ -65,6 +75,7 @@ export function ActivityTracker() {
     }
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      if (!canSendAudit()) return
       void recordAuditEvent({
         action: "erro_frontend",
         entity: "aplicacao",
