@@ -51,6 +51,11 @@ class FolderRepository:
         await self.session.flush()
         return folder
 
+    async def create_many(self, folders: list[Folder]) -> list[Folder]:
+        self.session.add_all(folders)
+        await self.session.flush()
+        return folders
+
     async def update(self, folder: Folder) -> Folder:
         await self.session.merge(folder)
         await self.session.flush()
