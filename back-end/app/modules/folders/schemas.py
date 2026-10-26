@@ -35,3 +35,4 @@ class FolderSyncOut(FolderListOut):
     inserted: int
     existing: bool
     message: str
+    integrity: dict[str, int]

@@ -34,11 +34,12 @@ class FolderService:
         """
         return await self.list_folders_by_project(project_id)
 
-    async def sync_project_folders(self, project_id: str, created_by: str) -> tuple[list[Folder], int, bool]:
-        logger.info("[folders] sync_start project_id=%s created_by=%s", project_id, created_by)
+    async def sync_project_folders(self, project_id: str, created_by: str, request_id: str) -> tuple[list[Folder], int, bool, dict[str, int]]:
+        logger.info("[folders] sync_start request_id=%s project_id=%s created_by=%s", request_id, project_id, created_by)
         if await self.repository.has_project_folders(project_id):
-            logger.info("[folders] sync_skip_existing project_id=%s", project_id)
-            return await self.repository.find_by_project(project_id), 0, True
+            logger.info("[folders] sync_skip_existing request_id=%s project_id=%s", request_id, project_id)
+            existing = await self.repository.find_by_project(project_id)
+            return existing, 0, True, await self.repository.verify_project_folders(project_id)
         project = await self.repository.find_project(project_id)
         parent_folder = (getattr(project, "parent_folder", None) or "").strip()
         if not parent_folder:
@@ -57,9 +58,12 @@ class FolderService:
         logger.info("[folders] discovery_complete project_id=%s quantity=%d", project_id, len(discovered))
         if not discovered:
             raise ValueError("Nenhuma pasta foi encontrada na pasta-mãe")
-        await self.repository.create_many(discovered)
-        logger.info("[folders] sync_complete project_id=%s inserted=%d", project_id, len(discovered))
-        return discovered, len(discovered), False
+        await self.repository.create_many(discovered, request_id)
+        integrity = await self.repository.verify_project_folders(project_id)
+        if integrity["total"] != len(discovered) or integrity["invalid_parents"] or integrity["invalid_kinds"]:
+            raise RuntimeError(f"Integridade inválida após o commit: {integrity}")
+        logger.info("[folders] sync_complete request_id=%s project_id=%s inserted=%d", request_id, project_id, len(discovered))
+        return discovered, len(discovered), False, integrity
 
     @staticmethod
     def _discover_folders(project_id: str, root: Path, created_by: str) -> list[Folder]:
