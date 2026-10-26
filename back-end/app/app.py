@@ -151,9 +151,22 @@ def create_app() -> FastAPI:
 
     @application.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception):
-        logger.exception("unhandled_request_error method=%s path=%s", request.method, request.url.path)
+        request_id = getattr(request.state, "correlation_id", None) or str(uuid4())
+        logger.exception(
+            "unhandled_request_error method=%s path=%s request_id=%s error_type=%s",
+            request.method, request.url.path, request_id, type(exc).__name__,
+        )
         message = "Erro interno do servidor" if settings.environment.lower() == "production" else str(exc)
-        return JSONResponse(status_code=500, content={"error": "InternalError", "message": message, "details": {}})
+        response = JSONResponse(
+            status_code=500,
+            content={
+                "error": "InternalError",
+                "message": message,
+                "details": {"request_id": request_id, "error_type": type(exc).__name__},
+            },
+        )
+        response.headers["X-Request-ID"] = request_id
+        return response
 
     application.include_router(health_router)
     application.include_router(legacy_health_router)
