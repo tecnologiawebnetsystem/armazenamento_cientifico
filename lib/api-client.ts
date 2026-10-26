@@ -12,7 +12,8 @@ import type {
 } from "@/lib/types"
 
 const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
-const API_BASE_URL = (configuredApiBaseUrl || "").replace(/\/$/, "")
+// No desenvolvimento, chamadas relativas passam pelo rewrite do Next e evitam CORS entre :3000 e :8080.
+const API_BASE_URL = (process.env.NODE_ENV === "development" ? "" : configuredApiBaseUrl || "").replace(/\/$/, "")
 
 export const API_CONFIG = {
   baseUrl: API_BASE_URL,
@@ -29,9 +30,9 @@ export class ApiError extends Error {
   }
 }
 
-async function fetchRequest(url: string, init?: RequestInit): Promise<Response> {
+async function fetchRequest(url: string, init?: RequestInit, timeoutMs = 60_000): Promise<Response> {
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 60_000)
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
     return await fetch(url, {
@@ -55,8 +56,8 @@ export function isApiError(error: unknown, status?: number): error is ApiError {
   return error instanceof ApiError && (status === undefined || error.status === status)
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetchRequest(`${API_BASE_URL}${path}`, init)
+async function request<T>(path: string, init?: RequestInit, timeoutMs?: number): Promise<T> {
+  const res = await fetchRequest(`${API_BASE_URL}${path}`, init, timeoutMs)
   if (!res.ok) {
     const body = (await res.json().catch(() => ({ message: res.statusText }))) as ApiErrorBody
     throw new ApiError(res.status, body.message ?? body.detail ?? "Erro inesperado na requisição")
@@ -212,7 +213,11 @@ export function getFolders(projectId: string) {
 }
 
 export function syncFolders(projectId: string) {
-  return request<{ folders: FileNode[]; inserted: number; existing: boolean; message: string }>(`/api/folders/sync?projectId=${encodeURIComponent(projectId)}`, { method: "POST" })
+  return request<{ folders: FileNode[]; inserted: number; existing: boolean; message: string }>(
+    `/api/folders/sync?projectId=${encodeURIComponent(projectId)}`,
+    { method: "POST" },
+    310_000,
+  )
 }
 
 /* -------------------------------- Dashboard -------------------------------- */
