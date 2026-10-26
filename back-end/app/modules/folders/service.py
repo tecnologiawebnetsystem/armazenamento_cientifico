@@ -74,6 +74,44 @@ class FolderService:
             for entry in entries
         ]
 
+    async def sync_project_folders(self, project_id: str, created_by: str) -> tuple[list[Folder], int, bool]:
+        if await self.repository.has_project_folders(project_id):
+            return await self.repository.find_by_project(project_id), 0, True
+        project = await self.repository.find_project(project_id)
+        parent_folder = (getattr(project, "parent_folder", None) or "").strip()
+        if not parent_folder:
+            raise ValueError("A área de rede não possui uma pasta-mãe configurada")
+        root = Path(parent_folder)
+        if not root.is_dir():
+            raise ValueError("A pasta-mãe não existe ou não está acessível")
+
+        now = datetime.now(UTC)
+        discovered: list[Folder] = []
+        ids_by_path: dict[str, str] = {}
+        for current, dirs, _ in os.walk(root, followlinks=False):
+            dirs[:] = sorted([name for name in dirs if not (Path(current) / name).is_symlink()], key=str.casefold)
+            current_path = Path(current)
+            if current_path == root:
+                continue
+            folder_id = str(uuid5(NAMESPACE_URL, f"{project_id}:{current_path}"))
+            ids_by_path[str(current_path)] = folder_id
+            parent_path = str(current_path.parent)
+            size = 0
+            try:
+                for file_path in current_path.rglob("*"):
+                    if file_path.is_file() and not file_path.is_symlink():
+                        try:
+                            size += file_path.stat().st_size
+                        except OSError:
+                            continue
+            except OSError:
+                pass
+            discovered.append(Folder(id=folder_id, project_id=project_id,
+                parent_id=ids_by_path.get(parent_path), kind="pasta", name=current_path.name,
+                created_by=created_by, created_at=now, updated_at=now, size=size))
+        await self.repository.create_many(discovered)
+        return discovered, len(discovered), False
+
     async def can_list_project(self, project_id: str, user_id: str, role: str) -> bool:
         return await self.repository.can_view_project(project_id, user_id, role)
 

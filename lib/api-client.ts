@@ -211,6 +211,10 @@ export function getFolders(projectId: string) {
   return request<{ folders: FileNode[] }>(`/api/folders?projectId=${encodeURIComponent(projectId)}`)
 }
 
+export function syncFolders(projectId: string) {
+  return request<{ folders: FileNode[]; inserted: number; existing: boolean; message: string }>(`/api/folders/sync?projectId=${encodeURIComponent(projectId)}`, { method: "POST" })
+}
+
 /* -------------------------------- Dashboard -------------------------------- */
 
 export function getDashboardSummary() {
