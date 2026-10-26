@@ -34,12 +34,18 @@ class ActivityLogRepository:
         if resolved_user_id is None and user_id:
             safe_details = {**safe_details, "usuario_auditoria_nao_localizado": user_id}
 
+        # Bancos locais anteriores à migração 008 ainda podem ter entity_id VARCHAR(36).
+        # O caminho completo continua em route; manter este campo compatível evita
+        # que a auditoria derrube requisições de negócio durante a transição.
+        safe_entity_id = str(entity_id)[:36] if entity_id else None
+        if entity_id and len(str(entity_id)) > 36:
+            logger.warning("audit_entity_id_truncated original_length=%d", len(str(entity_id)))
         log = ActivityLog(
             id=str(uuid4()),
             user_id=resolved_user_id,
             action=action,
             entity=entity,
-            entity_id=entity_id,
+            entity_id=safe_entity_id,
             details=json.dumps(safe_details, ensure_ascii=False, default=str),
             result=result,
             correlation_id=correlation_id,
