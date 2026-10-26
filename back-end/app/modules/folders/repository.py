@@ -24,8 +24,33 @@ class FolderRepository:
         )
         return list(result)
 
+    async def existing_ids(self, project_id: str) -> set[str]:
+        result = await self.session.scalars(select(Folder.id).where(Folder.project_id == project_id))
+        return set(result)
+
     async def has_project_folders(self, project_id: str) -> bool:
         return await self.session.scalar(select(Folder.id).where(Folder.project_id == project_id).limit(1)) is not None
+
+    async def create_one(self, folder: Folder, request_id: str, index: int, total: int) -> None:
+        logger.info(
+            "[folders] insert_start request_id=%s item=%d/%d id=%s parent_id=%s nome=%r",
+            request_id, index, total, folder.id, folder.parent_id, folder.name,
+        )
+        try:
+            self.session.add(folder)
+            await self.session.flush()
+            await self.session.commit()
+        except Exception:
+            await self.session.rollback()
+            logger.exception(
+                "[folders] insert_error request_id=%s item=%d/%d id=%s parent_id=%s nome=%r",
+                request_id, index, total, folder.id, folder.parent_id, folder.name,
+            )
+            raise
+        logger.info(
+            "[folders] insert_committed request_id=%s item=%d/%d id=%s nome=%r tamanho_bytes=%s",
+            request_id, index, total, folder.id, folder.name, folder.size,
+        )
 
     async def create_many(self, folders: list[Folder], request_id: str | None = None) -> None:
         logger.info("[folders] insert_batch_start request_id=%s quantidade=%d", request_id, len(folders))
