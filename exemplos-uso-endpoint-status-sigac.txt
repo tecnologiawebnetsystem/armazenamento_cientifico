@@ -1,0 +1,336 @@
+EXEMPLOS DE UTILIZAÇÃO DO ENDPOINT DE ATUALIZAÇÃO DE STATUS DO SIGAC
+
+Endpoint recomendado
+====================
+
+PUT /ti/itsm/v1/itsm-chamados/chamados/ref/{RefChamado}/status
+
+O parâmetro {RefChamado} deve receber a referência funcional do chamado no SIGAC, por exemplo:
+
+- INC0012345
+- RITM0012345
+- CHG0012345
+
+A utilização do RefChamado é recomendada porque esse número é normalmente apresentado ao usuário e utilizado nos processos do SIGAC. O IdChamado pode continuar sendo utilizado em situações nas quais o sistema já possua o identificador interno.
+
+O corpo da requisição deve conter o novo status e os campos complementares exigidos pela transição. Os nomes exatos dos campos devem ser confirmados na documentação técnica do SIGAC antes da implementação.
+
+Exemplo conceitual de requisição:
+
+PUT /ti/itsm/v1/itsm-chamados/chamados/ref/INC0012345/status
+Content-Type: application/json
+Authorization: Bearer {token}
+
+{
+  "status": "Em atendimento",
+  "observacao": "Chamado assumido pela equipe responsável."
+}
+
+Os valores de status do sistema de origem não devem ser enviados diretamente sem validação. Deve existir uma tabela de conversão entre os status do SIGAC e os status aceitos pelo endpoint.
+
+
+EXEMPLO 1 - USUÁRIO DE ATENDIMENTO CONSULTA E ASSUME UM CHAMADO
+===============================================================
+
+Perfil do usuário:
+Atendente de Service Desk.
+
+Menu acessado:
+Gestão > Chamados > Meus chamados ou Chamados pendentes.
+
+Fluxo do usuário:
+
+1. O atendente acessa o menu de chamados pendentes.
+2. O SIGAC apresenta a lista de chamados disponíveis para atendimento.
+3. O atendente seleciona um chamado pelo número de referência, por exemplo INC0012345.
+4. O sistema consulta os dados atuais do chamado.
+5. O atendente clica em “Assumir chamado” ou “Iniciar atendimento”.
+6. O SIGAC valida se o usuário possui permissão para realizar a ação.
+7. O sistema identifica o status atual do chamado e verifica se a transição é permitida.
+8. O SIGAC envia uma requisição para:
+
+PUT /ti/itsm/v1/itsm-chamados/chamados/ref/INC0012345/status
+
+9. O endpoint recebe o novo status, por exemplo “Em atendimento”.
+10. Após o retorno de sucesso, o SIGAC atualiza a tela e apresenta o novo status.
+11. O sistema registra a operação no histórico do chamado e na auditoria.
+
+Exemplo de resultado esperado:
+
+- Status anterior: Novo
+- Status novo: Em atendimento
+- Usuário responsável: usuário que realizou a ação
+- Data e hora da alteração: data e hora do processamento
+- Referência: INC0012345
+
+Se o endpoint retornar erro, o status local não deve ser atualizado como se a operação tivesse sido concluída.
+
+
+EXEMPLO 2 - USUÁRIO DE ATENDIMENTO COLOCA O CHAMADO EM PENDÊNCIA
+================================================================
+
+Perfil do usuário:
+Atendente ou analista responsável pelo chamado.
+
+Menu acessado:
+Gestão > Chamados > Meus chamados.
+
+Fluxo do usuário:
+
+1. O atendente abre o chamado INC0012345.
+2. Verifica que não consegue prosseguir porque depende de uma informação do solicitante.
+3. Seleciona a ação “Colocar em pendência”.
+4. O SIGAC abre um campo obrigatório para informar o motivo da pendência.
+5. O usuário informa, por exemplo: “Aguardando retorno do solicitante com evidências do erro”.
+6. O sistema valida o preenchimento do motivo.
+7. O SIGAC envia a atualização para o endpoint de status.
+
+Exemplo conceitual:
+
+PUT /ti/itsm/v1/itsm-chamados/chamados/ref/INC0012345/status
+
+{
+  "status": "Pendente",
+  "motivoPendencia": "Aguardando retorno do solicitante com evidências do erro."
+}
+
+8. Se o SIGAC confirmar a alteração, o chamado passa para Pendente.
+9. O motivo informado fica registrado no histórico.
+10. O sistema pode gerar uma notificação para o solicitante, conforme regra do processo.
+
+Regra importante:
+Não permitir o envio do status Pendente sem o motivo obrigatório, caso essa exigência esteja definida pelo SIGAC.
+
+
+EXEMPLO 3 - ANALISTA RESOLVE O CHAMADO
+=======================================
+
+Perfil do usuário:
+Analista de segundo nível ou equipe responsável pela solução.
+
+Menu acessado:
+Gestão > Chamados > Em atendimento.
+
+Fluxo do usuário:
+
+1. O analista abre um chamado que está com status Em atendimento.
+2. Realiza a análise e executa a correção.
+3. Seleciona a ação “Resolver chamado”.
+4. O sistema solicita os dados obrigatórios da solução.
+5. O analista informa a descrição da solução aplicada.
+6. O SIGAC valida se o chamado pode ser movido para Resolvido.
+7. O SIGAC envia a atualização para o endpoint.
+
+Exemplo conceitual:
+
+PUT /ti/itsm/v1/itsm-chamados/chamados/ref/INC0012345/status
+
+{
+  "status": "Resolvido",
+  "solucao": "Foi corrigida a configuração de acesso e validado o funcionamento com o usuário."
+}
+
+8. Com retorno de sucesso, o SIGAC atualiza o chamado para Resolvido.
+9. A solução fica gravada no histórico.
+10. O solicitante pode ser notificado para validar a solução.
+
+Regra importante:
+O SIGAC deve impedir que o chamado seja resolvido sem a descrição da solução, quando esse campo for obrigatório para o status.
+
+
+EXEMPLO 4 - SOLICITANTE OU ATENDENTE REABRE UM CHAMADO
+=======================================================
+
+Perfil do usuário:
+Solicitante autorizado, atendente ou gestor responsável.
+
+Menu acessado:
+Gestão > Chamados > Chamados encerrados ou Meus chamados.
+
+Fluxo do usuário:
+
+1. O usuário consulta um chamado com status Resolvido ou Fechado.
+2. Informa que o problema ainda não foi solucionado.
+3. Seleciona a opção “Reabrir chamado”, quando essa permissão estiver disponível.
+4. O sistema solicita o motivo da reabertura.
+5. O SIGAC valida se a reabertura é permitida para o tipo e o status atual.
+6. O sistema envia a requisição de atualização.
+
+Exemplo conceitual:
+
+PUT /ti/itsm/v1/itsm-chamados/chamados/ref/INC0012345/status
+
+{
+  "status": "Reaberto",
+  "observacao": "O erro voltou a ocorrer após a solução inicial."
+}
+
+7. O chamado retorna para a fila de atendimento.
+8. O sistema registra quem realizou a reabertura, quando ocorreu e o motivo informado.
+
+
+EXEMPLO 5 - GESTOR ACOMPANHA A SITUAÇÃO DOS CHAMADOS
+=====================================================
+
+Perfil do usuário:
+Gestor de atendimento, coordenador ou supervisor.
+
+Menu acessado:
+Relatórios > Chamados ou Gestão > Consultas.
+
+Fluxo do usuário:
+
+1. O gestor acessa a consulta de chamados.
+2. Filtra chamados por período, equipe, responsável ou status.
+3. O SIGAC apresenta o status armazenado no sistema.
+4. Para cada chamado, o sistema pode consultar o status atual no SIGAC usando o RefChamado.
+5. Caso seja identificada diferença entre o status local e o status retornado, o sistema registra uma inconsistência.
+6. A atualização automática não deve ser realizada diretamente pela tela do gestor sem regra de permissão e auditoria.
+
+Esse fluxo é útil para conferência e monitoramento, mas deve ser separado da rotina automática de sincronização.
+
+
+EXEMPLO 6 - SINCRONIZAÇÃO AUTOMÁTICA APÓS ALTERAÇÃO NO SIGAC
+==============================================================
+
+Origem do evento:
+Alteração de status realizada em outro processo do SIGAC, por exemplo, atendimento, aprovação ou integração.
+
+Fluxo automático:
+
+1. O processo identifica que o status de um chamado foi alterado.
+2. Obtém o RefChamado do registro.
+3. Consulta o status atual no sistema de destino, se necessário.
+4. Compara o status atual com o status que precisa ser sincronizado.
+5. Aplica a tabela de conversão de status.
+6. Envia a requisição para o endpoint de atualização.
+7. Registra o resultado da tentativa.
+8. Em caso de falha temporária, coloca a operação em uma fila para nova tentativa.
+9. Em caso de erro definitivo, registra a inconsistência para tratamento manual.
+
+A rotina automática deve evitar atualizar o chamado quando o status já estiver igual ao status desejado.
+
+
+TABELA CONCEITUAL DE MAPEAMENTO
+================================
+
+A tabela abaixo é apenas uma estrutura inicial. Os nomes oficiais dos status devem ser confirmados com os responsáveis pelo processo.
+
+Status no processo de origem       Status equivalente no SIGAC       Observação
+-----------------------------      ----------------------------       ------------------------------
+Novo                               Novo                               Chamado criado e ainda não tratado
+Em análise                         Em atendimento                     Equipe iniciou a avaliação
+Aguardando usuário                Pendente                            Depende de informação externa
+Aguardando terceiro               Pendente                            Depende de fornecedor ou outra equipe
+Solucionado                       Resolvido                           Solução aplicada e registrada
+Encerrado                         Fechado                             Processo concluído
+Reaberto                          Reaberto                            Necessita novo atendimento
+Cancelado                         Cancelado                           Atendimento cancelado conforme regra
+
+O mapeamento deve considerar que nem todos os status de origem possuem correspondência direta. Quando não houver equivalência, o sistema não deve enviar uma atualização automática sem registrar a inconsistência.
+
+
+VALIDAÇÕES ANTES DO ENVIO
+=========================
+
+Antes de chamar o endpoint, o SIGAC deve validar:
+
+1. O RefChamado foi informado e possui formato válido.
+2. O chamado existe no sistema.
+3. O usuário ou processo possui autorização para alterar o status.
+4. O status de origem possui correspondência no SIGAC.
+5. A transição entre o status atual e o novo status é permitida.
+6. Os campos obrigatórios da transição foram preenchidos.
+7. O chamado não está sendo atualizado por outra operação simultânea.
+8. A mesma alteração ainda não foi processada anteriormente.
+9. O token e demais informações de autenticação estão válidos.
+
+
+TRATAMENTO DOS RETORNOS
+=======================
+
+Sucesso:
+
+- Atualizar a tela e o registro local.
+- Gravar o status anterior e o novo status.
+- Registrar usuário, data, endpoint e resposta.
+- Exibir mensagem de sucesso ao usuário.
+
+Chamado não encontrado:
+
+- Não alterar o status local.
+- Registrar a referência consultada.
+- Informar que o chamado não foi localizado.
+- Encaminhar para análise cadastral.
+
+Status ou parâmetro inválido:
+
+- Não repetir automaticamente sem corrigir os dados.
+- Registrar os campos enviados e a mensagem retornada.
+- Exibir orientação para o usuário ou responsável técnico.
+
+Falha de autenticação ou autorização:
+
+- Não alterar o status local.
+- Registrar a falha de autenticação.
+- Solicitar renovação do token ou correção da permissão.
+- Não expor credenciais na tela ou nos logs.
+
+Erro temporário ou indisponibilidade:
+
+- Manter o status local como pendente de sincronização.
+- Realizar novas tentativas com intervalo progressivo.
+- Limitar a quantidade de tentativas.
+- Criar uma inconsistência para tratamento manual após o limite.
+
+Conflito de atualização:
+
+- Consultar novamente o status atual.
+- Comparar com a alteração pretendida.
+- Se a atualização já tiver sido realizada, considerar a operação concluída.
+- Se houver outro status, encaminhar para análise.
+
+
+REGISTRO DE AUDITORIA RECOMENDADO
+==================================
+
+Para cada tentativa, registrar:
+
+- RefChamado;
+- IdChamado, quando disponível;
+- status anterior;
+- status pretendido;
+- status retornado;
+- usuário ou processo responsável;
+- data e hora da tentativa;
+- endpoint utilizado;
+- código HTTP retornado;
+- mensagem de retorno;
+- quantidade de tentativas;
+- identificador de correlação;
+- resultado final: sucesso, pendente ou erro.
+
+Não registrar token, senha ou dados sensíveis nos logs.
+
+
+RECOMENDAÇÃO FINAL
+==================
+
+Para as ações realizadas na tela do SIGAC, recomendo utilizar o endpoint de atualização de status por RefChamado:
+
+PUT /ti/itsm/v1/itsm-chamados/chamados/ref/{RefChamado}/status
+
+O usuário visualiza o chamado, executa uma ação compatível com seu perfil e o SIGAC converte essa ação em um novo status. O sistema valida a transição, envia o RefChamado e os campos obrigatórios, aguarda a confirmação do endpoint e somente então atualiza o registro local.
+
+O endpoint por IdChamado deve ser mantido como alternativa técnica para processos internos que já possuam o identificador. Os endpoints de atualização de registro, criação de anotação e designação devem ser utilizados como operações complementares, não como substitutos da atualização específica de status.
+
+Antes do desenvolvimento, devem ser confirmados com os responsáveis:
+
+- nomes oficiais dos status de origem;
+- nomes oficiais dos status do SIGAC;
+- mapeamento entre os sistemas;
+- transições permitidas;
+- campos obrigatórios por transição;
+- perfis autorizados;
+- comportamento para conflitos e indisponibilidade;
+- necessidade de notificações e anotações automáticas.
