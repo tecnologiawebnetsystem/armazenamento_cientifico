@@ -16,14 +16,14 @@ class FakeRepository:
         self.saved = []
         self.committed_request_id = None
 
-    async def has_project_folders(self, project_id: str) -> bool:
-        return bool(self.saved)
+    async def existing_ids(self, project_id: str) -> set[str]:
+        return {folder.id for folder in self.saved}
 
     async def find_project(self, project_id: str):
         return self.project
 
-    async def create_many(self, folders, request_id=None):
-        self.saved.extend(folders)
+    async def create_one(self, folder, request_id, index, total):
+        self.saved.append(folder)
         self.committed_request_id = request_id
 
     async def verify_project_folders(self, project_id: str):
@@ -46,7 +46,7 @@ async def test_sync_persists_tree_and_returns_integrity(tmp_path: Path):
     (root / "A" / "file.txt").write_bytes(b"1234")
     repository = FakeRepository(str(root))
 
-    folders, inserted, existing, integrity = await FolderService(repository).sync_project_folders(
+    folders, inserted, existing, integrity, _trace = await FolderService(repository).sync_project_folders(
         "project-1", "user-1", "request-1"
     )
 
