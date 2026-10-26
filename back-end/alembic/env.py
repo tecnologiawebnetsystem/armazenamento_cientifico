@@ -64,6 +64,10 @@ async def run_async_migrations() -> None:
     )
     async with connectable.connect() as connection:
         if connection.dialect.name == "postgresql":
+            # O schema isolado é parte da configuração do ambiente. Criá-lo aqui
+            # evita que o Alembic migre para um banco sem search_path utilizável
+            # ou deixe a aplicação apontando para tabelas inexistentes.
+            await connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{settings.db_schema}"'))
             await connection.execute(text(f'SET search_path TO "{settings.db_schema}"'))
             # Sem commit aqui, o autobegin do SQLAlchemy 2.0 deixa essa transação
             # aberta e o rollback implícito no fechamento da conexão desfaz as
