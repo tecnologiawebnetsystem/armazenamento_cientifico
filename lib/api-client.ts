@@ -23,16 +23,18 @@ export const API_CONFIG = {
 
 export class ApiError extends Error {
   status: number
-  constructor(status: number, message: string) {
+  requestId?: string
+  constructor(status: number, message: string, requestId?: string) {
     super(message)
     this.status = status
+    this.requestId = requestId
     this.name = "ApiError"
     Object.setPrototypeOf(this, ApiError.prototype)
   }
 }
 
 export function describeApiError(error: unknown) {
-  if (error instanceof ApiError) return { name: error.name, status: error.status, message: error.message }
+  if (error instanceof ApiError) return { name: error.name, status: error.status, message: error.message, requestId: error.requestId }
   if (error instanceof Error) return { name: error.name, message: error.message, stack: error.stack }
   return { value: error }
 }
@@ -70,7 +72,9 @@ async function request<T>(path: string, init?: RequestInit, timeoutMs?: number):
     const detail = typeof body.detail === "object" && body.detail !== null
       ? JSON.stringify(body.detail)
       : body.detail
-    throw new ApiError(res.status, body.message ?? detail ?? "Erro inesperado na requisição")
+    const requestId = res.headers.get("X-Request-ID")
+      ?? (typeof body.detail === "object" && body.detail !== null && typeof body.detail.request_id === "string" ? body.detail.request_id : undefined)
+    throw new ApiError(res.status, body.message ?? detail ?? "Erro inesperado na requisição", requestId)
   }
 
   if (res.status === 204) return undefined as T
