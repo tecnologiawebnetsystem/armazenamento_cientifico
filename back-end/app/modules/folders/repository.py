@@ -19,6 +19,13 @@ class FolderRepository:
         )
         return list(result)
 
+    async def has_project_folders(self, project_id: str) -> bool:
+        return await self.session.scalar(select(Folder.id).where(Folder.project_id == project_id).limit(1)) is not None
+
+    async def create_many(self, folders: list[Folder]) -> None:
+        self.session.add_all(folders)
+        await self.session.flush()
+
     async def project_exists(self, project_id: str) -> bool:
         from app.modules.projects.models import Project
         return await self.session.scalar(select(Project.id).where(Project.id == project_id)) is not None

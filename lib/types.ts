@@ -90,6 +90,7 @@ export interface FileNode {
   nome: string
   name?: string
   tamanho?: number
+  size_bytes?: number
   mimeType?: string
   criadoPor: string
   criadoEm: string
