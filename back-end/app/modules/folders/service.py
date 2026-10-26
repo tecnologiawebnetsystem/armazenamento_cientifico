@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 from datetime import UTC, datetime
 from pathlib import Path
@@ -6,6 +7,9 @@ from uuid import NAMESPACE_URL, uuid5
 
 from app.modules.folders.models import Folder
 from app.modules.folders.repository import FolderRepository
+
+
+logger = logging.getLogger(__name__)
 
 
 class FolderService:
@@ -30,45 +34,19 @@ class FolderService:
         """
         return await self.list_folders_by_project(project_id)
 
-    @staticmethod
-    def _read_root_folders(project_id: str, parent_folder: str) -> list[Folder]:
-        root = Path(parent_folder)
-        if not root.is_dir():
-            return []
-
-        now = datetime.now(UTC)
-        with os.scandir(root) as directory:
-            entries = sorted(
-                (entry for entry in directory if entry.is_dir(follow_symlinks=False)),
-                key=lambda entry: entry.name.casefold(),
-            )
-
-        return [
-            Folder(
-                id=str(uuid5(NAMESPACE_URL, f"{project_id}:{entry.path}")),
-                project_id=project_id,
-                parent_id=None,
-                kind="pasta",
-                name=entry.name,
-                created_by="filesystem",
-                created_at=now,
-                updated_at=now,
-                size=0,
-            )
-            for entry in entries
-        ]
-
     async def sync_project_folders(self, project_id: str, created_by: str) -> tuple[list[Folder], int, bool]:
+        logger.info("[folders] sync_start project_id=%s created_by=%s", project_id, created_by)
         if await self.repository.has_project_folders(project_id):
+            logger.info("[folders] sync_skip_existing project_id=%s", project_id)
             return await self.repository.find_by_project(project_id), 0, True
         project = await self.repository.find_project(project_id)
         parent_folder = (getattr(project, "parent_folder", None) or "").strip()
         if not parent_folder:
             raise ValueError("A área de rede não possui uma pasta-mãe configurada")
         root = Path(parent_folder)
+        logger.info("[folders] parent_folder project_id=%s path=%s", project_id, parent_folder)
         if not root.is_dir():
             raise ValueError("A pasta-mãe não existe ou não está acessível")
-
         try:
             discovered = await asyncio.wait_for(
                 asyncio.to_thread(self._discover_folders, project_id, root, created_by),
@@ -76,9 +54,11 @@ class FolderService:
             )
         except asyncio.TimeoutError as error:
             raise ValueError("A atualização excedeu o limite de 5 minutos") from error
+        logger.info("[folders] discovery_complete project_id=%s quantity=%d", project_id, len(discovered))
         if not discovered:
             raise ValueError("Nenhuma pasta foi encontrada na pasta-mãe")
         await self.repository.create_many(discovered)
+        logger.info("[folders] sync_complete project_id=%s inserted=%d", project_id, len(discovered))
         return discovered, len(discovered), False
 
     @staticmethod

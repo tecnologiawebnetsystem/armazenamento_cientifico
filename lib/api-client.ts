@@ -120,6 +120,9 @@ export function recordAuditEvent(event: {
   return request<void>("/api/audit/events", {
     method: "POST",
     body: JSON.stringify({ entity: "interface", result: "sucesso", ...event, details }),
+  }).catch((error) => {
+    console.error("[v0] Falha ao registrar evento de auditoria", { event, error })
+    throw error
   })
 }
 

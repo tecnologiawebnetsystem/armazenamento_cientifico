@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -10,6 +11,7 @@ from .repository import FolderRepository
 from .schemas import FolderListOut, FolderSyncOut
 from .service import FolderService
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/folders", tags=["Folders"])
 Session = Annotated[AsyncSession, Depends(get_session)]
 
@@ -47,6 +49,10 @@ async def sync_folders(
     try:
         folders, inserted, existing = await service.sync_project_folders(project_id, str(user["id"]))
     except ValueError as error:
+        logger.warning("[folders] sync_validation_error project_id=%s error=%s", project_id, error)
         raise HTTPException(status_code=422, detail=str(error)) from error
+    except Exception as error:
+        logger.exception("[folders] sync_unexpected_error project_id=%s", project_id)
+        raise HTTPException(status_code=500, detail=f"Falha ao atualizar a área de rede: {type(error).__name__}") from error
     return {"folders": folders, "inserted": inserted, "existing": existing,
             "message": "A estrutura já estava cadastrada" if existing else f"{inserted} pastas cadastradas"}

@@ -31,6 +31,8 @@ class FolderRepository:
         logger.info("[folders] iniciando insert em lote: quantidade=%d", len(folders))
         self.session.add_all(folders)
         await self.session.flush()
+        await self.session.commit()
+        logger.info("[folders] transação confirmada: quantidade=%d", len(folders))
         for index, folder in enumerate(folders, start=1):
             logger.info(
                 "[folders] insert concluído: item=%d/%d id=%s project_id=%s parent_id=%s nome=%r tamanho_bytes=%s",
