@@ -1,7 +1,12 @@
+import logging
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.folders.models import Folder
+
+
+logger = logging.getLogger(__name__)
 
 
 class FolderRepository:
@@ -23,8 +28,21 @@ class FolderRepository:
         return await self.session.scalar(select(Folder.id).where(Folder.project_id == project_id).limit(1)) is not None
 
     async def create_many(self, folders: list[Folder]) -> None:
+        logger.info("[folders] iniciando insert em lote: quantidade=%d", len(folders))
         self.session.add_all(folders)
         await self.session.flush()
+        for index, folder in enumerate(folders, start=1):
+            logger.info(
+                "[folders] insert concluído: item=%d/%d id=%s project_id=%s parent_id=%s nome=%r tamanho_bytes=%s",
+                index,
+                len(folders),
+                folder.id,
+                folder.project_id,
+                folder.parent_id,
+                folder.name,
+                folder.size,
+            )
+        logger.info("[folders] insert em lote finalizado: quantidade=%d", len(folders))
 
     async def project_exists(self, project_id: str) -> bool:
         from app.modules.projects.models import Project
