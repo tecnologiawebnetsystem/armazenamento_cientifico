@@ -5,19 +5,13 @@ import { usePathname } from "next/navigation"
 import { recordAuditEvent } from "@/lib/api-client"
 import { useSession } from "@/hooks/use-session"
 
-function reportAuditFailure(error: unknown) {
-  if (typeof window !== "undefined") {
-    console.warn("[v0] Evento de auditoria não persistido", error)
-  }
-}
-
 export function ActivityTracker() {
   const pathname = usePathname()
   const { user, isLoading: sessionLoading } = useSession()
 
   useEffect(() => {
     if (sessionLoading || !user) return
-    void recordAuditEvent({ action: "visualizar_pagina", entity: "pagina", entity_id: pathname, details: { rota: pathname } }).catch(reportAuditFailure)
+    void recordAuditEvent({ action: "visualizar_pagina", entity: "pagina", entity_id: pathname, details: { rota: pathname } }).catch(() => undefined)
   }, [pathname, sessionLoading, user])
 
   useEffect(() => {
@@ -38,7 +32,7 @@ export function ActivityTracker() {
             .map((field) => ({ nome: field.name || field.id, tipo: field.type, preenchido: Boolean(field.value) }))
             .filter((field) => field.nome),
         },
-      }).catch(reportAuditFailure)
+      }).catch(() => undefined)
     }
 
     const handleDownloadClick = (event: MouseEvent) => {
@@ -51,7 +45,7 @@ export function ActivityTracker() {
           entity: "arquivo",
           entity_id: anchor.download || href,
           details: { nome: anchor.download || undefined, url: href, rota_origem: window.location.pathname },
-        }).catch(reportAuditFailure)
+        }).catch(() => undefined)
       }
     }
 
@@ -61,7 +55,7 @@ export function ActivityTracker() {
         entity: "aplicacao",
         result: "erro",
         details: { mensagem: event.message, arquivo: event.filename, linha: event.lineno, coluna: event.colno, rota: window.location.pathname },
-      }).catch(reportAuditFailure)
+      }).catch(() => undefined)
     }
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
@@ -70,7 +64,7 @@ export function ActivityTracker() {
         entity: "aplicacao",
         result: "erro",
         details: { mensagem: String(event.reason), rota: window.location.pathname, tipo: "unhandled_rejection" },
-      }).catch(reportAuditFailure)
+      }).catch(() => undefined)
     }
 
     document.addEventListener("click", handleDownloadClick, true)

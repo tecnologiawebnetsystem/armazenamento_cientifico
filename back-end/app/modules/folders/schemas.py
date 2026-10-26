@@ -29,11 +29,3 @@ class FolderListOut(BaseModel):
     folders: list[FolderOut]
 
     model_config = {"from_attributes": True}
-
-
-class FolderSyncOut(FolderListOut):
-    inserted: int
-    existing: bool
-    message: str
-    integrity: dict[str, int]
-    trace: list[dict[str, object]]

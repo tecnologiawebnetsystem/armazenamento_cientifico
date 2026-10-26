@@ -12,8 +12,7 @@ import type {
 } from "@/lib/types"
 
 const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
-// No desenvolvimento, chamadas relativas passam pelo rewrite do Next e evitam CORS entre :3000 e :8080.
-const API_BASE_URL = (process.env.NODE_ENV === "development" ? "" : configuredApiBaseUrl || "").replace(/\/$/, "")
+const API_BASE_URL = (configuredApiBaseUrl || "").replace(/\/$/, "")
 
 export const API_CONFIG = {
   baseUrl: API_BASE_URL,
@@ -23,25 +22,16 @@ export const API_CONFIG = {
 
 export class ApiError extends Error {
   status: number
-  requestId?: string
-  constructor(status: number, message: string, requestId?: string) {
+  constructor(status: number, message: string) {
     super(message)
     this.status = status
-    this.requestId = requestId
     this.name = "ApiError"
-    Object.setPrototypeOf(this, ApiError.prototype)
   }
 }
 
-export function describeApiError(error: unknown) {
-  if (error instanceof ApiError) return { name: error.name, status: error.status, message: error.message, requestId: error.requestId }
-  if (error instanceof Error) return { name: error.name, message: error.message, stack: error.stack }
-  return { value: error }
-}
-
-async function fetchRequest(url: string, init?: RequestInit, timeoutMs = 60_000): Promise<Response> {
+async function fetchRequest(url: string, init?: RequestInit): Promise<Response> {
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  const timeout = setTimeout(() => controller.abort(), 60_000)
 
   try {
     return await fetch(url, {
@@ -59,22 +49,17 @@ async function fetchRequest(url: string, init?: RequestInit, timeoutMs = 60_000)
   }
 }
 
-type ApiErrorBody = { message?: string; detail?: string | Record<string, unknown> }
+type ApiErrorBody = { message?: string; detail?: string }
 
 export function isApiError(error: unknown, status?: number): error is ApiError {
   return error instanceof ApiError && (status === undefined || error.status === status)
 }
 
-async function request<T>(path: string, init?: RequestInit, timeoutMs?: number): Promise<T> {
-  const res = await fetchRequest(`${API_BASE_URL}${path}`, init, timeoutMs)
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetchRequest(`${API_BASE_URL}${path}`, init)
   if (!res.ok) {
     const body = (await res.json().catch(() => ({ message: res.statusText }))) as ApiErrorBody
-    const detail = typeof body.detail === "object" && body.detail !== null
-      ? JSON.stringify(body.detail)
-      : body.detail
-    const requestId = res.headers.get("X-Request-ID")
-      ?? (typeof body.detail === "object" && body.detail !== null && typeof body.detail.request_id === "string" ? body.detail.request_id : undefined)
-    throw new ApiError(res.status, body.message ?? detail ?? "Erro inesperado na requisição", requestId)
+    throw new ApiError(res.status, body.message ?? body.detail ?? "Erro inesperado na requisição")
   }
 
   if (res.status === 204) return undefined as T
@@ -224,23 +209,6 @@ export async function getProjectMembers(projectId: string) {
 
 export function getFolders(projectId: string) {
   return request<{ folders: FileNode[] }>(`/api/folders?projectId=${encodeURIComponent(projectId)}`)
-}
-
-export async function syncFolders(projectId: string) {
-  const requestId = crypto.randomUUID()
-  console.info("[v0] folders_sync_start", { requestId, projectId })
-  try {
-    const result = await request<{ folders: FileNode[]; inserted: number; existing: boolean; message: string; integrity: Record<string, number>; trace: Array<Record<string, unknown>> }>(
-      `/api/folders/sync?projectId=${encodeURIComponent(projectId)}`,
-      { method: "POST", headers: { "X-Request-Id": requestId } },
-      310_000,
-    )
-    console.info("[v0] folders_sync_complete", { requestId, projectId, inserted: result.inserted, integrity: result.integrity, trace: result.trace })
-    return result
-  } catch (error) {
-    console.error("[v0] folders_sync_error", { requestId, projectId, error: describeApiError(error) })
-    throw error
-  }
 }
 
 /* -------------------------------- Dashboard -------------------------------- */

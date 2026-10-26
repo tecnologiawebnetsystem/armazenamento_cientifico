@@ -2,8 +2,6 @@ import json
 from datetime import UTC, datetime
 from uuid import uuid4
 
-import logging
-
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,9 +10,6 @@ from app.modules.projects.models import Project
 from app.modules.users.models import User
 
 from .models import ActivityLog
-
-
-logger = logging.getLogger(__name__)
 
 
 def _database_datetime(value: datetime) -> datetime:
@@ -34,18 +29,12 @@ class ActivityLogRepository:
         if resolved_user_id is None and user_id:
             safe_details = {**safe_details, "usuario_auditoria_nao_localizado": user_id}
 
-        # Bancos locais anteriores à migração 008 ainda podem ter entity_id VARCHAR(36).
-        # O caminho completo continua em route; manter este campo compatível evita
-        # que a auditoria derrube requisições de negócio durante a transição.
-        safe_entity_id = str(entity_id)[:36] if entity_id else None
-        if entity_id and len(str(entity_id)) > 36:
-            logger.warning("audit_entity_id_truncated original_length=%d", len(str(entity_id)))
         log = ActivityLog(
             id=str(uuid4()),
             user_id=resolved_user_id,
             action=action,
             entity=entity,
-            entity_id=safe_entity_id,
+            entity_id=entity_id,
             details=json.dumps(safe_details, ensure_ascii=False, default=str),
             result=result,
             correlation_id=correlation_id,
@@ -56,19 +45,7 @@ class ActivityLogRepository:
             created_at=_database_datetime(datetime.now(UTC)),
         )
         self.session.add(log)
-        try:
-            await self.session.commit()
-        except Exception:
-            await self.session.rollback()
-            logger.exception(
-                "audit_event_persist_failed action=%s entity=%s entity_id=%s correlation_id=%s",
-                action, entity, entity_id, correlation_id,
-            )
-            raise
-        logger.info(
-            "audit_event_persisted action=%s entity=%s entity_id=%s correlation_id=%s",
-            action, entity, entity_id, correlation_id,
-        )
+        await self.session.commit()
         return log
 
     async def list_page(
