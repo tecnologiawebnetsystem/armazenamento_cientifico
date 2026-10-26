@@ -33,7 +33,10 @@ export function ProjectFileExplorer({ projectId }: { projectId: string }) {
       setSearch("")
       window.alert(result.message)
     } catch (syncError) {
-      window.alert(syncError instanceof Error ? syncError.message : "Não foi possível atualizar a área de rede")
+      const message = syncError instanceof Error && syncError.name !== "AbortError"
+        ? syncError.message
+        : "A atualização da área de rede foi interrompida. Verifique se a pasta-mãe está acessível e tente novamente."
+      window.alert(message)
     } finally {
       setIsSyncing(false)
     }
