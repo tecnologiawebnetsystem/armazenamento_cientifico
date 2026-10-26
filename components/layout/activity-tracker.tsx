@@ -5,8 +5,6 @@ import { usePathname } from "next/navigation"
 import { recordAuditEvent } from "@/lib/api-client"
 import { useSession } from "@/hooks/use-session"
 
-<<<<<<< HEAD
-=======
 let auditDisabledUntil = 0
 
 function reportAuditFailure(error: unknown) {
@@ -19,20 +17,13 @@ function reportAuditFailure(error: unknown) {
 function canSendAudit() {
   return Date.now() >= auditDisabledUntil
 }
-
->>>>>>> 33cbed5a06fed112663f5d7e303d54260c0b6755
 export function ActivityTracker() {
   const pathname = usePathname()
   const { user, isLoading: sessionLoading } = useSession()
 
   useEffect(() => {
-<<<<<<< HEAD
-    if (sessionLoading || !user) return
-    void recordAuditEvent({ action: "visualizar_pagina", entity: "pagina", entity_id: pathname, details: { rota: pathname } }).catch(() => undefined)
-=======
     if (sessionLoading || !user || !canSendAudit()) return
     void recordAuditEvent({ action: "visualizar_pagina", entity: "pagina", entity_id: pathname, details: { rota: pathname } }).catch(reportAuditFailure)
->>>>>>> 33cbed5a06fed112663f5d7e303d54260c0b6755
   }, [pathname, sessionLoading, user])
 
   useEffect(() => {
