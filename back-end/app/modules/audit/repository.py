@@ -2,6 +2,8 @@ import json
 from datetime import UTC, datetime
 from uuid import uuid4
 
+import logging
+
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +12,9 @@ from app.modules.projects.models import Project
 from app.modules.users.models import User
 
 from .models import ActivityLog
+
+
+logger = logging.getLogger(__name__)
 
 
 def _database_datetime(value: datetime) -> datetime:
@@ -45,7 +50,19 @@ class ActivityLogRepository:
             created_at=_database_datetime(datetime.now(UTC)),
         )
         self.session.add(log)
-        await self.session.commit()
+        try:
+            await self.session.commit()
+        except Exception:
+            await self.session.rollback()
+            logger.exception(
+                "audit_event_persist_failed action=%s entity=%s entity_id=%s correlation_id=%s",
+                action, entity, entity_id, correlation_id,
+            )
+            raise
+        logger.info(
+            "audit_event_persisted action=%s entity=%s entity_id=%s correlation_id=%s",
+            action, entity, entity_id, correlation_id,
+        )
         return log
 
     async def list_page(
