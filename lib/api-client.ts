@@ -120,6 +120,9 @@ export function recordAuditEvent(event: {
   return request<void>("/api/audit/events", {
     method: "POST",
     body: JSON.stringify({ entity: "interface", result: "sucesso", ...event, details }),
+  }).catch((error) => {
+    console.error("[v0] Falha ao registrar evento de auditoria", { event, error })
+    throw error
   })
 }
 
@@ -212,12 +215,21 @@ export function getFolders(projectId: string) {
   return request<{ folders: FileNode[] }>(`/api/folders?projectId=${encodeURIComponent(projectId)}`)
 }
 
-export function syncFolders(projectId: string) {
-  return request<{ folders: FileNode[]; inserted: number; existing: boolean; message: string }>(
-    `/api/folders/sync?projectId=${encodeURIComponent(projectId)}`,
-    { method: "POST" },
-    310_000,
-  )
+export async function syncFolders(projectId: string) {
+  const requestId = crypto.randomUUID()
+  console.info("[v0] folders_sync_start", { requestId, projectId })
+  try {
+    const result = await request<{ folders: FileNode[]; inserted: number; existing: boolean; message: string; integrity: Record<string, number> }>(
+      `/api/folders/sync?projectId=${encodeURIComponent(projectId)}`,
+      { method: "POST", headers: { "X-Request-Id": requestId } },
+      310_000,
+    )
+    console.info("[v0] folders_sync_complete", { requestId, projectId, inserted: result.inserted, integrity: result.integrity })
+    return result
+  } catch (error) {
+    console.error("[v0] folders_sync_error", { requestId, projectId, error })
+    throw error
+  }
 }
 
 /* -------------------------------- Dashboard -------------------------------- */

@@ -27,10 +27,17 @@ class FolderRepository:
     async def has_project_folders(self, project_id: str) -> bool:
         return await self.session.scalar(select(Folder.id).where(Folder.project_id == project_id).limit(1)) is not None
 
-    async def create_many(self, folders: list[Folder]) -> None:
-        logger.info("[folders] iniciando insert em lote: quantidade=%d", len(folders))
-        self.session.add_all(folders)
-        await self.session.flush()
+    async def create_many(self, folders: list[Folder], request_id: str | None = None) -> None:
+        logger.info("[folders] insert_batch_start request_id=%s quantidade=%d", request_id, len(folders))
+        try:
+            self.session.add_all(folders)
+            await self.session.flush()
+            await self.session.commit()
+        except Exception:
+            await self.session.rollback()
+            logger.exception("[folders] insert_batch_rollback request_id=%s quantidade=%d", request_id, len(folders))
+            raise
+        logger.info("[folders] transaction_committed request_id=%s quantidade=%d", request_id, len(folders))
         for index, folder in enumerate(folders, start=1):
             logger.info(
                 "[folders] insert concluído: item=%d/%d id=%s project_id=%s parent_id=%s nome=%r tamanho_bytes=%s",
@@ -43,6 +50,20 @@ class FolderRepository:
                 folder.size,
             )
         logger.info("[folders] insert em lote finalizado: quantidade=%d", len(folders))
+
+    async def verify_project_folders(self, project_id: str) -> dict[str, int]:
+        result = await self.session.execute(
+            select(Folder).where(Folder.project_id == project_id)
+        )
+        folders = list(result.scalars())
+        ids = {folder.id for folder in folders}
+        invalid_parents = sum(1 for folder in folders if folder.parent_id and folder.parent_id not in ids)
+        invalid_kinds = sum(1 for folder in folders if folder.kind not in {"pasta", "folder"})
+        logger.info(
+            "[folders] integrity_check project_id=%s total=%d invalid_parents=%d invalid_kinds=%d",
+            project_id, len(folders), invalid_parents, invalid_kinds,
+        )
+        return {"total": len(folders), "invalid_parents": invalid_parents, "invalid_kinds": invalid_kinds}
 
     async def project_exists(self, project_id: str) -> bool:
         from app.modules.projects.models import Project

@@ -94,6 +94,7 @@ def create_app() -> FastAPI:
             result = "sucesso" if response.status_code < 400 else "erro"
         except Exception:
             result = "erro"
+            logger.exception("request_failed method=%s path=%s correlation_id=%s", request.method, request.url.path, request_id)
             raise
         finally:
             duration_ms = (perf_counter() - started_at) * 1000
