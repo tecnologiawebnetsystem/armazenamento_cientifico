@@ -42,15 +42,19 @@ class FolderService:
             raise ValueError("A área de rede não possui uma pasta-mãe configurada")
         root = Path(parent_folder)
         logger.info("[folders] parent_folder project_id=%s path=%s", project_id, parent_folder)
-        if not root.is_dir():
-            raise ValueError("A pasta-mãe não existe ou não está acessível")
         try:
             discovered = await asyncio.wait_for(
                 asyncio.to_thread(self._discover_folders, project_id, root, created_by),
-                timeout=300,
+                timeout=60,
             )
         except asyncio.TimeoutError as error:
-            raise ValueError("A atualização excedeu o limite de 5 minutos") from error
+            logger.error(
+                "[folders] discovery_timeout request_id=%s project_id=%s path=%s timeout_seconds=60",
+                request_id, project_id, parent_folder,
+            )
+            raise ValueError(
+                "A pasta-mãe não respondeu em 60 segundos. Verifique acesso à rede, VPN, credenciais e disponibilidade do DFS."
+            ) from error
         logger.info("[folders] discovery_complete request_id=%s project_id=%s quantity=%d", request_id, project_id, len(discovered))
         if not discovered:
             raise ValueError("Nenhuma pasta foi encontrada na pasta-mãe")
@@ -80,6 +84,8 @@ class FolderService:
 
     @staticmethod
     def _discover_folders(project_id: str, root: Path, created_by: str) -> list[Folder]:
+        if not root.is_dir():
+            raise ValueError("A pasta-mãe não existe ou não está acessível")
         now = datetime.now(UTC)
         discovered: list[Folder] = []
         ids_by_path: dict[str, str] = {}
