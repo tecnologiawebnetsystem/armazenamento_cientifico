@@ -39,5 +39,6 @@ class FolderSyncIn(BaseModel):
 
 class FolderListOut(BaseModel):
     folders: list[FolderOut]
+    source: str = "tabela"
 
     model_config = {"from_attributes": True}

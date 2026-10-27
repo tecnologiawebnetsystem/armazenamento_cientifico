@@ -81,3 +81,42 @@ async def test_sync_rejects_missing_parent_folder(tmp_path: Path):
 
     with pytest.raises(ValueError, match="não existe"):
         await FolderService(repository).sync_project_folders("project-1", "user-1", "request-1")
+
+
+class ListingRepository:
+    def __init__(self, folders, project_root):
+        self.folders = folders
+        self.project = FakeProject(str(project_root))
+
+    async def find_project(self, project_id):
+        return self.project
+
+    async def find_by_project(self, project_id):
+        return self.folders
+
+
+@pytest.mark.asyncio
+async def test_listing_prefers_database_folders(tmp_path: Path):
+    stored = [object()]
+    service = FolderService(ListingRepository(stored, tmp_path))
+
+    folders, source = await service.list_project_folders_with_source("project-1")
+
+    assert folders is stored
+    assert source == "tabela"
+
+
+@pytest.mark.asyncio
+async def test_listing_uses_network_only_when_database_is_empty(tmp_path: Path, monkeypatch):
+    service = FolderService(ListingRepository([], tmp_path))
+    network_folders = [object()]
+    monkeypatch.setattr(service, "read_live_project_folders", lambda _project_id: _async_value(network_folders))
+
+    folders, source = await service.list_project_folders_with_source("project-1")
+
+    assert folders is network_folders
+    assert source == "rede"
+
+
+async def _async_value(value):
+    return value

@@ -35,14 +35,18 @@ class FolderService:
         except Exception:  # noqa: BLE001 - compartilhamentos podem falhar sem tipo estável
             return None
 
-    async def list_project_folders(self, project_id: str) -> list[Folder]:
+    async def list_project_folders_with_source(self, project_id: str) -> tuple[list[Folder], str]:
         """Exibe o cadastro local primeiro e consulta a rede apenas se estiver vazio."""
         stored_folders = await self.list_folders_by_project(project_id)
         if stored_folders:
-            return stored_folders
+            return stored_folders, "tabela"
 
         live_folders = await self.read_live_project_folders(project_id)
-        return live_folders or []
+        return live_folders or [], "rede"
+
+    async def list_project_folders(self, project_id: str) -> list[Folder]:
+        folders, _source = await self.list_project_folders_with_source(project_id)
+        return folders
 
     @staticmethod
     def _read_root_folders(project_id: str, parent_folder: str) -> list[Folder]:
