@@ -26,7 +26,7 @@ export function ActivityTracker() {
     const projectMatch = pathname.match(/^\/projetos\/([^/]+)$/)
     if (projectMatch) {
       void getProject(decodeURIComponent(projectMatch[1]))
-        .then((project) => recordAuditEvent({ action: "visualizar_pagina", entity: "pagina", entity_id: pathname, details: { rota: pathname, projeto_nome: project.project.nome, projeto: project.project.nome, codigo: project.project.codigo } }))
+        .then((project) => recordAuditEvent({ action: "visualizar_pagina", entity: "pagina", entity_id: project.project.nome, details: { rota: pathname, projeto_nome: project.project.nome, projeto: project.project.nome, codigo: project.project.codigo } }))
         .catch(reportAuditFailure)
       return
     }
