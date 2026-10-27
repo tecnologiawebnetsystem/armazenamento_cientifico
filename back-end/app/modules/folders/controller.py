@@ -31,9 +31,13 @@ async def sync_folders(
     role = user["role"] or "solicitante"
     if not await service.can_list_project(project_id, str(user["id"]), role):
         raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
+    # folders.created_by referencia users.id, não o ID da sessão HTTP.
+    created_by = user.get("db_user_id") or user.get("id")
+    if not created_by:
+        raise HTTPException(status_code=401, detail="Usuário autenticado não encontrado")
     folders, _ = await service.sync_project_folders(
         project_id,
-        str(user["id"]),
+        str(created_by),
         [item.model_dump() for item in (payload.folders if payload else [])],
     )
     return {"folders": folders}

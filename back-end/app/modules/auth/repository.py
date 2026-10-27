@@ -34,7 +34,10 @@ class AuthRepository:
         session, user, profile = row
         profile_data = session.profile_data or {}
         return {
+            # `id` continua sendo o identificador da sessão para compatibilidade;
+            # o FK de folders.created_by precisa do ID técnico da tabela users.
             "id": session.id,
+            "db_user_id": user.id if user else None,
             "user_id": session.user_id,
             "cav4_user_id": user.user_id if user else None,
             "profile_data": session.profile_data,
