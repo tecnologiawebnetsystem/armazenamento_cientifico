@@ -41,16 +41,13 @@ CAPABILITY_PERMISSION_MAP: Final[dict[str, str]] = {
 def has_capability(user: Any, capability: str) -> bool:
     permissions = user.get("permissions") if isinstance(user, Mapping) else getattr(user, "permissions", None)
     raw_role = user.get("role") if isinstance(user, Mapping) else getattr(user, "role", None)
-    # Quando a sessão traz permissões do banco, elas são a fonte efetiva
-    # de autorização. O papel só funciona como fallback para sessões legadas
-    # que ainda não possuem a lista de permissões carregada.
     normalized_role = canonical_role(raw_role)
     role_capabilities = ROLE_CAPABILITIES.get(normalized_role)
-    # A matriz carregada do banco é sempre a autoridade. O mapa de papéis
-    # existe apenas para sessões legadas que ainda não carregam permissões.
-    if permissions is not None:
-        required_permission = CAPABILITY_PERMISSION_MAP.get(capability, capability)
-        return required_permission in {str(permission) for permission in permissions}
+    if capability in CAPABILITY_PERMISSION_MAP:
+        if permissions is not None:
+            required_permission = CAPABILITY_PERMISSION_MAP[capability]
+            return required_permission in {str(permission) for permission in permissions}
+        return False
     return capability in (role_capabilities or frozenset())
 
 

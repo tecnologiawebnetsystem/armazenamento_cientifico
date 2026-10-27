@@ -34,7 +34,7 @@ async def sync_folders(
     if not await service.can_list_project(project_id, str(user["id"]), role):
         raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
     # folders.created_by referencia users.id, não o ID da sessão HTTP.
-    created_by = user.get("db_user_id")
+    created_by = user.get("user_id")
     if not created_by:
         profile_data = user.get("profile_data") or {}
         identifiers = [
@@ -76,7 +76,7 @@ async def list_folders(
     if not await service.project_exists(project_id):
         raise HTTPException(status_code=404, detail="Projeto não encontrado")
     role = user["role"] or "solicitante"
-    if not await service.can_list_project(project_id, str(user["id"]), role):
+    if not await service.can_list_project(project_id, str(user.get("user_id") or user["id"]), role):
         raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
     try:
         folders, source = await service.list_project_folders_with_source(project_id)

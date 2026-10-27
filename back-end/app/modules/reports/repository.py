@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import exists, func, or_, select
+from sqlalchemy import String, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.catalogs.models import ReportField, ResponsibleArea
@@ -10,6 +10,19 @@ from app.modules.projects.models import Project, ProjectMember
 class ReportRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
+
+    # ── helpers ──────────────────────────────────────────────────────
+
+    @staticmethod
+    def _jsonb_like(column, value: str):
+        """Busca um valor dentro de uma coluna JSONB usando LIKE textual.
+
+        Evita o operador @> (contains) que exige valor JSON válido e falha
+        quando o parâmetro é uma string hex (ex: users.id).
+        """
+        return column.cast(String).like(f'%{value}%')
+
+    # ── fields ───────────────────────────────────────────────────────
 
     async def fields(self, report_code: str) -> list[dict[str, Any]]:
         result = await self.session.execute(
@@ -34,13 +47,11 @@ class ReportRepository:
         if area is not None:
             statement = statement.where(Project.responsible_area == area)
         if gestor_id is not None:
-            statement = statement.where(
-                Project.managers_ids.contains([gestor_id])
-            )
+            statement = statement.where(self._jsonb_like(Project.managers_ids, gestor_id))
         if not all_projects:
             statement = statement.where(or_(
-                Project.managers_ids.contains([user_id]),
-                Project.participants_ids.contains([user_id]),
+                self._jsonb_like(Project.managers_ids, user_id),
+                self._jsonb_like(Project.participants_ids, user_id),
                 exists().where(ProjectMember.project_id == Project.id, ProjectMember.user_id == user_id),
             ))
         result = await self.session.execute(statement.order_by(Project.name, Project.id))
@@ -78,10 +89,10 @@ class ReportRepository:
         if area is not None:
             stmt = stmt.where(or_(ResponsibleArea.id == area, Project.responsible_area == area))
         if gestor_id is not None:
-            stmt = stmt.where(Project.managers_ids.contains([gestor_id]))
+            stmt = stmt.where(self._jsonb_like(Project.managers_ids, gestor_id))
         if not all_projects:
             stmt = stmt.where(or_(
-                Project.managers_ids.contains([user_id]),
+                self._jsonb_like(Project.managers_ids, user_id),
                 exists().where(ProjectMember.project_id == Project.id, ProjectMember.user_id == user_id),
             ))
         result = await self.session.execute(stmt.order_by("area", "projeto"))

@@ -1,4 +1,4 @@
-from sqlalchemy import exists, func, select
+from sqlalchemy import String, exists, func, select
 
 from app.modules.folders.models import Folder
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,7 +22,7 @@ class ProjectRepository:
         statement = select(Project).order_by(Project.updated_at.desc())
         if role not in {"admin", "patrocinador", "auditor"}:
             statement = statement.where(
-                (Project.managers_ids.contains([user_id]))
+                (Project.managers_ids.cast(String).like(f'%{user_id}%'))
                 | exists().where(ProjectMember.project_id == Project.id, ProjectMember.user_id == user_id)
             )
 
