@@ -70,7 +70,7 @@ async def test_projects_without_scope_keep_the_frontend_contract_keys(db):
 
     assert [r["nome"] for r in rows] == ["Alfa", "Beta", "Gama"]
     assert set(rows[0]) == {
-        "id", "nome", "codigo", "areaResponsavel", "status", "descricao", "criadoEm", "atualizadoEm", "totalMapas", "totalMembros",
+        "id", "nome", "codigo", "areaResponsavel", "responsaveis", "pastaMae", "status", "descricao", "criadoEm", "atualizadoEm", "totalMapas", "totalMembros",
     }
     assert (rows[0]["totalMapas"], rows[0]["totalMembros"]) == (0, 0)
 
