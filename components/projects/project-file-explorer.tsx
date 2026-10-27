@@ -22,7 +22,7 @@ function parentId(folder: FileNode) {
   return folder.parentId ?? (folder as FileNode & { parent_id?: string | null }).parent_id ?? null
 }
 
-export function ProjectFileExplorer({ projectId }: { projectId: string }) {
+export function ProjectFileExplorer({ projectId, projectName }: { projectId: string; projectName: string }) {
   const { data, isLoading, error, mutate } = useSWR(["project-folders", projectId], () => getFolders(projectId))
   const [isSyncing, setIsSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<{ inserted: number; total: number; projectName: string } | null>(null)
@@ -33,7 +33,7 @@ export function ProjectFileExplorer({ projectId }: { projectId: string }) {
       const result = await syncFolders(projectId, data?.folders ?? [])
       await mutate(result, false)
       if (result.inserted > 0 || result.folders.length > 0) {
-        setSyncResult({ inserted: result.inserted, total: result.folders.length, projectName: projectId })
+        setSyncResult({ inserted: result.inserted, total: result.folders.length, projectName })
       } else {
         toast.error("Nenhuma pasta foi encontrada para cadastrar.")
       }
@@ -81,7 +81,7 @@ export function ProjectFileExplorer({ projectId }: { projectId: string }) {
               <span className="font-semibold">{syncResult?.total ?? 0}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <span className="text-muted-foreground">Novos inserts</span>
+              <span className="text-muted-foreground">Inseridos nesta operação</span>
               <span className="font-semibold text-petrobras-green">{syncResult?.inserted ?? 0}</span>
             </div>
           </div>
