@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import { CheckCircle2Icon, DatabaseIcon, FolderIcon, FoldersIcon, Loader2Icon, RefreshCwIcon, SearchIcon, SearchXIcon } from "lucide-react"
 import useSWR from "swr"
-import { getFolders, syncFolders } from "@/lib/api-client"
+import { getFolders, recordAuditEvent, syncFolders } from "@/lib/api-client"
 import { toast } from "sonner"
 import type { FileNode } from "@/lib/types"
 import { Badge } from "@/components/ui/badge"
@@ -31,6 +31,18 @@ export function ProjectFileExplorer({ projectId, projectName }: { projectId: str
     setIsSyncing(true)
     try {
       const result = await syncFolders(projectId, data?.folders ?? [])
+      await recordAuditEvent({
+        action: "atualizar-area-rede",
+        entity: "projeto",
+        entity_id: projectId,
+        details: {
+          projeto: projectName,
+          inseridos: result.inserted,
+          atualizados: result.updated,
+          total: result.folders.length,
+          fonte: result.source,
+        },
+      }).catch(() => undefined)
       await mutate(result, false)
       if (result.inserted > 0 || result.folders.length > 0) {
         setSyncResult({ inserted: result.inserted, updated: result.updated, total: result.folders.length, source: result.source, projectName })

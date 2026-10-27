@@ -34,6 +34,7 @@ const actionLabels: Record<string, string> = {
   "atualizar-papel-usuario": "Atualização de papel de usuário",
   "atualizar-matriz-permissoes": "Atualização da matriz de permissões",
   "atualizar-parametros": "Atualização de parâmetros",
+  "atualizar-area-rede": "Atualização de área de rede",
   alterar_status: "Alteração de status",
   visualizar_pagina: "Consulta de página",
   exportacao: "Exportação de dados",
@@ -73,7 +74,8 @@ function displayEntityId(log: LogWithUser) {
     if (log.acao === "logout") return "Sessão encerrada"
     if (log.acao === "cav4_authorization") return "Autorização CAV4 concluída"
     if (log.acao === "consultar" && log.entidade === "relatorio_projetos") return "Relatório de Área de Rede"
-    if ((log.acao as string) === "visualizar_pagina") return routeLabels[details.rota ?? ""] || details.rota || "Página consultada"
+    if ((log.acao as string) === "visualizar_pagina") return details.projeto_nome || details.projeto || routeLabels[details.rota ?? ""] || details.rota || "Página consultada"
+    if (log.acao === "atualizar-area-rede") return details.projeto || details.projeto_nome || details.codigo || log.projetoNome || "Área de rede atualizada"
     if (log.acao === "alterar_status") return details.projeto || details.projeto_nome || details.codigo || "Área de rede atualizada"
     if (log.acao === "consultar-mapa-acessos" || log.acao === "exportar-relatorio") {
       return details.projeto_nome || details.projeto || details.nome || details.codigo || log.entidadeId || "—"
