@@ -69,10 +69,24 @@ class FolderService:
                 created_by="filesystem",
                 created_at=now,
                 updated_at=now,
-                size=0,
+                size=self._directory_size(entry.path),
             )
             for entry in entries
         ]
+
+    @staticmethod
+    def _directory_size(path: str) -> int:
+        total = 0
+        try:
+            for current_path, _, file_names in os.walk(path):
+                for file_name in file_names:
+                    try:
+                        total += os.stat(os.path.join(current_path, file_name), follow_symlinks=False).st_size
+                    except OSError:
+                        continue
+        except OSError:
+            return 0
+        return total
 
     async def sync_project_folders(self, project_id: str, user_id: str, folders: list[dict]) -> tuple[list[Folder], int]:
         existing = await self.repository.find_by_project(project_id)
