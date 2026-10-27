@@ -13,7 +13,11 @@ function initials(name: string) {
 }
 
 export function ProfileAvatarMenu({ user, onLogout }: { user: User; onLogout: () => void }) {
-  const { data: profilePhoto } = useSWR(`/api/profile-photo/${user.email || user.chaveCav4}`, getProfilePhoto, { revalidateOnFocus: false })
+  const { data: profilePhoto } = useSWR(`/api/profile-photo/${user.email || user.chaveCav4}`, getProfilePhoto, {
+    revalidateOnFocus: false,
+    onSuccess: (result) => console.info("[v0] Foto Entra ID:", result.status, result.reason || "ok"),
+    onError: (error) => console.error("[v0] Falha ao consultar foto Entra ID:", error),
+  })
   const avatarUrl = profilePhoto?.photo || user.avatarUrl
 
   async function handleLogout() {

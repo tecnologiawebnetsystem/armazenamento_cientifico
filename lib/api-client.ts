@@ -113,7 +113,7 @@ export async function login(email: string) {
 }
 
 export async function getProfilePhoto() {
-  return request<{ photo: string | null }>("/api/auth/profile-photo")
+  return request<{ photo: string | null; status: string; reason: string | null }>("/api/auth/profile-photo")
 }
 
 export async function logout() {
