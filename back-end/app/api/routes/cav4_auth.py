@@ -179,8 +179,10 @@ async def cav4_session(request: Request):
 @router.get("/profile-photo")
 async def cav4_profile_photo(request: Request):
     try:
-        user = await get_current_user(request)
-        photo = await get_profile_photo(str(user.get("email") or ""))
+        session_user = await get_current_user(request)
+        user = session_user.get("user", session_user) if isinstance(session_user, dict) else {}
+        email = user.get("email") or user.get("mail") or user.get("userPrincipalName") or ""
+        photo = await get_profile_photo(str(email))
     except Exception:
         logger.exception("entra_photo_request_failed=true")
         photo = None
