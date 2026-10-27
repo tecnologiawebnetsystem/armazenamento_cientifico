@@ -69,4 +69,8 @@ async def list_folders(
     role = user["role"] or "solicitante"
     if not await service.can_list_project(project_id, str(user["id"]), role):
         raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
-    return {"folders": await service.list_project_folders(project_id)}
+    try:
+        folders = await service.list_project_folders(project_id)
+    except Exception:  # noqa: BLE001 - qualquer falha da rede deve usar a cópia local
+        folders = await service.list_folders_by_project(project_id)
+    return {"folders": folders}
