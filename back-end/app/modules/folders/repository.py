@@ -63,6 +63,7 @@ class FolderRepository:
     async def create_many(self, folders: list[Folder]) -> list[Folder]:
         self.session.add_all(folders)
         await self.session.flush()
+        await self.session.commit()
         return folders
 
     async def update(self, folder: Folder) -> Folder:
