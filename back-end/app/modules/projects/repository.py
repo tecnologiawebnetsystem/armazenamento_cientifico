@@ -52,7 +52,7 @@ class ProjectRepository:
             .where(Folder.project_id.in_(project_ids))
             .group_by(Folder.project_id)
         )
-        return {project_id: int(total or 0) for project_id, total in rows}
+        return {str(project_id): int(total or 0) for project_id, total in rows}
 
     async def can_view(self, project_id: str, user_id: str, role: str) -> bool:
         if role in {"admin", "patrocinador", "auditor"}:
