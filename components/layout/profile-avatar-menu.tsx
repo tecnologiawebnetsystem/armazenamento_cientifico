@@ -3,7 +3,8 @@
 import { ChevronDownIcon, LogOutIcon, MailIcon } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { logout } from "@/lib/api-client"
+import useSWR from "swr"
+import { getProfilePhoto, logout } from "@/lib/api-client"
 import { roleDescription, roleLabel } from "@/hooks/use-permissions"
 import type { User } from "@/lib/types"
 
@@ -12,6 +13,9 @@ function initials(name: string) {
 }
 
 export function ProfileAvatarMenu({ user, onLogout }: { user: User; onLogout: () => void }) {
+  const { data: profilePhoto } = useSWR(`/api/profile-photo/${user.email || user.chaveCav4}`, getProfilePhoto, { revalidateOnFocus: false })
+  const avatarUrl = profilePhoto?.photo || user.avatarUrl
+
   async function handleLogout() {
     await logout()
     onLogout()
@@ -21,7 +25,7 @@ export function ProfileAvatarMenu({ user, onLogout }: { user: User; onLogout: ()
     <DropdownMenu>
       <DropdownMenuTrigger aria-label={`Abrir perfil de ${user.nome}`} className="group flex items-center gap-2 rounded-xl border border-transparent px-1.5 py-1 outline-none transition-all hover:border-petrobras-green/25 hover:bg-petrobras-green/10 focus-visible:ring-2 focus-visible:ring-petrobras-yellow/60 md:pl-2">
         <Avatar className="size-10 rounded-full ring-2 ring-petrobras-green/30 ring-offset-2 ring-offset-card">
-          <AvatarImage src={user.avatarUrl || "/images/default-avatar.png"} alt={user.avatarUrl ? `Foto de ${user.nome}` : `Avatar padrão de ${user.nome}`} />
+          <AvatarImage src={avatarUrl || "/images/default-avatar.png"} alt={user.avatarUrl ? `Foto de ${user.nome}` : `Avatar padrão de ${user.nome}`} />
           <AvatarFallback className="rounded-full bg-petrobras-green text-xs font-bold text-white">{initials(user.nome)}</AvatarFallback>
         </Avatar>
         <span className="hidden max-w-36 truncate text-left text-sm font-semibold text-foreground md:flex md:flex-col md:gap-0.5">
@@ -34,7 +38,7 @@ export function ProfileAvatarMenu({ user, onLogout }: { user: User; onLogout: ()
         <div className="relative bg-petrobras-green px-6 py-5 text-white"><div className="absolute inset-x-0 top-0 h-1 bg-petrobras-yellow" aria-hidden="true" />
           <div className="flex items-start gap-4">
             <Avatar className="size-16 shrink-0 rounded-full border-2 border-white/70 ring-4 ring-white/15">
-              <AvatarImage src={user.avatarUrl || "/images/default-avatar.png"} alt={`Foto de ${user.nome}`} />
+              <AvatarImage src={avatarUrl || "/images/default-avatar.png"} alt={`Foto de ${user.nome}`} />
               <AvatarFallback className="rounded-full bg-petrobras-yellow text-lg font-bold text-petrobras-blue">{initials(user.nome)}</AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1 pt-0.5">

@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.core.temporary_sessions import delete_session
 from app.db.session import get_session
 from app.infrastructure.cav4 import CAV4AuthenticationError, decode_state_nonce, get_cav4_provider
+from app.infrastructure.entra_id import get_profile_photo
 from app.modules.auth.repository import AuthRepository
 from app.modules.auth.service import Cav4SessionService
 
@@ -172,6 +173,18 @@ async def cav4_session(request: Request):
         user.get("role"),
     )
     return {"user": dict(user)}
+
+
+@email_router.get("/profile-photo")
+@router.get("/profile-photo")
+async def cav4_profile_photo(request: Request):
+    try:
+        user = await get_current_user(request)
+        photo = await get_profile_photo(str(user.get("email") or ""))
+    except Exception:
+        logger.exception("entra_photo_request_failed=true")
+        photo = None
+    return {"photo": photo.data_url if photo else None}
 
 
 @email_router.post("/logout", status_code=204)

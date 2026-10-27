@@ -112,6 +112,10 @@ export async function login(email: string) {
   }
 }
 
+export async function getProfilePhoto() {
+  return request<{ photo: string | null }>("/api/auth/profile-photo")
+}
+
 export async function logout() {
   await recordAuditEvent({ action: AUDIT_ACTIONS.LOGOUT, entity: "sessao" }).catch(() => undefined)
   return request<void>("/api/auth/logout", { method: "POST" })
