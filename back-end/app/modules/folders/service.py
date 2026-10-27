@@ -36,11 +36,13 @@ class FolderService:
             return None
 
     async def list_project_folders(self, project_id: str) -> list[Folder]:
-        """Lista a rede e usa a tabela local somente como fallback de exibição."""
+        """Exibe o cadastro local primeiro e consulta a rede apenas se estiver vazio."""
+        stored_folders = await self.list_folders_by_project(project_id)
+        if stored_folders:
+            return stored_folders
+
         live_folders = await self.read_live_project_folders(project_id)
-        if live_folders is not None:
-            return live_folders
-        return await self.list_folders_by_project(project_id)
+        return live_folders or []
 
     @staticmethod
     def _read_root_folders(project_id: str, parent_folder: str) -> list[Folder]:
