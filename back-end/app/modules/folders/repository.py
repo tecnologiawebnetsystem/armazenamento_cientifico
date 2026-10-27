@@ -66,16 +66,21 @@ class FolderRepository:
         await self.session.commit()
         return folders
 
-    async def update_sizes(self, folders: list[Folder], sizes: dict[str, int]) -> None:
-        changed = False
+    async def reconcile(self, folders: list[Folder], source_folders: list[dict], updated_at) -> int:
+        by_id = {str(item.get("id")): item for item in source_folders if item.get("id")}
+        by_name = {str(item.get("name", "")).strip().casefold(): item for item in source_folders if item.get("name")}
+        updated = 0
         for folder in folders:
-            key = folder.id if folder.id in sizes else folder.name
-            if key in sizes and folder.size != sizes[key]:
-                folder.size = sizes[key]
-                changed = True
-        if changed:
+            source = by_id.get(str(folder.id)) or by_name.get(folder.name.strip().casefold())
+            if not source:
+                continue
+            folder.size = int(source.get("size_bytes") or 0)
+            folder.updated_at = updated_at
+            updated += 1
+        if updated:
             await self.session.flush()
             await self.session.commit()
+        return updated
 
     async def update(self, folder: Folder) -> Folder:
         await self.session.merge(folder)
