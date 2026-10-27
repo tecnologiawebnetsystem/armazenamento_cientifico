@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
@@ -11,6 +12,7 @@ from .schemas import FolderListOut, FolderSyncIn
 from .service import FolderService
 
 router = APIRouter(prefix="/api/folders", tags=["Folders"])
+logger = logging.getLogger(__name__)
 Session = Annotated[AsyncSession, Depends(get_session)]
 
 
@@ -49,12 +51,17 @@ async def sync_folders(
         created_by = await service.resolve_created_by(identifiers)
     if not created_by:
         raise HTTPException(status_code=401, detail="Usuário autenticado não encontrado no cadastro local")
-    folders, inserted = await service.sync_project_folders(
-        project_id,
-        str(created_by),
-        [item.model_dump() for item in (payload.folders if payload else [])],
-    )
-    return {"folders": folders, "inserted": inserted}
+    try:
+        folders, inserted, updated, source = await service.sync_project_folders(
+            project_id,
+            str(created_by),
+            [item.model_dump() for item in (payload.folders if payload else [])],
+        )
+        logger.info("folders_sync_success project_id=%s source=%s inserted=%s updated=%s total=%s", project_id, source, inserted, updated, len(folders))
+        return {"folders": folders, "inserted": inserted, "updated": updated, "source": source}
+    except Exception:
+        logger.exception("folders_sync_failed project_id=%s", project_id)
+        raise
 
 
 @router.get("", response_model=FolderListOut)

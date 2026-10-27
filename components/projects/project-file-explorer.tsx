@@ -25,7 +25,7 @@ function parentId(folder: FileNode) {
 export function ProjectFileExplorer({ projectId, projectName }: { projectId: string; projectName: string }) {
   const { data, isLoading, error, mutate } = useSWR(["project-folders", projectId], () => getFolders(projectId))
   const [isSyncing, setIsSyncing] = useState(false)
-  const [syncResult, setSyncResult] = useState<{ inserted: number; total: number; projectName: string } | null>(null)
+  const [syncResult, setSyncResult] = useState<{ inserted: number; updated: number; total: number; source: "rede" | "tabela"; projectName: string } | null>(null)
 
   async function handleSync() {
     setIsSyncing(true)
@@ -33,7 +33,7 @@ export function ProjectFileExplorer({ projectId, projectName }: { projectId: str
       const result = await syncFolders(projectId, data?.folders ?? [])
       await mutate(result, false)
       if (result.inserted > 0 || result.folders.length > 0) {
-        setSyncResult({ inserted: result.inserted, total: result.folders.length, projectName })
+        setSyncResult({ inserted: result.inserted, updated: result.updated, total: result.folders.length, source: result.source, projectName })
       } else {
         toast.error("Nenhuma pasta foi encontrada para cadastrar.")
       }
@@ -62,11 +62,11 @@ export function ProjectFileExplorer({ projectId, projectName }: { projectId: str
             <div className="flex size-12 items-center justify-center rounded-full bg-petrobras-green/10 text-petrobras-green">
               <CheckCircle2Icon className="size-6" aria-hidden="true" />
             </div>
-            <DialogTitle>{syncResult?.inserted ? "Pastas cadastradas com sucesso" : "Área de rede atualizada"}</DialogTitle>
+            <DialogTitle>{syncResult?.inserted ? "Pastas cadastradas com sucesso" : "Área de rede sincronizada"}</DialogTitle>
             <DialogDescription>
               {syncResult?.inserted
                 ? `${syncResult.inserted} ${syncResult.inserted === 1 ? "pasta foi inserida" : "pastas foram inseridas"} na tabela de pastas.`
-                : "As pastas desta área já estavam cadastradas na tabela de pastas."}
+                : `${syncResult?.updated ?? 0} registros foram processados e tiveram os dados atualizados.`}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 rounded-lg border bg-muted/30 p-4 text-sm">
@@ -81,6 +81,14 @@ export function ProjectFileExplorer({ projectId, projectName }: { projectId: str
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">Inseridos nesta operação</span>
               <span className="font-semibold text-petrobras-green">{syncResult?.inserted ?? 0}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-muted-foreground">Registros atualizados</span>
+              <span className="font-semibold">{syncResult?.updated ?? 0}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-muted-foreground">Fonte da atualização</span>
+              <span className="font-medium">{syncResult?.source === "rede" ? "Área de rede" : "Tabela local"}</span>
             </div>
           </div>
           <DialogFooter><DialogClose render={<Button variant="outline" />}>Fechar</DialogClose></DialogFooter>

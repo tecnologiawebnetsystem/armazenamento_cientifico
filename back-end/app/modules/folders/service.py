@@ -88,20 +88,10 @@ class FolderService:
             return 0
         return total
 
-    async def sync_project_folders(self, project_id: str, user_id: str, folders: list[dict]) -> tuple[list[Folder], int]:
-        existing = await self.repository.find_by_project(project_id)
-        if existing:
-            updated_sizes = {
-                (item.get("id") or item.get("name", "")): int(item.get("size_bytes") or 0)
-                for item in folders
-                if item.get("id") or item.get("name")
-            }
-            if updated_sizes:
-                await self.repository.update_sizes(existing, updated_sizes)
-            return existing, 0
-
-        source_folders = folders
-        if not source_folders:
+    async def sync_project_folders(self, project_id: str, user_id: str, folders: list[dict]) -> tuple[list[Folder], int, int, str]:
+        source = "rede"
+        try:
+            live_folders = await self.list_project_folders(project_id)
             source_folders = [
                 {
                     "id": folder.id,
@@ -110,10 +100,18 @@ class FolderService:
                     "kind": folder.kind,
                     "size_bytes": folder.size,
                 }
-                for folder in await self.list_project_folders(project_id)
+                for folder in live_folders
             ]
+        except Exception:  # noqa: BLE001 - payload local é o fallback da sincronização
+            source = "tabela"
+            source_folders = folders
 
+        existing = await self.repository.find_by_project(project_id)
         now = datetime.now(UTC)
+        if existing:
+            updated = await self.repository.reconcile(existing, source_folders, now)
+            return existing, 0, updated, source
+
         to_create = [
             Folder(
                 id=item.get("id") or str(uuid5(NAMESPACE_URL, f"{project_id}:{item['name']}")),
@@ -124,15 +122,15 @@ class FolderService:
                 created_by=user_id,
                 created_at=now,
                 updated_at=now,
-                size=0,
+                size=int(item.get("size_bytes") or 0),
             )
             for item in source_folders
             if item.get("name", "").strip()
         ]
         if not to_create:
-            return [], 0
+            return [], 0, 0, source
         created = await self.repository.create_many(to_create)
-        return created, len(created)
+        return created, len(created), 0, source
 
     @staticmethod
     def _read_all_folders(project_id: str, parent_folder: str, user_id: str) -> list[Folder]:
