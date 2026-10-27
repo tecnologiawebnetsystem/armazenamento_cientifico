@@ -1,9 +1,10 @@
 import base64
 import logging
-import os
 from dataclasses import dataclass
 
 import httpx
+
+from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +23,10 @@ class ProfilePhotoResult:
 
 
 async def get_profile_photo(email: str) -> ProfilePhotoResult:
-    tenant_id = os.getenv("ENTRA_TENANT_ID", "").strip()
-    client_id = os.getenv("ENTRA_CLIENT_ID", "").strip()
-    client_secret = os.getenv("ENTRA_CLIENT_SECRET", "").strip()
+    settings = get_settings()
+    tenant_id = settings.entra_tenant_id.strip()
+    client_id = settings.entra_client_id.strip()
+    client_secret = settings.entra_client_secret.strip()
     if not email:
         logger.warning("entra_photo_skipped reason=email_missing")
         return ProfilePhotoResult(None, "skipped", "email_missing")
