@@ -12,8 +12,7 @@ import {
   PauseCircleIcon,
   DatabaseIcon,
   Columns3Icon,
-  RefreshCwIcon,
-  XIcon,
+   XIcon,
 } from "lucide-react"
 import { useProjects } from "@/hooks/use-projects"
 import { useCatalogs } from "@/hooks/use-catalogs"
@@ -183,7 +182,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
       <div className="sigac-surface overflow-hidden rounded-[1.5rem] p-5 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-petrobras-green">Gestão científica</p>
+            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-petrobras-green">Gest��o científica</p>
             <h1 className="mt-1 font-heading text-2xl font-semibold tracking-[-0.03em] text-foreground text-balance sm:text-3xl lg:text-[2.15rem]">Áreas de Rede</h1>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Acompanhe áreas de rede, áreas responsáveis, acessos e armazenamento em um só lugar.</p>
           </div>
@@ -226,7 +225,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         onViewChange={setView}
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"><span aria-live="polite">Exibindo {visibleProjects.length} de {filtered.length} áreas de rede{onlyInconsistent ? " inconsistentes" : ""}</span><div className="flex items-center gap-3"><Button nativeButton variant="ghost" size="sm" onClick={() => void refresh()}><RefreshCwIcon data-icon="inline-start" />Atualizar</Button><Button nativeButton variant="ghost" size="sm" onClick={() => { setSearch(""); setStatus("todos"); setArea("todas"); setOnlyInconsistent(false) }} disabled={!search && status === "todos" && area === "todas" && !onlyInconsistent}><XIcon data-icon="inline-start" />Limpar filtros</Button><label className="flex items-center gap-2"><Columns3Icon className="size-4" /><input type="checkbox" checked={showMeta} onChange={(event) => setShowMeta(event.target.checked)} />Mostrar detalhes</label><label className="flex items-center gap-2 font-medium text-amber-800"><input type="checkbox" checked={onlyInconsistent} onChange={(event) => { setOnlyInconsistent(event.target.checked); goToPage(1) }} />Somente inconsistentes <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[11px]">{inconsistentProjectIds.size}</span></label></div></div>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"><span aria-live="polite">Exibindo {visibleProjects.length} de {filtered.length} áreas de rede{onlyInconsistent ? " inconsistentes" : ""}</span><div className="flex items-center gap-3"><Button nativeButton variant="ghost" size="sm" onClick={() => { setSearch(""); setStatus("todos"); setArea("todas"); setOnlyInconsistent(false) }} disabled={!search && status === "todos" && area === "todas" && !onlyInconsistent}><XIcon data-icon="inline-start" />Limpar filtros</Button><label className="flex items-center gap-2"><Columns3Icon className="size-4" /><input type="checkbox" checked={showMeta} onChange={(event) => setShowMeta(event.target.checked)} />Mostrar detalhes</label><label className="flex items-center gap-2 font-medium text-amber-800"><input type="checkbox" checked={onlyInconsistent} onChange={(event) => { setOnlyInconsistent(event.target.checked); goToPage(1) }} />Somente inconsistentes <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[11px]">{inconsistentProjectIds.size}</span></label></div></div>
 
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { usePathname } from "next/navigation"
-import { recordAuditEvent } from "@/lib/api-client"
+import { getProject, recordAuditEvent } from "@/lib/api-client"
 import { useSession } from "@/hooks/use-session"
 
 let auditDisabledUntil = 0
@@ -23,6 +23,13 @@ export function ActivityTracker() {
 
   useEffect(() => {
     if (sessionLoading || !user || !canSendAudit()) return
+    const projectMatch = pathname.match(/^\/projetos\/([^/]+)$/)
+    if (projectMatch) {
+      void getProject(decodeURIComponent(projectMatch[1]))
+        .then((project) => recordAuditEvent({ action: "visualizar_pagina", entity: "pagina", entity_id: pathname, details: { rota: pathname, projeto_nome: project.project.nome, projeto: project.project.nome, codigo: project.project.codigo } }))
+        .catch(reportAuditFailure)
+      return
+    }
     void recordAuditEvent({ action: "visualizar_pagina", entity: "pagina", entity_id: pathname, details: { rota: pathname } }).catch(reportAuditFailure)
   }, [pathname, sessionLoading, user])
 
