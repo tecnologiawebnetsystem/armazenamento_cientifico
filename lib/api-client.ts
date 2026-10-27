@@ -225,7 +225,7 @@ export function getFolders(projectId: string) {
 }
 
 export function syncFolders(projectId: string, folders: FileNode[]) {
-  return request<{ folders: FileNode[] }>(`/api/folders/sync?projectId=${encodeURIComponent(projectId)}`, {
+  return request<{ folders: FileNode[]; inserted: number }>(`/api/folders/sync?projectId=${encodeURIComponent(projectId)}`, {
     method: "POST",
     body: JSON.stringify({
       folders: folders
