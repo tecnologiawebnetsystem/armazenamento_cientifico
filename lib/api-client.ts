@@ -227,7 +227,7 @@ export async function getProjectMembers(projectId: string) {
 /* --------------------------------- Folders -------------------------------- */
 
 export function getFolders(projectId: string) {
-  return request<{ folders: FileNode[] }>(`/api/folders?projectId=${encodeURIComponent(projectId)}`)
+  return request<{ folders: FileNode[]; source: "tabela" | "rede" | "tabela-fallback" }>(`/api/folders?projectId=${encodeURIComponent(projectId)}`)
 }
 
 export function syncFolders(projectId: string, folders: FileNode[]) {
