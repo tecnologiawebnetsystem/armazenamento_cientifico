@@ -1,4 +1,5 @@
-import type {
+import { AUDIT_ACTIONS } from "@/lib/audit"
+import type { ActivityAction,
   ProjectReport,
   AccessMapResponse,
   DashboardSummary,
@@ -101,18 +102,23 @@ export async function downloadFile(path: string): Promise<Blob> {
 /* ---------------------------------- Auth --------------------------------- */
 
 export async function login(email: string) {
-  const response = await request<void>("/api/auth/login", { method: "POST", body: JSON.stringify({ email }) })
-  await recordAuditEvent({ action: "login", entity: "sessao", details: { identificador: email } }).catch(() => undefined)
-  return response
+  try {
+    const response = await request<void>("/api/auth/login", { method: "POST", body: JSON.stringify({ email }) })
+    await recordAuditEvent({ action: AUDIT_ACTIONS.LOGIN, entity: "sessao", details: { identificador: email } }).catch(() => undefined)
+    return response
+  } catch (error) {
+    await recordAuditEvent({ action: AUDIT_ACTIONS.LOGIN_FAILED, entity: "sessao", result: "erro", details: { identificador: email, motivo: error instanceof Error ? error.message : "Falha de autenticação" } }).catch(() => undefined)
+    throw error
+  }
 }
 
 export async function logout() {
-  await recordAuditEvent({ action: "logout", entity: "sessao" }).catch(() => undefined)
+  await recordAuditEvent({ action: AUDIT_ACTIONS.LOGOUT, entity: "sessao" }).catch(() => undefined)
   return request<void>("/api/auth/logout", { method: "POST" })
 }
 
 export function recordAuditEvent(event: {
-  action: string
+  action: ActivityAction
   entity?: string
   entity_id?: string
   details?: Record<string, unknown>
