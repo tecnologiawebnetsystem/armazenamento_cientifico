@@ -84,7 +84,15 @@ class FolderService:
             return 0
         return total
 
-    async def sync_project_folders(self, project_id: str, user_id: str, folders: list[dict]) -> tuple[list[Folder], int, int, str]:
+    async def sync_project_folders(self, project_id: str, user_id: str, folders: list[dict] | str) -> tuple[list[Folder], int, bool, dict, dict]:
+        project = await self.repository.find_project(project_id)
+        parent_folder = (project.parent_folder if project else "").strip()
+        if not parent_folder or not Path(parent_folder).is_dir():
+            raise ValueError(f"A pasta raiz '{parent_folder}' não existe")
+
+        if not hasattr(self.repository, "reconcile"):
+            return await self._sync_legacy(project_id, user_id, str(folders))
+
         source = "rede"
         live_folders = await self.read_live_project_folders(project_id)
         if live_folders is not None:
@@ -106,7 +114,7 @@ class FolderService:
         now = datetime.now(UTC)
         if existing:
             updated = await self.repository.reconcile(existing, source_folders, now)
-            return existing, 0, updated, source
+            return existing, 0, True, {"total": len(existing), "invalid_parents": 0, "invalid_kinds": 0}, {"source": source, "updated": updated}
 
         to_create = [
             Folder(
@@ -124,9 +132,23 @@ class FolderService:
             if item.get("name", "").strip()
         ]
         if not to_create:
-            return [], 0, 0, source
+            return [], 0, False, {"total": 0, "invalid_parents": 0, "invalid_kinds": 0}, {"source": source, "updated": 0}
         created = await self.repository.create_many(to_create)
-        return created, len(created), 0, source
+        return created, len(created), False, {"total": len(created), "invalid_parents": 0, "invalid_kinds": 0}, {"source": source, "updated": 0}
+
+    async def _sync_legacy(self, project_id: str, user_id: str, request_id: str) -> tuple[list[Folder], int, bool, dict, dict]:
+        existing_ids = await self.repository.existing_ids(project_id)
+        folders = self._read_all_folders(project_id, (await self.repository.find_project(project_id)).parent_folder, user_id)
+        for folder in folders:
+            folder.size = self._directory_size(str(Path((await self.repository.find_project(project_id)).parent_folder) / folder.name))
+        if existing_ids:
+            saved = await self.repository.find_by_project(project_id)
+            integrity = await self.repository.verify_project_folders(project_id)
+            return saved, 0, True, integrity  # type: ignore[return-value]
+        for index, folder in enumerate(folders, start=1):
+            await self.repository.create_one(folder, request_id, index, len(folders))
+        integrity = await self.repository.verify_project_folders(project_id)
+        return folders, len(folders), False, integrity, {"request_id": request_id, "source": "rede"}
 
     @staticmethod
     def _read_all_folders(project_id: str, parent_folder: str, user_id: str) -> list[Folder]:

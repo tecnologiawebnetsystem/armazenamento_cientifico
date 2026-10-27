@@ -52,13 +52,15 @@ async def sync_folders(
     if not created_by:
         raise HTTPException(status_code=401, detail="Usuário autenticado não encontrado no cadastro local")
     try:
-        folders, inserted, updated, source = await service.sync_project_folders(
+        folders, inserted, existing, integrity, trace = await service.sync_project_folders(
             project_id,
             str(created_by),
             [item.model_dump() for item in (payload.folders if payload else [])],
         )
+        source = trace.get("source", "tabela")
+        updated = trace.get("updated", 0)
         logger.info("folders_sync_success project_id=%s source=%s inserted=%s updated=%s total=%s", project_id, source, inserted, updated, len(folders))
-        return {"folders": folders, "inserted": inserted, "updated": updated, "source": source}
+        return {"folders": folders, "inserted": inserted, "updated": updated, "existing": existing, "integrity": integrity, "trace": trace, "source": source}
     except Exception:
         logger.exception("folders_sync_failed project_id=%s", project_id)
         raise
