@@ -66,6 +66,17 @@ class FolderRepository:
         await self.session.commit()
         return folders
 
+    async def update_sizes(self, folders: list[Folder], sizes: dict[str, int]) -> None:
+        changed = False
+        for folder in folders:
+            key = folder.id if folder.id in sizes else folder.name
+            if key in sizes and folder.size != sizes[key]:
+                folder.size = sizes[key]
+                changed = True
+        if changed:
+            await self.session.flush()
+            await self.session.commit()
+
     async def update(self, folder: Folder) -> Folder:
         await self.session.merge(folder)
         await self.session.flush()

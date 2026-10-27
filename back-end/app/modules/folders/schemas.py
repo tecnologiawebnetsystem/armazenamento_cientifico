@@ -30,6 +30,7 @@ class FolderSyncItem(BaseModel):
     name: str = Field(..., min_length=1, max_length=500)
     parent_id: str | None = Field(None, max_length=36)
     kind: str = Field("pasta", max_length=20)
+    size_bytes: int = Field(0, ge=0)
 
 
 class FolderSyncIn(BaseModel):

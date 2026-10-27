@@ -235,6 +235,7 @@ export function syncFolders(projectId: string, folders: FileNode[]) {
           name: folderNameForSync(folder),
           parent_id: folder.parentId,
           kind: "pasta",
+          size_bytes: folder.tamanho ?? 0,
         })),
     }),
   })
