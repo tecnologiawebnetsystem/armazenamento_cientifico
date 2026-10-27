@@ -91,6 +91,13 @@ class FolderService:
     async def sync_project_folders(self, project_id: str, user_id: str, folders: list[dict]) -> tuple[list[Folder], int]:
         existing = await self.repository.find_by_project(project_id)
         if existing:
+            updated_sizes = {
+                (item.get("id") or item.get("name", "")): int(item.get("size_bytes") or 0)
+                for item in folders
+                if item.get("id") or item.get("name")
+            }
+            if updated_sizes:
+                await self.repository.update_sizes(existing, updated_sizes)
             return existing, 0
 
         source_folders = folders
@@ -101,6 +108,7 @@ class FolderService:
                     "name": folder.name,
                     "parent_id": folder.parent_id,
                     "kind": folder.kind,
+                    "size_bytes": folder.size,
                 }
                 for folder in await self.list_project_folders(project_id)
             ]
