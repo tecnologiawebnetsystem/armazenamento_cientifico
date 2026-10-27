@@ -134,6 +134,9 @@ class FolderService:
     async def project_exists(self, project_id: str) -> bool:
         return await self.repository.project_exists(project_id)
 
+    async def resolve_created_by(self, identifiers: list[str]) -> str | None:
+        return await self.repository.find_user_database_id(identifiers)
+
     # async def list_subfolders(self, parent_id: str) -> list[Folder]:
     #     return await self.repository.list_by_parent(parent_id)
     #

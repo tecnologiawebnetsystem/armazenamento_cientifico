@@ -32,9 +32,23 @@ async def sync_folders(
     if not await service.can_list_project(project_id, str(user["id"]), role):
         raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
     # folders.created_by referencia users.id, não o ID da sessão HTTP.
-    created_by = user.get("db_user_id") or user.get("id")
+    created_by = user.get("db_user_id")
     if not created_by:
-        raise HTTPException(status_code=401, detail="Usuário autenticado não encontrado")
+        profile_data = user.get("profile_data") or {}
+        identifiers = [
+            str(value)
+            for value in (
+                user.get("user_id"),
+                user.get("cav4_user_id"),
+                user.get("subject"),
+                profile_data.get("user_login"),
+                profile_data.get("cav4_user_id"),
+            )
+            if value
+        ]
+        created_by = await service.resolve_created_by(identifiers)
+    if not created_by:
+        raise HTTPException(status_code=401, detail="Usuário autenticado não encontrado no cadastro local")
     folders, _ = await service.sync_project_folders(
         project_id,
         str(created_by),

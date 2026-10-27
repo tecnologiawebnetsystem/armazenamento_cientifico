@@ -23,6 +23,15 @@ class FolderRepository:
         from app.modules.projects.models import Project
         return await self.session.scalar(select(Project.id).where(Project.id == project_id)) is not None
 
+    async def find_user_database_id(self, identifiers: list[str]) -> str | None:
+        """Resolve o ID técnico exigido pela FK folders.created_by."""
+        from app.modules.users.models import User
+
+        values = tuple(dict.fromkeys(value.strip() for value in identifiers if value and value.strip()))
+        if not values:
+            return None
+        return await self.session.scalar(select(User.id).where(User.user_id.in_(values)).limit(1))
+
     async def find_project(self, project_id: str):
         from app.modules.projects.models import Project
         return await self.session.scalar(select(Project).where(Project.id == project_id))
