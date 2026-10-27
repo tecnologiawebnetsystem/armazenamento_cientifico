@@ -30,14 +30,14 @@ def get_service(session: Annotated[AsyncSession, Depends(get_session)]) -> Proje
     return ProjectService(ProjectRepository(session))
 
 
-def serialize_project(project: Project, responsaveis: list[str] | None = None, area_nome: str | None = None) -> ProjectOut:
+def serialize_project(project: Project, responsaveis: list[str] | None = None, area_nome: str | None = None, armazenamento_bytes: int = 0) -> ProjectOut:
     return ProjectOut(
         id=project.id, nome=project.name or "", codigo=project.code or "",
         areaResponsavel=area_nome or project.responsible_area or "", descricao=project.description or "",
         status=project.status or "ativo", gestoresIds=project.managers_ids or [],
         responsaveis=responsaveis or [],         participantesIds=project.participants_ids or [],
         criadoEm=project.created_at or datetime.now(UTC).replace(tzinfo=None), atualizadoEm=project.updated_at or datetime.now(UTC).replace(tzinfo=None),
-        pastaMae=project.parent_folder or "",
+        pastaMae=project.parent_folder or "", armazenamentoUsadoMb=round(armazenamento_bytes / (1024 * 1024), 2),
     )
 
 
@@ -69,7 +69,17 @@ async def list_projects(service: Annotated[ProjectService, Depends(get_service)]
     role = user["role"] or "solicitante"
     projects = await service.list_projects(str(user["id"]), str(role))
     areas = {area.id: area.name for area in await service.list_areas()}
-    return {"projects": [serialize_project(project, area_nome=areas.get(project.responsible_area)) for project in projects]}
+    storage_by_project = await service.storage_by_project_ids([project.id for project in projects])
+    return {
+        "projects": [
+            serialize_project(
+                project,
+                area_nome=areas.get(project.responsible_area),
+                armazenamento_bytes=storage_by_project.get(project.id, 0),
+            )
+            for project in projects
+        ]
+    }
 
 
 @router.post("", response_model=dict, status_code=201)

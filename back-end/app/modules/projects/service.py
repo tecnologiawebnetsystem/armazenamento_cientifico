@@ -14,6 +14,9 @@ class ProjectService:
     async def list_projects(self, user_id: str, role: str) -> list[Project]:
         return await self.repository.list_visible(user_id, role)
 
+    async def storage_by_project_ids(self, project_ids: list[str]) -> dict[str, int]:
+        return await self.repository.storage_by_project_ids(project_ids)
+
     async def ensure_code_available(self, code: str) -> None:
         if await self.repository.find_by_code(code):
             raise ConflictException("Código de projeto já existente")

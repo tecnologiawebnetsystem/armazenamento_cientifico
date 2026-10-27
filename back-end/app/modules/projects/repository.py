@@ -1,4 +1,6 @@
-from sqlalchemy import exists, select
+from sqlalchemy import exists, func, select
+
+from app.modules.folders.models import Folder
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.catalogs.models import ResponsibleArea
@@ -41,6 +43,16 @@ class ProjectRepository:
             project.participants_ids = members_by_project.get(project.id, [])
 
         return projects
+
+    async def storage_by_project_ids(self, project_ids: list[str]) -> dict[str, int]:
+        if not project_ids:
+            return {}
+        rows = await self.session.execute(
+            select(Folder.project_id, func.coalesce(func.sum(Folder.size), 0))
+            .where(Folder.project_id.in_(project_ids))
+            .group_by(Folder.project_id)
+        )
+        return {project_id: int(total or 0) for project_id, total in rows}
 
     async def can_view(self, project_id: str, user_id: str, role: str) -> bool:
         if role in {"admin", "patrocinador", "auditor"}:

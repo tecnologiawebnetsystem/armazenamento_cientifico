@@ -63,6 +63,7 @@ class ProjectOut(BaseModel):
     criadoEm: datetime
     atualizadoEm: datetime
     pastaMae: str = ""
+    armazenamentoUsadoMb: float = 0
 
 
 class AccessMapOut(BaseModel):
