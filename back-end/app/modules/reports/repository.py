@@ -25,7 +25,8 @@ class ReportRepository:
     async def projects(self, status: str | None, area: str | None, gestor_id: str | None, user_id: str, all_projects: bool = False) -> list[dict[str, Any]]:
         statement = select(
             Project.id, Project.name.label("nome"), Project.code.label("codigo"),
-            Project.responsible_area.label("areaResponsavel"), Project.status, Project.description.label("descricao"),
+            Project.responsible_area.label("areaResponsavel"), Project.managers_ids.label("responsaveis"),
+            Project.parent_folder.label("pastaMae"), Project.status, Project.description.label("descricao"),
             Project.created_at.label("criadoEm"), Project.updated_at.label("atualizadoEm"),
         )
         if status is not None:
