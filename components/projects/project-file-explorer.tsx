@@ -28,7 +28,7 @@ export function ProjectFileExplorer({ projectId }: { projectId: string }) {
   async function handleSync() {
     setIsSyncing(true)
     try {
-      const result = await syncFolders(projectId)
+      const result = await syncFolders(projectId, data?.folders ?? [])
       await mutate(result, false)
       toast.success(result.folders.length ? `${result.folders.length} pasta(s) cadastrada(s).` : "A área de rede já possui pastas cadastradas ou não há pastas disponíveis.")
     } catch (syncError) {

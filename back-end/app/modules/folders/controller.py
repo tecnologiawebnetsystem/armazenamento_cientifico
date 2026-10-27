@@ -7,7 +7,7 @@ from app.api.dependencies import CurrentUser
 from app.db.session import get_session
 
 from .repository import FolderRepository
-from .schemas import FolderListOut
+from .schemas import FolderListOut, FolderSyncIn
 from .service import FolderService
 
 router = APIRouter(prefix="/api/folders", tags=["Folders"])
@@ -23,6 +23,7 @@ async def sync_folders(
     service: Annotated[FolderService, Depends(get_service)],
     user: CurrentUser,
     project_id: str = Query(alias="projectId"),
+    payload: FolderSyncIn | None = None,
 ):
     from fastapi import HTTPException
     if not await service.project_exists(project_id):
@@ -30,7 +31,11 @@ async def sync_folders(
     role = user["role"] or "solicitante"
     if not await service.can_list_project(project_id, str(user["id"]), role):
         raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
-    folders, _ = await service.sync_project_folders(project_id, str(user["id"]))
+    folders, _ = await service.sync_project_folders(
+        project_id,
+        str(user["id"]),
+        [item.model_dump() for item in (payload.folders if payload else [])],
+    )
     return {"folders": folders}
 
 

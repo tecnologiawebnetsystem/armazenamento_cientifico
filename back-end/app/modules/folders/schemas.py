@@ -25,6 +25,17 @@ class FolderOut(FolderBase):
     model_config = {"from_attributes": True}
 
 
+class FolderSyncItem(BaseModel):
+    id: str | None = Field(None, max_length=36)
+    name: str = Field(..., min_length=1, max_length=500)
+    parent_id: str | None = Field(None, max_length=36)
+    kind: str = Field("pasta", max_length=20)
+
+
+class FolderSyncIn(BaseModel):
+    folders: list[FolderSyncItem] = Field(default_factory=list, max_length=10000)
+
+
 class FolderListOut(BaseModel):
     folders: list[FolderOut]
 
