@@ -4,6 +4,7 @@ from secrets import compare_digest
 from typing import Annotated
 from uuid import uuid4
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.exc import DBAPIError, SQLAlchemyError
@@ -185,6 +186,11 @@ async def cav4_profile_photo(request: Request):
         result = await get_profile_photo(str(email))
         logger.info("entra_photo_route status=%s reason=%s", result.status, result.reason)
         return {"photo": result.photo.data_url if result.photo else None, "status": result.status, "reason": result.reason}
+    except httpx.HTTPStatusError as error:
+        graph_status = error.response.status_code
+        reason = "graph_permission_denied" if graph_status == 403 else "graph_request_failed"
+        logger.error("entra_photo_request_failed status=%s reason=%s", graph_status, reason)
+        return {"photo": None, "status": "error", "reason": reason}
     except Exception:
         logger.exception("entra_photo_request_failed=true")
         return {"photo": None, "status": "error", "reason": "unexpected_error"}
