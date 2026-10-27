@@ -30,7 +30,13 @@ export function ProjectFileExplorer({ projectId }: { projectId: string }) {
     try {
       const result = await syncFolders(projectId, data?.folders ?? [])
       await mutate(result, false)
-      toast.success(result.folders.length ? `${result.folders.length} pasta(s) cadastrada(s).` : "A área de rede já possui pastas cadastradas ou não há pastas disponíveis.")
+      if (result.inserted > 0) {
+        toast.success(`${result.inserted} pasta(s) cadastrada(s) com sucesso.`)
+      } else if (result.folders.length > 0) {
+        toast.info("A área de rede já possui pastas cadastradas.")
+      } else {
+        toast.error("Nenhuma pasta foi encontrada para cadastrar.")
+      }
     } catch (syncError) {
       toast.error(syncError instanceof Error ? syncError.message : "Não foi possível atualizar a área de rede.")
     } finally {

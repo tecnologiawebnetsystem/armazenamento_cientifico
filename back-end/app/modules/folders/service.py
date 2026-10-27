@@ -79,6 +79,18 @@ class FolderService:
         if existing:
             return existing, 0
 
+        source_folders = folders
+        if not source_folders:
+            source_folders = [
+                {
+                    "id": folder.id,
+                    "name": folder.name,
+                    "parent_id": folder.parent_id,
+                    "kind": folder.kind,
+                }
+                for folder in await self.list_project_folders(project_id)
+            ]
+
         now = datetime.now(UTC)
         to_create = [
             Folder(
@@ -92,7 +104,7 @@ class FolderService:
                 updated_at=now,
                 size=0,
             )
-            for item in folders
+            for item in source_folders
             if item.get("name", "").strip()
         ]
         if not to_create:

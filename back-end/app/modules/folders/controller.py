@@ -49,12 +49,12 @@ async def sync_folders(
         created_by = await service.resolve_created_by(identifiers)
     if not created_by:
         raise HTTPException(status_code=401, detail="Usuário autenticado não encontrado no cadastro local")
-    folders, _ = await service.sync_project_folders(
+    folders, inserted = await service.sync_project_folders(
         project_id,
         str(created_by),
         [item.model_dump() for item in (payload.folders if payload else [])],
     )
-    return {"folders": folders}
+    return {"folders": folders, "inserted": inserted}
 
 
 @router.get("", response_model=FolderListOut)
