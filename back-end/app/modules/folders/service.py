@@ -22,29 +22,25 @@ class FolderService:
     async def list_folders_by_project(self, project_id: str) -> list[Folder]:
         return await self.repository.find_by_project(project_id)
 
-    async def list_project_folders(self, project_id: str) -> list[Folder]:
-        """Lista somente as pastas imediatamente dentro do caminho do projeto.
-
-        A leitura do compartilhamento Windows acontece em uma thread para não
-        bloquear o FastAPI. Se o caminho não estiver disponível, a tabela local
-        continua sendo a fonte de fallback.
-        """
+    async def read_live_project_folders(self, project_id: str) -> list[Folder] | None:
         project = await self.repository.find_project(project_id)
         parent_folder = (project.parent_folder if project else "").strip()
         if not parent_folder:
-            return await self.list_folders_by_project(project_id)
-
+            return None
         try:
-            folders = await asyncio.wait_for(
+            return await asyncio.wait_for(
                 asyncio.to_thread(self._read_root_folders, project_id, parent_folder),
                 timeout=45,
             )
-            return folders if folders else await self.list_folders_by_project(project_id)
-        except Exception:  # noqa: BLE001 - UNC pode lançar exceções do Windows sem tipo documentado
-            # Compartilhamentos UNC podem falhar com exceções específicas do
-            # Windows (ou permanecer indisponíveis sem gerar OSError). A API
-            # deve continuar respondendo usando a tabela local como fallback.
-            return await self.list_folders_by_project(project_id)
+        except Exception:  # noqa: BLE001 - compartilhamentos podem falhar sem tipo estável
+            return None
+
+    async def list_project_folders(self, project_id: str) -> list[Folder]:
+        """Lista a rede e usa a tabela local somente como fallback de exibição."""
+        live_folders = await self.read_live_project_folders(project_id)
+        if live_folders is not None:
+            return live_folders
+        return await self.list_folders_by_project(project_id)
 
     @staticmethod
     def _read_root_folders(project_id: str, parent_folder: str) -> list[Folder]:
@@ -90,8 +86,8 @@ class FolderService:
 
     async def sync_project_folders(self, project_id: str, user_id: str, folders: list[dict]) -> tuple[list[Folder], int, int, str]:
         source = "rede"
-        try:
-            live_folders = await self.list_project_folders(project_id)
+        live_folders = await self.read_live_project_folders(project_id)
+        if live_folders is not None:
             source_folders = [
                 {
                     "id": folder.id,
@@ -102,7 +98,7 @@ class FolderService:
                 }
                 for folder in live_folders
             ]
-        except Exception:  # noqa: BLE001 - payload local é o fallback da sincronização
+        else:
             source = "tabela"
             source_folders = folders
 
