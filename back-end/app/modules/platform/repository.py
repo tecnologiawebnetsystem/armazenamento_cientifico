@@ -1,4 +1,4 @@
-﻿from datetime import UTC, datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import and_, func, literal_column, or_, select
@@ -121,7 +121,8 @@ class PlatformRepository:
     # ── dashboard (ORM) ───────────────────────────────────────────────
 
     async def dashboard(self) -> dict[str, Any]:
-        storage_sub = select(func.coalesce(func.sum(Folder.size), 0)).where(Folder.project_id == Project.id).correlate(Project).scalar_subquery()
+        bytes_per_mb = 1024 * 1024
+        storage_sub = select(func.coalesce(func.sum(Folder.size), 0) / bytes_per_mb).where(Folder.project_id == Project.id).correlate(Project).scalar_subquery()
         projects = [dict(row) for row in (await self.session.execute(
             select(Project.id, Project.name.label("nome"), Project.code.label("codigo"),
                    Project.responsible_area.label("areaResponsavel"), Project.status,
@@ -134,7 +135,7 @@ class PlatformRepository:
             select(
                 func.count(func.distinct(ProjectMember.project_id)).label("membros"),
                 func.count(func.distinct(Folder.id)).label("mapas"),
-                func.coalesce(func.sum(Folder.size), 0).label("armazenamento"),
+                (func.coalesce(func.sum(Folder.size), 0) / bytes_per_mb).label("armazenamento"),
             )
         )).mappings().first()
         counts = dict(counts_result) if counts_result else {"membros": 0, "mapas": 0, "armazenamento": 0}

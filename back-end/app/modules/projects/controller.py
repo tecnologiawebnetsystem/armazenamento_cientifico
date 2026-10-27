@@ -75,7 +75,7 @@ async def list_projects(service: Annotated[ProjectService, Depends(get_service)]
             serialize_project(
                 project,
                 area_nome=areas.get(project.responsible_area),
-                armazenamento_bytes=storage_by_project.get(project.id, 0),
+                armazenamento_bytes=storage_by_project.get(str(project.id), 0),
             )
             for project in projects
         ]
