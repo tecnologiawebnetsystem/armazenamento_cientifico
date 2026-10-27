@@ -89,6 +89,9 @@ class Settings(BaseSettings):
     cav4_logout_url: str = ""
     cav4_issuer: str = Field(default="", validation_alias=AliasChoices("CA_ISSUER", "CAV4_ISSUER"))
     cav4_jwks_url: str = ""
+    entra_tenant_id: str = ""
+    entra_client_id: str = ""
+    entra_client_secret: str = ""
 
     @property
     def is_sqlite(self) -> bool:
