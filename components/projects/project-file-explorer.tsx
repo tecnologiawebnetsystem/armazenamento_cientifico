@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { ChevronRightIcon, FolderIcon, FoldersIcon, Loader2Icon, RefreshCwIcon, SearchIcon, SearchXIcon } from "lucide-react"
+import { CheckCircle2Icon, ChevronRightIcon, DatabaseIcon, FolderIcon, FoldersIcon, Loader2Icon, RefreshCwIcon, SearchIcon, SearchXIcon } from "lucide-react"
 import useSWR from "swr"
 import { getFolders, syncFolders } from "@/lib/api-client"
 import { toast } from "sonner"
@@ -12,6 +12,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 function folderName(folder: FileNode) {
   return folder.nome ?? folder.name ?? "Pasta sem nome"
@@ -24,16 +25,15 @@ function parentId(folder: FileNode) {
 export function ProjectFileExplorer({ projectId }: { projectId: string }) {
   const { data, isLoading, error, mutate } = useSWR(["project-folders", projectId], () => getFolders(projectId))
   const [isSyncing, setIsSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState<{ inserted: number; total: number; projectName: string } | null>(null)
 
   async function handleSync() {
     setIsSyncing(true)
     try {
       const result = await syncFolders(projectId, data?.folders ?? [])
       await mutate(result, false)
-      if (result.inserted > 0) {
-        toast.success(`${result.inserted} pasta(s) cadastrada(s) com sucesso.`)
-      } else if (result.folders.length > 0) {
-        toast.info("A área de rede já possui pastas cadastradas.")
+      if (result.inserted > 0 || result.folders.length > 0) {
+        setSyncResult({ inserted: result.inserted, total: result.folders.length, projectName: projectId })
       } else {
         toast.error("Nenhuma pasta foi encontrada para cadastrar.")
       }
@@ -57,7 +57,38 @@ export function ProjectFileExplorer({ projectId }: { projectId: string }) {
   }, [children, folders, search])
 
   return (
-    <Card className="overflow-hidden border-border/80 shadow-sm">
+    <>
+      <Dialog open={syncResult !== null} onOpenChange={(open) => { if (!open) setSyncResult(null) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex size-12 items-center justify-center rounded-full bg-petrobras-green/10 text-petrobras-green">
+              <CheckCircle2Icon className="size-6" aria-hidden="true" />
+            </div>
+            <DialogTitle>{syncResult?.inserted ? "Pastas cadastradas com sucesso" : "Área de rede atualizada"}</DialogTitle>
+            <DialogDescription>
+              {syncResult?.inserted
+                ? `${syncResult.inserted} ${syncResult.inserted === 1 ? "pasta foi inserida" : "pastas foram inseridas"} na tabela de pastas.`
+                : "As pastas desta área já estavam cadastradas na tabela de pastas."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 rounded-lg border bg-muted/30 p-4 text-sm">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-muted-foreground">Área de rede</span>
+              <span className="max-w-48 truncate font-medium" title={syncResult?.projectName}>{syncResult?.projectName}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="flex items-center gap-2 text-muted-foreground"><DatabaseIcon className="size-4" aria-hidden="true" />Registros encontrados</span>
+              <span className="font-semibold">{syncResult?.total ?? 0}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-muted-foreground">Novos inserts</span>
+              <span className="font-semibold text-petrobras-green">{syncResult?.inserted ?? 0}</span>
+            </div>
+          </div>
+          <DialogFooter><DialogClose render={<Button variant="outline" />}>Fechar</DialogClose></DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Card className="overflow-hidden border-border/80 shadow-sm">
       <CardHeader className="border-b bg-muted/30 px-5 py-5 sm:px-7">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-3">
@@ -79,6 +110,7 @@ export function ProjectFileExplorer({ projectId }: { projectId: string }) {
 
         {isLoading ? <div className="flex flex-col gap-2">{Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} className="h-12 rounded-lg" />)}</div> : error ? <Empty><EmptyHeader><EmptyTitle>Não foi possível carregar as pastas</EmptyTitle><EmptyDescription>Verifique seu acesso ao projeto e tente novamente.</EmptyDescription></EmptyHeader></Empty> : visibleFolders.length === 0 ? <Empty><EmptyHeader><EmptyMedia variant="icon">{search.trim() ? <SearchXIcon /> : <FoldersIcon />}</EmptyMedia><EmptyTitle>{search.trim() ? "Nenhum resultado" : "Nenhuma pasta disponível"}</EmptyTitle><EmptyDescription>{search.trim() ? "Nenhuma pasta corresponde à busca." : "Este projeto ainda não possui pastas cadastradas."}</EmptyDescription></EmptyHeader></Empty> : <div className="overflow-hidden rounded-xl border border-border/80 bg-background"><div className="border-b bg-muted/30 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{search.trim() ? "Resultado da busca" : currentFolder ? `Pastas em ${folderName(currentFolder)}` : "Pastas na raiz"}</div><div className="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{visibleFolders.map((folder) => <button type="button" key={folder.id} onClick={() => { setSearch(""); setCurrentFolderId(folder.id) }} className="flex min-w-0 items-center gap-3 rounded-lg border border-border/70 bg-background px-3 py-3 text-left transition-colors hover:border-petrobras-green/40 hover:bg-petrobras-green/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-petrobras-green"><div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-petrobras-green/10"><FolderIcon className="size-5 text-petrobras-green" aria-hidden="true" /></div><span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" title={folderName(folder)}>{folderName(folder)}</span><ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" /></button>)}</div></div>}
       </CardContent>
-    </Card>
+      </Card>
+    </>
   )
 }
