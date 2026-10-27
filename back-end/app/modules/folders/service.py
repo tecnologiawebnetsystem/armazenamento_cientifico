@@ -74,23 +74,31 @@ class FolderService:
             for entry in entries
         ]
 
-    async def sync_project_folders(self, project_id: str, user_id: str) -> tuple[list[Folder], int]:
+    async def sync_project_folders(self, project_id: str, user_id: str, folders: list[dict]) -> tuple[list[Folder], int]:
         existing = await self.repository.find_by_project(project_id)
         if existing:
             return existing, 0
 
-        project = await self.repository.find_project(project_id)
-        parent_folder = (project.parent_folder if project else "").strip()
-        if not parent_folder:
+        now = datetime.now(UTC)
+        to_create = [
+            Folder(
+                id=item.get("id") or str(uuid5(NAMESPACE_URL, f"{project_id}:{item['name']}")),
+                project_id=project_id,
+                parent_id=item.get("parent_id"),
+                kind="pasta",
+                name=item["name"].strip(),
+                created_by=user_id,
+                created_at=now,
+                updated_at=now,
+                size=0,
+            )
+            for item in folders
+            if item.get("name", "").strip()
+        ]
+        if not to_create:
             return [], 0
-
-        discovered = await asyncio.wait_for(
-            asyncio.to_thread(self._read_all_folders, project_id, parent_folder, user_id),
-            timeout=60,
-        )
-        if not discovered:
-            return [], 0
-        return await self.repository.create_many(discovered), len(discovered)
+        created = await self.repository.create_many(to_create)
+        return created, len(created)
 
     @staticmethod
     def _read_all_folders(project_id: str, parent_folder: str, user_id: str) -> list[Folder]:

@@ -224,8 +224,24 @@ export function getFolders(projectId: string) {
   return request<{ folders: FileNode[] }>(`/api/folders?projectId=${encodeURIComponent(projectId)}`)
 }
 
-export function syncFolders(projectId: string) {
-  return request<{ folders: FileNode[] }>(`/api/folders/sync?projectId=${encodeURIComponent(projectId)}`, { method: "POST" })
+export function syncFolders(projectId: string, folders: FileNode[]) {
+  return request<{ folders: FileNode[] }>(`/api/folders/sync?projectId=${encodeURIComponent(projectId)}`, {
+    method: "POST",
+    body: JSON.stringify({
+      folders: folders
+        .filter((folder) => folder.tipo !== "arquivo")
+        .map((folder) => ({
+          id: folder.id,
+          name: folderNameForSync(folder),
+          parent_id: folder.parentId,
+          kind: "pasta",
+        })),
+    }),
+  })
+}
+
+function folderNameForSync(folder: FileNode) {
+  return folder.nome ?? folder.name ?? "Pasta sem nome"
 }
 
 /* -------------------------------- Dashboard -------------------------------- */
