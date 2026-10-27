@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { PetrobrasLoading } from "@/components/petrobras-loading"
 import { PageHeader, PageLayout } from "@/components/shared/page-layout"
-import { getActivityLogs, recordAuditEvent } from "@/lib/api-client"
+import { getActivityLogs, getProjects, recordAuditEvent } from "@/lib/api-client"
 import type { ActivityLog } from "@/lib/types"
 
 type LogWithUser = ActivityLog & { userName?: string | null; userEmail?: string | null }
@@ -67,14 +67,17 @@ function displayEntity(entity: string) {
   return entityLabels[entity] ?? entity.replaceAll("_", " ").replace(/\\b\\w/g, (letter) => letter.toUpperCase())
 }
 
-function displayEntityId(log: LogWithUser) {
+function displayEntityId(log: LogWithUser, projectNames: Map<string, string> = new Map()) {
   try {
     const details = JSON.parse(log.detalhes || "{}") as { projeto?: string; projeto_nome?: string; codigo?: string; nome?: string; rota?: string; status_novo?: string }
     if (log.acao === "login") return "Acesso autenticado"
     if (log.acao === "logout") return "Sessão encerrada"
     if (log.acao === "cav4_authorization") return "Autorização CAV4 concluída"
     if (log.acao === "consultar" && log.entidade === "relatorio_projetos") return "Relatório de Área de Rede"
-    if ((log.acao as string) === "visualizar_pagina") return details.projeto_nome || details.projeto || routeLabels[details.rota ?? ""] || details.rota || "Página consultada"
+    if ((log.acao as string) === "visualizar_pagina") {
+      const routeProjectId = details.rota?.match(/^\/projetos\/([^/]+)$/)?.[1]
+      return details.projeto_nome || details.projeto || (routeProjectId ? projectNames.get(routeProjectId) : undefined) || routeLabels[details.rota ?? ""] || details.rota || "Página consultada"
+    }
     if (log.acao === "atualizar-area-rede") return details.projeto || details.projeto_nome || details.codigo || log.projetoNome || "Área de rede atualizada"
     if (log.acao === "alterar_status") return details.projeto || details.projeto_nome || details.codigo || "Área de rede atualizada"
     if (log.acao === "consultar-mapa-acessos" || log.acao === "exportar-relatorio") {
@@ -83,7 +86,9 @@ function displayEntityId(log: LogWithUser) {
   } catch {
     // Mantém o identificador técnico quando o detalhe não estiver em JSON.
   }
-  return log.entidadeId || "—"
+  const technicalId = log.entidadeId || ""
+  if (projectNames.has(technicalId)) return projectNames.get(technicalId) || technicalId
+  return technicalId || "—"
 }
 
 const exportFields: ExportField[] = [
@@ -94,23 +99,23 @@ const exportFields: ExportField[] = [
   { key: "criadoEm", label: "Data e hora" },
 ]
 
-function getExportValue(log: LogWithUser, key: string) {
+function getExportValue(log: LogWithUser, key: string, projectNames: Map<string, string>) {
   const values: Record<string, string> = {
     evento: `${displayAction(log.acao)} · ${displayEntity(log.entidade)}`,
     usuario: log.userName ?? log.userId ?? "Usuário não identificado",
     acao: displayAction(log.acao),
     entidade: displayEntity(log.entidade),
     criadoEm: new Date(log.criadoEm).toLocaleString("pt-BR"),
-    identificador: displayEntityId(log),
+    identificador: displayEntityId(log, projectNames),
     resultado: log.resultado ?? "sucesso",
     detalhes: log.detalhes ?? "",
   }
   return values[key] ?? ""
 }
 
-async function downloadLogExport(logs: LogWithUser[], fields: string[], format: ExportFormat) {
+async function downloadLogExport(logs: LogWithUser[], fields: string[], format: ExportFormat, projectNames: Map<string, string>) {
   const headers = fields.map((key) => exportFields.find((field) => field.key === key)?.label ?? key)
-  const rows = logs.map((log) => fields.map((key) => getExportValue(log, key)))
+  const rows = logs.map((log) => fields.map((key) => getExportValue(log, key, projectNames)))
   const escapeCsv = (value: string) => `"${value.replaceAll('"', '""')}"`
   const csv = [headers, ...rows].map((row) => row.map(escapeCsv).join(",")).join("\n")
   const text = [headers.join(" | "), ...rows.map((row) => row.join(" | "))].join("\n")
@@ -149,6 +154,8 @@ export default function LogsPage() {
     () => getActivityLogs({ page, limit: 25, q: debouncedQuery, action: action === "todos" ? undefined : action, entity: entity === "todos" ? undefined : entity, result: result === "todos" ? undefined : result, project_name: projectName, date_from: dateFrom, date_to: dateTo }),
     { keepPreviousData: true },
   )
+  const { data: projectsData } = useSWR("/api/projects/log-names", () => getProjects({ limit: 1000 }))
+  const projectNames = useMemo(() => new Map((projectsData?.projects ?? []).map((project) => [project.id, project.nome])), [projectsData?.projects])
   const [selectedLog, setSelectedLog] = useState<LogWithUser | null>(null)
   const allLogs = useMemo(() => (data?.logs ?? []) as LogWithUser[], [data?.logs])
   const pagination = data?.pagination ?? { page: 1, limit: 25, total: 0, totalPages: 1 }
@@ -197,7 +204,7 @@ export default function LogsPage() {
           <div className="flex items-end gap-2 md:col-span-2 xl:col-span-3"><div className="grid min-w-0 flex-1 gap-1"><span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Período inicial</span><Input type="date" className="h-9 min-w-0 text-sm" value={dateFrom} onChange={(event) => { setDateFrom(event.target.value); setPage(1) }} /></div><span className="pb-2 text-xs text-muted-foreground">até</span><div className="grid min-w-0 flex-1 gap-1"><span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Período final</span><Input type="date" className="h-9 min-w-0 text-sm" value={dateTo} onChange={(event) => { setDateTo(event.target.value); setPage(1) }} /></div></div>
         </div>
       </CardHeader>
-      <CardContent className="p-0"><div className="hidden grid-cols-[1.4fr_1.1fr_1fr_0.8fr_1.2fr] gap-4 border-b bg-muted/10 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground md:grid"><span>Evento / entidade</span><span>Usuário</span><span>Identificador</span><span>Resultado</span><span className="text-right">Data e hora</span></div><div className="divide-y">{logs.length ? logs.map((log) => <div className="grid gap-3 px-5 py-4 transition-colors hover:bg-primary/[0.03] md:grid-cols-[1.4fr_1.1fr_1fr_0.8fr_1.2fr] md:items-center md:gap-4" key={log.id}>        <div><p className="font-medium">{displayAction(log.acao)}</p><p className="mt-1 text-xs text-muted-foreground">{log.acao === "cav4_authorization" ? "Sessão de acesso autorizada com sucesso" : `${displayEntity(log.entidade)}${log.entidadeId ? ` · ${displayEntityId(log)}` : ""}`}</p><p className="mt-1 text-xs text-muted-foreground/80">{log.detalhes ? "Informações adicionais disponíveis" : "Nenhuma informação adicional registrada"}</p></div><div className="flex items-center gap-2 text-sm"><span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{(log.userName ?? log.userId ?? "?").charAt(0).toUpperCase()}</span><span className="truncate">{log.userName ?? log.userId ?? "Usuário não identificado"}</span></div><span className="text-xs text-muted-foreground">{displayEntityId(log)}</span><Badge variant={log.resultado === "erro" ? "destructive" : "secondary"} className="w-fit">{log.resultado === "erro" ? "Falha" : "Sucesso"}</Badge><div className="flex items-center justify-between gap-2 md:justify-end"><time className="text-sm text-muted-foreground md:text-right" dateTime={log.criadoEm}>{new Date(log.criadoEm).toLocaleString("pt-BR")}</time><Button variant="ghost" size="sm" className="shrink-0" aria-label={`Ver detalhes do evento ${displayAction(log.acao)}`} onClick={() => setSelectedLog(log)}><EyeIcon data-icon="inline-start" />Detalhes</Button></div></div>) : <div className="p-12 text-center text-muted-foreground">Nenhum evento encontrado para os filtros informados.</div>}</div></CardContent>
+      <CardContent className="p-0"><div className="hidden grid-cols-[1.4fr_1.1fr_1fr_0.8fr_1.2fr] gap-4 border-b bg-muted/10 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground md:grid"><span>Evento / entidade</span><span>Usuário</span><span>Identificador</span><span>Resultado</span><span className="text-right">Data e hora</span></div><div className="divide-y">{logs.length ? logs.map((log) => <div className="grid gap-3 px-5 py-4 transition-colors hover:bg-primary/[0.03] md:grid-cols-[1.4fr_1.1fr_1fr_0.8fr_1.2fr] md:items-center md:gap-4" key={log.id}>        <div><p className="font-medium">{displayAction(log.acao)}</p><p className="mt-1 text-xs text-muted-foreground">{log.acao === "cav4_authorization" ? "Sessão de acesso autorizada com sucesso" : `${displayEntity(log.entidade)}${log.entidadeId ? ` · ${displayEntityId(log, projectNames)}` : ""}`}</p><p className="mt-1 text-xs text-muted-foreground/80">{log.detalhes ? "Informações adicionais disponíveis" : "Nenhuma informação adicional registrada"}</p></div><div className="flex items-center gap-2 text-sm"><span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{(log.userName ?? log.userId ?? "?").charAt(0).toUpperCase()}</span><span className="truncate">{log.userName ?? log.userId ?? "Usuário não identificado"}</span></div><span className="text-xs text-muted-foreground">{displayEntityId(log, projectNames)}</span><Badge variant={log.resultado === "erro" ? "destructive" : "secondary"} className="w-fit">{log.resultado === "erro" ? "Falha" : "Sucesso"}</Badge><div className="flex items-center justify-between gap-2 md:justify-end"><time className="text-sm text-muted-foreground md:text-right" dateTime={log.criadoEm}>{new Date(log.criadoEm).toLocaleString("pt-BR")}</time><Button variant="ghost" size="sm" className="shrink-0" aria-label={`Ver detalhes do evento ${displayAction(log.acao)}`} onClick={() => setSelectedLog(log)}><EyeIcon data-icon="inline-start" />Detalhes</Button></div></div>) : <div className="p-12 text-center text-muted-foreground">Nenhum evento encontrado para os filtros informados.</div>}</div></CardContent>
       {pagination.totalPages > 1 && <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 px-4 py-3 sm:px-5">
         <p className="text-sm text-muted-foreground">Página {pagination.page} de {pagination.totalPages} · {pagination.total} registros</p>
         <div className="flex items-center gap-2">
@@ -217,7 +224,7 @@ export default function LogsPage() {
       title="logs de auditoria"
       fields={exportFields}
       defaultFormats={["csv"]}
-      onConfirm={(fields, formats) => void Promise.all(formats.map((format) => downloadLogExport(logs, fields, format)))}
+      onConfirm={(fields, formats) => void Promise.all(formats.map((format) => downloadLogExport(logs, fields, format, projectNames)))}
     />
 
     <Dialog open={Boolean(selectedLog)} onOpenChange={(open) => { if (!open) setSelectedLog(null) }}>
@@ -241,7 +248,7 @@ export default function LogsPage() {
               </div>
               <div className="min-w-0 rounded-xl border bg-muted/20 p-4">
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Identificador</span>
-                <p className="mt-1 break-all font-mono text-xs leading-5">{displayEntityId(selectedLog)}</p>
+                <p className="mt-1 break-all font-mono text-xs leading-5">{displayEntityId(selectedLog, projectNames)}</p>
               </div>
               <div className="rounded-xl border bg-muted/20 p-4">
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Data e hora</span>
