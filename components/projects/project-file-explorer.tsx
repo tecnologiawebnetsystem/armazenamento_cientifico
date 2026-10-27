@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import { CheckCircle2Icon, DatabaseIcon, FolderIcon, FoldersIcon, Loader2Icon, RefreshCwIcon, SearchIcon, SearchXIcon } from "lucide-react"
 import useSWR from "swr"
+import { AUDIT_ACTIONS } from "@/lib/audit"
 import { getFolders, recordAuditEvent, syncFolders } from "@/lib/api-client"
 import { toast } from "sonner"
 import type { FileNode } from "@/lib/types"
@@ -29,10 +30,11 @@ export function ProjectFileExplorer({ projectId, projectName }: { projectId: str
 
   async function handleSync() {
     setIsSyncing(true)
+    await recordAuditEvent({ action: AUDIT_ACTIONS.SYNC_STARTED, entity: "projeto", entity_id: projectId, details: { projeto: projectName } }).catch(() => undefined)
     try {
       const result = await syncFolders(projectId, data?.folders ?? [])
       await recordAuditEvent({
-        action: "atualizar-area-rede",
+        action: AUDIT_ACTIONS.SYNC_SUCCEEDED,
         entity: "projeto",
         entity_id: projectId,
         details: {
@@ -50,6 +52,7 @@ export function ProjectFileExplorer({ projectId, projectName }: { projectId: str
         toast.error("Nenhuma pasta foi encontrada para cadastrar.")
       }
     } catch (syncError) {
+      await recordAuditEvent({ action: AUDIT_ACTIONS.SYNC_FAILED, entity: "projeto", entity_id: projectId, result: "erro", details: { projeto: projectName, motivo: syncError instanceof Error ? syncError.message : "Falha desconhecida" } }).catch(() => undefined)
       toast.error(syncError instanceof Error ? syncError.message : "Não foi possível atualizar a área de rede.")
     } finally {
       setIsSyncing(false)
