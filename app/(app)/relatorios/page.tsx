@@ -29,7 +29,7 @@ export default function ReportsPage() {
   const { data: inconsistencies } = useSWR(["/api/reports/inconsistencies", area, gestor], () => getInconsistencyReport({ area: area === "todas" ? undefined : area, gestorId: gestor || undefined }))
   const { data: configuredFields } = useSWR("/api/report-fields?report_code=projetos", () => getReportFields("projetos"))
   useEffect(() => {
-    void recordAuditEvent({ action: AUDIT_ACTIONS.REPORT_GENERATED, entity: "relatorio_projetos", details: { rota: "/relatorios" } }).catch(() => undefined)
+    void recordAuditEvent({ action: AUDIT_ACTIONS.REPORT_GENERATED, entity: "relatorio_projetos", entity_id: "projetos", details: { rota: "/relatorios" } }).catch(() => undefined)
   }, [])
   const [sortAsc, setSortAsc] = useState(true)
   const [page, setPage] = useState(1)
@@ -54,7 +54,7 @@ export default function ReportsPage() {
   const downloadExport = async (format: ReportExportFormat, fields: string[]) => {
     const path = getProjectReportExportPath({ format, fields, status: status === "todos" ? undefined : status, area: area === "todas" ? undefined : area, gestorId: gestor || undefined })
     const blob = await downloadFile(path); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `relatorio-projetos.${format}`; document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url)
-    await recordAuditEvent({ action: AUDIT_ACTIONS.REPORT_EXPORTED, entity: "relatorio_projetos", details: { formato: format, filtros: { status, area, gestorId: gestor || null }, campos: fields } }).catch(() => undefined)
+    await recordAuditEvent({ action: AUDIT_ACTIONS.REPORT_EXPORTED, entity: "relatorio_projetos", entity_id: `projetos.${format}`, details: { formato: format, filtros: { status, area, gestorId: gestor || null }, campos: fields } }).catch(() => undefined)
   }
   if (isLoading) return <PageLayout><PageHeader eyebrow="Gestão e análise" title="Relatórios" description="Leitura executiva do universo autorizado." /><PetrobrasLoading label="Consolidando o portfólio autorizado..." /></PageLayout>
   if (error || !data) return <PageLayout><PageHeader title="Consultas e relatórios" /><p className="text-destructive">Não foi possível carregar o relatório.</p></PageLayout>
