@@ -44,7 +44,7 @@ async function fetchRequest(url: string, init?: RequestInit): Promise<Response> 
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        ...(init?.headers ?? {}),
+        ...init?.headers,
       },
       cache: "no-store",
     })
