@@ -2,12 +2,13 @@
 
 import { useEffect } from "react"
 import { usePathname } from "next/navigation"
-import { getProject, recordAuditEvent } from "@/lib/api-client"
+import { ApiError, getProject, recordAuditEvent } from "@/lib/api-client"
 import { useSession } from "@/hooks/use-session"
 
 let auditDisabledUntil = 0
 
 function reportAuditFailure(error: unknown) {
+  if (error instanceof ApiError && error.status === 404) return
   if (typeof window !== "undefined") {
     auditDisabledUntil = Date.now() + 30_000
     console.warn("Auditoria pausada por 30 segundos após falha da API", error)
