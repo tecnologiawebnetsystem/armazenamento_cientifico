@@ -10,7 +10,7 @@ let auditDisabledUntil = 0
 function reportAuditFailure(error: unknown) {
   if (typeof window !== "undefined") {
     auditDisabledUntil = Date.now() + 30_000
-    console.warn("[v0] Auditoria pausada por 30 segundos após falha da API", error)
+    console.warn("Auditoria pausada por 30 segundos após falha da API", error)
   }
 }
 
