@@ -28,6 +28,10 @@ export function ProfileAvatarMenu({ user, onLogout }: { user: User; onLogout: ()
   return (
     <DropdownMenu>
       <DropdownMenuTrigger aria-label={`Abrir perfil de ${user.nome}`} className="group flex items-center gap-2 rounded-xl border border-transparent px-1.5 py-1 outline-none transition-all hover:border-petrobras-green/25 hover:bg-petrobras-green/10 focus-visible:ring-2 focus-visible:ring-petrobras-yellow/60 md:pl-2">
+        <Avatar className="size-10 rounded-full ring-2 ring-petrobras-green/30 ring-offset-2 ring-offset-card">
+          <AvatarImage src={avatarUrl || "/images/default-avatar.png"} alt={user.avatarUrl ? `Foto de ${user.nome}` : `Avatar padrão de ${user.nome}`} />
+          <AvatarFallback className="rounded-full bg-petrobras-green text-xs font-bold text-white">{initials(user.nome)}</AvatarFallback>
+        </Avatar>
         <span className="hidden max-w-44 truncate text-left text-sm font-semibold text-foreground md:flex md:flex-col md:gap-0.5">
           <span className="truncate">{user.nome}</span>
           <span className="truncate text-xs font-normal text-muted-foreground">{roleLabel(user.role)}</span>
@@ -36,15 +40,9 @@ export function ProfileAvatarMenu({ user, onLogout }: { user: User; onLogout: ()
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={10} className="w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border-petrobras-green/20 bg-card p-0 text-card-foreground shadow-[0_18px_45px_color-mix(in_oklch,var(--petrobras-green)_18%,transparent)]">
         <div className="relative bg-petrobras-green px-5 py-4 text-white"><div className="absolute inset-x-0 top-0 h-1 bg-petrobras-yellow" aria-hidden="true" />
-          <div className="flex items-start gap-3">
-            <Avatar className="size-14 shrink-0 rounded-full border-2 border-white/70 ring-2 ring-white/20">
-              <AvatarImage src={avatarUrl || "/images/default-avatar.png"} alt={user.avatarUrl ? `Foto de ${user.nome}` : `Avatar padrão de ${user.nome}`} />
-              <AvatarFallback className="rounded-full bg-petrobras-yellow text-sm font-bold text-petrobras-green">{initials(user.nome)}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 pt-0.5">
-              <p className="text-base font-bold leading-tight text-balance">{user.nome || user.chaveCav4 || "Usuário corporativo"}</p>
-              <p className="mt-1 truncate text-xs text-white/85">{user.email || "E-mail não informado"}</p>
-            </div>
+          <div className="min-w-0">
+            <p className="text-base font-bold leading-tight text-balance">{user.nome || user.chaveCav4 || "Usuário corporativo"}</p>
+            <p className="mt-1 truncate text-xs text-white/85">{user.email || "E-mail não informado"}</p>
           </div>
           <div className="mt-4 flex items-center gap-2 border-t border-white/20 pt-3 text-sm text-white/90"><MapPinIcon className="size-4 shrink-0 text-petrobras-yellow" aria-hidden="true" /><span className="truncate">{user.area || user.cargo || "Área corporativa"}</span></div>
         </div>
