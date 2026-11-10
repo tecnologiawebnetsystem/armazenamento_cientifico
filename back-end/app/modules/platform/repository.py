@@ -131,11 +131,16 @@ class PlatformRepository:
             .order_by(Project.updated_at.desc())
         )).mappings().all()]
 
+        members_count = select(func.count(func.distinct(ProjectMember.project_id))).scalar_subquery()
+        folders_count = select(func.count(func.distinct(Folder.id))).scalar_subquery()
+        storage_sum = select(
+            func.coalesce(func.sum(Folder.size), 0) / bytes_per_mb
+        ).scalar_subquery()
         counts_result = (await self.session.execute(
             select(
-                func.count(func.distinct(ProjectMember.project_id)).label("membros"),
-                func.count(func.distinct(Folder.id)).label("mapas"),
-                (func.coalesce(func.sum(Folder.size), 0) / bytes_per_mb).label("armazenamento"),
+                members_count.label("membros"),
+                folders_count.label("mapas"),
+                storage_sum.label("armazenamento"),
             )
         )).mappings().first()
         counts = dict(counts_result) if counts_result else {"membros": 0, "mapas": 0, "armazenamento": 0}
