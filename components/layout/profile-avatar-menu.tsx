@@ -39,32 +39,26 @@ export function ProfileAvatarMenu({ user, onLogout }: { user: User; onLogout: ()
         <ChevronDownIcon className="hidden size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180 md:block" aria-hidden="true" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={10} className="w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border-petrobras-green/20 bg-card p-0 text-card-foreground shadow-[0_18px_45px_color-mix(in_oklch,var(--petrobras-green)_18%,transparent)]">
-        <div className="relative bg-petrobras-green px-6 py-5 text-white"><div className="absolute inset-x-0 top-0 h-1 bg-petrobras-yellow" aria-hidden="true" />
-          <div className="flex items-start gap-4">
-            <Avatar className="size-16 shrink-0 rounded-full border-2 border-white/70 ring-4 ring-white/15">
-              <AvatarImage src={avatarUrl || "/images/default-avatar.png"} alt={`Foto de ${user.nome}`} />
-              <AvatarFallback className="rounded-full bg-petrobras-yellow text-lg font-bold text-petrobras-blue">{initials(user.nome)}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1 pt-0.5">
-              <p className="text-base font-bold leading-tight text-balance">{user.nome || user.chaveCav4 || "Usuário corporativo"}</p>
-              <p className="mt-1 truncate text-xs text-white/80">{user.email || "E-mail não informado"}</p>
-              <span className="mt-3 inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">Perfil {roleLabel(user.role)}</span>
-            </div>
+        <div className="relative bg-petrobras-green px-5 py-4 text-white"><div className="absolute inset-x-0 top-0 h-1 bg-petrobras-yellow" aria-hidden="true" />
+          <div className="min-w-0">
+            <p className="text-sm font-bold leading-tight text-balance">{user.nome || user.chaveCav4 || "Usuário corporativo"}</p>
+            <p className="mt-0.5 truncate text-[11px] text-white/80">{user.email || "E-mail não informado"}</p>
+            <span className="mt-2 inline-flex rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold text-white">Perfil {roleLabel(user.role)}</span>
           </div>
-          {(user.area || user.cargo || user.chaveCav4) && <div className="mt-5 flex flex-col gap-1 border-t border-white/20 pt-4 text-sm text-white/85"><span className="truncate">{[user.cargo, user.area].filter(Boolean).join(" · ") || "Perfil corporativo"}</span>{user.chaveCav4 && <span className="truncate text-xs text-white/70">Chave: {user.chaveCav4}</span>}</div>}
+          {(user.area || user.cargo || user.chaveCav4) && <div className="mt-4 flex flex-col gap-0.5 border-t border-white/20 pt-3 text-xs text-white/85"><span className="truncate">{[user.cargo, user.area].filter(Boolean).join(" · ") || "Perfil corporativo"}</span>{user.chaveCav4 && <span className="truncate text-[11px] text-white/70">Chave: {user.chaveCav4}</span>}</div>}
         </div>
 
-        <div className="grid gap-3 px-6 py-4">
-          <div className="flex items-start gap-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"><MailIcon className="size-4" aria-hidden="true" /></span>
-            <div className="min-w-0"><p className="text-[11px] text-muted-foreground">E-mail corporativo</p><p className="break-all text-sm font-semibold text-foreground">{user.email || "Não informado"}</p></div>
+        <div className="grid gap-2.5 px-5 py-3.5">
+          <div className="flex items-start gap-2.5">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"><MailIcon className="size-3.5" aria-hidden="true" /></span>
+            <div className="min-w-0"><p className="text-[10px] text-muted-foreground">E-mail corporativo</p><p className="break-all text-xs font-semibold leading-snug text-foreground">{user.email || "Não informado"}</p></div>
           </div>
-          <p className="text-xs text-muted-foreground">{roleDescription(user.role)}</p>
+          <p className="text-[11px] leading-snug text-muted-foreground">{roleDescription(user.role)}</p>
         </div>
 
         <DropdownMenuSeparator className="m-0" />
-        <div className="p-2">
-          <DropdownMenuItem onClick={handleLogout} variant="destructive" className="h-12 cursor-pointer gap-3 rounded-xl px-4 text-sm font-semibold">
+        <div className="p-1.5">
+          <DropdownMenuItem onClick={handleLogout} variant="destructive" className="h-10 cursor-pointer gap-2.5 rounded-lg px-3 text-sm font-semibold">
             <LogOutIcon />
             Sair
           </DropdownMenuItem>
