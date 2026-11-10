@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronDownIcon, LogOutIcon, MailIcon } from "lucide-react"
+import { ChevronDownIcon, LogOutIcon, MapPinIcon, UserRoundIcon } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import useSWR from "swr"
@@ -28,11 +28,7 @@ export function ProfileAvatarMenu({ user, onLogout }: { user: User; onLogout: ()
   return (
     <DropdownMenu>
       <DropdownMenuTrigger aria-label={`Abrir perfil de ${user.nome}`} className="group flex items-center gap-2 rounded-xl border border-transparent px-1.5 py-1 outline-none transition-all hover:border-petrobras-green/25 hover:bg-petrobras-green/10 focus-visible:ring-2 focus-visible:ring-petrobras-yellow/60 md:pl-2">
-        <Avatar className="size-10 rounded-full ring-2 ring-petrobras-green/30 ring-offset-2 ring-offset-card">
-          <AvatarImage src={avatarUrl || "/images/default-avatar.png"} alt={user.avatarUrl ? `Foto de ${user.nome}` : `Avatar padrão de ${user.nome}`} />
-          <AvatarFallback className="rounded-full bg-petrobras-green text-xs font-bold text-white">{initials(user.nome)}</AvatarFallback>
-        </Avatar>
-        <span className="hidden max-w-36 truncate text-left text-sm font-semibold text-foreground md:flex md:flex-col md:gap-0.5">
+        <span className="hidden max-w-44 truncate text-left text-sm font-semibold text-foreground md:flex md:flex-col md:gap-0.5">
           <span className="truncate">{user.nome}</span>
           <span className="truncate text-xs font-normal text-muted-foreground">{roleLabel(user.role)}</span>
         </span>
@@ -40,20 +36,25 @@ export function ProfileAvatarMenu({ user, onLogout }: { user: User; onLogout: ()
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={10} className="w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border-petrobras-green/20 bg-card p-0 text-card-foreground shadow-[0_18px_45px_color-mix(in_oklch,var(--petrobras-green)_18%,transparent)]">
         <div className="relative bg-petrobras-green px-5 py-4 text-white"><div className="absolute inset-x-0 top-0 h-1 bg-petrobras-yellow" aria-hidden="true" />
-          <div className="min-w-0">
-            <p className="text-sm font-bold leading-tight text-balance">{user.nome || user.chaveCav4 || "Usuário corporativo"}</p>
-            <p className="mt-0.5 truncate text-[11px] text-white/80">{user.email || "E-mail não informado"}</p>
-            <span className="mt-2 inline-flex rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold text-white">Perfil {roleLabel(user.role)}</span>
+          <div className="flex items-start gap-3">
+            <Avatar className="size-14 shrink-0 rounded-full border-2 border-white/70 ring-2 ring-white/20">
+              <AvatarImage src={avatarUrl || "/images/default-avatar.png"} alt={user.avatarUrl ? `Foto de ${user.nome}` : `Avatar padrão de ${user.nome}`} />
+              <AvatarFallback className="rounded-full bg-petrobras-yellow text-sm font-bold text-petrobras-green">{initials(user.nome)}</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 pt-0.5">
+              <p className="text-base font-bold leading-tight text-balance">{user.nome || user.chaveCav4 || "Usuário corporativo"}</p>
+              <p className="mt-1 truncate text-xs text-white/85">{user.email || "E-mail não informado"}</p>
+            </div>
           </div>
-          {(user.area || user.cargo || user.chaveCav4) && <div className="mt-4 flex flex-col gap-0.5 border-t border-white/20 pt-3 text-xs text-white/85"><span className="truncate">{[user.cargo, user.area].filter(Boolean).join(" · ") || "Perfil corporativo"}</span>{user.chaveCav4 && <span className="truncate text-[11px] text-white/70">Chave: {user.chaveCav4}</span>}</div>}
+          <div className="mt-4 flex items-center gap-2 border-t border-white/20 pt-3 text-sm text-white/90"><MapPinIcon className="size-4 shrink-0 text-petrobras-yellow" aria-hidden="true" /><span className="truncate">{user.area || user.cargo || "Área corporativa"}</span></div>
         </div>
 
         <div className="grid gap-2.5 px-5 py-3.5">
           <div className="flex items-start gap-2.5">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"><MailIcon className="size-3.5" aria-hidden="true" /></span>
-            <div className="min-w-0"><p className="text-[10px] text-muted-foreground">E-mail corporativo</p><p className="break-all text-xs font-semibold leading-snug text-foreground">{user.email || "Não informado"}</p></div>
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"><UserRoundIcon className="size-3.5" aria-hidden="true" /></span>
+            <div className="min-w-0"><p className="text-[10px] text-muted-foreground">Cargo</p><p className="text-sm font-semibold leading-snug text-foreground">{user.cargo || roleLabel(user.role)}</p><p className="mt-0.5 break-all text-xs text-muted-foreground">{user.email || "E-mail não informado"}</p></div>
           </div>
-          <p className="text-[11px] leading-snug text-muted-foreground">{roleDescription(user.role)}</p>
+          <p className="text-[11px] leading-snug text-muted-foreground">{user.chaveCav4 ? `Chave: ${user.chaveCav4}` : roleDescription(user.role)}</p>
         </div>
 
         <DropdownMenuSeparator className="m-0" />
