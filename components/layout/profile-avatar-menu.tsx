@@ -40,12 +40,8 @@ export function ProfileAvatarMenu({ user, onLogout }: { user: User; onLogout: ()
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={10} className="w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border-petrobras-green/20 bg-card p-0 text-card-foreground shadow-[0_18px_45px_color-mix(in_oklch,var(--petrobras-green)_18%,transparent)]">
         <div className="relative bg-petrobras-green px-6 py-5 text-white"><div className="absolute inset-x-0 top-0 h-1 bg-petrobras-yellow" aria-hidden="true" />
-          <div className="flex items-start gap-4">
-            <Avatar className="size-16 shrink-0 rounded-full border-2 border-white/70 ring-4 ring-white/15">
-              <AvatarImage src={avatarUrl || "/images/default-avatar.png"} alt={`Foto de ${user.nome}`} />
-              <AvatarFallback className="rounded-full bg-petrobras-yellow text-lg font-bold text-petrobras-blue">{initials(user.nome)}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1 pt-0.5">
+          <div>
+            <div className="min-w-0">
               <p className="text-base font-bold leading-tight text-balance">{user.nome || user.chaveCav4 || "Usuário corporativo"}</p>
               <p className="mt-1 truncate text-xs text-white/80">{user.email || "E-mail não informado"}</p>
               <span className="mt-3 inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">Perfil {roleLabel(user.role)}</span>
