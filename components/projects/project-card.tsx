@@ -44,7 +44,7 @@ export function ProjectCard({ project, canManage = false, showMeta = true, onTog
   const pausado = project.status === "pausado"
 
   return (
-    <Card className={`group relative overflow-hidden rounded-xl border-border/70 bg-card shadow-sm shadow-petrobras-blue/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${inconsistent ? "border-amber-300 bg-amber-50/60 shadow-amber-100 hover:border-amber-400" : "hover:border-petrobras-green/35 hover:shadow-petrobras-green/10"}`}>
+    <Card className={`group relative overflow-hidden rounded-xl border-border/70 bg-card shadow-sm shadow-petrobras-blue/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${inconsistent ? "border-amber-300 bg-amber-50/60 text-foreground shadow-amber-100 hover:border-amber-400 dark:border-amber-700/80 dark:bg-amber-950/35 dark:shadow-amber-950/30 dark:hover:border-amber-500" : "hover:border-petrobras-green/35 hover:shadow-petrobras-green/10"}`}>
       {/* Faixa superior com a cor da marca */}
       <span
         aria-hidden
@@ -64,7 +64,7 @@ export function ProjectCard({ project, canManage = false, showMeta = true, onTog
             <FolderIcon className="size-4 text-primary" />
           </div>
           <div className="relative z-10 flex items-center gap-1.5">
-            <div className="flex items-center gap-1.5">{inconsistent && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">Inconsistente</span>}<ProjectStatusBadge status={project.status} /></div>
+            <div className="flex items-center gap-1.5">{inconsistent && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-400/20 dark:text-amber-200">Inconsistente</span>}<ProjectStatusBadge status={project.status} /></div>
             {canManage && (
               <DropdownMenu>
                 <DropdownMenuTrigger
