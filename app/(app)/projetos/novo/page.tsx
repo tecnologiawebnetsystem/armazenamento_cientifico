@@ -12,7 +12,7 @@ export default async function NovoProjetoPage() {
   if (!canCreate) redirect("/projetos")
 
   return (
-    <PageLayout className="mx-auto w-full max-w-2xl">
+    <PageLayout className="mx-auto w-full max-w-4xl">
       <PageHeader
         eyebrow="Gestão de áreas de rede"
         title="Nova área de rede"
