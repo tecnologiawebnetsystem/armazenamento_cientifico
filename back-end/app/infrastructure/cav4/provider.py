@@ -433,10 +433,10 @@ class CAV4OIDCProvider:
         try:
             async with _build_httpx_client() as client:
                 response = await client.get(url, headers={"Authorization": f"Bearer {access_token}"}, timeout=10.0)
-                response.raise_for_status()
-                payload = response.json()
-                logger.info("[CAV4] Consulta concluída endpoint=%s status=%s", endpoint, response.status_code)
-                return payload
+            response.raise_for_status()
+            payload = response.json()
+            logger.info("[CAV4] Consulta concluída endpoint=%s status=%s", endpoint, response.status_code)
+            return payload
         except (httpx.HTTPError, ValueError) as exc:
             logger.error("[CAV4] Falha na consulta endpoint=%s erro=%s", endpoint, exc)
             raise CAV4AuthenticationError(f"Erro ao consultar CAV4: {exc}") from exc

@@ -1,8 +1,8 @@
-from datetime import UTC, datetime
 import logging
+from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,11 +10,15 @@ from app.api.dependencies import CurrentUser, require_capabilities
 from app.core.authorization import require_capability
 from app.core.exceptions import ConflictException
 from app.db.session import get_session
-from app.modules.projects.models import Project
+from app.modules.projects.models import Project, ProjectAccessGroup
 from app.modules.projects.repository import ProjectRepository
 from app.modules.projects.schemas import (
+    AccessGroupCreate,
+    AccessGroupOut,
+    AccessGroupPatch,
     AccessMapGroupOut,
     AccessMapOut,
+    ProjectAccessGroupsOut,
     ProjectCreate,
     ProjectMemberOut,
     ProjectOut,
@@ -62,6 +66,15 @@ def serialize_members(rows) -> list[ProjectMemberOut]:
         )
         for member, user in rows
     ]
+
+
+def serialize_access_group(group: ProjectAccessGroup) -> AccessGroupOut:
+    return AccessGroupOut(
+        id=group.id, projectId=group.project_id,
+        groupName=group.group_name, groupId=group.group_id,
+        accessLevel=group.access_level, source=group.source,
+        createdAt=group.created_at, updatedAt=group.updated_at,
+    )
 
 
 @router.get("", response_model=dict)
@@ -212,3 +225,81 @@ async def list_project_members(
     if not await service.can_view(project_id, str(user.get("user_id") or user["id"]), str(user.get("role") or "")):
         raise HTTPException(status_code=403, detail="Sem acesso a esta área de rede")
     return serialize_members(await service.list_members(project_id))
+
+
+# ── Project Access Groups ─────────────────────────────────────────
+
+@router.get("/{project_id}/access-groups", response_model=ProjectAccessGroupsOut)
+async def list_project_access_groups(
+    project_id: str,
+    service: Annotated[ProjectService, Depends(get_service)],
+    user: CurrentUser,
+    access_level: str | None = Query(None, alias="nivel", description="Filtrar por nível: leitura, escrita, administrador, etc."),
+):
+    """Lista os grupos de acesso vinculados ao projeto, com filtro opcional por nível."""
+    project = await service.get_project(project_id)
+    if not project:
+        raise project_not_found()
+    role = user.get("role") or "solicitante"
+    if not await service.can_view(project_id, str(user.get("user_id") or user["id"]), str(role)):
+        raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
+    groups = await service.list_access_groups(project_id, access_level)
+    return ProjectAccessGroupsOut(
+        projectId=project_id, projectName=project.name or "",
+        groups=[serialize_access_group(g) for g in groups], total=len(groups),
+    )
+
+
+@router.post("/{project_id}/access-groups", response_model=AccessGroupOut, status_code=201)
+async def create_project_access_group(
+    project_id: str,
+    data: AccessGroupCreate,
+    service: Annotated[ProjectService, Depends(get_service)],
+    user: Annotated[dict, Depends(require_capabilities("access_map"))],
+):
+    """Associa um grupo Entra ID ao projeto com nível de acesso categorizado."""
+    project = await service.get_project(project_id)
+    if not project:
+        raise project_not_found()
+    role = user.get("role") or "solicitante"
+    if not await service.can_view(project_id, str(user.get("user_id") or user["id"]), str(role)):
+        raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
+    try:
+        group = await service.create_access_group(project_id, data)
+    except LookupError as error:
+        raise project_not_found() from error
+    return serialize_access_group(group)
+
+
+@router.patch("/{project_id}/access-groups/{access_group_id}", response_model=AccessGroupOut)
+async def update_project_access_group(
+    project_id: str,
+    access_group_id: str,
+    data: AccessGroupPatch,
+    service: Annotated[ProjectService, Depends(get_service)],
+    user: Annotated[dict, Depends(require_capabilities("access_map"))],
+):
+    """Atualiza o nível de acesso de um grupo vinculado."""
+    role = user.get("role") or "solicitante"
+    if not await service.can_view(project_id, str(user.get("user_id") or user["id"]), str(role)):
+        raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
+    try:
+        group = await service.update_access_group(project_id, access_group_id, data)
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    return serialize_access_group(group)
+
+
+@router.delete("/{project_id}/access-groups/{access_group_id}", status_code=204)
+async def delete_project_access_group(
+    project_id: str,
+    access_group_id: str,
+    service: Annotated[ProjectService, Depends(get_service)],
+    user: Annotated[dict, Depends(require_capabilities("access_map"))],
+):
+    """Remove um grupo de acesso do projeto."""
+    role = user.get("role") or "solicitante"
+    if not await service.can_view(project_id, str(user.get("user_id") or user["id"]), str(role)):
+        raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
+    if not await service.delete_access_group(project_id, access_group_id):
+        raise HTTPException(status_code=404, detail="Grupo de acesso não encontrado")

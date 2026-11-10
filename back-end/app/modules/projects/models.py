@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, JSON, String, Text
+from sqlalchemy import JSON, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -37,3 +37,18 @@ class ProjectMember(Base):
     user_id: Mapped[str] = mapped_column(String(255), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     role: Mapped[str | None] = mapped_column("role", String(40), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ProjectAccessGroup(Base):
+    """Grupo/perfil do Entra ID associado a um projeto, com nível de acesso categorizado."""
+
+    __tablename__ = "project_access_groups"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True, nullable=False)
+    group_name: Mapped[str] = mapped_column(String(256), nullable=False)
+    group_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    access_level: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    source: Mapped[str] = mapped_column(String(20), default="manual")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

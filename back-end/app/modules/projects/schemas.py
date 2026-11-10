@@ -74,3 +74,35 @@ class AccessMapOut(BaseModel):
     source: str
     consultedAt: datetime
     gaps: list[str] = Field(default_factory=list)
+
+
+class AccessGroupCreate(BaseModel):
+    """Schema para criar/associar um grupo a um projeto."""
+    groupName: str = Field(min_length=1, max_length=256)
+    groupId: str = Field(min_length=1, max_length=36)
+    accessLevel: str = Field(min_length=1, max_length=40)
+
+
+class AccessGroupPatch(BaseModel):
+    """Schema para atualizar apenas o nível de acesso de um grupo vinculado."""
+    accessLevel: str = Field(min_length=1, max_length=40)
+
+
+class AccessGroupOut(BaseModel):
+    """Schema de saída para um grupo de acesso vinculado ao projeto."""
+    id: str
+    projectId: str
+    groupName: str
+    groupId: str
+    accessLevel: str
+    source: str
+    createdAt: datetime
+    updatedAt: datetime
+
+
+class ProjectAccessGroupsOut(BaseModel):
+    """Resposta paginada com grupos de acesso de um projeto."""
+    projectId: str
+    projectName: str
+    groups: list[AccessGroupOut]
+    total: int

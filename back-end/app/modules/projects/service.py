@@ -2,9 +2,14 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from app.core.exceptions import ConflictException
-from app.modules.projects.models import Project
+from app.modules.projects.models import Project, ProjectAccessGroup
 from app.modules.projects.repository import ProjectRepository
-from app.modules.projects.schemas import ProjectCreate, ProjectPatch
+from app.modules.projects.schemas import (
+    AccessGroupCreate,
+    AccessGroupPatch,
+    ProjectCreate,
+    ProjectPatch,
+)
 
 
 class ProjectService:
@@ -85,3 +90,44 @@ class ProjectService:
 
     async def list_users_by_ids(self, user_ids: list[str]):
         return await self.repository.list_users_by_ids(user_ids)
+
+    # ── ProjectAccessGroup ───────────────────────────────────────────
+
+    async def list_access_groups(self, project_id: str, access_level: str | None = None) -> list[ProjectAccessGroup]:
+        return await self.repository.list_access_groups(project_id, access_level)
+
+    async def create_access_group(self, project_id: str, data: AccessGroupCreate) -> ProjectAccessGroup:
+        project = await self.repository.find_by_id(project_id)
+        if not project:
+            raise LookupError("Projeto não encontrado")
+        now = datetime.now(UTC).replace(tzinfo=None)
+        group = ProjectAccessGroup(
+            id=str(uuid4()),
+            project_id=project_id,
+            group_name=data.groupName,
+            group_id=data.groupId,
+            access_level=data.accessLevel,
+            source="manual",
+            created_at=now,
+            updated_at=now,
+        )
+        await self.repository.add_access_group(group)
+        await self.repository.commit()
+        return group
+
+    async def update_access_group(self, project_id: str, access_group_id: str, data: AccessGroupPatch) -> ProjectAccessGroup:
+        group = await self.repository.find_access_group_by_id(access_group_id)
+        if not group or group.project_id != project_id:
+            raise LookupError("Grupo de acesso não encontrado neste projeto")
+        group.access_level = data.accessLevel
+        group.updated_at = datetime.now(UTC).replace(tzinfo=None)
+        await self.repository.commit()
+        return group
+
+    async def delete_access_group(self, project_id: str, access_group_id: str) -> bool:
+        group = await self.repository.find_access_group_by_id(access_group_id)
+        if not group or group.project_id != project_id:
+            return False
+        await self.repository.delete_access_group(group)
+        await self.repository.commit()
+        return True
