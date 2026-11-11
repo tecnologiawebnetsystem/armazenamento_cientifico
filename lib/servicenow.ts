@@ -11,9 +11,30 @@ export interface ServiceNowAccessGroup {
   id: string
   name: string
   permission: "Leitura" | "Leitura e gravação"
+  currentAccess: "Com acesso" | "Sem acesso"
   members: number
   operation: AccessOperation
   status: "Pendente" | "Concluído"
+}
+
+export interface ServiceNowOperationRun {
+  status: "Pendente" | "Processando" | "Concluído" | "Falha"
+  attempts: number
+  attemptedAt?: string
+  failureCategory?: "Integração" | "Regra de acesso" | "Permissão"
+  message?: string
+}
+
+export interface ServiceNowAuditEntry {
+  id: string
+  ritmNumber: string
+  timestamp: string
+  category: "Consulta" | "Concessão" | "Revogação" | "Atualização"
+  title: string
+  description: string
+  status: "Concluído" | "Pendente" | "Falha"
+  actor: string
+  groupId?: string
 }
 
 export interface ServiceNowRitm {
@@ -51,6 +72,19 @@ export interface ServiceNowAccessOperationResult {
   operationId: string
   status: "Concluído" | "Falha"
   completedAt: string
+  failureCategory?: "Integração" | "Regra de acesso" | "Permissão"
+  message: string
+}
+
+export interface ServiceNowTicketUpdateRequest {
+  ritmNumber: string
+  status: "Concluído"
+}
+
+export interface ServiceNowTicketUpdateResult {
+  status: "Concluído" | "Falha"
+  updatedAt: string
+  failureCategory?: "Integração" | "Regra de acesso" | "Permissão"
   message: string
 }
 
@@ -59,6 +93,7 @@ export interface ServiceNowGateway {
   findRitm(ritmNumber: string): Promise<ServiceNowRitm | null>
   listQueryLogs(): Promise<ServiceNowQueryLog[]>
   processAccessOperation(input: ServiceNowAccessOperationRequest): Promise<ServiceNowAccessOperationResult>
+  updateRitmStatus(input: ServiceNowTicketUpdateRequest): Promise<ServiceNowTicketUpdateResult>
 }
 
 const demoRequests: ServiceNowRitm[] = [
@@ -79,8 +114,8 @@ const demoRequests: ServiceNowRitm[] = [
       { name: "Responsável demonstrativo 02", email: "responsavel02@example.com", role: "Responsável substituto" },
     ],
     accessGroups: [
-      { id: "grp-01", name: "GRP-DEMO-PESQUISA-LEITURA", permission: "Leitura", members: 12, operation: "concessao", status: "Pendente" },
-      { id: "grp-02", name: "GRP-DEMO-PESQUISA-EDICAO", permission: "Leitura e gravação", members: 4, operation: "concessao", status: "Pendente" },
+      { id: "grp-01", name: "GRP-DEMO-PESQUISA-LEITURA", permission: "Leitura", currentAccess: "Sem acesso", members: 12, operation: "concessao", status: "Pendente" },
+      { id: "grp-02", name: "GRP-DEMO-PESQUISA-EDICAO", permission: "Leitura e gravação", currentAccess: "Sem acesso", members: 4, operation: "concessao", status: "Pendente" },
     ],
   },
   {
@@ -99,8 +134,8 @@ const demoRequests: ServiceNowRitm[] = [
       { name: "Rafael Nunes", email: "rafael.nunes@petrobras.com.br", role: "Responsável pela área" },
     ],
     accessGroups: [
-      { id: "grp-03", name: "GG-CENPES-GEOFISICA-LEITURA", permission: "Leitura", members: 8, operation: "concessao", status: "Concluído" },
-      { id: "grp-04", name: "GG-CENPES-GEOFISICA-ANTIGO", permission: "Leitura", members: 2, operation: "revogacao", status: "Concluído" },
+      { id: "grp-03", name: "GG-CENPES-GEOFISICA-LEITURA", permission: "Leitura", currentAccess: "Com acesso", members: 8, operation: "concessao", status: "Concluído" },
+      { id: "grp-04", name: "GG-CENPES-GEOFISICA-ANTIGO", permission: "Leitura", currentAccess: "Sem acesso", members: 2, operation: "revogacao", status: "Concluído" },
     ],
   },
 ]
@@ -120,6 +155,13 @@ export const demoServiceNowGateway: ServiceNowGateway = {
       status: "Concluído",
       completedAt: new Date().toISOString(),
       message: `A ${input.operation === "concessao" ? "concessão" : "revogação"} foi simulada localmente. Nenhuma alteração foi enviada.`,
+    }
+  },
+  async updateRitmStatus(input) {
+    return {
+      status: "Concluído",
+      updatedAt: new Date().toISOString(),
+      message: `A atualização do RITM ${input.ritmNumber} foi simulada localmente. Nenhuma alteração foi enviada.`,
     }
   },
 }
