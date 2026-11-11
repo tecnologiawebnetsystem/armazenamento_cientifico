@@ -8,8 +8,9 @@ import { routeMatches } from "@/lib/role-access"
 export function RouteAccessGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { menus, data, isReady, error } = usePlatformContext()
-  const isAuthorized = menus.some((menu) => routeMatches(pathname, menu.rota))
+  const { menus, permissions, isReady, error } = usePlatformContext()
+  const hasServiceNowPermission = pathname === "/integracoes/servicenow" && permissions.includes("integracao-servicenow")
+  const isAuthorized = menus.some((menu) => routeMatches(pathname, menu.rota)) || hasServiceNowPermission
   const fallbackRoute = menus[0]?.rota ?? "/forbidden"
 
   useEffect(() => {

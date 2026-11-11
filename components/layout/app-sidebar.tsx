@@ -22,7 +22,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { usePlatformContext } from "@/hooks/use-platform-context"
-import { ChartNoAxesCombinedIcon, ChevronDownIcon, FolderKanbanIcon, LayoutDashboardIcon, NetworkIcon, SettingsIcon, ShieldCheckIcon, type LucideIcon } from "lucide-react"
+import { ChartNoAxesCombinedIcon, ChevronDownIcon, FolderKanbanIcon, LayoutDashboardIcon, NetworkIcon, SettingsIcon, ShieldCheckIcon, WorkflowIcon, type LucideIcon } from "lucide-react"
 import type { NavGroup, NavItem } from "@/lib/nav-config"
 
 import type { PlatformMenu } from "@/lib/types"
@@ -79,6 +79,7 @@ const iconMap: Record<string, LucideIcon> = {
   network: NetworkIcon,
   pesquisas: NetworkIcon,
   settings: SettingsIcon,
+  servicenow: WorkflowIcon,
 }
 
 function getIcon(name: string): LucideIcon {
@@ -106,12 +107,20 @@ function buildNavGroups(menus: PlatformMenu[]): NavGroup[] {
 export function AppSidebar() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { menus } = usePlatformContext()
+  const { menus, permissions } = usePlatformContext()
   const activeResource = searchParams.get("tabela")
   const initialGroup = configurationGroups.find((group) => group.items.some((item) => item.key === activeResource))?.label ?? configurationGroups[0].label
   const [expandedGroups, setExpandedGroups] = useState<string[]>([initialGroup])
   const homeHref = menus[0]?.rota ?? "/forbidden"
   const groups = buildNavGroups(menus)
+  const hasServiceNowPermission = permissions.includes("integracao-servicenow")
+  const hasServiceNowMenu = groups.some((group) => group.items.some((item) => item.url === "/integracoes/servicenow"))
+  if (hasServiceNowPermission && !hasServiceNowMenu) {
+    const systemGroup = groups.find((navGroup) => navGroup.label === "Sistema")
+    const serviceNowItem: NavItem = { title: "Integração ServiceNow", url: "/integracoes/servicenow", icon: WorkflowIcon }
+    if (systemGroup) systemGroup.items.push(serviceNowItem)
+    else groups.push({ label: "Sistema", items: [serviceNowItem] })
+  }
 
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border/55 bg-sidebar shadow-[8px_0_28px_color-mix(in_oklch,var(--sidebar)_24%,transparent)] transition-[width] duration-200 md:flex">
@@ -151,19 +160,19 @@ export function AppSidebar() {
                       </SidebarMenuButton>
                       {item.url === "/configuracoes" && isActive ? (
                         <SidebarMenuSub className="ml-3 border-sidebar-border/40 pl-3 group-data-[collapsible=icon]:hidden">
-                          {configurationGroups.map((group) => {
-                            const isExpanded = expandedGroups.includes(group.label)
-                            const containsActiveItem = group.items.some((item) => item.key === activeResource)
+                          {configurationGroups.map((configGroup) => {
+                            const isExpanded = expandedGroups.includes(configGroup.label)
+                            const containsActiveItem = configGroup.items.some((configItem) => configItem.key === activeResource)
                             return (
-                              <li key={group.label} className="mb-2 last:mb-0">
-                                <button type="button" aria-expanded={isExpanded} aria-controls={`configuration-group-${group.label}`} onClick={() => setExpandedGroups((current) => isExpanded ? current.filter((item) => item !== group.label) : [...current, group.label])} className={`flex w-full items-center justify-between rounded-md px-2 py-2 text-left transition-colors hover:bg-sidebar-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring ${containsActiveItem ? "text-sidebar-primary" : "text-sidebar-primary/80"}`}>
-                                  <span className="text-[10px] font-semibold uppercase tracking-wider">{group.label}</span>
+                              <li key={configGroup.label} className="mb-2 last:mb-0">
+                                <button type="button" aria-expanded={isExpanded} aria-controls={`configuration-group-${configGroup.label}`} onClick={() => setExpandedGroups((current) => isExpanded ? current.filter((expandedGroup) => expandedGroup !== configGroup.label) : [...current, configGroup.label])} className={`flex w-full items-center justify-between rounded-md px-2 py-2 text-left transition-colors hover:bg-sidebar-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring ${containsActiveItem ? "text-sidebar-primary" : "text-sidebar-primary/80"}`}>
+                                  <span className="text-[10px] font-semibold uppercase tracking-wider">{configGroup.label}</span>
                                   <ChevronDownIcon aria-hidden className={`size-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                                 </button>
-                                {isExpanded ? <div id={`configuration-group-${group.label}`}>
-                                  <div className="px-2 pb-1 text-[10px] leading-4 text-sidebar-foreground/45">{group.description}</div>
+                                {isExpanded ? <div id={`configuration-group-${configGroup.label}`}>
+                                  <div className="px-2 pb-1 text-[10px] leading-4 text-sidebar-foreground/45">{configGroup.description}</div>
                                   <ul>
-                                    {group.items.map((submenu) => {
+                                    {configGroup.items.map((submenu) => {
                                       const href = `/configuracoes?tabela=${submenu.key}`
                                       const submenuActive = pathname === "/configuracoes" && searchParams.get("tabela") === submenu.key
                                       return (
