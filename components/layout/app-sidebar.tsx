@@ -21,7 +21,7 @@ import {
   SidebarRail,
   SidebarSeparator,
 } from "@/components/ui/sidebar"
-import { usePlatformContext } from "@/hooks/use-platform-context"
+import { usePermissions } from "@/hooks/use-permissions"
 import { ChartNoAxesCombinedIcon, ChevronDownIcon, FolderKanbanIcon, LayoutDashboardIcon, NetworkIcon, SettingsIcon, ShieldCheckIcon, WorkflowIcon, type LucideIcon } from "lucide-react"
 import type { NavGroup, NavItem } from "@/lib/nav-config"
 
@@ -107,13 +107,13 @@ function buildNavGroups(menus: PlatformMenu[]): NavGroup[] {
 export function AppSidebar() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { menus, permissions } = usePlatformContext()
+  const { menus, permissions, role } = usePermissions()
   const activeResource = searchParams.get("tabela")
   const initialGroup = configurationGroups.find((group) => group.items.some((item) => item.key === activeResource))?.label ?? configurationGroups[0].label
   const [expandedGroups, setExpandedGroups] = useState<string[]>([initialGroup])
   const homeHref = menus[0]?.rota ?? "/forbidden"
   const groups = buildNavGroups(menus)
-  const hasServiceNowPermission = permissions.includes("integracao-servicenow")
+  const hasServiceNowPermission = role === "admin" || permissions.includes("integracao-servicenow")
   const hasServiceNowMenu = groups.some((group) => group.items.some((item) => item.url === "/integracoes/servicenow"))
   if (hasServiceNowPermission && !hasServiceNowMenu) {
     const systemGroup = groups.find((navGroup) => navGroup.label === "Sistema")

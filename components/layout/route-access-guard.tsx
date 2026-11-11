@@ -2,14 +2,14 @@
 
 import { useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { usePlatformContext } from "@/hooks/use-platform-context"
+import { usePermissions } from "@/hooks/use-permissions"
 import { routeMatches } from "@/lib/role-access"
 
 export function RouteAccessGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { menus, permissions, isReady, error } = usePlatformContext()
-  const hasServiceNowPermission = pathname === "/integracoes/servicenow" && permissions.includes("integracao-servicenow")
+  const { menus, permissions, role, isReady, error } = usePermissions()
+  const hasServiceNowPermission = pathname === "/integracoes/servicenow" && (role === "admin" || permissions.includes("integracao-servicenow"))
   const isAuthorized = menus.some((menu) => routeMatches(pathname, menu.rota)) || hasServiceNowPermission
   const fallbackRoute = menus[0]?.rota ?? "/forbidden"
 
