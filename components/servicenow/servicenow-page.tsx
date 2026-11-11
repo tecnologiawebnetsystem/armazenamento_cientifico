@@ -44,7 +44,7 @@ export function ServiceNowPage() {
     try {
       const request = await demoServiceNowGateway.findRitm(ritmNumber)
       setActiveRitm(request)
-      setQueryMessage(request ? "Consulta demonstrativa concluída. Nenhum dado foi enviado ao ServiceNow." : "RITM não localizado na base demonstrativa. Nenhuma chamada real foi feita.")
+      setQueryMessage(request ? "" : "RITM não localizado na base demonstrativa. Nenhuma chamada real foi feita.")
     } catch {
       setActiveRitm(null)
       setQueryMessage("Não foi possível concluir a consulta demonstrativa. Tente novamente.")
