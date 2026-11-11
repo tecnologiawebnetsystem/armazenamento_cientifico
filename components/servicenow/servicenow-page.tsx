@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { ActivityIcon, ArrowDownToLineIcon, ArrowUpFromLineIcon, CheckCircle2Icon, CircleAlertIcon, Clock3Icon, ExternalLinkIcon, FolderKeyIcon, HistoryIcon, SearchIcon, ShieldCheckIcon, UsersRoundIcon } from "lucide-react"
+import { ActivityIcon, ArrowDownToLineIcon, ArrowUpFromLineIcon, CheckCircle2Icon, Clock3Icon, ExternalLinkIcon, FolderKeyIcon, HistoryIcon, SearchIcon, ShieldCheckIcon, UsersRoundIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -91,13 +91,7 @@ export function ServiceNowPage() {
         eyebrow="Gestão de acessos · ServiceNow"
         title="Integração ServiceNow"
         description="Consulte RITMs de criação de área de rede e prepare o fluxo de concessão, revogação e rastreabilidade de acessos."
-        actions={<Badge variant="outline" className="h-fit border-petrobras-yellow/70 bg-petrobras-yellow/15 px-3 py-1.5 text-foreground"><span className="mr-2 size-2 rounded-full bg-petrobras-yellow" aria-hidden="true" />Modo de demonstração</Badge>}
       />
-
-      <div role="note" className="flex items-start gap-3 rounded-xl border border-petrobras-yellow/60 bg-petrobras-yellow/10 p-4 text-sm leading-6">
-        <CircleAlertIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-petrobras-blue" />
-        <p><strong>Frontend sem conexão ativa.</strong> Os dados e ações desta tela são demonstrativos. A API, gravação de logs e atualização do chamado serão conectadas pelo backend.</p>
-      </div>
 
       <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); if (value === "historico") void loadQueryLogs() }} className="gap-5">
         <TabsList aria-label="Seções da integração ServiceNow" className="h-auto w-full flex-wrap justify-start rounded-xl border border-border/70 bg-card p-1 sm:w-fit">
