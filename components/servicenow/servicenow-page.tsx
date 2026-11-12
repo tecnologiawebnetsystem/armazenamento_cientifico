@@ -17,6 +17,7 @@ import { AccessOperationsTable } from "@/components/servicenow/access-operations
 import { RitmAuditTimeline } from "@/components/servicenow/ritm-audit-timeline"
 import { RitmValidationChecklist, type RitmValidationCheck } from "@/components/servicenow/ritm-validation-checklist"
 import { RitmWorkflow, type WorkflowStep } from "@/components/servicenow/ritm-workflow"
+import { updateServiceNowRitmStatus } from "@/lib/api-client"
 import { demoServiceNowGateway, type ServiceNowAuditEntry, type ServiceNowOperationRun, type ServiceNowQueryLog, type ServiceNowRitm } from "@/lib/servicenow"
 
 const statusVariant = (status: ServiceNowRitm["status"]) => status === "Concluído" ? "secondary" as const : status === "Falha" ? "destructive" as const : "outline" as const
@@ -166,13 +167,13 @@ export function ServiceNowPage() {
     if (!activeRitm || !allGroupsComplete || !validationPassed) return
     setIsUpdatingTicket(true)
     try {
-      const result = await demoServiceNowGateway.updateRitmStatus({ ritmNumber: activeRitm.ritmNumber, status: "Concluído" })
+      const result = await updateServiceNowRitmStatus(activeRitm.ritmNumber, "Concluído")
       setTicketStatus(result.status)
       recordAuditEvent({ ritmNumber: activeRitm.ritmNumber, category: "Atualização", title: result.status === "Concluído" ? "Status do chamado atualizado" : "Falha ao atualizar chamado", description: result.message, status: result.status })
       if (result.status === "Concluído") toast.success("Status atualizado", { description: result.message })
       else toast.error("Falha ao atualizar chamado", { description: result.message })
-    } catch {
-      const message = "Não foi possível atualizar o chamado. Tente novamente após verificar a integração."
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Não foi possível atualizar o chamado. Tente novamente após verificar a integração."
       setTicketStatus("Falha")
       recordAuditEvent({ ritmNumber: activeRitm.ritmNumber, category: "Atualização", title: "Falha ao atualizar chamado", description: message, status: "Falha" })
       toast.error("Falha ao atualizar chamado", { description: message })
@@ -318,7 +319,7 @@ export function ServiceNowPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Atualizar status do RITM?</AlertDialogTitle>
             <AlertDialogDescription>O fluxo está com todos os grupos concluídos. Confirme o encerramento do chamado {activeRitm?.ritmNumber}.</AlertDialogDescription>
-            <p className="text-xs leading-5 text-muted-foreground">No ambiente atual, a atualização é demonstrativa e não envia alterações ao ServiceNow.</p>
+            <p className="text-xs leading-5 text-muted-foreground">A alteração será enviada ao SIGAC pelo backend. A confirmação só aparece após o serviço aceitar a atualização.</p>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Revisar</AlertDialogCancel>

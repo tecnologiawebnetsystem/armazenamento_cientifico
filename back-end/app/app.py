@@ -25,6 +25,7 @@ from app.modules.folders.module import router as folders_router
 from app.modules.platform.module import router as platform_router
 from app.modules.projects.module import router as projects_router
 from app.modules.reports.module import router as reports_router
+from app.modules.servicenow.module import router as servicenow_router
 from app.modules.users.module import router as users_router
 
 configure_logging(settings.log_level)
@@ -166,6 +167,7 @@ def create_app() -> FastAPI:
     application.include_router(reports_router)
     application.include_router(users_router)
     application.include_router(audit_router)
+    application.include_router(servicenow_router)
     return application
 
 
