@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { PageLayout } from "@/components/shared/page-layout"
+import { PageHeader, PageLayout } from "@/components/shared/page-layout"
 import { AccessOperationsTable } from "@/components/servicenow/access-operations-table"
 import { PendingRitmsTable } from "@/components/servicenow/pending-ritms-table"
 import { RitmAuditTimeline } from "@/components/servicenow/ritm-audit-timeline"
@@ -244,32 +244,18 @@ export function ServiceNowPage() {
   const NextActionIcon = nextAction.icon
 
   return (
-    <PageLayout className="gap-6">
-      <header aria-labelledby="servicenow-page-title" className="overflow-hidden rounded-3xl border border-petrobras-blue/20 bg-petrobras-blue text-primary-foreground shadow-lg shadow-petrobras-blue/10">
-        <div className="flex h-1.5" aria-hidden="true"><span className="w-2/3 bg-petrobras-green" /><span className="w-1/3 bg-petrobras-yellow" /></div>
-        <div className="flex flex-col gap-6 px-5 py-6 sm:px-8 sm:py-8 lg:flex-row lg:items-center lg:justify-between">
-          <div className="max-w-3xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge className="border-petrobras-yellow/45 bg-petrobras-yellow/15 text-primary-foreground hover:bg-petrobras-yellow/15">ServiceNow · Gestão de acessos</Badge>
-              <span className="text-xs font-medium uppercase tracking-[0.15em] text-primary-foreground/70">Central de operação SIGAC</span>
-            </div>
-            <h1 id="servicenow-page-title" className="mt-4 font-heading text-3xl font-semibold tracking-tight text-balance sm:text-4xl">Central de atendimento Service Now</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-primary-foreground/80">Consulte solicitações, valide dados e acompanhe cada etapa de concessão ou revogação com clareza e rastreabilidade.</p>
-          </div>
-          <div role="note" className="flex w-full max-w-sm items-start gap-3 rounded-2xl border border-primary-foreground/15 bg-primary-foreground/10 p-4">
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-petrobras-yellow text-petrobras-blue"><ShieldCheckIcon aria-hidden="true" className="size-5" /></span>
-            <div>
-              <p className="text-sm font-semibold">Ambiente demonstrativo</p>
-              <p className="mt-1 text-xs leading-5 text-primary-foreground/75">A fila e as operações usam dados fictícios; nenhuma alteração é enviada ao ServiceNow.</p>
-            </div>
-          </div>
-        </div>
-      </header>
+    <PageLayout className="w-full min-w-0">
+      <PageHeader
+        eyebrow="Integração · ServiceNow"
+        title="Central de atendimento Service Now"
+        description="Consulte solicitações e acompanhe validações, acessos e histórico em um só lugar."
+        actions={<Badge variant="outline" className="gap-1.5 border-petrobras-yellow/50 bg-petrobras-yellow/15 text-foreground"><ShieldCheckIcon aria-hidden="true" />Ambiente demonstrativo</Badge>}
+      />
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="gap-6">
-        <TabsList aria-label="Seções da integração ServiceNow" className="h-auto w-full flex-wrap justify-start rounded-2xl border border-petrobras-green/15 bg-card p-1.5 shadow-sm sm:w-fit">
-          <TabsTrigger value="consulta" className="gap-2 rounded-xl px-4 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm data-[state=inactive]:hover:bg-petrobras-yellow/15"><SearchIcon aria-hidden="true" />Atendimento</TabsTrigger>
-          <TabsTrigger value="historico" className="gap-2 rounded-xl px-4 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm data-[state=inactive]:hover:bg-petrobras-yellow/15"><HistoryIcon aria-hidden="true" />Histórico e auditoria</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full min-w-0 gap-5">
+        <TabsList aria-label="Seções da integração ServiceNow" className="h-auto w-full flex-wrap justify-start sm:w-fit">
+          <TabsTrigger value="consulta" className="gap-2 data-active:text-primary"><SearchIcon aria-hidden="true" />Atendimento</TabsTrigger>
+          <TabsTrigger value="historico" className="gap-2 data-active:text-primary"><HistoryIcon aria-hidden="true" />Histórico e auditoria</TabsTrigger>
         </TabsList>
 
         <TabsContent value="consulta" className="flex flex-col gap-5">
