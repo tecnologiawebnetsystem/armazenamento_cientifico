@@ -18,17 +18,17 @@ function getEventIcon(event: ServiceNowAuditEntry) {
 export function RitmAuditTimeline({ events, title = "Linha do tempo do RITM", description = "Atividades registradas nesta sessão." }: { events: ServiceNowAuditEntry[]; title?: string; description?: string }) {
   return (
     <Card className="rounded-2xl border-petrobras-green/15 py-0 shadow-[var(--sigac-shadow-surface)]">
-      <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 gap-1 px-5 py-4">
-        <CardTitle className="flex items-center gap-2 text-base"><ActivityIcon aria-hidden="true" className="size-4 text-primary" />{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+      <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 gap-1 px-4 py-3">
+        <CardTitle className="flex items-center gap-2 text-sm"><ActivityIcon aria-hidden="true" className="size-4 text-primary" />{title}</CardTitle>
+        <CardDescription className="text-xs">{description}</CardDescription>
       </CardHeader>
-      <CardContent className="p-5">
+      <CardContent className="p-4">
         {events.length === 0 ? <p className="py-3 text-sm text-muted-foreground">Nenhuma atividade registrada para este filtro.</p> : (
           <ol className="flex flex-col">
             {events.map((event) => {
               const EventIcon = getEventIcon(event)
               return (
-                <li key={event.id} className="flex gap-3 border-l border-border pl-4 pb-5 last:border-l-0 last:pb-0">
+                <li key={event.id} className="flex gap-3 border-l border-border pl-4 pb-4 last:border-l-0 last:pb-0">
                   <span className={`-ml-[1.35rem] grid size-7 shrink-0 place-items-center rounded-full border bg-card ${event.status === "Falha" ? "border-destructive/30 text-destructive" : "border-primary/20 text-primary"}`}>
                     <EventIcon aria-hidden="true" className="size-3.5" />
                   </span>
