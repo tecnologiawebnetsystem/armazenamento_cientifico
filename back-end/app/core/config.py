@@ -110,6 +110,9 @@ class Settings(BaseSettings):
             data["cors_origins"] = ["http://localhost:3000"]
         elif isinstance(data["cors_origins"], str):
             data["cors_origins"] = [x.strip() for x in data["cors_origins"].split(",") if x.strip()]
+        timeout = data.get("servicenow_timeout_seconds")
+        if timeout is None or (isinstance(timeout, str) and not timeout.strip()):
+            data["servicenow_timeout_seconds"] = 20
         data.setdefault("cookie_secure", env == "production")
         data.setdefault("email_login_enabled", env != "production")
         data.setdefault("expose_api_docs", env != "production")

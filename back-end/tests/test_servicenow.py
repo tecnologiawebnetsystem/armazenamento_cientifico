@@ -1,8 +1,21 @@
 import pytest
 from fastapi import HTTPException
 
-from app.core.config import settings
+from app.core.config import Settings, settings
 from app.modules.servicenow.service import _resolve_status, update_ritm_status
+
+
+def test_blank_servicenow_timeout_uses_default_when_not_configured():
+    configured = Settings.model_validate(
+        {
+            "RDS_AURORA_POSTGRES_URL": "sqlite+aiosqlite:///:memory:",
+            "servicenow_timeout_seconds": "",
+        }
+    )
+
+    assert configured.servicenow_timeout_seconds == 20
+    assert configured.servicenow_api_base_url == ""
+    assert configured.servicenow_api_token == ""
 
 
 def test_status_requires_an_approved_mapping(monkeypatch):
