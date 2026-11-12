@@ -21,16 +21,16 @@ export function RitmWorkflow({ steps }: { steps: WorkflowStep[] }) {
 
   return (
     <Card className="rounded-2xl border-petrobras-green/15 py-0 shadow-[var(--sigac-shadow-surface)]">
-      <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 gap-1 px-5 py-4">
-        <CardTitle className="flex items-center gap-2 text-base">
+      <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 gap-1 px-4 py-3">
+        <CardTitle className="flex items-center gap-2 text-sm">
           <ActivityIcon aria-hidden="true" className="size-4 text-primary" />
           Progresso do atendimento
         </CardTitle>
-        <CardDescription>Veja rapidamente onde o fluxo do RITM está parado e o que falta concluir.</CardDescription>
+        <CardDescription className="text-xs">Veja rapidamente onde o fluxo do RITM está parado e o que falta concluir.</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-5 p-5">
+      <CardContent className="flex flex-col gap-3 p-3 sm:p-4">
         <Progress value={progressValue} aria-label={`Progresso do atendimento: ${progressValue}%`} />
-        <ol className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <ol className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {steps.map((step, index) => {
             const StepIcon = step.status === "Concluído" ? CheckCircle2Icon : step.status === "Falha" ? AlertTriangleIcon : step.status === "Em andamento" ? ActivityIcon : CircleDashedIcon
             return (

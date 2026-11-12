@@ -35,9 +35,9 @@ export function PendingRitmsTable({ requests, onOpenRitm }: PendingRitmsTablePro
 
   return (
     <Card className="overflow-hidden rounded-2xl border-petrobras-green/15 py-0 shadow-[var(--sigac-shadow-surface)]">
-      <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <CardTitle className="flex items-center gap-2 text-base">
+          <CardTitle className="flex items-center gap-2 text-sm">
             <InboxIcon aria-hidden="true" className="size-4 text-primary" />
             Fila de RITMs pendentes
           </CardTitle>
@@ -45,17 +45,17 @@ export function PendingRitmsTable({ requests, onOpenRitm }: PendingRitmsTablePro
         </div>
         <Badge variant="outline" className="w-fit border-petrobras-yellow/50 bg-petrobras-yellow/15 text-foreground">Demonstração</Badge>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4 p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <CardContent className="flex flex-col gap-3 p-3 sm:p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-wrap items-center gap-2" aria-label="Resumo da fila">
             <Badge variant="secondary" className="gap-1.5"><ActivityIcon aria-hidden="true" className="size-3.5" />{inProgressCount} em processamento</Badge>
             <Badge variant="outline">{openCount} aberto{openCount === 1 ? "" : "s"}</Badge>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-80">
-            <label htmlFor="pending-ritm-filter" className="text-sm font-medium">Filtrar solicitações</label>
+            <label htmlFor="pending-ritm-filter" className="text-xs font-medium">Filtrar solicitações</label>
             <div className="relative">
               <SearchIcon aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input id="pending-ritm-filter" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="RITM, solicitante ou área" className="h-11 rounded-xl border-petrobras-green/20 bg-background pl-9 shadow-sm focus-visible:border-petrobras-green focus-visible:ring-petrobras-green/20" />
+              <Input id="pending-ritm-filter" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="RITM, solicitante ou área" className="h-9 rounded-lg border-petrobras-green/20 bg-background pl-9 text-sm shadow-sm focus-visible:border-petrobras-green focus-visible:ring-petrobras-green/20" />
             </div>
           </div>
         </div>
@@ -71,7 +71,7 @@ export function PendingRitmsTable({ requests, onOpenRitm }: PendingRitmsTablePro
           </Empty>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-petrobras-green/10">
-            <Table>
+            <Table className="[&_th]:h-8 [&_th]:px-2 [&_th]:py-1 [&_th]:text-xs [&_td]:p-1.5">
               <TableCaption className="sr-only">RITMs pendentes disponíveis para consulta demonstrativa.</TableCaption>
               <TableHeader>
                 <TableRow className="bg-petrobras-green/5 hover:bg-petrobras-green/5">
@@ -87,13 +87,13 @@ export function PendingRitmsTable({ requests, onOpenRitm }: PendingRitmsTablePro
                 {filteredRequests.map((request) => {
                   return (
                     <TableRow key={request.ritmNumber} className="transition-colors hover:bg-petrobras-yellow/10">
-                      <TableCell className="min-w-40">
+                      <TableCell className="min-w-36">
                         <p className="font-mono text-sm font-semibold">{request.ritmNumber}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">{request.requestNumber}</p>
+                        <p className="text-xs text-muted-foreground">{request.requestNumber}</p>
                       </TableCell>
                       <TableCell className="min-w-36 text-sm">{request.requestedBy}</TableCell>
-                      <TableCell className="min-w-48 text-sm">{request.networkArea.name}</TableCell>
-                      <TableCell className="min-w-32">
+                      <TableCell className="min-w-40 text-sm">{request.networkArea.name}</TableCell>
+                      <TableCell className="min-w-28">
                         <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground"><CalendarDaysIcon aria-hidden="true" className="size-3.5" /><time dateTime={request.requestedAt}>{formatRequestDate(request.requestedAt)}</time></span>
                       </TableCell>
                       <TableCell>

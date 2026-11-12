@@ -244,34 +244,35 @@ export function ServiceNowPage() {
   const NextActionIcon = nextAction.icon
 
   return (
-    <PageLayout className="w-full min-w-0">
+    <PageLayout className="w-full min-w-0 gap-3 pb-2">
       <PageHeader
         eyebrow="Integração · ServiceNow"
         title="Central de atendimento Service Now"
         description="Consulte solicitações e acompanhe validações, acessos e histórico em um só lugar."
         actions={<Badge variant="outline" className="gap-1.5 border-petrobras-yellow/50 bg-petrobras-yellow/15 text-foreground"><ShieldCheckIcon aria-hidden="true" />Ambiente demonstrativo</Badge>}
+        className="min-h-0 gap-2 rounded-xl px-4 py-3 sm:px-5 sm:py-3"
       />
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full min-w-0 gap-5">
-        <TabsList aria-label="Seções da integração ServiceNow" className="h-auto w-full flex-wrap justify-start sm:w-fit">
-          <TabsTrigger value="consulta" className="gap-2 data-active:text-primary"><SearchIcon aria-hidden="true" />Atendimento</TabsTrigger>
-          <TabsTrigger value="historico" className="gap-2 data-active:text-primary"><HistoryIcon aria-hidden="true" />Histórico e auditoria</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full min-w-0 gap-3">
+        <TabsList aria-label="Seções da integração ServiceNow" className="h-9 w-full flex-wrap justify-start p-1 sm:w-fit">
+          <TabsTrigger value="consulta" className="h-7 gap-2 px-3 text-sm data-active:text-primary"><SearchIcon aria-hidden="true" />Atendimento</TabsTrigger>
+          <TabsTrigger value="historico" className="h-7 gap-2 px-3 text-sm data-active:text-primary"><HistoryIcon aria-hidden="true" />Histórico e auditoria</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="consulta" className="flex flex-col gap-5">
+        <TabsContent value="consulta" className="flex flex-col gap-3">
           <Card className="overflow-hidden rounded-2xl border-petrobras-green/15 py-0 shadow-[var(--sigac-shadow-surface)]">
-            <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 gap-1 px-5 py-4">
-              <CardTitle className="flex items-center gap-3 text-base"><span className="grid size-9 place-items-center rounded-xl bg-petrobras-green/10 text-primary"><SearchIcon aria-hidden="true" className="size-4" /></span>Localizar solicitação</CardTitle>
-              <CardDescription>Informe o RITM para visualizar área de rede, responsáveis, permissões e próximas ações.</CardDescription>
+            <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 gap-1 px-4 py-3">
+              <CardTitle className="flex items-center gap-2 text-sm"><span className="grid size-7 place-items-center rounded-lg bg-petrobras-green/10 text-primary"><SearchIcon aria-hidden="true" className="size-4" /></span>Localizar solicitação</CardTitle>
+              <CardDescription className="text-xs">Informe o RITM para visualizar área de rede, responsáveis, permissões e próximas ações.</CardDescription>
             </CardHeader>
-            <CardContent className="p-5">
-              <form onSubmit={searchRitm} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <CardContent className="p-3">
+              <form onSubmit={searchRitm} className="flex flex-col gap-2 sm:flex-row sm:items-end">
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
-                  <label htmlFor="ritm-number" className="text-sm font-medium">Número do RITM</label>
-                  <Input id="ritm-number" name="ritmNumber" autoComplete="off" spellCheck={false} placeholder="Ex.: RITM0012345" value={ritmNumber} onChange={(event) => { setRitmNumber(event.target.value.toUpperCase()); if (queryMessage) setQueryMessage("") }} aria-describedby="ritm-help" aria-invalid={Boolean(queryMessage)} className="h-12 rounded-xl border-petrobras-green/20 bg-background text-base shadow-sm focus-visible:border-petrobras-green focus-visible:ring-petrobras-green/20" />
+                  <label htmlFor="ritm-number" className="text-xs font-medium">Número do RITM</label>
+                  <Input id="ritm-number" name="ritmNumber" autoComplete="off" spellCheck={false} placeholder="Ex.: RITM0012345" value={ritmNumber} onChange={(event) => { setRitmNumber(event.target.value.toUpperCase()); if (queryMessage) setQueryMessage("") }} aria-describedby="ritm-help" aria-invalid={Boolean(queryMessage)} className="h-9 rounded-lg border-petrobras-green/20 bg-background text-sm shadow-sm focus-visible:border-petrobras-green focus-visible:ring-petrobras-green/20" />
                   <span id="ritm-help" className="text-xs leading-5 text-muted-foreground">Formato esperado: RITM seguido de pelo menos cinco dígitos.</span>
                 </div>
-                <Button type="submit" disabled={isSearching} className="h-12 rounded-xl px-5 font-semibold shadow-sm sm:min-w-40"><SearchIcon data-icon="inline-start" />{isSearching ? "Consultando…" : "Consultar RITM"}</Button>
+                <Button type="submit" disabled={isSearching} className="h-9 rounded-lg px-4 font-semibold shadow-sm sm:min-w-36"><SearchIcon data-icon="inline-start" />{isSearching ? "Consultando…" : "Consultar RITM"}</Button>
               </form>
               {queryMessage ? <p role="alert" aria-live="polite" className="mt-4 rounded-lg border border-destructive/25 bg-destructive/5 px-3 py-2 text-sm leading-6 text-destructive">{queryMessage}</p> : null}
             </CardContent>
@@ -279,18 +280,18 @@ export function ServiceNowPage() {
 
           <PendingRitmsTable requests={demoPendingRitms} onOpenRitm={openRitmFromQueue} />
 
-          {activeRitm ? <div id="ritm-details" tabIndex={-1} role="region" aria-label={`Detalhes do ${activeRitm.ritmNumber}`} className="flex scroll-mt-6 flex-col gap-5 outline-none" aria-live="polite">
+          {activeRitm ? <div id="ritm-details" tabIndex={-1} role="region" aria-label={`Detalhes do ${activeRitm.ritmNumber}`} className="flex scroll-mt-6 flex-col gap-4 outline-none" aria-live="polite">
             <section aria-label="Resumo do RITM" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <Card className="rounded-2xl border-petrobras-green/15 py-4 shadow-[var(--sigac-shadow-surface)]"><CardContent className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">RITM</p><p className="mt-2 font-mono text-lg font-semibold">{activeRitm.ritmNumber}</p><p className="mt-1 text-xs text-muted-foreground">Solicitação {activeRitm.requestNumber}</p></div><span className="rounded-lg bg-primary/10 p-2 text-primary"><FolderKeyIcon aria-hidden="true" className="size-5" /></span></CardContent></Card>
-              <Card className="rounded-2xl border-petrobras-green/15 py-4 shadow-[var(--sigac-shadow-surface)]"><CardContent className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status do chamado</p><Badge variant={statusVariant(ticketStatus)} className="mt-2">{ticketStatus}</Badge><p className="mt-2 text-xs text-muted-foreground">Aberto por {activeRitm.requestedBy}</p></div><span className="rounded-lg bg-petrobras-yellow/20 p-2 text-foreground"><ActivityIcon aria-hidden="true" className="size-5" /></span></CardContent></Card>
-              <Card className="rounded-2xl border-petrobras-green/15 py-4 shadow-[var(--sigac-shadow-surface)]"><CardContent className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Área de rede</p><p className="mt-2 font-semibold leading-5">{activeRitm.networkArea.name}</p><p className="mt-1 text-xs text-muted-foreground">{activeRitm.networkArea.responsibleArea}</p></div><span className="rounded-lg bg-primary/10 p-2 text-primary"><ShieldCheckIcon aria-hidden="true" className="size-5" /></span></CardContent></Card>
-              <Card className="rounded-2xl border-petrobras-green/15 py-4 shadow-[var(--sigac-shadow-surface)]"><CardContent className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ações pendentes</p><p className="mt-2 font-mono text-2xl font-semibold tabular-nums">{pendingOperationCount}</p><p className="mt-1 text-xs text-muted-foreground">{failedGroupCount ? `${failedGroupCount} falha(s) para revisar` : "Grupos para processar"}</p></div><span className="rounded-lg bg-petrobras-yellow/20 p-2 text-foreground"><Clock3Icon aria-hidden="true" className="size-5" /></span></CardContent></Card>
+              <Card className="rounded-xl border-petrobras-green/15 py-2 shadow-[var(--sigac-shadow-surface)]"><CardContent className="flex items-start justify-between gap-2 px-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">RITM</p><p className="mt-2 font-mono text-base font-semibold">{activeRitm.ritmNumber}</p><p className="mt-1 text-xs text-muted-foreground">Solicitação {activeRitm.requestNumber}</p></div><span className="rounded-lg bg-primary/10 p-2 text-primary"><FolderKeyIcon aria-hidden="true" className="size-5" /></span></CardContent></Card>
+              <Card className="rounded-xl border-petrobras-green/15 py-2 shadow-[var(--sigac-shadow-surface)]"><CardContent className="flex items-start justify-between gap-2 px-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status do chamado</p><Badge variant={statusVariant(ticketStatus)} className="mt-2">{ticketStatus}</Badge><p className="mt-2 text-xs text-muted-foreground">Aberto por {activeRitm.requestedBy}</p></div><span className="rounded-lg bg-petrobras-yellow/20 p-2 text-foreground"><ActivityIcon aria-hidden="true" className="size-5" /></span></CardContent></Card>
+              <Card className="rounded-xl border-petrobras-green/15 py-2 shadow-[var(--sigac-shadow-surface)]"><CardContent className="flex items-start justify-between gap-2 px-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Área de rede</p><p className="mt-2 font-semibold leading-5">{activeRitm.networkArea.name}</p><p className="mt-1 text-xs text-muted-foreground">{activeRitm.networkArea.responsibleArea}</p></div><span className="rounded-lg bg-primary/10 p-2 text-primary"><ShieldCheckIcon aria-hidden="true" className="size-5" /></span></CardContent></Card>
+              <Card className="rounded-xl border-petrobras-green/15 py-2 shadow-[var(--sigac-shadow-surface)]"><CardContent className="flex items-start justify-between gap-2 px-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ações pendentes</p><p className="mt-2 font-mono text-xl font-semibold tabular-nums">{pendingOperationCount}</p><p className="mt-1 text-xs text-muted-foreground">{failedGroupCount ? `${failedGroupCount} falha(s) para revisar` : "Grupos para processar"}</p></div><span className="rounded-lg bg-petrobras-yellow/20 p-2 text-foreground"><Clock3Icon aria-hidden="true" className="size-5" /></span></CardContent></Card>
             </section>
 
             <RitmWorkflow steps={workflowSteps} />
 
             <Card className={`rounded-2xl border-petrobras-green/15 py-0 shadow-[var(--sigac-shadow-surface)] ${failedGroupCount || !validationPassed ? "border-destructive/30 bg-destructive/[0.03]" : "bg-primary/[0.03]"}`}>
-              <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-start gap-3">
                   <span className={`mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg ${failedGroupCount || !validationPassed ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}><NextActionIcon aria-hidden="true" className="size-5" /></span>
                   <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Próxima ação recomendada</p><h2 className="mt-1 text-base font-semibold text-balance">{nextAction.title}</h2><p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{nextAction.description}</p></div>
@@ -299,10 +300,10 @@ export function ServiceNowPage() {
               </CardContent>
             </Card>
 
-            <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+            <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
               <Card className="rounded-2xl border-petrobras-green/15 py-0 shadow-[var(--sigac-shadow-surface)]">
-                <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 px-5 py-4"><CardTitle className="text-base">Dados da área de rede</CardTitle><CardDescription>Informações da solicitação que orientam a execução.</CardDescription></CardHeader>
-                <CardContent className="flex flex-col gap-4 p-5">
+                <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 px-4 py-3"><CardTitle className="text-sm">Dados da área de rede</CardTitle><CardDescription className="text-xs">Informações da solicitação que orientam a execução.</CardDescription></CardHeader>
+                <CardContent className="flex flex-col gap-4 p-4">
                   <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Caminho de rede</p><code className="mt-2 block break-all rounded-lg border border-border bg-muted/50 px-3 py-2 font-mono text-xs leading-5">{activeRitm.networkArea.path || "Não informado"}</code></div>
                   <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Descrição</p><p className="mt-1 text-sm leading-6">{activeRitm.networkArea.description || "Sem descrição informada."}</p></div>
                   <Separator />
@@ -313,8 +314,8 @@ export function ServiceNowPage() {
             </div>
 
             <Card className="rounded-2xl border-petrobras-green/15 py-0 shadow-[var(--sigac-shadow-surface)]">
-              <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 px-5 py-4"><CardTitle className="flex items-center gap-2 text-base"><UsersRoundIcon aria-hidden="true" className="size-4 text-primary" />Responsáveis pela área</CardTitle><CardDescription>Contatos responsáveis informados na solicitação.</CardDescription></CardHeader>
-              <CardContent className="grid gap-0 divide-y sm:grid-cols-2 sm:divide-y-0 sm:divide-x">{activeRitm.responsibles.map((person) => <div key={person.email} className="flex flex-col gap-1 px-5 py-4"><div className="flex items-center justify-between gap-3"><p className="truncate text-sm font-medium">{person.name}</p><Badge variant="outline" className="w-fit shrink-0">{person.role}</Badge></div><a className="sigac-focus-ring inline-block max-w-full truncate rounded-sm text-xs text-muted-foreground underline-offset-4 hover:underline" href={`mailto:${person.email}`}>{person.email}</a></div>)}</CardContent>
+              <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 px-4 py-3"><CardTitle className="flex items-center gap-2 text-sm"><UsersRoundIcon aria-hidden="true" className="size-4 text-primary" />Responsáveis pela área</CardTitle><CardDescription className="text-xs">Contatos responsáveis informados na solicitação.</CardDescription></CardHeader>
+              <CardContent className="grid gap-0 divide-y sm:grid-cols-2 sm:divide-y-0 sm:divide-x">{activeRitm.responsibles.map((person) => <div key={person.email} className="flex flex-col gap-1 px-4 py-3"><div className="flex items-center justify-between gap-3"><p className="truncate text-sm font-medium">{person.name}</p><Badge variant="outline" className="w-fit shrink-0">{person.role}</Badge></div><a className="sigac-focus-ring inline-block max-w-full truncate rounded-sm text-xs text-muted-foreground underline-offset-4 hover:underline" href={`mailto:${person.email}`}>{person.email}</a></div>)}</CardContent>
             </Card>
 
             <AccessOperationsTable key={activeRitm.ritmNumber} groups={activeRitm.accessGroups} runs={operationRuns} canProcess={validationPassed} onProcess={processGroups} />
@@ -323,18 +324,18 @@ export function ServiceNowPage() {
           </div> : null}
         </TabsContent>
 
-        <TabsContent value="historico" className="flex flex-col gap-5">
+        <TabsContent value="historico" className="flex flex-col gap-3">
           <Card className="overflow-hidden rounded-2xl border-petrobras-green/15 py-0 shadow-[var(--sigac-shadow-surface)]">
-            <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 gap-1 px-5 py-4"><CardTitle className="flex items-center gap-2 text-base"><HistoryIcon aria-hidden="true" className="size-4 text-primary" />Consultas recentes</CardTitle><CardDescription>Filtre consultas e localize rapidamente falhas por RITM e situação.</CardDescription></CardHeader>
-            <CardContent className="flex flex-col gap-4 p-5">
+            <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 gap-1 px-4 py-3"><CardTitle className="flex items-center gap-2 text-base"><HistoryIcon aria-hidden="true" className="size-4 text-primary" />Consultas recentes</CardTitle><CardDescription>Filtre consultas e localize rapidamente falhas por RITM e situação.</CardDescription></CardHeader>
+            <CardContent className="flex flex-col gap-4 p-4">
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_14rem] sm:items-end">
-                <div className="flex flex-col gap-2"><label htmlFor="history-ritm-filter" className="text-sm font-medium">Filtrar por RITM</label><Input id="history-ritm-filter" value={historyRitmFilter} onChange={(event) => setHistoryRitmFilter(event.target.value.toUpperCase())} placeholder="Ex.: RITM0012345" className="h-11 rounded-xl border-petrobras-green/20 bg-background shadow-sm focus-visible:border-petrobras-green focus-visible:ring-petrobras-green/20" /></div>
-                <div className="flex flex-col gap-2"><span id="history-status-label" className="text-sm font-medium">Situação da consulta</span><Select value={historyStatusFilter} onValueChange={(value) => setHistoryStatusFilter((value ?? "Todos") as ServiceNowQueryLog["status"] | "Todos")}><SelectTrigger aria-labelledby="history-status-label" className="h-11 rounded-xl border-petrobras-green/20 bg-background shadow-sm focus-visible:border-petrobras-green focus-visible:ring-petrobras-green/20"><SelectValue placeholder="Todas as situações" /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="Todos">Todas as situações</SelectItem><SelectItem value="Sucesso">Sucesso</SelectItem><SelectItem value="Não encontrado">Não encontrado</SelectItem><SelectItem value="Falha de integração">Falha de integração</SelectItem></SelectGroup></SelectContent></Select></div>
+                <div className="flex flex-col gap-2"><label htmlFor="history-ritm-filter" className="text-sm font-medium">Filtrar por RITM</label><Input id="history-ritm-filter" value={historyRitmFilter} onChange={(event) => setHistoryRitmFilter(event.target.value.toUpperCase())} placeholder="Ex.: RITM0012345" className="h-9 rounded-lg border-petrobras-green/20 bg-background text-sm shadow-sm focus-visible:border-petrobras-green focus-visible:ring-petrobras-green/20" /></div>
+                <div className="flex flex-col gap-2"><span id="history-status-label" className="text-sm font-medium">Situação da consulta</span><Select value={historyStatusFilter} onValueChange={(value) => setHistoryStatusFilter((value ?? "Todos") as ServiceNowQueryLog["status"] | "Todos")}><SelectTrigger aria-labelledby="history-status-label" className="h-9 rounded-lg border-petrobras-green/20 bg-background text-sm shadow-sm focus-visible:border-petrobras-green focus-visible:ring-petrobras-green/20"><SelectValue placeholder="Todas as situações" /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="Todos">Todas as situações</SelectItem><SelectItem value="Sucesso">Sucesso</SelectItem><SelectItem value="Não encontrado">Não encontrado</SelectItem><SelectItem value="Falha de integração">Falha de integração</SelectItem></SelectGroup></SelectContent></Select></div>
               </div>
               {isLoadingLogs ? <p role="status" className="py-2 text-sm text-muted-foreground">Carregando histórico…</p> : null}
               {historyError ? <div role="alert" className="flex flex-col gap-3 rounded-lg border border-destructive/25 bg-destructive/5 p-4 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between"><p>{historyError}</p><Button size="sm" variant="outline" onClick={() => void loadQueryLogs()}>Tentar novamente</Button></div> : null}
               {!isLoadingLogs && !historyError && filteredQueryLogs.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">Nenhuma consulta corresponde aos filtros selecionados.</p> : null}
-              {filteredQueryLogs.length > 0 ? <div className="overflow-x-auto rounded-lg border border-border/70"><Table><TableHeader><TableRow className="bg-muted/20 hover:bg-muted/20"><TableHead>RITM</TableHead><TableHead>Data e hora</TableHead><TableHead>Status</TableHead><TableHead>Duração</TableHead><TableHead>Usuário</TableHead></TableRow></TableHeader><TableBody>{filteredQueryLogs.map((log) => <TableRow key={log.id}><TableCell className="font-mono text-sm font-medium">{log.ritmNumber}</TableCell><TableCell><time className="text-sm text-muted-foreground" dateTime={log.timestamp}>{formatTimestamp(log.timestamp)}</time></TableCell><TableCell><Badge variant={log.status === "Sucesso" ? "secondary" : log.status === "Falha de integração" ? "destructive" : "outline"}>{log.status}</Badge></TableCell><TableCell className="text-sm text-muted-foreground">{log.duration}</TableCell><TableCell className="text-sm">{log.actor}</TableCell></TableRow>)}</TableBody></Table></div> : null}
+              {filteredQueryLogs.length > 0 ? <div className="overflow-x-auto rounded-lg border border-border/70"><Table className="[&_th]:h-8 [&_th]:px-2 [&_th]:py-1 [&_th]:text-xs [&_td]:p-1.5"><TableHeader><TableRow className="bg-muted/20 hover:bg-muted/20"><TableHead>RITM</TableHead><TableHead>Data e hora</TableHead><TableHead>Status</TableHead><TableHead>Duração</TableHead><TableHead>Usuário</TableHead></TableRow></TableHeader><TableBody>{filteredQueryLogs.map((log) => <TableRow key={log.id}><TableCell className="font-mono text-sm font-medium">{log.ritmNumber}</TableCell><TableCell><time className="text-sm text-muted-foreground" dateTime={log.timestamp}>{formatTimestamp(log.timestamp)}</time></TableCell><TableCell><Badge variant={log.status === "Sucesso" ? "secondary" : log.status === "Falha de integração" ? "destructive" : "outline"}>{log.status}</Badge></TableCell><TableCell className="text-sm text-muted-foreground">{log.duration}</TableCell><TableCell className="text-sm">{log.actor}</TableCell></TableRow>)}</TableBody></Table></div> : null}
             </CardContent>
           </Card>
 

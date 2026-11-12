@@ -60,17 +60,17 @@ export function AccessOperationsTable({ groups, runs, canProcess, onProcess }: A
   return (
     <>
       <Card id="operacoes-acesso" className="overflow-hidden rounded-2xl border-petrobras-green/15 py-0 shadow-[var(--sigac-shadow-surface)]">
-        <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2 text-base"><ShieldCheckIcon aria-hidden="true" className="size-4 text-primary" />Acessos por grupo</CardTitle>
-            <CardDescription>Compare o acesso informado com o resultado solicitado e processe em lote ou individualmente.</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-sm"><ShieldCheckIcon aria-hidden="true" className="size-4 text-primary" />Acessos por grupo</CardTitle>
+            <CardDescription className="text-xs">Compare o acesso informado com o resultado solicitado e processe em lote ou individualmente.</CardDescription>
           </div>
           <Badge variant="outline" className="w-fit">{groups.length} grupos</Badge>
         </CardHeader>
         <CardContent className="p-0">
           {groups.length === 0 ? <p className="px-5 py-8 text-center text-sm text-muted-foreground">Este RITM não possui grupos de acesso para processar.</p> : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="[&_th]:h-8 [&_th]:px-2 [&_th]:py-1 [&_th]:text-xs [&_td]:p-1.5">
                 <TableHeader>
                   <TableRow className="bg-petrobras-green/5 hover:bg-petrobras-green/5">
                     <TableHead className="w-12">
@@ -97,7 +97,7 @@ export function AccessOperationsTable({ groups, runs, canProcess, onProcess }: A
                         <TableCell>
                           <Checkbox aria-label={`Selecionar grupo ${group.name}`} checked={selectedGroupIds.includes(group.id)} disabled={!canProcess || !isEligible} onCheckedChange={(checked) => toggleGroup(group.id, checked === true)} />
                         </TableCell>
-                        <TableCell className="min-w-64">
+                        <TableCell className="min-w-52">
                           <p className="break-all font-mono text-xs font-semibold leading-5">{group.name}</p>
                           <p className="mt-1 text-xs text-muted-foreground">{group.members} pessoas · {group.permission}</p>
                         </TableCell>
@@ -126,9 +126,9 @@ export function AccessOperationsTable({ groups, runs, canProcess, onProcess }: A
               </Table>
             </div>
           )}
-          <div className="flex flex-col gap-3 border-t border-petrobras-green/10 bg-petrobras-green/5 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 border-t border-petrobras-green/10 bg-petrobras-green/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs leading-5 text-muted-foreground">Falhas permanecem visíveis para reprocessamento; ações concluídas ficam bloqueadas para evitar duplicidade.</p>
-            <Button disabled={!canProcess || selectedEligibleGroups.length === 0} onClick={() => requestConfirmation(selectedEligibleGroups.map((group) => group.id))}>
+            <Button size="sm" disabled={!canProcess || selectedEligibleGroups.length === 0} onClick={() => requestConfirmation(selectedEligibleGroups.map((group) => group.id))}>
               <ShieldCheckIcon data-icon="inline-start" />Processar selecionados{selectedEligibleGroups.length ? ` (${selectedEligibleGroups.length})` : ""}
             </Button>
           </div>
