@@ -51,6 +51,7 @@ export interface ServiceNowRitm {
   }
   responsibles: ServiceNowResponsible[]
   accessGroups: ServiceNowAccessGroup[]
+  isDemo?: boolean
 }
 
 export interface ServiceNowQueryLog {
@@ -117,28 +118,89 @@ const demoRequests: ServiceNowRitm[] = [
       { id: "grp-01", name: "GRP-DEMO-PESQUISA-LEITURA", permission: "Leitura", currentAccess: "Sem acesso", members: 12, operation: "concessao", status: "Pendente" },
       { id: "grp-02", name: "GRP-DEMO-PESQUISA-EDICAO", permission: "Leitura e gravação", currentAccess: "Sem acesso", members: 4, operation: "concessao", status: "Pendente" },
     ],
+    isDemo: true,
   },
   {
     ritmNumber: "RITM0012398",
     requestNumber: "REQ0048266",
-    requestedBy: "Rafael Nunes",
+    requestedBy: "Usuário demonstrativo 02",
     requestedAt: "2026-10-30T09:15:00-03:00",
     status: "Concluído",
     networkArea: {
-      name: "Dados de Geofísica Aplicada",
-      path: "\\\\rede-petrobras\\cientifico\\geofisica-aplicada",
-      description: "Repositório de dados e produtos de geofísica aplicada.",
-      responsibleArea: "CENPES / Geofísica",
+      name: "Projeto demonstrativo de geofísica",
+      path: "\\\\rede-demo\\areas\\geofisica-exemplo",
+      description: "Repositório fictício para demonstrar uma solicitação concluída.",
+      responsibleArea: "Área demonstrativa de geofísica",
     },
     responsibles: [
-      { name: "Rafael Nunes", email: "rafael.nunes@petrobras.com.br", role: "Responsável pela área" },
+      { name: "Responsável demonstrativo 02", email: "responsavel02@example.com", role: "Responsável pela área" },
     ],
     accessGroups: [
-      { id: "grp-03", name: "GG-CENPES-GEOFISICA-LEITURA", permission: "Leitura", currentAccess: "Com acesso", members: 8, operation: "concessao", status: "Concluído" },
-      { id: "grp-04", name: "GG-CENPES-GEOFISICA-ANTIGO", permission: "Leitura", currentAccess: "Sem acesso", members: 2, operation: "revogacao", status: "Concluído" },
+      { id: "grp-03", name: "GRP-DEMO-GEOFISICA-LEITURA", permission: "Leitura", currentAccess: "Com acesso", members: 8, operation: "concessao", status: "Concluído" },
+      { id: "grp-04", name: "GRP-DEMO-GEOFISICA-ANTIGO", permission: "Leitura", currentAccess: "Sem acesso", members: 2, operation: "revogacao", status: "Concluído" },
+    ],
+    isDemo: true,
+  },
+  {
+    ritmNumber: "RITM0012412",
+    requestNumber: "REQ0048310",
+    requestedBy: "Pessoa demonstrativa 03",
+    requestedAt: "2026-11-07T10:20:00-03:00",
+    status: "Aberto",
+    isDemo: true,
+    networkArea: {
+      name: "Geologia computacional",
+      path: "\\\\rede-demo\\areas\\geologia-computacional",
+      description: "Solicitação de acesso demonstrativa para análise de dados geológicos.",
+      responsibleArea: "Área demonstrativa de geologia",
+    },
+    responsibles: [{ name: "Responsável demonstrativo 03", email: "responsavel03@example.com", role: "Responsável pela área" }],
+    accessGroups: [
+      { id: "grp-05", name: "GRP-DEMO-GEOLOGIA-LEITURA", permission: "Leitura", currentAccess: "Sem acesso", members: 6, operation: "concessao", status: "Pendente" },
+      { id: "grp-06", name: "GRP-DEMO-GEOLOGIA-EDICAO", permission: "Leitura e gravação", currentAccess: "Sem acesso", members: 2, operation: "concessao", status: "Pendente" },
+    ],
+  },
+  {
+    ritmNumber: "RITM0012456",
+    requestNumber: "REQ0048344",
+    requestedBy: "Pessoa demonstrativa 04",
+    requestedAt: "2026-11-06T15:45:00-03:00",
+    status: "Em processamento",
+    isDemo: true,
+    networkArea: {
+      name: "Laboratório de materiais",
+      path: "\\\\rede-demo\\areas\\laboratorio-materiais",
+      description: "Solicitação de acesso demonstrativa a dados de laboratório.",
+      responsibleArea: "Área demonstrativa de materiais",
+    },
+    responsibles: [{ name: "Responsável demonstrativo 04", email: "responsavel04@example.com", role: "Responsável pela área" }],
+    accessGroups: [
+      { id: "grp-07", name: "GRP-DEMO-MATERIAIS-LEITURA", permission: "Leitura", currentAccess: "Sem acesso", members: 9, operation: "concessao", status: "Pendente" },
+    ],
+  },
+  {
+    ritmNumber: "RITM0012481",
+    requestNumber: "REQ0048391",
+    requestedBy: "Pessoa demonstrativa 05",
+    requestedAt: "2026-11-05T08:10:00-03:00",
+    status: "Aberto",
+    isDemo: true,
+    networkArea: {
+      name: "Bioinformática aplicada",
+      path: "\\\\rede-demo\\areas\\bioinformatica-aplicada",
+      description: "Solicitação de acesso demonstrativa a conjuntos de dados de pesquisa.",
+      responsibleArea: "Área demonstrativa de bioinformática",
+    },
+    responsibles: [{ name: "Responsável demonstrativo 05", email: "responsavel05@example.com", role: "Responsável pela área" }],
+    accessGroups: [
+      { id: "grp-08", name: "GRP-DEMO-BIOINFO-LEITURA", permission: "Leitura", currentAccess: "Sem acesso", members: 14, operation: "concessao", status: "Pendente" },
+      { id: "grp-09", name: "GRP-DEMO-BIOINFO-EDICAO", permission: "Leitura e gravação", currentAccess: "Sem acesso", members: 3, operation: "concessao", status: "Pendente" },
+      { id: "grp-10", name: "GRP-DEMO-BIOINFO-ANTIGO", permission: "Leitura", currentAccess: "Com acesso", members: 1, operation: "revogacao", status: "Pendente" },
     ],
   },
 ]
+
+export const demoPendingRitms = demoRequests.filter((request) => request.status === "Aberto" || request.status === "Em processamento")
 
 /** Implementação temporária de demonstração. Substituir por chamada ao backend. */
 export const demoServiceNowGateway: ServiceNowGateway = {

@@ -14,11 +14,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PageHeader, PageLayout } from "@/components/shared/page-layout"
 import { AccessOperationsTable } from "@/components/servicenow/access-operations-table"
+import { PendingRitmsTable } from "@/components/servicenow/pending-ritms-table"
 import { RitmAuditTimeline } from "@/components/servicenow/ritm-audit-timeline"
 import { RitmValidationChecklist, type RitmValidationCheck } from "@/components/servicenow/ritm-validation-checklist"
 import { RitmWorkflow, type WorkflowStep } from "@/components/servicenow/ritm-workflow"
 import { updateServiceNowRitmStatus } from "@/lib/api-client"
-import { demoServiceNowGateway, type ServiceNowAuditEntry, type ServiceNowOperationRun, type ServiceNowQueryLog, type ServiceNowRitm } from "@/lib/servicenow"
+import { demoPendingRitms, demoServiceNowGateway, type ServiceNowAuditEntry, type ServiceNowOperationRun, type ServiceNowQueryLog, type ServiceNowRitm } from "@/lib/servicenow"
 
 const statusVariant = (status: ServiceNowRitm["status"]) => status === "Concluído" ? "secondary" as const : status === "Falha" ? "destructive" as const : "outline" as const
 
@@ -27,7 +28,7 @@ function formatTimestamp(value: string) {
 }
 
 export function ServiceNowPage() {
-  const [ritmNumber, setRitmNumber] = useState("RITM0012345")
+  const [ritmNumber, setRitmNumber] = useState("")
   const [activeRitm, setActiveRitm] = useState<ServiceNowRitm | null>(null)
   const [isSearching, setIsSearching] = useState(false)
   const [queryMessage, setQueryMessage] = useState("")
@@ -62,6 +63,7 @@ export function ServiceNowPage() {
   const failedGroupCount = activeRitm?.accessGroups.filter((group) => operationRuns[group.id]?.status === "Falha").length ?? 0
   const pendingOperationCount = activeRitm ? activeRitm.accessGroups.length - completedGroupCount : 0
   const allGroupsComplete = Boolean(activeRitm && activeRitm.accessGroups.length > 0 && completedGroupCount === activeRitm.accessGroups.length)
+  const isDemoRitm = activeRitm?.isDemo === true
 
   const workflowSteps: WorkflowStep[] = activeRitm ? [
     { label: "RITM localizado", detail: `${activeRitm.ritmNumber} encontrado na consulta.`, status: "Concluído" },
@@ -82,9 +84,9 @@ export function ServiceNowPage() {
     setAuditEvents((current) => [{ ...input, id: `audit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, timestamp: new Date().toISOString(), actor: "Sessão atual" }, ...current])
   }
 
-  async function searchRitm(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const normalizedRitm = ritmNumber.trim().toUpperCase()
+  async function loadRitmDetails(value: string, scrollToDetails = false) {
+    const normalizedRitm = value.trim().toUpperCase()
+    setRitmNumber(normalizedRitm)
     if (!/^RITM\d{5,}$/i.test(normalizedRitm)) {
       setQueryMessage("Informe um número de RITM válido, como RITM0012345.")
       setActiveRitm(null)
@@ -104,6 +106,13 @@ export function ServiceNowPage() {
       if (request) {
         setTicketStatus(request.status)
         recordAuditEvent({ ritmNumber: request.ritmNumber, category: "Consulta", title: "RITM localizado", description: `Solicitação ${request.requestNumber} consultada para análise do suporte.`, status: "Concluído" })
+        if (scrollToDetails) {
+          requestAnimationFrame(() => {
+            const details = document.getElementById("ritm-details")
+            details?.scrollIntoView({ behavior: "smooth", block: "start" })
+            details?.focus({ preventScroll: true })
+          })
+        }
       } else {
         setQueryMessage("RITM não localizado na base demonstrativa. Confira o número e tente novamente.")
         recordAuditEvent({ ritmNumber: normalizedRitm, category: "Consulta", title: "RITM não localizado", description: "A consulta não retornou uma solicitação correspondente.", status: "Falha" })
@@ -114,6 +123,16 @@ export function ServiceNowPage() {
     } finally {
       setIsSearching(false)
     }
+  }
+
+  async function searchRitm(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    await loadRitmDetails(ritmNumber)
+  }
+
+  function openRitmFromQueue(number: string) {
+    setActiveTab("consulta")
+    void loadRitmDetails(number, true)
   }
 
   async function loadQueryLogs() {
@@ -164,7 +183,7 @@ export function ServiceNowPage() {
   }
 
   async function updateRitmStatus() {
-    if (!activeRitm || !allGroupsComplete || !validationPassed) return
+    if (!activeRitm || activeRitm.isDemo || !allGroupsComplete || !validationPassed) return
     setIsUpdatingTicket(true)
     try {
       const result = await updateServiceNowRitmStatus(activeRitm.ritmNumber, "Concluído")
@@ -196,6 +215,10 @@ export function ServiceNowPage() {
       document.getElementById("operacoes-acesso")?.scrollIntoView({ behavior: "smooth", block: "center" })
       return
     }
+    if (isDemoRitm && ticketStatus !== "Concluído") {
+      toast.info("Modo demonstração", { description: "Nenhuma atualização real de status será enviada com estes dados fictícios." })
+      return
+    }
     if (ticketStatus !== "Concluído") {
       setIsTicketUpdateDialogOpen(true)
       return
@@ -210,6 +233,8 @@ export function ServiceNowPage() {
       ? { title: `${failedGroupCount} grupo(s) precisam de atenção`, description: "Revise a categoria da falha e reprocesse os grupos afetados.", label: "Ir para reprocessamento", icon: TriangleAlertIcon }
       : pendingOperationCount > 0
         ? { title: `${pendingOperationCount} grupo(s) aguardam processamento`, description: "Selecione os grupos solicitados e confirme a operação em lote ou individualmente.", label: "Ir para acessos", icon: ArrowRightIcon }
+      : isDemoRitm && ticketStatus !== "Concluído"
+        ? { title: "Visualização demonstrativa", description: "Os dados desta solicitação são fictícios. A atualização real do status no SIGAC fica desativada nesta demonstração.", label: "Ver modo de demonstração", icon: ShieldCheckIcon }
         : ticketStatus === "Falha"
           ? { title: "Falha ao atualizar o chamado", description: "Revise a integração e tente registrar novamente a conclusão do RITM.", label: "Tentar atualização novamente", icon: TriangleAlertIcon }
           : ticketStatus !== "Concluído"
@@ -251,7 +276,9 @@ export function ServiceNowPage() {
             </CardContent>
           </Card>
 
-          {activeRitm ? <div className="flex flex-col gap-5" aria-live="polite">
+          <PendingRitmsTable requests={demoPendingRitms} onOpenRitm={openRitmFromQueue} />
+
+          {activeRitm ? <div id="ritm-details" tabIndex={-1} role="region" aria-label={`Detalhes do ${activeRitm.ritmNumber}`} className="flex scroll-mt-6 flex-col gap-5 outline-none" aria-live="polite">
             <section aria-label="Resumo do RITM" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <Card className="rounded-xl border-border/70 py-4 shadow-sm"><CardContent className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">RITM</p><p className="mt-2 font-mono text-lg font-semibold">{activeRitm.ritmNumber}</p><p className="mt-1 text-xs text-muted-foreground">Solicitação {activeRitm.requestNumber}</p></div><span className="rounded-lg bg-primary/10 p-2 text-primary"><FolderKeyIcon aria-hidden="true" className="size-5" /></span></CardContent></Card>
               <Card className="rounded-xl border-border/70 py-4 shadow-sm"><CardContent className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status do chamado</p><Badge variant={statusVariant(ticketStatus)} className="mt-2">{ticketStatus}</Badge><p className="mt-2 text-xs text-muted-foreground">Aberto por {activeRitm.requestedBy}</p></div><span className="rounded-lg bg-petrobras-yellow/20 p-2 text-foreground"><ActivityIcon aria-hidden="true" className="size-5" /></span></CardContent></Card>
