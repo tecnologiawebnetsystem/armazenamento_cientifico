@@ -114,6 +114,17 @@ export async function downloadFile(path: string): Promise<Blob> {
 
 /* ---------------------------------- Auth --------------------------------- */
 
+export async function login(email: string) {
+  try {
+    const response = await request<void>("/api/auth/login", { method: "POST", body: JSON.stringify({ email }) })
+    await recordAuditEvent({ action: AUDIT_ACTIONS.LOGIN, entity: "sessao", details: { identificador: email } }).catch(() => undefined)
+    return response
+  } catch (error) {
+    await recordAuditEvent({ action: AUDIT_ACTIONS.LOGIN_FAILED, entity: "sessao", result: "erro", details: { identificador: email, motivo: error instanceof Error ? error.message : "Falha de autenticação" } }).catch(() => undefined)
+    throw error
+  }
+}
+
 export async function getProfilePhoto() {
   return request<{ photo: string | null; status: string; reason: string | null }>("/api/auth/profile-photo")
 }
