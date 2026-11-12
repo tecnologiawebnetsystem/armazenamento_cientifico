@@ -1,23 +1,32 @@
 "use client"
 
-import { useState } from "react"
+import useSWR from "swr"
 import { ShieldCheckIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useLogin } from "@/hooks/use-login"
 
+type CAV4LoginStatus = { enabled: boolean }
+
+async function fetchCAV4LoginStatus(path: string): Promise<CAV4LoginStatus> {
+  const response = await fetch(path, { cache: "no-store", headers: { Accept: "application/json" } })
+  if (!response.ok) throw new Error("Não foi possível consultar a disponibilidade do login corporativo.")
+  return response.json() as Promise<CAV4LoginStatus>
+}
+
 export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: string; authError?: string }) {
-  const [email, setEmail] = useState("")
   const accessError = authError
-  const manualLoginEnabled = [
-    process.env.NEXT_PUBLIC_EMAIL_LOGIN_ENABLED,
-    process.env.NEXT_PUBLIC_EMAIL_LOGIN_ENABLE,
-    process.env.NEST_PUBLIC_EMAIL_LOGIN_ENABLED,
-    process.env.NEST_PUBLIC_EMAIL_LOGIN_ENABLE,
-  ].some((value) => value?.trim().toLowerCase() === "true")
-  const { loading, error, manualLogin, corporateLogin } = useLogin(nextPath)
-  const rawError = accessError || error
+  const { data: cav4Status, error: cav4StatusError, isLoading: isCheckingCAV4 } = useSWR<CAV4LoginStatus>(
+    "/api/auth/cav4/status",
+    fetchCAV4LoginStatus,
+    { revalidateOnFocus: false },
+  )
+  const { loading, error, corporateLogin } = useLogin(nextPath)
+  const statusError = cav4StatusError
+    ? "Não foi possível consultar o login corporativo. Verifique se o backend está em execução."
+    : null
+  const rawError = accessError || error || statusError
   const isSolicitanteCav4Error = typeof rawError === "string" && /solicitante|requester|\bsol\b|cav4.*perfil|perfil.*cav4|access[_ -]?denied|forbidden|sem permiss[aã]o|n[aã]o autorizado|unauthorized/i.test(rawError)
   const visibleError = isSolicitanteCav4Error
     ? "Seu perfil de Solicitante no CAV4 não tem permissão para acessar o Dashboard SIGAC."
@@ -85,20 +94,25 @@ export function LoginForm({ nextPath = "/dashboard", authError }: { nextPath?: s
               )}
 
               <div className="flex flex-col gap-5">
-                {manualLoginEnabled && (
-                  <>
-                    <form className="flex flex-col gap-3" onSubmit={(event) => { event.preventDefault(); void manualLogin(email) }}>
-                      <label htmlFor="login-email" className="text-left text-sm font-medium text-foreground">E-mail</label>
-                      <input id="login-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seu.email@empresa.com" required className="h-11 rounded-md border border-input bg-background px-3 text-sm outline-none transition focus:ring-2 focus:ring-ring" />
-                      <Button type="submit" size="lg" disabled={loading !== null} className="w-full">{loading === "manual" ? "Entrando..." : "Entrar com e-mail"}</Button>
-                    </form>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true"><span className="h-px flex-1 bg-border" /><span>ou</span><span className="h-px flex-1 bg-border" /></div>
-                  </>
+                {isCheckingCAV4 ? (
+                  <div className="flex items-center justify-center gap-3 py-5 text-sm text-muted-foreground" role="status" aria-live="polite">
+                    <Spinner className="size-5" aria-label="Verificando login corporativo" />
+                    Verificando disponibilidade do acesso corporativo...
+                  </div>
+                ) : cav4StatusError ? null : cav4Status?.enabled ? (
+                  <Button type="button" size="lg" variant="outline" onClick={corporateLogin} disabled={loading !== null} className="w-full border-[#063f58] bg-gradient-to-r from-[#063f58] to-[#fdbb30] text-white shadow-md shadow-[#063f58]/30 transition-all hover:-translate-y-0.5 hover:from-[#042d40] hover:to-[#e8aa19] hover:shadow-lg hover:shadow-[#063f58]/40">
+                    Login Corporativo
+                  </Button>
+                ) : (
+                  <Alert className="border-petrobras-yellow/50 bg-petrobras-yellow/10 px-4 py-3 text-foreground shadow-sm" role="status">
+                    <div className="flex flex-col gap-1">
+                      <AlertTitle className="text-sm font-semibold">Login corporativo indisponível</AlertTitle>
+                      <AlertDescription className="text-sm leading-6 text-foreground/80">
+                        O CAV4 não está configurado neste ambiente. Configure o provedor de identidade para iniciar uma sessão. O acesso aos dados protegidos continua bloqueado até a autenticação.
+                      </AlertDescription>
+                    </div>
+                  </Alert>
                 )}
-                <Button type="button" size="lg" variant="outline" onClick={corporateLogin} disabled={loading !== null} className="w-full border-[#063f58] bg-gradient-to-r from-[#063f58] to-[#fdbb30] text-white shadow-md shadow-[#063f58]/30 transition-all hover:-translate-y-0.5 hover:from-[#042d40] hover:to-[#e8aa19] hover:shadow-lg hover:shadow-[#063f58]/40">
-                  Login Corporativo
-                </Button>
-               
                 <p className="text-center text-xs text-muted-foreground">© 2026 Petrobras. Todos os direitos reservados.</p>
               </div>
             </>

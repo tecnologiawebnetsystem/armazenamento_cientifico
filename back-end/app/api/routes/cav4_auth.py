@@ -23,6 +23,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/auth/cav4", tags=["Authentication"])
 email_router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
+
+@router.get("/status", include_in_schema=False)
+def get_cav4_login_status():
+    return {"enabled": settings.cav4_enabled}
+
+
 # Prefixos de rotas do frontend permitidos para redirecionamento pós-login.
 # Mapeia cada path permitido para a URL absoluta completa (com frontend_url).
 # Valores fora deste mapa redirecionam para /dashboard.

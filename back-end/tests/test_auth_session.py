@@ -27,6 +27,18 @@ from app.modules.users.models import Profile, User
 NOW = datetime.now(UTC)
 
 
+@pytest.mark.asyncio
+async def test_cav4_login_status_reports_unconfigured(monkeypatch):
+    monkeypatch.setattr(cav4_auth.settings, "cav4_enabled", False)
+    transport = httpx.ASGITransport(app=app)
+
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/auth/cav4/status")
+
+    assert response.status_code == 200
+    assert response.json() == {"enabled": False}
+
+
 @pytest_asyncio.fixture
 async def factory():
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
@@ -164,7 +176,7 @@ async def test_session_identity_has_profile_and_only_allowed_active_permissions(
 
 async def test_session_identity_ignores_expired_sessions(factory):
     async with factory() as db:
-        db.add(UserSession(id="velha", user_id="GFZ3", profile_id="ADM", profile_data={}, expires_at=datetime(2000, 1, 1)))  # noqa: DTZ001 - sessions.expires_at é sem fuso
+        db.add(UserSession(id="velha", user_id="GFZ3", profile_id="ADM", profile_data={}, expires_at=datetime(2000, 1, 1)))
         await db.commit()
     async with factory() as db:
         assert await AuthRepository(db).find_session_identity("velha") is None
