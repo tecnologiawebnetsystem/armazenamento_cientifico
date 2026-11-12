@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { PageHeader, PageLayout } from "@/components/shared/page-layout"
+import { PageLayout } from "@/components/shared/page-layout"
 import { AccessOperationsTable } from "@/components/servicenow/access-operations-table"
 import { PendingRitmsTable } from "@/components/servicenow/pending-ritms-table"
 import { RitmAuditTimeline } from "@/components/servicenow/ritm-audit-timeline"
@@ -244,33 +244,48 @@ export function ServiceNowPage() {
   const NextActionIcon = nextAction.icon
 
   return (
-    <PageLayout>
-      <PageHeader
-        eyebrow="Gestão de acessos · ServiceNow"
-        title="Central de atendimento RITM"
-        description="Consulte solicitações, confira dados e conduza cada etapa de acesso com um histórico claro para o suporte."
-      />
+    <PageLayout className="gap-6">
+      <header aria-labelledby="servicenow-page-title" className="overflow-hidden rounded-3xl border border-petrobras-blue/20 bg-petrobras-blue text-primary-foreground shadow-lg shadow-petrobras-blue/10">
+        <div className="flex h-1.5" aria-hidden="true"><span className="w-2/3 bg-petrobras-green" /><span className="w-1/3 bg-petrobras-yellow" /></div>
+        <div className="flex flex-col gap-6 px-5 py-6 sm:px-8 sm:py-8 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-3xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="border-petrobras-yellow/45 bg-petrobras-yellow/15 text-primary-foreground hover:bg-petrobras-yellow/15">ServiceNow · Gestão de acessos</Badge>
+              <span className="text-xs font-medium uppercase tracking-[0.15em] text-primary-foreground/70">Central de operação SIGAC</span>
+            </div>
+            <h1 id="servicenow-page-title" className="mt-4 font-heading text-3xl font-semibold tracking-tight text-balance sm:text-4xl">Central de atendimento Service Now</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-primary-foreground/80">Consulte solicitações, valide dados e acompanhe cada etapa de concessão ou revogação com clareza e rastreabilidade.</p>
+          </div>
+          <div role="note" className="flex w-full max-w-sm items-start gap-3 rounded-2xl border border-primary-foreground/15 bg-primary-foreground/10 p-4">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-petrobras-yellow text-petrobras-blue"><ShieldCheckIcon aria-hidden="true" className="size-5" /></span>
+            <div>
+              <p className="text-sm font-semibold">Ambiente demonstrativo</p>
+              <p className="mt-1 text-xs leading-5 text-primary-foreground/75">A fila e as operações usam dados fictícios; nenhuma alteração é enviada ao ServiceNow.</p>
+            </div>
+          </div>
+        </div>
+      </header>
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="gap-5">
-        <TabsList aria-label="Seções da integração ServiceNow" className="h-auto w-full flex-wrap justify-start rounded-xl border border-border/70 bg-card p-1 sm:w-fit">
-          <TabsTrigger value="consulta" className="gap-2"><SearchIcon aria-hidden="true" />Atendimento</TabsTrigger>
-          <TabsTrigger value="historico" className="gap-2"><HistoryIcon aria-hidden="true" />Histórico e auditoria</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="gap-6">
+        <TabsList aria-label="Seções da integração ServiceNow" className="h-auto w-full flex-wrap justify-start rounded-2xl border border-petrobras-green/15 bg-card p-1.5 shadow-sm sm:w-fit">
+          <TabsTrigger value="consulta" className="gap-2 rounded-xl px-4 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm data-[state=inactive]:hover:bg-petrobras-yellow/15"><SearchIcon aria-hidden="true" />Atendimento</TabsTrigger>
+          <TabsTrigger value="historico" className="gap-2 rounded-xl px-4 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm data-[state=inactive]:hover:bg-petrobras-yellow/15"><HistoryIcon aria-hidden="true" />Histórico e auditoria</TabsTrigger>
         </TabsList>
 
         <TabsContent value="consulta" className="flex flex-col gap-5">
-          <Card className="overflow-hidden rounded-xl border-border/70 py-0 shadow-sm">
-            <CardHeader className="sigac-section-header gap-1 px-5 py-4">
-              <CardTitle className="flex items-center gap-2 text-base"><SearchIcon aria-hidden="true" className="size-4 text-primary" />Localizar solicitação</CardTitle>
+          <Card className="overflow-hidden rounded-2xl border-petrobras-green/15 py-0 shadow-[var(--sigac-shadow-surface)]">
+            <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 gap-1 px-5 py-4">
+              <CardTitle className="flex items-center gap-3 text-base"><span className="grid size-9 place-items-center rounded-xl bg-petrobras-green/10 text-primary"><SearchIcon aria-hidden="true" className="size-4" /></span>Localizar solicitação</CardTitle>
               <CardDescription>Informe o RITM para visualizar área de rede, responsáveis, permissões e próximas ações.</CardDescription>
             </CardHeader>
             <CardContent className="p-5">
               <form onSubmit={searchRitm} className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
                   <label htmlFor="ritm-number" className="text-sm font-medium">Número do RITM</label>
-                  <Input id="ritm-number" name="ritmNumber" autoComplete="off" spellCheck={false} placeholder="Ex.: RITM0012345" value={ritmNumber} onChange={(event) => { setRitmNumber(event.target.value.toUpperCase()); if (queryMessage) setQueryMessage("") }} aria-describedby="ritm-help" aria-invalid={Boolean(queryMessage)} />
-                  <span id="ritm-help" className="text-xs text-muted-foreground">Formato esperado: RITM seguido de pelo menos cinco dígitos.</span>
+                  <Input id="ritm-number" name="ritmNumber" autoComplete="off" spellCheck={false} placeholder="Ex.: RITM0012345" value={ritmNumber} onChange={(event) => { setRitmNumber(event.target.value.toUpperCase()); if (queryMessage) setQueryMessage("") }} aria-describedby="ritm-help" aria-invalid={Boolean(queryMessage)} className="h-12 rounded-xl border-petrobras-green/20 bg-background text-base shadow-sm focus-visible:border-petrobras-green focus-visible:ring-petrobras-green/20" />
+                  <span id="ritm-help" className="text-xs leading-5 text-muted-foreground">Formato esperado: RITM seguido de pelo menos cinco dígitos.</span>
                 </div>
-                <Button type="submit" disabled={isSearching} className="sm:min-w-40"><SearchIcon data-icon="inline-start" />{isSearching ? "Consultando…" : "Consultar RITM"}</Button>
+                <Button type="submit" disabled={isSearching} className="h-12 rounded-xl px-5 font-semibold shadow-sm sm:min-w-40"><SearchIcon data-icon="inline-start" />{isSearching ? "Consultando…" : "Consultar RITM"}</Button>
               </form>
               {queryMessage ? <p role="alert" aria-live="polite" className="mt-4 rounded-lg border border-destructive/25 bg-destructive/5 px-3 py-2 text-sm leading-6 text-destructive">{queryMessage}</p> : null}
             </CardContent>
@@ -280,15 +295,15 @@ export function ServiceNowPage() {
 
           {activeRitm ? <div id="ritm-details" tabIndex={-1} role="region" aria-label={`Detalhes do ${activeRitm.ritmNumber}`} className="flex scroll-mt-6 flex-col gap-5 outline-none" aria-live="polite">
             <section aria-label="Resumo do RITM" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <Card className="rounded-xl border-border/70 py-4 shadow-sm"><CardContent className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">RITM</p><p className="mt-2 font-mono text-lg font-semibold">{activeRitm.ritmNumber}</p><p className="mt-1 text-xs text-muted-foreground">Solicitação {activeRitm.requestNumber}</p></div><span className="rounded-lg bg-primary/10 p-2 text-primary"><FolderKeyIcon aria-hidden="true" className="size-5" /></span></CardContent></Card>
-              <Card className="rounded-xl border-border/70 py-4 shadow-sm"><CardContent className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status do chamado</p><Badge variant={statusVariant(ticketStatus)} className="mt-2">{ticketStatus}</Badge><p className="mt-2 text-xs text-muted-foreground">Aberto por {activeRitm.requestedBy}</p></div><span className="rounded-lg bg-petrobras-yellow/20 p-2 text-foreground"><ActivityIcon aria-hidden="true" className="size-5" /></span></CardContent></Card>
-              <Card className="rounded-xl border-border/70 py-4 shadow-sm"><CardContent className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Área de rede</p><p className="mt-2 font-semibold leading-5">{activeRitm.networkArea.name}</p><p className="mt-1 text-xs text-muted-foreground">{activeRitm.networkArea.responsibleArea}</p></div><span className="rounded-lg bg-primary/10 p-2 text-primary"><ShieldCheckIcon aria-hidden="true" className="size-5" /></span></CardContent></Card>
-              <Card className="rounded-xl border-border/70 py-4 shadow-sm"><CardContent className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ações pendentes</p><p className="mt-2 font-mono text-2xl font-semibold tabular-nums">{pendingOperationCount}</p><p className="mt-1 text-xs text-muted-foreground">{failedGroupCount ? `${failedGroupCount} falha(s) para revisar` : "Grupos para processar"}</p></div><span className="rounded-lg bg-petrobras-yellow/20 p-2 text-foreground"><Clock3Icon aria-hidden="true" className="size-5" /></span></CardContent></Card>
+              <Card className="rounded-2xl border-petrobras-green/15 py-4 shadow-[var(--sigac-shadow-surface)]"><CardContent className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">RITM</p><p className="mt-2 font-mono text-lg font-semibold">{activeRitm.ritmNumber}</p><p className="mt-1 text-xs text-muted-foreground">Solicitação {activeRitm.requestNumber}</p></div><span className="rounded-lg bg-primary/10 p-2 text-primary"><FolderKeyIcon aria-hidden="true" className="size-5" /></span></CardContent></Card>
+              <Card className="rounded-2xl border-petrobras-green/15 py-4 shadow-[var(--sigac-shadow-surface)]"><CardContent className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status do chamado</p><Badge variant={statusVariant(ticketStatus)} className="mt-2">{ticketStatus}</Badge><p className="mt-2 text-xs text-muted-foreground">Aberto por {activeRitm.requestedBy}</p></div><span className="rounded-lg bg-petrobras-yellow/20 p-2 text-foreground"><ActivityIcon aria-hidden="true" className="size-5" /></span></CardContent></Card>
+              <Card className="rounded-2xl border-petrobras-green/15 py-4 shadow-[var(--sigac-shadow-surface)]"><CardContent className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Área de rede</p><p className="mt-2 font-semibold leading-5">{activeRitm.networkArea.name}</p><p className="mt-1 text-xs text-muted-foreground">{activeRitm.networkArea.responsibleArea}</p></div><span className="rounded-lg bg-primary/10 p-2 text-primary"><ShieldCheckIcon aria-hidden="true" className="size-5" /></span></CardContent></Card>
+              <Card className="rounded-2xl border-petrobras-green/15 py-4 shadow-[var(--sigac-shadow-surface)]"><CardContent className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ações pendentes</p><p className="mt-2 font-mono text-2xl font-semibold tabular-nums">{pendingOperationCount}</p><p className="mt-1 text-xs text-muted-foreground">{failedGroupCount ? `${failedGroupCount} falha(s) para revisar` : "Grupos para processar"}</p></div><span className="rounded-lg bg-petrobras-yellow/20 p-2 text-foreground"><Clock3Icon aria-hidden="true" className="size-5" /></span></CardContent></Card>
             </section>
 
             <RitmWorkflow steps={workflowSteps} />
 
-            <Card className={`rounded-xl border-border/70 py-0 shadow-sm ${failedGroupCount || !validationPassed ? "border-destructive/30 bg-destructive/[0.03]" : "bg-primary/[0.03]"}`}>
+            <Card className={`rounded-2xl border-petrobras-green/15 py-0 shadow-[var(--sigac-shadow-surface)] ${failedGroupCount || !validationPassed ? "border-destructive/30 bg-destructive/[0.03]" : "bg-primary/[0.03]"}`}>
               <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-start gap-3">
                   <span className={`mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg ${failedGroupCount || !validationPassed ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}><NextActionIcon aria-hidden="true" className="size-5" /></span>
@@ -299,8 +314,8 @@ export function ServiceNowPage() {
             </Card>
 
             <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-              <Card className="rounded-xl border-border/70 py-0 shadow-sm">
-                <CardHeader className="sigac-section-header px-5 py-4"><CardTitle className="text-base">Dados da área de rede</CardTitle><CardDescription>Informações da solicitação que orientam a execução.</CardDescription></CardHeader>
+              <Card className="rounded-2xl border-petrobras-green/15 py-0 shadow-[var(--sigac-shadow-surface)]">
+                <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 px-5 py-4"><CardTitle className="text-base">Dados da área de rede</CardTitle><CardDescription>Informações da solicitação que orientam a execução.</CardDescription></CardHeader>
                 <CardContent className="flex flex-col gap-4 p-5">
                   <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Caminho de rede</p><code className="mt-2 block break-all rounded-lg border border-border bg-muted/50 px-3 py-2 font-mono text-xs leading-5">{activeRitm.networkArea.path || "Não informado"}</code></div>
                   <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Descrição</p><p className="mt-1 text-sm leading-6">{activeRitm.networkArea.description || "Sem descrição informada."}</p></div>
@@ -311,8 +326,8 @@ export function ServiceNowPage() {
               <RitmValidationChecklist checks={validationChecks} />
             </div>
 
-            <Card className="rounded-xl border-border/70 py-0 shadow-sm">
-              <CardHeader className="sigac-section-header px-5 py-4"><CardTitle className="flex items-center gap-2 text-base"><UsersRoundIcon aria-hidden="true" className="size-4 text-primary" />Responsáveis pela área</CardTitle><CardDescription>Contatos responsáveis informados na solicitação.</CardDescription></CardHeader>
+            <Card className="rounded-2xl border-petrobras-green/15 py-0 shadow-[var(--sigac-shadow-surface)]">
+              <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 px-5 py-4"><CardTitle className="flex items-center gap-2 text-base"><UsersRoundIcon aria-hidden="true" className="size-4 text-primary" />Responsáveis pela área</CardTitle><CardDescription>Contatos responsáveis informados na solicitação.</CardDescription></CardHeader>
               <CardContent className="grid gap-0 divide-y sm:grid-cols-2 sm:divide-y-0 sm:divide-x">{activeRitm.responsibles.map((person) => <div key={person.email} className="flex flex-col gap-1 px-5 py-4"><div className="flex items-center justify-between gap-3"><p className="truncate text-sm font-medium">{person.name}</p><Badge variant="outline" className="w-fit shrink-0">{person.role}</Badge></div><a className="sigac-focus-ring inline-block max-w-full truncate rounded-sm text-xs text-muted-foreground underline-offset-4 hover:underline" href={`mailto:${person.email}`}>{person.email}</a></div>)}</CardContent>
             </Card>
 
@@ -323,12 +338,12 @@ export function ServiceNowPage() {
         </TabsContent>
 
         <TabsContent value="historico" className="flex flex-col gap-5">
-          <Card className="overflow-hidden rounded-xl border-border/70 py-0 shadow-sm">
-            <CardHeader className="sigac-section-header gap-1 px-5 py-4"><CardTitle className="flex items-center gap-2 text-base"><HistoryIcon aria-hidden="true" className="size-4 text-primary" />Consultas recentes</CardTitle><CardDescription>Filtre consultas e localize rapidamente falhas por RITM e situação.</CardDescription></CardHeader>
+          <Card className="overflow-hidden rounded-2xl border-petrobras-green/15 py-0 shadow-[var(--sigac-shadow-surface)]">
+            <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 gap-1 px-5 py-4"><CardTitle className="flex items-center gap-2 text-base"><HistoryIcon aria-hidden="true" className="size-4 text-primary" />Consultas recentes</CardTitle><CardDescription>Filtre consultas e localize rapidamente falhas por RITM e situação.</CardDescription></CardHeader>
             <CardContent className="flex flex-col gap-4 p-5">
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_14rem] sm:items-end">
-                <div className="flex flex-col gap-2"><label htmlFor="history-ritm-filter" className="text-sm font-medium">Filtrar por RITM</label><Input id="history-ritm-filter" value={historyRitmFilter} onChange={(event) => setHistoryRitmFilter(event.target.value.toUpperCase())} placeholder="Ex.: RITM0012345" /></div>
-                <div className="flex flex-col gap-2"><span id="history-status-label" className="text-sm font-medium">Situação da consulta</span><Select value={historyStatusFilter} onValueChange={(value) => setHistoryStatusFilter((value ?? "Todos") as ServiceNowQueryLog["status"] | "Todos")}><SelectTrigger aria-labelledby="history-status-label"><SelectValue placeholder="Todas as situações" /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="Todos">Todas as situações</SelectItem><SelectItem value="Sucesso">Sucesso</SelectItem><SelectItem value="Não encontrado">Não encontrado</SelectItem><SelectItem value="Falha de integração">Falha de integração</SelectItem></SelectGroup></SelectContent></Select></div>
+                <div className="flex flex-col gap-2"><label htmlFor="history-ritm-filter" className="text-sm font-medium">Filtrar por RITM</label><Input id="history-ritm-filter" value={historyRitmFilter} onChange={(event) => setHistoryRitmFilter(event.target.value.toUpperCase())} placeholder="Ex.: RITM0012345" className="h-11 rounded-xl border-petrobras-green/20 bg-background shadow-sm focus-visible:border-petrobras-green focus-visible:ring-petrobras-green/20" /></div>
+                <div className="flex flex-col gap-2"><span id="history-status-label" className="text-sm font-medium">Situação da consulta</span><Select value={historyStatusFilter} onValueChange={(value) => setHistoryStatusFilter((value ?? "Todos") as ServiceNowQueryLog["status"] | "Todos")}><SelectTrigger aria-labelledby="history-status-label" className="h-11 rounded-xl border-petrobras-green/20 bg-background shadow-sm focus-visible:border-petrobras-green focus-visible:ring-petrobras-green/20"><SelectValue placeholder="Todas as situações" /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="Todos">Todas as situações</SelectItem><SelectItem value="Sucesso">Sucesso</SelectItem><SelectItem value="Não encontrado">Não encontrado</SelectItem><SelectItem value="Falha de integração">Falha de integração</SelectItem></SelectGroup></SelectContent></Select></div>
               </div>
               {isLoadingLogs ? <p role="status" className="py-2 text-sm text-muted-foreground">Carregando histórico…</p> : null}
               {historyError ? <div role="alert" className="flex flex-col gap-3 rounded-lg border border-destructive/25 bg-destructive/5 p-4 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between"><p>{historyError}</p><Button size="sm" variant="outline" onClick={() => void loadQueryLogs()}>Tentar novamente</Button></div> : null}
@@ -342,7 +357,7 @@ export function ServiceNowPage() {
       </Tabs>
 
       <AlertDialog open={isTicketUpdateDialogOpen} onOpenChange={setIsTicketUpdateDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl border-petrobras-green/15 shadow-[var(--sigac-shadow-hover)]">
           <AlertDialogHeader>
             <AlertDialogTitle>Atualizar status do RITM?</AlertDialogTitle>
             <AlertDialogDescription>O fluxo está com todos os grupos concluídos. Confirme o encerramento do chamado {activeRitm?.ritmNumber}.</AlertDialogDescription>

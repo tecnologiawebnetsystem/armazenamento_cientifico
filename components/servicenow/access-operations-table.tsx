@@ -59,8 +59,8 @@ export function AccessOperationsTable({ groups, runs, canProcess, onProcess }: A
 
   return (
     <>
-      <Card id="operacoes-acesso" className="overflow-hidden rounded-xl border-border/70 py-0 shadow-sm">
-        <CardHeader className="sigac-section-header gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <Card id="operacoes-acesso" className="overflow-hidden rounded-2xl border-petrobras-green/15 py-0 shadow-[var(--sigac-shadow-surface)]">
+        <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle className="flex items-center gap-2 text-base"><ShieldCheckIcon aria-hidden="true" className="size-4 text-primary" />Acessos por grupo</CardTitle>
             <CardDescription>Compare o acesso informado com o resultado solicitado e processe em lote ou individualmente.</CardDescription>
@@ -72,7 +72,7 @@ export function AccessOperationsTable({ groups, runs, canProcess, onProcess }: A
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/20 hover:bg-muted/20">
+                  <TableRow className="bg-petrobras-green/5 hover:bg-petrobras-green/5">
                     <TableHead className="w-12">
                       <Checkbox aria-label="Selecionar todos os grupos pendentes" aria-checked={selectedEligibleGroups.length > 0 && !allEligibleSelected ? "mixed" : allEligibleSelected} checked={allEligibleSelected} disabled={!canProcess || eligibleGroups.length === 0} onCheckedChange={(checked) => setSelectedGroupIds(checked ? eligibleGroups.map((group) => group.id) : [])} />
                     </TableHead>
@@ -93,7 +93,7 @@ export function AccessOperationsTable({ groups, runs, canProcess, onProcess }: A
                     const isEligible = status !== "Concluído" && status !== "Processando"
                     const OperationIcon = isGrant ? ArrowUpFromLineIcon : ArrowDownToLineIcon
                     return (
-                      <TableRow key={group.id}>
+                      <TableRow key={group.id} className="transition-colors hover:bg-petrobras-yellow/10">
                         <TableCell>
                           <Checkbox aria-label={`Selecionar grupo ${group.name}`} checked={selectedGroupIds.includes(group.id)} disabled={!canProcess || !isEligible} onCheckedChange={(checked) => toggleGroup(group.id, checked === true)} />
                         </TableCell>
@@ -126,7 +126,7 @@ export function AccessOperationsTable({ groups, runs, canProcess, onProcess }: A
               </Table>
             </div>
           )}
-          <div className="flex flex-col gap-3 border-t border-border/70 bg-muted/20 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 border-t border-petrobras-green/10 bg-petrobras-green/5 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs leading-5 text-muted-foreground">Falhas permanecem visíveis para reprocessamento; ações concluídas ficam bloqueadas para evitar duplicidade.</p>
             <Button disabled={!canProcess || selectedEligibleGroups.length === 0} onClick={() => requestConfirmation(selectedEligibleGroups.map((group) => group.id))}>
               <ShieldCheckIcon data-icon="inline-start" />Processar selecionados{selectedEligibleGroups.length ? ` (${selectedEligibleGroups.length})` : ""}

@@ -17,8 +17,8 @@ function getEventIcon(event: ServiceNowAuditEntry) {
 
 export function RitmAuditTimeline({ events, title = "Linha do tempo do RITM", description = "Atividades registradas nesta sessão." }: { events: ServiceNowAuditEntry[]; title?: string; description?: string }) {
   return (
-    <Card className="rounded-xl border-border/70 py-0 shadow-sm">
-      <CardHeader className="sigac-section-header gap-1 px-5 py-4">
+    <Card className="rounded-2xl border-petrobras-green/15 py-0 shadow-[var(--sigac-shadow-surface)]">
+      <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 gap-1 px-5 py-4">
         <CardTitle className="flex items-center gap-2 text-base"><ActivityIcon aria-hidden="true" className="size-4 text-primary" />{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>

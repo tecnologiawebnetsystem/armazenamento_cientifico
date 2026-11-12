@@ -34,8 +34,8 @@ export function PendingRitmsTable({ requests, onOpenRitm }: PendingRitmsTablePro
   const openCount = pendingRequests.length - inProgressCount
 
   return (
-    <Card className="overflow-hidden rounded-xl border-border/70 py-0 shadow-sm">
-      <CardHeader className="sigac-section-header gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+    <Card className="overflow-hidden rounded-2xl border-petrobras-green/15 py-0 shadow-[var(--sigac-shadow-surface)]">
+      <CardHeader className="border-b border-petrobras-green/10 bg-petrobras-green/5 gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <CardTitle className="flex items-center gap-2 text-base">
             <InboxIcon aria-hidden="true" className="size-4 text-primary" />
@@ -43,7 +43,7 @@ export function PendingRitmsTable({ requests, onOpenRitm }: PendingRitmsTablePro
           </CardTitle>
           <CardDescription>Abra uma solicitação para conferir todos os dados e continuar o atendimento.</CardDescription>
         </div>
-        <Badge variant="outline" className="w-fit">Demonstração</Badge>
+        <Badge variant="outline" className="w-fit border-petrobras-yellow/50 bg-petrobras-yellow/15 text-foreground">Demonstração</Badge>
       </CardHeader>
       <CardContent className="flex flex-col gap-4 p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -55,7 +55,7 @@ export function PendingRitmsTable({ requests, onOpenRitm }: PendingRitmsTablePro
             <label htmlFor="pending-ritm-filter" className="text-sm font-medium">Filtrar solicitações</label>
             <div className="relative">
               <SearchIcon aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input id="pending-ritm-filter" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="RITM, solicitante ou área" className="pl-9" />
+              <Input id="pending-ritm-filter" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="RITM, solicitante ou área" className="h-11 rounded-xl border-petrobras-green/20 bg-background pl-9 shadow-sm focus-visible:border-petrobras-green focus-visible:ring-petrobras-green/20" />
             </div>
           </div>
         </div>
@@ -70,11 +70,11 @@ export function PendingRitmsTable({ requests, onOpenRitm }: PendingRitmsTablePro
             {filter ? <Button variant="outline" size="sm" onClick={() => setFilter("")}>Limpar filtro</Button> : null}
           </Empty>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border/70">
+          <div className="overflow-x-auto rounded-xl border border-petrobras-green/10">
             <Table>
               <TableCaption className="sr-only">RITMs pendentes disponíveis para consulta demonstrativa.</TableCaption>
               <TableHeader>
-                <TableRow className="bg-muted/20 hover:bg-muted/20">
+                <TableRow className="bg-petrobras-green/5 hover:bg-petrobras-green/5">
                   <TableHead>RITM / solicitação</TableHead>
                   <TableHead>Solicitante</TableHead>
                   <TableHead>Área de rede</TableHead>
@@ -88,7 +88,7 @@ export function PendingRitmsTable({ requests, onOpenRitm }: PendingRitmsTablePro
                 {filteredRequests.map((request) => {
                   const pendingGroupCount = request.accessGroups.filter((group) => group.status !== "Concluído").length
                   return (
-                    <TableRow key={request.ritmNumber}>
+                    <TableRow key={request.ritmNumber} className="transition-colors hover:bg-petrobras-yellow/10">
                       <TableCell className="min-w-40">
                         <p className="font-mono text-sm font-semibold">{request.ritmNumber}</p>
                         <p className="mt-1 text-xs text-muted-foreground">{request.requestNumber}</p>
