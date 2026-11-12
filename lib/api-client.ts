@@ -59,6 +59,19 @@ export function isApiError(error: unknown, status?: number): error is ApiError {
   return error instanceof ApiError && (status === undefined || error.status === status)
 }
 
+export type ServiceNowRitmStatusUpdate = {
+  status: "Concluído"
+  updatedAt: string
+  message: string
+}
+
+export async function updateServiceNowRitmStatus(ritmNumber: string, status: "Concluído") {
+  return request<ServiceNowRitmStatusUpdate>(`/api/servicenow/ritms/${encodeURIComponent(ritmNumber)}/status`, {
+    method: "PUT",
+    body: JSON.stringify({ status }),
+  })
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (Date.now() < apiUnavailableUntil) {
     throw new ApiError(503, "A API está temporariamente indisponível. A nova tentativa será feita automaticamente em alguns segundos.")

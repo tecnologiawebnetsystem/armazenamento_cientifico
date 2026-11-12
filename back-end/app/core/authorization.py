@@ -34,6 +34,7 @@ CAPABILITY_PERMISSION_MAP: Final[dict[str, str]] = {
     "audit": "auditoria.visualizar",
     "access_map": "pesquisa.visualizar",
     "configure": "administracao.configurar",
+    "servicenow_update": "integracao-servicenow",
     "delete": "projeto.excluir",
 }
 

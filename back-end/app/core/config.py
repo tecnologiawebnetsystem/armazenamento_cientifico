@@ -70,6 +70,10 @@ class Settings(BaseSettings):
     security_headers_enabled: bool = True
     cookie_domain: str | None = None
     audit_retention_days: int = 365
+    servicenow_api_base_url: str = ""
+    servicenow_api_token: str = ""
+    servicenow_status_map_json: str = ""
+    servicenow_timeout_seconds: float = Field(default=20, gt=0, le=60)
     cav4_enabled: bool = False
     cav4_base_url: str = Field(default="", validation_alias=AliasChoices("CA_API_BASE_URL", "CAV4_BASE_URL"))
     oidc_discovery_url: str = ""
