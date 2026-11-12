@@ -247,7 +247,7 @@ export function ServiceNowPage() {
     <PageLayout>
       <PageHeader
         eyebrow="Gestão de acessos · ServiceNow"
-        title="Central de atendimento RITM"
+        title="Central de atendimento Service Now"
         description="Consulte solicitações, confira dados e conduza cada etapa de acesso com um histórico claro para o suporte."
       />
 
