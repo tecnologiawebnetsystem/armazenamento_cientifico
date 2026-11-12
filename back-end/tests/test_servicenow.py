@@ -38,6 +38,18 @@ def test_status_uses_configured_sigac_mapping(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_update_ritm_status_returns_clear_error_when_not_configured(monkeypatch):
+    monkeypatch.setattr(settings, "servicenow_api_base_url", "")
+    monkeypatch.setattr(settings, "servicenow_api_token", "")
+
+    with pytest.raises(HTTPException) as error:
+        await update_ritm_status("RITM0012345", "Concluído")
+
+    assert error.value.status_code == 503
+    assert error.value.detail == "Integração SIGAC não configurada."
+
+
+@pytest.mark.asyncio
 async def test_update_ritm_status_sends_authenticated_request(monkeypatch):
     monkeypatch.setattr(settings, "servicenow_api_base_url", "https://sigac.example")
     monkeypatch.setattr(settings, "servicenow_api_token", "secret-token")
