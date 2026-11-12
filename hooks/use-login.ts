@@ -33,13 +33,24 @@ export function useLogin(nextPath = "/dashboard") {
     }
   }, [safeNextPath])
 
-  const corporateLogin = useCallback(() => {
+  const corporateLogin = useCallback(async () => {
     setError(null)
     setLoading("corporate")
 
     const callback = encodeURIComponent(safeNextPath)
     const loginUrl = `/api/auth/cav4/start?next=${callback}`
-    window.location.assign(loginUrl)
+
+    try {
+      const healthResponse = await fetch("/api/health", {
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+      })
+      if (!healthResponse.ok) throw new Error("API indisponível")
+      window.location.assign(loginUrl)
+    } catch {
+      setLoading(null)
+      setError("Não foi possível conectar à API do SIGAC. Verifique se o backend está em execução e se BACKEND_INTERNAL_URL aponta para ele.")
+    }
   }, [safeNextPath])
 
   return { loading, error, clearError, manualLogin, corporateLogin }
