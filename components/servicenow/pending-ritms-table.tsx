@@ -79,14 +79,12 @@ export function PendingRitmsTable({ requests, onOpenRitm }: PendingRitmsTablePro
                   <TableHead>Solicitante</TableHead>
                   <TableHead>Área de rede</TableHead>
                   <TableHead>Aberto em</TableHead>
-                  <TableHead>Grupos pendentes</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredRequests.map((request) => {
-                  const pendingGroupCount = request.accessGroups.filter((group) => group.status !== "Concluído").length
                   return (
                     <TableRow key={request.ritmNumber} className="transition-colors hover:bg-petrobras-yellow/10">
                       <TableCell className="min-w-40">
@@ -98,7 +96,6 @@ export function PendingRitmsTable({ requests, onOpenRitm }: PendingRitmsTablePro
                       <TableCell className="min-w-32">
                         <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground"><CalendarDaysIcon aria-hidden="true" className="size-3.5" /><time dateTime={request.requestedAt}>{formatRequestDate(request.requestedAt)}</time></span>
                       </TableCell>
-                      <TableCell className="tabular-nums text-sm">{pendingGroupCount}</TableCell>
                       <TableCell>
                         <Badge variant={request.status === "Em processamento" ? "secondary" : "outline"}>{request.status}</Badge>
                       </TableCell>
