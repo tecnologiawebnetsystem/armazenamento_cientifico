@@ -10,6 +10,7 @@ import { PetrobrasLoading } from "@/components/petrobras-loading"
 import { useProject } from "@/hooks/use-project"
 import { useSession } from "@/hooks/use-session"
 import { PageHeader, PageLayout } from "@/components/shared/page-layout"
+import { Button } from "@/components/ui/button"
 
 export default function ProjetoDetalhePage({
   params,
@@ -19,18 +20,35 @@ export default function ProjetoDetalhePage({
   const { id } = use(params)
   const router = useRouter()
   const { user, isLoading: sessionLoading } = useSession()
-  const { project, isLoading, error } = useProject(id)
+  const { project, isLoading, error, refresh } = useProject(id)
 
   useEffect(() => {
     if (!sessionLoading && !user) {
       router.replace("/login")
-    } else if (!sessionLoading && !isLoading && (error || !project)) {
-      router.replace("/projetos")
     }
-  }, [error, isLoading, project, router, sessionLoading, user])
+  }, [router, sessionLoading, user])
 
-  if (sessionLoading || isLoading || !user || error || !project) {
+  if (sessionLoading || isLoading || !user) {
     return <PetrobrasLoading label="Carregando projeto..." />
+  }
+
+  if (error || !project) {
+    return (
+      <PageLayout>
+        <PageHeader eyebrow="Área de Rede" title="Não foi possível abrir esta área" />
+        <div className="flex flex-col gap-4 rounded-xl border border-destructive/30 bg-card p-5">
+          <p role="alert" className="text-sm leading-6 text-muted-foreground">
+            Não foi possível carregar os dados da área de rede. Tente novamente; você permanecerá nesta página.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={() => void refresh()}>Tentar novamente</Button>
+            <Button variant="outline" render={<Link href="/projetos" />}>
+              Voltar para Áreas de Rede
+            </Button>
+          </div>
+        </div>
+      </PageLayout>
+    )
   }
 
   return (
