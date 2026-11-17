@@ -196,7 +196,7 @@ async def test_project_access_groups_crud_filter_and_project_isolation(client):
         "/api/projects/groups/catalog",
         params={"search": "entra-read-a", "principalType": "group"},
     )
-    assert len(catalog_after_unlink.json()) == 1
+    assert catalog_after_unlink.json() == []
 
 
 async def test_access_map_reads_groups_from_project_access_groups(client):
@@ -221,7 +221,7 @@ async def test_access_map_reads_groups_from_project_access_groups(client):
     assert "grupo de leitura não configurado" not in access_map.json()["gaps"]
 
 
-async def test_global_catalog_is_reused_across_projects_but_not_duplicated_within_one(client):
+async def test_project_groups_are_scoped_to_each_project(client):
     http, _, project_ids = client
     role = {
         "groupName": "Curador de coleção",
@@ -242,15 +242,15 @@ async def test_global_catalog_is_reused_across_projects_but_not_duplicated_withi
     assert first.json()["principalType"] == "role"
     assert duplicate.status_code == 409
     assert other_project.status_code == 201
-    assert first.json()["id"] == other_project.json()["id"]
+    assert first.json()["id"] != other_project.json()["id"]
 
     catalog = await http.get(
         "/api/projects/groups/catalog",
         params={"search": "scientific-curator", "principalType": "role"},
     )
     assert catalog.status_code == 200
-    assert len(catalog.json()) == 1
-    assert catalog.json()[0]["identifier"] == "scientific-curator"
+    assert len(catalog.json()) == 2
+    assert all(item["identifier"] == "scientific-curator" for item in catalog.json())
 
 
 async def test_project_access_group_creation_requires_project_scope(client):

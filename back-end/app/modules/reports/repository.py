@@ -4,7 +4,7 @@ from sqlalchemy import String, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.catalogs.models import ReportField, ResponsibleArea
-from app.modules.projects.models import Project, ProjectAccessGroup, ProjectGroup, ProjectMember
+from app.modules.projects.models import Project, ProjectGroup, ProjectMember
 
 
 class ReportRepository:
@@ -103,22 +103,18 @@ class ReportRepository:
                 Project.code.label("codigo"),
                 Project.status,
                 select(ProjectGroup.group_name)
-                .join(
-                    ProjectAccessGroup,
-                    ProjectAccessGroup.group_id == ProjectGroup.group_id,
-                )
-                .where(ProjectAccessGroup.project_id == Project.id)
+                .where(ProjectGroup.project_id == Project.id)
                 .order_by(ProjectGroup.group_name)
                 .limit(1)
                 .scalar_subquery()
                 .label("grupo"),
                 exists().where(
-                    ProjectAccessGroup.project_id == Project.id,
-                    ProjectAccessGroup.access_level == "leitura",
+                    ProjectGroup.project_id == Project.id,
+                    ProjectGroup.access_level == "leitura",
                 ).label("hasReadGroup"),
                 exists().where(
-                    ProjectAccessGroup.project_id == Project.id,
-                    ProjectAccessGroup.access_level == "escrita",
+                    ProjectGroup.project_id == Project.id,
+                    ProjectGroup.access_level == "escrita",
                 ).label("hasWriteGroup"),
             )
             .select_from(
@@ -129,12 +125,12 @@ class ReportRepository:
             .where(
                 or_(
                     ~exists().where(
-                        ProjectAccessGroup.project_id == Project.id,
-                        ProjectAccessGroup.access_level == "leitura",
+                        ProjectGroup.project_id == Project.id,
+                        ProjectGroup.access_level == "leitura",
                     ),
                     ~exists().where(
-                        ProjectAccessGroup.project_id == Project.id,
-                        ProjectAccessGroup.access_level == "escrita",
+                        ProjectGroup.project_id == Project.id,
+                        ProjectGroup.access_level == "escrita",
                     ),
                 )
             )

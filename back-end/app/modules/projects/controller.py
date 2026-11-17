@@ -92,10 +92,10 @@ def serialize_access_group(
         identifier=principal.identifier,
         groupId=principal.identifier,
         principalType=principal.principal_type,
-        accessLevel=association.access_level,
-        source=association.source,
-        createdAt=association.created_at,
-        updatedAt=association.updated_at,
+        accessLevel=principal.access_level,
+        source=principal.source,
+        createdAt=principal.created_at,
+        updatedAt=principal.updated_at,
     )
 
 
@@ -228,9 +228,9 @@ async def get_project_access_map(
     groups = [
         AccessMapGroupOut(
             nome=principal.group_name,
-            fonte=association.source,
+            fonte=principal.source,
             identificadores=[principal.identifier],
-            nivel=association.access_level,
+            nivel=principal.access_level,
             principalType=principal.principal_type,
         )
         for principal, association in stored_groups

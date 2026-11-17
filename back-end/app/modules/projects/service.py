@@ -154,14 +154,17 @@ class ProjectService:
                 raise ConflictException("Este principal já está vinculado a este projeto")
 
         principal = await self.repository.find_catalog_group(
-            data.principalType, normalized_identifier
+            project_id, data.principalType, normalized_identifier
         )
         if principal is None:
             principal = ProjectGroup(
                 group_id=str(uuid4()),
+                project_id=project_id,
                 identifier=normalized_identifier,
                 group_name=data.groupName.strip(),
                 principal_type=data.principalType,
+                access_level=data.accessLevel,
+                source="manual",
                 created_at=now,
                 updated_at=now,
             )
@@ -170,10 +173,6 @@ class ProjectService:
         association = ProjectAccessGroup(
             project_id=project_id,
             group_id=principal.group_id,
-            access_level=data.accessLevel,
-            source="manual",
-            created_at=now,
-            updated_at=now,
         )
         await self.repository.add_access_group(association)
         return principal, association
@@ -196,8 +195,8 @@ class ProjectService:
         if not result:
             raise LookupError("Principal de acesso não encontrado neste projeto")
         principal, association = result
-        association.access_level = data.accessLevel
-        association.updated_at = datetime.now(UTC).replace(tzinfo=None)
+        principal.access_level = data.accessLevel
+        principal.updated_at = datetime.now(UTC).replace(tzinfo=None)
         await self.repository.commit()
         return principal, association
 
@@ -205,6 +204,6 @@ class ProjectService:
         result = await self.repository.find_access_group_by_id(project_id, access_group_id)
         if not result:
             return False
-        await self.repository.delete_access_group(result[1])
+        await self.repository.delete_access_group(result[0], result[1])
         await self.repository.commit()
         return True
