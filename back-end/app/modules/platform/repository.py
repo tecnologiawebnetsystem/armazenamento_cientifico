@@ -15,7 +15,12 @@ from app.modules.catalogs.models import (
     ProfilePermission,
 )
 from app.modules.folders.models import Folder
-from app.modules.projects.models import Project, ProjectAccessGroup, ProjectMember
+from app.modules.projects.models import (
+    Project,
+    ProjectAccessGroup,
+    ProjectGroup,
+    ProjectMember,
+)
 from app.modules.users.models import User
 
 
@@ -313,14 +318,16 @@ class PlatformRepository:
                         Project.name.label("projectName"),
                         Project.status.label("projectStatus"),
                         Project.responsible_area.label("area"),
-                        ProjectAccessGroup.group_id.label("groupId"),
-                        ProjectAccessGroup.group_name.label("groupName"),
+                        ProjectGroup.identifier.label("groupId"),
+                        ProjectGroup.group_name.label("groupName"),
+                        ProjectGroup.principal_type.label("principalType"),
                         ProjectAccessGroup.access_level.label("groupAccessLevel"),
                         ProjectAccessGroup.access_level.label("accessLevel"),
                     )
+                    .join(ProjectAccessGroup, ProjectAccessGroup.group_id == ProjectGroup.group_id)
                     .join(Project, Project.id == ProjectAccessGroup.project_id)
                     .order_by(
-                        Project.name, ProjectAccessGroup.access_level, ProjectAccessGroup.group_name
+                        Project.name, ProjectAccessGroup.access_level, ProjectGroup.group_name
                     )
                 )
             )
@@ -340,7 +347,7 @@ class PlatformRepository:
                     "projectStatus": group["projectStatus"],
                     "resourceId": group["groupId"],
                     "resourceName": group["groupName"],
-                    "resourceType": "grupo",
+                    "resourceType": "role" if group["principalType"] == "role" else "grupo",
                     "accessLevel": group["accessLevel"],
                     "lastViewedAt": None,
                     "groupName": group["groupName"],

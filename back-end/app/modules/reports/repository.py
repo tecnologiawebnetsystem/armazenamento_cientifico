@@ -1,10 +1,10 @@
 from typing import Any
 
-from sqlalchemy import String, and_, exists, func, or_, select
+from sqlalchemy import String, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.catalogs.models import ReportField, ResponsibleArea
-from app.modules.projects.models import Project, ProjectAccessGroup, ProjectMember
+from app.modules.projects.models import Project, ProjectAccessGroup, ProjectGroup, ProjectMember
 
 
 class ReportRepository:
@@ -102,28 +102,23 @@ class ReportRepository:
                 Project.name.label("projeto"),
                 Project.code.label("codigo"),
                 Project.status,
-                func.coalesce(
-                    func.nullif(Project.write_group, ""),
-                    func.nullif(Project.read_group, ""),
-                    select(ProjectAccessGroup.group_name)
-                    .where(ProjectAccessGroup.project_id == Project.id)
-                    .order_by(ProjectAccessGroup.group_name)
-                    .limit(1)
-                    .scalar_subquery(),
-                ).label("grupo"),
-                or_(
-                    func.nullif(Project.read_group, "").is_not(None),
-                    exists().where(
-                        ProjectAccessGroup.project_id == Project.id,
-                        ProjectAccessGroup.access_level == "leitura",
-                    ),
+                select(ProjectGroup.group_name)
+                .join(
+                    ProjectAccessGroup,
+                    ProjectAccessGroup.group_id == ProjectGroup.group_id,
+                )
+                .where(ProjectAccessGroup.project_id == Project.id)
+                .order_by(ProjectGroup.group_name)
+                .limit(1)
+                .scalar_subquery()
+                .label("grupo"),
+                exists().where(
+                    ProjectAccessGroup.project_id == Project.id,
+                    ProjectAccessGroup.access_level == "leitura",
                 ).label("hasReadGroup"),
-                or_(
-                    func.nullif(Project.write_group, "").is_not(None),
-                    exists().where(
-                        ProjectAccessGroup.project_id == Project.id,
-                        ProjectAccessGroup.access_level == "escrita",
-                    ),
+                exists().where(
+                    ProjectAccessGroup.project_id == Project.id,
+                    ProjectAccessGroup.access_level == "escrita",
                 ).label("hasWriteGroup"),
             )
             .select_from(
@@ -133,19 +128,13 @@ class ReportRepository:
             )
             .where(
                 or_(
-                    and_(
-                        func.nullif(Project.read_group, "").is_(None),
-                        ~exists().where(
-                            ProjectAccessGroup.project_id == Project.id,
-                            ProjectAccessGroup.access_level == "leitura",
-                        ),
+                    ~exists().where(
+                        ProjectAccessGroup.project_id == Project.id,
+                        ProjectAccessGroup.access_level == "leitura",
                     ),
-                    and_(
-                        func.nullif(Project.write_group, "").is_(None),
-                        ~exists().where(
-                            ProjectAccessGroup.project_id == Project.id,
-                            ProjectAccessGroup.access_level == "escrita",
-                        ),
+                    ~exists().where(
+                        ProjectAccessGroup.project_id == Project.id,
+                        ProjectAccessGroup.access_level == "escrita",
                     ),
                 )
             )

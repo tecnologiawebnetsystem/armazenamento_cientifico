@@ -187,9 +187,16 @@ async def test_project_access_groups_crud_filter_and_project_isolation(client):
     )
     assert update_response.status_code == 200
     assert update_response.json()["accessLevel"] == "administrador"
+    assert update_response.json()["createdAt"]
+    assert update_response.json()["updatedAt"]
 
     delete_response = await http.delete(f"/api/projects/{project_a}/access-groups/{read_group_id}")
     assert delete_response.status_code == 204
+    catalog_after_unlink = await http.get(
+        "/api/projects/groups/catalog",
+        params={"search": "entra-read-a", "principalType": "group"},
+    )
+    assert len(catalog_after_unlink.json()) == 1
 
 
 async def test_access_map_reads_groups_from_project_access_groups(client):
@@ -212,6 +219,38 @@ async def test_access_map_reads_groups_from_project_access_groups(client):
         for group in access_map.json()["groups"]
     )
     assert "grupo de leitura não configurado" not in access_map.json()["gaps"]
+
+
+async def test_global_catalog_is_reused_across_projects_but_not_duplicated_within_one(client):
+    http, _, project_ids = client
+    role = {
+        "groupName": "Curador de coleção",
+        "identifier": "scientific-curator",
+        "principalType": "role",
+        "accessLevel": "leitura",
+    }
+    first = await http.post(f"/api/projects/{project_ids['a']}/access-groups", json=role)
+    duplicate = await http.post(
+        f"/api/projects/{project_ids['a']}/access-groups",
+        json={**role, "accessLevel": "escrita"},
+    )
+    other_project = await http.post(
+        f"/api/projects/{project_ids['b']}/access-groups", json=role
+    )
+
+    assert first.status_code == 201
+    assert first.json()["principalType"] == "role"
+    assert duplicate.status_code == 409
+    assert other_project.status_code == 201
+    assert first.json()["id"] == other_project.json()["id"]
+
+    catalog = await http.get(
+        "/api/projects/groups/catalog",
+        params={"search": "scientific-curator", "principalType": "role"},
+    )
+    assert catalog.status_code == 200
+    assert len(catalog.json()) == 1
+    assert catalog.json()[0]["identifier"] == "scientific-curator"
 
 
 async def test_project_access_group_creation_requires_project_scope(client):

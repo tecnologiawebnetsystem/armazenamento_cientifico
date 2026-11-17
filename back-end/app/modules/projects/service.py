@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from app.core.exceptions import ConflictException
-from app.modules.projects.models import Project, ProjectAccessGroup
+from app.modules.projects.models import Project, ProjectAccessGroup, ProjectGroup
 from app.modules.projects.repository import ProjectRepository
 from app.modules.projects.schemas import (
     AccessGroupCreate,
@@ -45,28 +45,47 @@ class ProjectService:
             description=data.descricao,
             status=data.status,
             participants_ids=data.participantesIds,
-            write_group=data.grupoAdEscrita,
-            read_group=data.grupoAdLeitura,
-            write_identity_role=data.roleIdentidadeEscrita,
-            read_identity_role=data.roleIdentidadeLeitura,
+            write_group="",
+            read_group="",
+            write_identity_role="",
+            read_identity_role="",
             snow_task_number=data.numeroTarefaSnow,
             parent_folder=data.pastaMae,
             created_at=now,
             updated_at=now,
         )
         await self.repository.add(project)
-        for group_data in data.gruposAcesso:
-            project_group = ProjectAccessGroup(
-                id=str(uuid4()),
-                project_id=project.id,
-                group_name=group_data.groupName,
-                group_id=group_data.groupId,
-                access_level=group_data.accessLevel,
-                source="manual",
-                created_at=now,
-                updated_at=now,
+
+        principals = list(data.gruposAcesso)
+        for access_level, values, principal_type in (
+            ("leitura", data.grupoAdLeitura, "group"),
+            ("escrita", data.grupoAdEscrita, "group"),
+            ("leitura", data.roleIdentidadeLeitura, "role"),
+            ("escrita", data.roleIdentidadeEscrita, "role"),
+        ):
+            principals.extend(
+                AccessGroupCreate(
+                    groupName=value.strip(),
+                    identifier=value.strip(),
+                    principalType=principal_type,
+                    accessLevel=access_level,
+                )
+                for value in values.split(",")
+                if value.strip()
             )
-            await self.repository.add_access_group(project_group)
+
+        seen: set[tuple[str, str, str]] = set()
+        for group_data in principals:
+            key = (
+                group_data.principalType,
+                group_data.identifier.casefold(),
+                group_data.accessLevel,
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            await self._add_access_group(project.id, group_data, now)
+
         await self.repository.commit()
         return project
 
@@ -80,10 +99,6 @@ class ProjectService:
             "parent_folder": data.pastaMae,
             "description": data.descricao,
             "status": data.status,
-            "write_group": data.grupoAdEscrita,
-            "read_group": data.grupoAdLeitura,
-            "write_identity_role": data.roleIdentidadeEscrita,
-            "read_identity_role": data.roleIdentidadeLeitura,
         }
         for key, value in values.items():
             if value is not None:
@@ -115,49 +130,81 @@ class ProjectService:
     async def list_users_by_ids(self, user_ids: list[str]):
         return await self.repository.list_users_by_ids(user_ids)
 
-    # ── ProjectAccessGroup ───────────────────────────────────────────
+    # ── Project groups and associations ──────────────────────────────
 
     async def list_access_groups(
         self, project_id: str, access_level: str | None = None
-    ) -> list[ProjectAccessGroup]:
+    ) -> list[tuple[ProjectGroup, ProjectAccessGroup]]:
         return await self.repository.list_access_groups(project_id, access_level)
 
-    async def create_access_group(
-        self, project_id: str, data: AccessGroupCreate
-    ) -> ProjectAccessGroup:
-        project = await self.repository.find_by_id(project_id)
-        if not project:
-            raise LookupError("Projeto não encontrado")
-        now = datetime.now(UTC).replace(tzinfo=None)
-        group = ProjectAccessGroup(
-            id=str(uuid4()),
+    async def search_catalog_groups(
+        self, principal_type: str, search: str
+    ) -> list[ProjectGroup]:
+        return await self.repository.search_catalog_groups(principal_type, search)
+
+    async def _add_access_group(
+        self, project_id: str, data: AccessGroupCreate, now: datetime
+    ) -> tuple[ProjectGroup, ProjectAccessGroup]:
+        normalized_identifier = data.identifier.strip()
+        for group, _association in await self.repository.list_access_groups(project_id):
+            if (
+                group.principal_type == data.principalType
+                and group.identifier.casefold() == normalized_identifier.casefold()
+            ):
+                raise ConflictException("Este principal já está vinculado a este projeto")
+
+        principal = await self.repository.find_catalog_group(
+            data.principalType, normalized_identifier
+        )
+        if principal is None:
+            principal = ProjectGroup(
+                group_id=str(uuid4()),
+                identifier=normalized_identifier,
+                group_name=data.groupName.strip(),
+                principal_type=data.principalType,
+                created_at=now,
+                updated_at=now,
+            )
+            await self.repository.add_project_group(principal)
+
+        association = ProjectAccessGroup(
             project_id=project_id,
-            group_name=data.groupName,
-            group_id=data.groupId,
+            group_id=principal.group_id,
             access_level=data.accessLevel,
             source="manual",
             created_at=now,
             updated_at=now,
         )
-        await self.repository.add_access_group(group)
+        await self.repository.add_access_group(association)
+        return principal, association
+
+    async def create_access_group(
+        self, project_id: str, data: AccessGroupCreate
+    ) -> tuple[ProjectGroup, ProjectAccessGroup]:
+        project = await self.repository.find_by_id(project_id)
+        if not project:
+            raise LookupError("Projeto não encontrado")
+        now = datetime.now(UTC).replace(tzinfo=None)
+        result = await self._add_access_group(project_id, data, now)
         await self.repository.commit()
-        return group
+        return result
 
     async def update_access_group(
         self, project_id: str, access_group_id: str, data: AccessGroupPatch
-    ) -> ProjectAccessGroup:
-        group = await self.repository.find_access_group_by_id(access_group_id)
-        if not group or group.project_id != project_id:
-            raise LookupError("Grupo de acesso não encontrado neste projeto")
-        group.access_level = data.accessLevel
-        group.updated_at = datetime.now(UTC).replace(tzinfo=None)
+    ) -> tuple[ProjectGroup, ProjectAccessGroup]:
+        result = await self.repository.find_access_group_by_id(project_id, access_group_id)
+        if not result:
+            raise LookupError("Principal de acesso não encontrado neste projeto")
+        principal, association = result
+        association.access_level = data.accessLevel
+        association.updated_at = datetime.now(UTC).replace(tzinfo=None)
         await self.repository.commit()
-        return group
+        return principal, association
 
     async def delete_access_group(self, project_id: str, access_group_id: str) -> bool:
-        group = await self.repository.find_access_group_by_id(access_group_id)
-        if not group or group.project_id != project_id:
+        result = await self.repository.find_access_group_by_id(project_id, access_group_id)
+        if not result:
             return False
-        await self.repository.delete_access_group(group)
+        await self.repository.delete_access_group(result[1])
         await self.repository.commit()
         return True

@@ -15,11 +15,16 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import type { ProjectAccessGroupInput } from "@/lib/api-client"
+import { PrincipalIdentifierAutocomplete } from "@/components/projects/principal-identifier-autocomplete"
+
+const principalTypes = [
+  { value: "group", label: "Grupo Entra ID" },
+  { value: "role", label: "Role" },
+] as const
 
 const accessLevels = [
   { value: "leitura", label: "Leitura" },
   { value: "escrita", label: "Escrita" },
-  { value: "administrador", label: "Administrador" },
 ]
 
 export function AccessGroupsEditor({
@@ -30,33 +35,66 @@ export function AccessGroupsEditor({
   onChange: (groups: ProjectAccessGroupInput[]) => void
 }) {
   const [groupName, setGroupName] = useState("")
-  const [groupId, setGroupId] = useState("")
+  const [identifier, setIdentifier] = useState("")
+  const [principalType, setPrincipalType] = useState<"group" | "role">("group")
   const [accessLevel, setAccessLevel] = useState("leitura")
 
   function addGroup() {
     const cleanName = groupName.trim()
-    const cleanId = groupId.trim()
+    const cleanIdentifier = identifier.trim()
     if (
       !cleanName ||
-      !cleanId ||
+      !cleanIdentifier ||
       value.some(
-        (group) => group.groupId.toLowerCase() === cleanId.toLowerCase()
+        (group) =>
+          group.principalType === principalType &&
+          group.identifier.toLowerCase() === cleanIdentifier.toLowerCase() &&
+          group.accessLevel === accessLevel
       )
     )
       return
     onChange([
       ...value,
-      { groupName: cleanName, groupId: cleanId, accessLevel },
+      {
+        groupName: cleanName,
+        identifier: cleanIdentifier,
+        principalType,
+        accessLevel,
+      },
     ])
     setGroupName("")
-    setGroupId("")
+    setIdentifier("")
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-3 md:grid-cols-[1fr_1fr_180px_auto] md:items-end">
+      <div className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_180px_auto] md:items-end">
         <Field>
-          <FieldLabel htmlFor="access-group-name">Nome do grupo</FieldLabel>
+          <FieldLabel htmlFor="access-principal-type">Tipo</FieldLabel>
+          <Select
+            value={principalType}
+            onValueChange={(next) =>
+              setPrincipalType((next as "group" | "role") ?? "group")
+            }
+          >
+            <SelectTrigger id="access-principal-type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {principalTypes.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="access-group-name">
+            Nome do {principalType === "group" ? "grupo" : "role"}
+          </FieldLabel>
           <Input
             id="access-group-name"
             value={groupName}
@@ -64,18 +102,13 @@ export function AccessGroupsEditor({
             placeholder="Ex.: ARMAZENAMENTO-PESQUISA-READ"
           />
         </Field>
-        <Field>
-          <FieldLabel htmlFor="access-group-id">
-            ID do grupo no Entra ID
-          </FieldLabel>
-          <Input
-            id="access-group-id"
-            value={groupId}
-            onChange={(event) => setGroupId(event.target.value)}
-            placeholder="Object ID do grupo"
-            maxLength={36}
-          />
-        </Field>
+        <PrincipalIdentifierAutocomplete
+          id="access-group-id"
+          principalType={principalType}
+          value={identifier}
+          onChange={setIdentifier}
+          onSelect={setGroupName}
+        />
         <Field>
           <FieldLabel htmlFor="access-group-level">Nível de acesso</FieldLabel>
           <Select
@@ -100,21 +133,21 @@ export function AccessGroupsEditor({
           type="button"
           variant="outline"
           onClick={addGroup}
-          disabled={!groupName.trim() || !groupId.trim()}
+          disabled={!groupName.trim() || !identifier.trim()}
         >
           <PlusIcon data-icon="inline-start" />
           Adicionar
         </Button>
       </div>
       <FieldDescription>
-        Cadastre cada grupo separadamente. O ID do Entra ID permite identificar
-        o grupo sem depender apenas do nome.
+        Cadastre cada grupo ou role separadamente. O identificador externo
+        distingue principals com nomes semelhantes.
       </FieldDescription>
       {value.length > 0 ? (
-        <div className="flex flex-col gap-2" aria-label="Grupos cadastrados">
+        <div className="flex flex-col gap-2" aria-label="Principals cadastrados">
           {value.map((group) => (
             <div
-              key={group.groupId}
+              key={`${group.principalType}-${group.identifier}-${group.accessLevel}`}
               className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-3 py-2"
             >
               <div className="flex min-w-0 flex-col">
@@ -122,10 +155,15 @@ export function AccessGroupsEditor({
                   {group.groupName}
                 </span>
                 <span className="truncate font-mono text-xs text-muted-foreground">
-                  {group.groupId}
+                  {group.identifier}
                 </span>
               </div>
               <div className="flex items-center gap-2">
+                <Badge variant="outline">
+                  {principalTypes.find(
+                    (type) => type.value === group.principalType
+                  )?.label}
+                </Badge>
                 <Badge variant="secondary">
                   {accessLevels.find(
                     (level) => level.value === group.accessLevel
@@ -137,10 +175,15 @@ export function AccessGroupsEditor({
                   size="icon"
                   onClick={() =>
                     onChange(
-                      value.filter((item) => item.groupId !== group.groupId)
+                      value.filter(
+                        (item) =>
+                          item.principalType !== group.principalType ||
+                          item.identifier !== group.identifier ||
+                          item.accessLevel !== group.accessLevel
+                      )
                     )
                   }
-                  aria-label={`Remover grupo ${group.groupName}`}
+                  aria-label={`Remover ${group.principalType === "group" ? "grupo" : "role"} ${group.groupName}`}
                 >
                   <XIcon />
                 </Button>
@@ -150,7 +193,7 @@ export function AccessGroupsEditor({
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">
-          Nenhum grupo de acesso adicionado.
+          Nenhum grupo ou role de acesso adicionado.
         </p>
       )}
     </div>

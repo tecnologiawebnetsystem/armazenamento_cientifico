@@ -48,6 +48,18 @@ def test_every_revision_defines_upgrade_and_downgrade(script: ScriptDirectory):
         assert callable(getattr(revision.module, "downgrade", None)), revision.revision
 
 
+def test_project_groups_catalog_migration_is_global(script: ScriptDirectory):
+    revision = script.get_revision("6dc4f318c2aa")
+    source = Path(revision.path).read_text()
+
+    assert "project_groups_global" in source
+    assert "uq_project_groups_type_identifier_ci" in source
+    assert "catalog_group_id" in source
+    assert "access_level" in source
+    assert "created_at" in source
+    assert "updated_at" in source
+
+
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_database_revision_matches_head(script: ScriptDirectory):

@@ -1,17 +1,26 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field
 
 ProjectStatus = Literal["ativo", "em_implantacao", "pausado", "encerrado"]
 
 
+PrincipalType = Literal["group", "role"]
+AccessLevel = Literal["leitura", "escrita", "administrador"]
+
+
 class AccessGroupCreate(BaseModel):
-    """Schema para criar/associar um grupo a um projeto."""
+    """Schema para associar um grupo ou role a um projeto."""
 
     groupName: str = Field(min_length=1, max_length=256)
-    groupId: str = Field(min_length=1, max_length=36)
-    accessLevel: str = Field(min_length=1, max_length=40)
+    identifier: str = Field(
+        min_length=1,
+        max_length=256,
+        validation_alias=AliasChoices("identifier", "groupId"),
+    )
+    principalType: PrincipalType = "group"
+    accessLevel: AccessLevel
 
 
 class ProjectCreate(BaseModel):
@@ -36,10 +45,6 @@ class ProjectPatch(BaseModel):
     areaResponsavel: str | None = Field(default=None, min_length=1, max_length=160)
     descricao: str | None = None
     status: ProjectStatus | None = None
-    grupoAdEscrita: str | None = None
-    grupoAdLeitura: str | None = None
-    roleIdentidadeEscrita: str | None = None
-    roleIdentidadeLeitura: str | None = None
     pastaMae: str | None = None
 
 
@@ -56,6 +61,7 @@ class AccessMapGroupOut(BaseModel):
     fonte: str
     identificadores: list[str]
     nivel: str
+    principalType: PrincipalType = "group"
 
 
 class ProjectOut(BaseModel):
@@ -88,16 +94,18 @@ class AccessMapOut(BaseModel):
 class AccessGroupPatch(BaseModel):
     """Schema para atualizar apenas o nível de acesso de um grupo vinculado."""
 
-    accessLevel: str = Field(min_length=1, max_length=40)
+    accessLevel: AccessLevel
 
 
 class AccessGroupOut(BaseModel):
-    """Schema de saída para um grupo de acesso vinculado ao projeto."""
+    """Schema de saída para um principal de acesso vinculado ao projeto."""
 
     id: str
     projectId: str
     groupName: str
+    identifier: str
     groupId: str
+    principalType: PrincipalType
     accessLevel: str
     source: str
     createdAt: datetime
@@ -111,3 +119,10 @@ class ProjectAccessGroupsOut(BaseModel):
     projectName: str
     groups: list[AccessGroupOut]
     total: int
+
+
+class ProjectGroupCatalogOut(BaseModel):
+    id: str
+    identifier: str
+    groupName: str
+    principalType: PrincipalType

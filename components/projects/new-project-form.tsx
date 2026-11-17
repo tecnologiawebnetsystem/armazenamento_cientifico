@@ -74,16 +74,6 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
         areaResponsavel: areaResponsavel.trim(),
         gestoresIds: [gestorProjeto.trim()],
         gruposAcesso,
-        grupoAdEscrita: gruposAcesso
-          .filter((group) => group.accessLevel === "escrita")
-          .map((group) => group.groupName)
-          .join(", "),
-        grupoAdLeitura: gruposAcesso
-          .filter((group) => group.accessLevel === "leitura")
-          .map((group) => group.groupName)
-          .join(", "),
-        roleIdentidadeEscrita: "",
-        roleIdentidadeLeitura: "",
         numeroTarefaSnow: numeroTarefaSnow.trim(),
         pastaMae: pastaMae.trim(),
         descricao: descricao.trim(),
@@ -229,11 +219,11 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
                   id="access-groups-heading"
                   className="text-base font-semibold"
                 >
-                  Grupos de acesso
+                  Grupos e roles de acesso
                 </h2>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Associe vários grupos Entra ID à área e defina o nível de cada
-                  grupo.
+                  Associe grupos do Entra ID ou roles de identidade e defina
+                  o nível de acesso por projeto.
                 </p>
               </div>
               <AccessGroupsEditor

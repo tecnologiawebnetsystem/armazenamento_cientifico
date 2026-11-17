@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { PrincipalIdentifierAutocomplete } from "@/components/projects/principal-identifier-autocomplete"
 import {
   Select,
   SelectContent,
@@ -24,6 +25,10 @@ import {
 } from "@/lib/api-client"
 
 const accessLevels = ["leitura", "escrita", "administrador"]
+const principalTypes = [
+  { value: "group", label: "Grupo Entra ID" },
+  { value: "role", label: "Role" },
+] as const
 
 export function ProjectAccessGroupsManager({
   projectId,
@@ -36,25 +41,27 @@ export function ProjectAccessGroupsManager({
   )
   const { mutate: mutateCache } = useSWRConfig()
   const [groupName, setGroupName] = useState("")
-  const [groupId, setGroupId] = useState("")
+  const [identifier, setIdentifier] = useState("")
+  const [principalType, setPrincipalType] = useState<"group" | "role">("group")
   const [accessLevel, setAccessLevel] = useState("leitura")
   const [saving, setSaving] = useState(false)
 
   async function addGroup(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!groupName.trim() || !groupId.trim()) return
+    if (!groupName.trim() || !identifier.trim()) return
     setSaving(true)
     try {
       await addProjectAccessGroup(projectId, {
         groupName: groupName.trim(),
-        groupId: groupId.trim(),
+        identifier: identifier.trim(),
+        principalType,
         accessLevel,
       })
       setGroupName("")
-      setGroupId("")
+      setIdentifier("")
       await mutate()
       await mutateCache(["project-access-map", projectId])
-      toast.success("Grupo associado à área de rede.")
+      toast.success("Principal associado à área de rede.")
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -86,7 +93,7 @@ export function ProjectAccessGroupsManager({
       await deleteProjectAccessGroup(projectId, id)
       await mutate()
       await mutateCache(["project-access-map", projectId])
-      toast.success("Grupo removido da área de rede.")
+      toast.success("Principal removido da área de rede.")
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -103,19 +110,43 @@ export function ProjectAccessGroupsManager({
     >
       <div>
         <h3 id="project-access-groups-title" className="font-semibold">
-          Grupos cadastrados
+          Grupos e roles cadastrados
         </h3>
         <p className="text-sm text-muted-foreground">
-          Os grupos desta lista vêm de project_access_groups e aparecem no mapa
-          e nos relatórios.
+          Grupos e roles ficam associados a esta área, com nível de acesso
+          independente para cada projeto.
         </p>
       </div>
       <form
         onSubmit={addGroup}
-        className="grid gap-3 md:grid-cols-[1fr_1fr_180px_auto] md:items-end"
+        className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_180px_auto] md:items-end"
       >
         <Field>
-          <FieldLabel htmlFor="managed-group-name">Nome do grupo</FieldLabel>
+          <FieldLabel htmlFor="managed-principal-type">Tipo</FieldLabel>
+          <Select
+            value={principalType}
+            onValueChange={(value) =>
+              setPrincipalType((value as "group" | "role") ?? "group")
+            }
+          >
+            <SelectTrigger id="managed-principal-type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {principalTypes.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="managed-group-name">
+            Nome do {principalType === "group" ? "grupo" : "role"}
+          </FieldLabel>
           <Input
             id="managed-group-name"
             value={groupName}
@@ -124,17 +155,13 @@ export function ProjectAccessGroupsManager({
             required
           />
         </Field>
-        <Field>
-          <FieldLabel htmlFor="managed-group-id">ID Entra ID</FieldLabel>
-          <Input
-            id="managed-group-id"
-            value={groupId}
-            onChange={(event) => setGroupId(event.target.value)}
-            placeholder="Object ID"
-            maxLength={36}
-            required
-          />
-        </Field>
+        <PrincipalIdentifierAutocomplete
+          id="managed-group-id"
+          principalType={principalType}
+          value={identifier}
+          onChange={setIdentifier}
+          onSelect={setGroupName}
+        />
         <Field>
           <FieldLabel htmlFor="managed-group-level">Nível</FieldLabel>
           <Select
@@ -157,14 +184,14 @@ export function ProjectAccessGroupsManager({
         </Field>
         <Button
           type="submit"
-          disabled={saving || !groupName.trim() || !groupId.trim()}
+          disabled={saving || !groupName.trim() || !identifier.trim()}
         >
           <PlusIcon data-icon="inline-start" />
-          Adicionar grupo
+          Adicionar principal
         </Button>
       </form>
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Carregando grupos...</p>
+        <p className="text-sm text-muted-foreground">Carregando principals...</p>
       ) : data?.groups.length ? (
         <div className="flex flex-col gap-2">
           {data.groups.map((group) => (
@@ -177,10 +204,15 @@ export function ProjectAccessGroupsManager({
                   {group.groupName}
                 </span>
                 <span className="truncate font-mono text-xs text-muted-foreground">
-                  {group.groupId}
+                  {group.identifier}
                 </span>
               </div>
               <div className="flex items-center gap-2">
+                <Badge variant="outline">
+                  {principalTypes.find(
+                    (type) => type.value === group.principalType
+                  )?.label}
+                </Badge>
                 <Badge variant="secondary">{group.source}</Badge>
                 <Select
                   value={group.accessLevel}
@@ -219,7 +251,7 @@ export function ProjectAccessGroupsManager({
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">
-          Nenhum grupo armazenado nesta área.
+          Nenhum grupo ou role associado a esta área.
         </p>
       )}
     </section>

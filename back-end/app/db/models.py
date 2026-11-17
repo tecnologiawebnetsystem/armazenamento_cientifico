@@ -20,7 +20,12 @@ from app.modules.catalogs.models import (
     ResponsibleArea,
 )
 from app.modules.folders.models import Folder
-from app.modules.projects.models import Project, ProjectAccessGroup, ProjectMember
+from app.modules.projects.models import (
+    Project,
+    ProjectAccessGroup,
+    ProjectGroup,
+    ProjectMember,
+)
 from app.modules.users.models import Profile, User
 
 __all__ = [
@@ -36,6 +41,7 @@ __all__ = [
     "ProfilePermission",
     "Project",
     "ProjectAccessGroup",
+    "ProjectGroup",
     "ProjectMember",
     "ProjectStatus",
     "ReportField",
@@ -48,7 +54,8 @@ __all__ = [
 # Evita que linters removam os imports que registram as classes no metadata.
 _ORM_MODELS = (
     ActivityLog, DashboardCard, Folder, MenuItem, MenuPermission, Module, Profile, Permission,
-    ProfileModule, ProfilePermission, Project, ProjectAccessGroup, ProjectMember,
+    ProfileModule, ProfilePermission, Project, ProjectAccessGroup, ProjectGroup,
+    ProjectMember,
     ProjectStatus, ReportField, ReportType, ResponsibleArea,
     User, UserSession,
 )

@@ -319,15 +319,34 @@ export function getProject(id: string) {
 
 export type ProjectAccessGroupInput = {
   groupName: string
-  groupId: string
+  identifier: string
+  principalType: "group" | "role"
   accessLevel: string
 }
 export type ProjectAccessGroupRecord = ProjectAccessGroupInput & {
   id: string
   projectId: string
+  groupId: string
   source: string
   createdAt: string
   updatedAt: string
+}
+
+export type ProjectGroupCatalogRecord = {
+  id: string
+  identifier: string
+  groupName: string
+  principalType: "group" | "role"
+}
+
+export function searchProjectGroupsCatalog(
+  search: string,
+  principalType: "group" | "role"
+) {
+  const params = new URLSearchParams({ search, principalType })
+  return request<ProjectGroupCatalogRecord[]>(
+    `/api/projects/groups/catalog?${params.toString()}`
+  )
 }
 
 export function createProject(data: {
@@ -337,10 +356,6 @@ export function createProject(data: {
   criadoEm: string
   areaResponsavel: string
   gestoresIds: string[]
-  grupoAdEscrita: string
-  grupoAdLeitura: string
-  roleIdentidadeEscrita: string
-  roleIdentidadeLeitura: string
   numeroTarefaSnow: string
   pastaMae: string
   descricao: string
@@ -408,6 +423,7 @@ export function getProjectAccessMap(projectId: string) {
       fonte: string
       identificadores: string[]
       nivel: string
+      principalType: "group" | "role"
     }>
     members: Array<ProjectMember & { user: User }>
     source: string
