@@ -188,6 +188,11 @@ class ProjectRepository:
         term = f"%{search.strip().casefold()}%"
         statement = (
             select(ProjectGroup)
+            .join(
+                ProjectAccessGroup,
+                (ProjectAccessGroup.project_id == ProjectGroup.project_id)
+                & (ProjectAccessGroup.group_id == ProjectGroup.group_id),
+            )
             .where(
                 ProjectGroup.principal_type == principal_type,
                 (func.lower(ProjectGroup.identifier).like(term))

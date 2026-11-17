@@ -20,8 +20,8 @@ from app.modules.catalogs.models import (
     ResponsibleArea,
 )
 from app.modules.platform.repository import PlatformRepository
-from app.modules.projects.models import Project, ProjectMember
-from app.modules.users.models import Profile, User
+from app.modules.projects.models import Project, ProjectAccessGroup, ProjectGroup
+from app.modules.users.models import Profile
 
 NOW = datetime.now(UTC)
 
@@ -124,6 +124,54 @@ async def session(monkeypatch):
         await db.commit()
         yield db
     await engine.dispose()
+
+
+async def test_access_map_includes_only_groups_with_project_associations(session):
+    session.add(
+        Project(
+            id="project-access-map",
+            name="Projeto do mapa",
+            code="P-MAPA",
+            responsible_area="TI",
+            created_at=NOW,
+            updated_at=NOW,
+        )
+    )
+    await session.flush()
+    linked = ProjectGroup(
+        group_id="linked-group",
+        project_id="project-access-map",
+        identifier="entra-linked",
+        group_name="Grupo vinculado",
+        principal_type="group",
+        access_level="leitura",
+        source="manual",
+        created_at=NOW,
+        updated_at=NOW,
+    )
+    orphan = ProjectGroup(
+        group_id="orphan-group",
+        project_id="project-access-map",
+        identifier="entra-orphan",
+        group_name="Grupo sem vínculo",
+        principal_type="group",
+        access_level="escrita",
+        source="manual",
+        created_at=NOW,
+        updated_at=NOW,
+    )
+    session.add_all([linked, orphan])
+    await session.flush()
+    session.add(
+        ProjectAccessGroup(project_id="project-access-map", group_id="linked-group")
+    )
+    await session.commit()
+
+    result = await PlatformRepository(session).access_map()
+    group_rows = [row for row in result["rows"] if row["resourceType"] == "grupo"]
+
+    assert result["summary"]["groups"] == 1
+    assert [row["groupId"] for row in group_rows] == ["entra-linked"]
 
 
 # ── context ────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@ import app.db.models  # noqa: F401
 from app.db.base import Base
 from app.modules.catalogs.models import ReportField, ReportType
 from app.modules.projects.models import Project, ProjectAccessGroup, ProjectGroup
+from app.modules.projects.repository import ProjectRepository
 from app.modules.reports.repository import ReportRepository
 from app.modules.reports.service import ReportService
 
@@ -192,6 +193,31 @@ async def _add_access_group(db, *, group_id: str, identifier: str, name: str, le
         )
     )
     await db.commit()
+
+
+async def test_inconsistencies_ignore_unlinked_project_group_rows(db):
+    db.add(
+        ProjectGroup(
+            group_id="orphan-group-p1",
+            project_id="id-P1",
+            identifier="orphan-identifier",
+            group_name="Grupo sem vínculo",
+            principal_type="group",
+            access_level="leitura",
+            source="manual",
+            created_at=NOW,
+            updated_at=NOW,
+        )
+    )
+    await db.commit()
+
+    rows = await ReportRepository(db).inconsistencies(
+        None, None, None, "x", all_projects=True
+    )
+    p1 = next(row for row in rows if row["projetoId"] == "id-P1")
+    assert p1["grupo"] is None
+    assert p1["tipo"] == "projeto-sem-grupo"
+    assert await ProjectRepository(db).search_catalog_groups("group", "orphan") == []
 
 
 async def test_inconsistencies_use_project_access_groups_for_level_coverage(db):

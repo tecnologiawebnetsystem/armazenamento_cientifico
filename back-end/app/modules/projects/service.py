@@ -169,6 +169,11 @@ class ProjectService:
                 updated_at=now,
             )
             await self.repository.add_project_group(principal)
+        else:
+            principal.group_name = data.groupName.strip()
+            principal.access_level = data.accessLevel
+            principal.source = "manual"
+            principal.updated_at = now
 
         association = ProjectAccessGroup(
             project_id=project_id,

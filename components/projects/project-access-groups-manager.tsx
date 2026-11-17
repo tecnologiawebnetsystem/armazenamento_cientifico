@@ -113,8 +113,8 @@ export function ProjectAccessGroupsManager({
           Grupos e roles cadastrados
         </h3>
         <p className="text-sm text-muted-foreground">
-          Grupos e roles ficam associados a esta área, com nível de acesso
-          independente para cada projeto.
+          Cada cadastro pertence a este projeto. O nível de acesso é definido
+          aqui e pode ser diferente em outros projetos.
         </p>
       </div>
       <form

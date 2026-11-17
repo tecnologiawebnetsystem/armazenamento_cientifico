@@ -15,7 +15,12 @@ from app.modules.catalogs.models import (
     ProfilePermission,
 )
 from app.modules.folders.models import Folder
-from app.modules.projects.models import Project, ProjectGroup, ProjectMember
+from app.modules.projects.models import (
+    Project,
+    ProjectAccessGroup,
+    ProjectGroup,
+    ProjectMember,
+)
 from app.modules.users.models import User
 
 
@@ -320,6 +325,11 @@ class PlatformRepository:
                         ProjectGroup.access_level.label("accessLevel"),
                     )
                     .join(Project, Project.id == ProjectGroup.project_id)
+                    .join(
+                        ProjectAccessGroup,
+                        (ProjectAccessGroup.project_id == ProjectGroup.project_id)
+                        & (ProjectAccessGroup.group_id == ProjectGroup.group_id),
+                    )
                     .order_by(
                         Project.name, ProjectGroup.access_level, ProjectGroup.group_name
                     )

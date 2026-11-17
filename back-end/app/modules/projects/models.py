@@ -10,6 +10,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -84,9 +85,15 @@ class ProjectGroup(Base):
     group_name: Mapped[str] = mapped_column(String(256), nullable=False)
     principal_type: Mapped[str] = mapped_column(String(20), nullable=False)
     access_level: Mapped[str] = mapped_column(String(40), nullable=False)
-    source: Mapped[str] = mapped_column(String(20), default="manual", nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    source: Mapped[str] = mapped_column(
+        String(20), default="manual", server_default="manual", nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
 
 
 class ProjectAccessGroup(Base):

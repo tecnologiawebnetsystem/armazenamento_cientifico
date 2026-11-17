@@ -29,8 +29,18 @@ def upgrade() -> None:
         sa.Column("principal_type", sa.String(length=20), nullable=False),
         sa.Column("access_level", sa.String(length=40), nullable=False),
         sa.Column("source", sa.String(length=20), nullable=False, server_default="manual"),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
         sa.CheckConstraint(
             "principal_type IN ('group', 'role')",
             name="ck_project_groups_principal_type",
