@@ -185,6 +185,13 @@ export function ProjectAccessGroupsManager({
             </SelectContent>
           </Select>
         </Field>
+        <PrincipalIdentifierAutocomplete
+          id="managed-group-id"
+          principalType={principalType}
+          value={identifier}
+          onChange={setIdentifier}
+          onSelect={setGroupName}
+        />
         <Field>
           <FieldLabel htmlFor="managed-group-name">Nome</FieldLabel>
           <Input
@@ -199,13 +206,6 @@ export function ProjectAccessGroupsManager({
             required
           />
         </Field>
-        <PrincipalIdentifierAutocomplete
-          id="managed-group-id"
-          principalType={principalType}
-          value={identifier}
-          onChange={setIdentifier}
-          onSelect={setGroupName}
-        />
         <Field>
           <FieldLabel htmlFor="managed-group-level">Nível</FieldLabel>
           <Select
@@ -286,6 +286,17 @@ export function ProjectAccessGroupsManager({
                         </SelectContent>
                       </Select>
                     </Field>
+                    <PrincipalIdentifierAutocomplete
+                      id={`edit-identifier-${group.id}`}
+                      principalType={draft.principalType}
+                      value={draft.identifier}
+                      onChange={(value) =>
+                        setDraft({ ...draft, identifier: value })
+                      }
+                      onSelect={(value) =>
+                        setDraft({ ...draft, groupName: value })
+                      }
+                    />
                     <Field>
                       <FieldLabel htmlFor={`edit-name-${group.id}`}>
                         Nome
@@ -299,17 +310,6 @@ export function ProjectAccessGroupsManager({
                         maxLength={256}
                       />
                     </Field>
-                    <PrincipalIdentifierAutocomplete
-                      id={`edit-identifier-${group.id}`}
-                      principalType={draft.principalType}
-                      value={draft.identifier}
-                      onChange={(value) =>
-                        setDraft({ ...draft, identifier: value })
-                      }
-                      onSelect={(value) =>
-                        setDraft({ ...draft, groupName: value })
-                      }
-                    />
                     <Field>
                       <FieldLabel htmlFor={`edit-level-${group.id}`}>
                         Nível de acesso

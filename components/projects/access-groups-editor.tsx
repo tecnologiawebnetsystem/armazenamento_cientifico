@@ -96,6 +96,13 @@ export function AccessGroupsEditor({
             </SelectContent>
           </Select>
         </Field>
+        <PrincipalIdentifierAutocomplete
+          id="access-group-id"
+          principalType={principalType}
+          value={identifier}
+          onChange={setIdentifier}
+          onSelect={setGroupName}
+        />
         <Field>
           <FieldLabel htmlFor="access-group-name">
             Nome do {principalType === "group" ? "grupo" : "papel"}
@@ -107,13 +114,6 @@ export function AccessGroupsEditor({
             placeholder="Ex.: ARMAZENAMENTO-PESQUISA-READ"
           />
         </Field>
-        <PrincipalIdentifierAutocomplete
-          id="access-group-id"
-          principalType={principalType}
-          value={identifier}
-          onChange={setIdentifier}
-          onSelect={setGroupName}
-        />
         <Field>
           <FieldLabel htmlFor="access-group-level">Nível de acesso</FieldLabel>
           <Select
