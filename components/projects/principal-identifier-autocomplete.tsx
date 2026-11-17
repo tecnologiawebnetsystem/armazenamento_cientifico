@@ -32,7 +32,7 @@ export function PrincipalIdentifierAutocomplete({
   return (
     <Field>
       <FieldLabel htmlFor={id}>
-        {principalType === "group" ? "Object ID do Entra ID" : "Identificador do role"}
+        {principalType === "group" ? "ID do grupo (Entra ID)" : "ID da role"}
       </FieldLabel>
       <Input
         id={id}
@@ -41,15 +41,13 @@ export function PrincipalIdentifierAutocomplete({
           const nextValue = event.target.value
           onChange(nextValue)
           const match = options.find(
-            (item) => item.identifier.toLocaleLowerCase() === nextValue.trim().toLocaleLowerCase()
+            (item) =>
+              item.identifier.toLocaleLowerCase() ===
+              nextValue.trim().toLocaleLowerCase()
           )
           if (match) onSelect(match.groupName)
         }}
-        placeholder={
-          principalType === "group"
-            ? "Digite para buscar um grupo existente"
-            : "Digite para buscar um role existente"
-        }
+        placeholder="Busque por nome ou informe o identificador"
         list={`${id}-suggestions`}
         maxLength={256}
         required
@@ -57,13 +55,17 @@ export function PrincipalIdentifierAutocomplete({
       />
       <datalist id={`${id}-suggestions`}>
         {options.map((item) => (
-          <option key={item.id} value={item.identifier} label={item.groupName} />
+          <option
+            key={item.id}
+            value={item.identifier}
+            label={item.groupName}
+          />
         ))}
       </datalist>
       <FieldDescription>
         {selected
-          ? `Identificador encontrado: ${selected.groupName}. O cadastro e o nível de acesso serão próprios deste projeto.`
-          : "Sugestões mostram identificadores cadastrados em outros projetos; o cadastro será criado para este projeto."}
+          ? `Encontrado: ${selected.groupName}.`
+          : "Digite para ver sugestões do catálogo."}
       </FieldDescription>
     </Field>
   )

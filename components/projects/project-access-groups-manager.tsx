@@ -3,7 +3,13 @@
 import { useState } from "react"
 import useSWR, { useSWRConfig } from "swr"
 import { toast } from "sonner"
-import { CheckIcon, PencilIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react"
+import {
+  CheckIcon,
+  PencilIcon,
+  PlusIcon,
+  Trash2Icon,
+  XIcon,
+} from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Field, FieldLabel } from "@/components/ui/field"
@@ -26,9 +32,14 @@ import {
 } from "@/lib/api-client"
 
 const accessLevels = ["leitura", "escrita", "administrador"]
+const accessLevelLabels: Record<string, string> = {
+  leitura: "Leitura",
+  escrita: "Edição",
+  administrador: "Administração",
+}
 const principalTypes = [
-  { value: "group", label: "Grupo Entra ID" },
-  { value: "role", label: "Role" },
+  { value: "group", label: "Grupo do Entra ID" },
+  { value: "role", label: "Role da aplicação" },
 ] as const
 
 export function ProjectAccessGroupsManager({
@@ -135,19 +146,20 @@ export function ProjectAccessGroupsManager({
     >
       <div>
         <h3 id="project-access-groups-title" className="font-semibold">
-          Grupos e roles cadastrados
+          Gerenciar grupos e roles
         </h3>
         <p className="text-sm text-muted-foreground">
-          Selecione sugestões do catálogo ou informe um novo principal. Cada
-          item é salvo em project_groups e vinculado à área em project_access_groups.
+          Adicione um grupo ou role e defina o nível de acesso.
         </p>
       </div>
       <form
         onSubmit={addGroup}
-        className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_180px_auto] md:items-end"
+        className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
       >
         <Field>
-          <FieldLabel htmlFor="managed-principal-type">Tipo</FieldLabel>
+          <FieldLabel htmlFor="managed-principal-type">
+            Tipo de acesso
+          </FieldLabel>
           <Select
             value={principalType}
             onValueChange={(value) =>
@@ -169,14 +181,16 @@ export function ProjectAccessGroupsManager({
           </Select>
         </Field>
         <Field>
-          <FieldLabel htmlFor="managed-group-name">
-            Nome do {principalType === "group" ? "grupo" : "role"}
-          </FieldLabel>
+          <FieldLabel htmlFor="managed-group-name">Nome</FieldLabel>
           <Input
             id="managed-group-name"
             value={groupName}
             onChange={(event) => setGroupName(event.target.value)}
-            placeholder="Nome do grupo ou role"
+            placeholder={
+              principalType === "group"
+                ? "Ex.: Grupo de Pesquisa"
+                : "Ex.: editor"
+            }
             required
           />
         </Field>
@@ -200,7 +214,7 @@ export function ProjectAccessGroupsManager({
               <SelectGroup>
                 {accessLevels.map((level) => (
                   <SelectItem key={level} value={level}>
-                    {level}
+                    {accessLevelLabels[level]}
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -209,14 +223,17 @@ export function ProjectAccessGroupsManager({
         </Field>
         <Button
           type="submit"
+          className="md:col-span-2 md:justify-self-end xl:col-span-2"
           disabled={saving || !groupName.trim() || !identifier.trim()}
         >
           <PlusIcon data-icon="inline-start" />
-          Adicionar principal
+          Adicionar acesso
         </Button>
       </form>
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Carregando principals...</p>
+        <p className="text-sm text-muted-foreground">
+          Carregando grupos cadastrados...
+        </p>
       ) : data?.groups.length ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {data.groups.map((group) => {
@@ -229,11 +246,17 @@ export function ProjectAccessGroupsManager({
                 {isEditing ? (
                   <div className="grid gap-3">
                     <Field>
-                      <FieldLabel htmlFor={`edit-type-${group.id}`}>Tipo</FieldLabel>
+                      <FieldLabel htmlFor={`edit-type-${group.id}`}>
+                        Tipo
+                      </FieldLabel>
                       <Select
                         value={draft.principalType}
                         onValueChange={(value) =>
-                          value && setDraft({ ...draft, principalType: value as "group" | "role" })
+                          value &&
+                          setDraft({
+                            ...draft,
+                            principalType: value as "group" | "role",
+                          })
                         }
                       >
                         <SelectTrigger id={`edit-type-${group.id}`}>
@@ -251,11 +274,15 @@ export function ProjectAccessGroupsManager({
                       </Select>
                     </Field>
                     <Field>
-                      <FieldLabel htmlFor={`edit-name-${group.id}`}>Nome</FieldLabel>
+                      <FieldLabel htmlFor={`edit-name-${group.id}`}>
+                        Nome
+                      </FieldLabel>
                       <Input
                         id={`edit-name-${group.id}`}
                         value={draft.groupName}
-                        onChange={(event) => setDraft({ ...draft, groupName: event.target.value })}
+                        onChange={(event) =>
+                          setDraft({ ...draft, groupName: event.target.value })
+                        }
                         maxLength={256}
                       />
                     </Field>
@@ -263,14 +290,22 @@ export function ProjectAccessGroupsManager({
                       id={`edit-identifier-${group.id}`}
                       principalType={draft.principalType}
                       value={draft.identifier}
-                      onChange={(value) => setDraft({ ...draft, identifier: value })}
-                      onSelect={(value) => setDraft({ ...draft, groupName: value })}
+                      onChange={(value) =>
+                        setDraft({ ...draft, identifier: value })
+                      }
+                      onSelect={(value) =>
+                        setDraft({ ...draft, groupName: value })
+                      }
                     />
                     <Field>
-                      <FieldLabel htmlFor={`edit-level-${group.id}`}>Nível de acesso</FieldLabel>
+                      <FieldLabel htmlFor={`edit-level-${group.id}`}>
+                        Nível de acesso
+                      </FieldLabel>
                       <Select
                         value={draft.accessLevel}
-                        onValueChange={(value) => value && setDraft({ ...draft, accessLevel: value })}
+                        onValueChange={(value) =>
+                          value && setDraft({ ...draft, accessLevel: value })
+                        }
                       >
                         <SelectTrigger id={`edit-level-${group.id}`}>
                           <SelectValue />
@@ -278,17 +313,37 @@ export function ProjectAccessGroupsManager({
                         <SelectContent>
                           <SelectGroup>
                             {accessLevels.map((level) => (
-                              <SelectItem key={level} value={level}>{level}</SelectItem>
+                              <SelectItem key={level} value={level}>
+                                {accessLevelLabels[level]}
+                              </SelectItem>
                             ))}
                           </SelectGroup>
                         </SelectContent>
                       </Select>
                     </Field>
                     <div className="flex justify-end gap-2">
-                      <Button type="button" size="sm" variant="outline" onClick={() => { setEditingId(null); setDraft(null) }} disabled={saving}>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingId(null)
+                          setDraft(null)
+                        }}
+                        disabled={saving}
+                      >
                         <XIcon data-icon="inline-start" /> Cancelar
                       </Button>
-                      <Button type="button" size="sm" onClick={() => void saveEdit(group.id)} disabled={saving || !draft.groupName.trim() || !draft.identifier.trim()}>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => void saveEdit(group.id)}
+                        disabled={
+                          saving ||
+                          !draft.groupName.trim() ||
+                          !draft.identifier.trim()
+                        }
+                      >
                         <CheckIcon data-icon="inline-start" /> Salvar
                       </Button>
                     </div>
@@ -297,23 +352,45 @@ export function ProjectAccessGroupsManager({
                   <>
                     <div className="flex min-w-0 items-start justify-between gap-3">
                       <div className="flex min-w-0 flex-col">
-                        <span className="break-words text-sm font-semibold">{group.groupName}</span>
-                        <span className="break-all font-mono text-xs text-muted-foreground">{group.identifier}</span>
+                        <span className="text-sm font-semibold break-words">
+                          {group.groupName}
+                        </span>
+                        <span className="font-mono text-xs break-all text-muted-foreground">
+                          {group.identifier}
+                        </span>
                       </div>
-                      <Badge variant="secondary" className="shrink-0">{group.accessLevel}</Badge>
+                      <Badge variant="secondary" className="shrink-0">
+                        {accessLevelLabels[group.accessLevel] ??
+                          group.accessLevel}
+                      </Badge>
                     </div>
                     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
                       <div className="flex flex-wrap gap-2">
                         <Badge variant="outline">
-                          {principalTypes.find((type) => type.value === group.principalType)?.label}
+                          {
+                            principalTypes.find(
+                              (type) => type.value === group.principalType
+                            )?.label
+                          }
                         </Badge>
-                        <Badge variant="outline">{group.source}</Badge>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Button type="button" variant="ghost" size="icon" onClick={() => beginEdit(group)} aria-label={`Editar ${group.groupName}`}>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => beginEdit(group)}
+                          aria-label={`Editar ${group.groupName}`}
+                        >
                           <PencilIcon />
                         </Button>
-                        <Button type="button" variant="ghost" size="icon" onClick={() => void removeGroup(group.id)} aria-label={`Remover ${group.groupName}`}>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => void removeGroup(group.id)}
+                          aria-label={`Remover ${group.groupName}`}
+                        >
                           <Trash2Icon />
                         </Button>
                       </div>
@@ -324,11 +401,7 @@ export function ProjectAccessGroupsManager({
             )
           })}
         </div>
-      ) : (
-        <p className="text-sm text-muted-foreground">
-          Nenhum grupo ou role associado a esta área.
-        </p>
-      )}
+      ) : null}
     </section>
   )
 }
