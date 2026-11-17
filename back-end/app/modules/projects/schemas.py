@@ -119,3 +119,10 @@ class ProjectAccessGroupsOut(BaseModel):
     projectName: str
     groups: list[AccessGroupOut]
     total: int
+
+
+class ProjectGroupCatalogOut(BaseModel):
+    id: str
+    identifier: str
+    groupName: str
+    principalType: PrincipalType

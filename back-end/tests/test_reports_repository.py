@@ -174,18 +174,24 @@ async def _add_access_group(db, *, group_id: str, identifier: str, name: str, le
     db.add(
         ProjectGroup(
             group_id=group_id,
-            project_id="id-P1",
             identifier=identifier,
             group_name=name,
             principal_type="group",
+            created_at=NOW,
+            updated_at=NOW,
+        )
+    )
+    await db.flush()
+    db.add(
+        ProjectAccessGroup(
+            project_id="id-P1",
+            group_id=group_id,
             access_level=level,
             source="manual",
             created_at=NOW,
             updated_at=NOW,
         )
     )
-    await db.flush()
-    db.add(ProjectAccessGroup(project_id="id-P1", group_id=group_id))
     await db.commit()
 
 

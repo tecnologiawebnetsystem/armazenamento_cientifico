@@ -1,4 +1,4 @@
-from sqlalchemy import String, delete, exists, func, select
+from sqlalchemy import String, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.catalogs.models import ResponsibleArea
@@ -135,30 +135,59 @@ class ProjectRepository:
 
     async def list_access_groups(
         self, project_id: str, access_level: str | None = None
-    ) -> list[ProjectGroup]:
-        """Lista principals do projeto, com filtro opcional por nível."""
+    ) -> list[tuple[ProjectGroup, ProjectAccessGroup]]:
         statement = (
-            select(ProjectGroup)
-            .join(
-                ProjectAccessGroup,
-                (ProjectAccessGroup.project_id == ProjectGroup.project_id)
-                & (ProjectAccessGroup.group_id == ProjectGroup.group_id),
-            )
+            select(ProjectGroup, ProjectAccessGroup)
+            .join(ProjectAccessGroup, ProjectAccessGroup.group_id == ProjectGroup.group_id)
             .where(ProjectAccessGroup.project_id == project_id)
         )
         if access_level:
-            statement = statement.where(ProjectGroup.access_level == access_level)
+            statement = statement.where(ProjectAccessGroup.access_level == access_level)
         statement = statement.order_by(
-            ProjectGroup.access_level,
+            ProjectAccessGroup.access_level,
             ProjectGroup.principal_type,
             ProjectGroup.group_name,
         )
-        return list(await self.session.scalars(statement))
+        return list((await self.session.execute(statement)).all())
 
-    async def find_access_group_by_id(self, group_id: str) -> ProjectGroup | None:
-        return await self.session.scalar(
-            select(ProjectGroup).where(ProjectGroup.group_id == group_id)
+    async def find_access_group_by_id(
+        self, project_id: str, group_id: str
+    ) -> tuple[ProjectGroup, ProjectAccessGroup] | None:
+        result = await self.session.execute(
+            select(ProjectGroup, ProjectAccessGroup)
+            .join(ProjectAccessGroup, ProjectAccessGroup.group_id == ProjectGroup.group_id)
+            .where(
+                ProjectAccessGroup.project_id == project_id,
+                ProjectAccessGroup.group_id == group_id,
+            )
         )
+        return result.one_or_none()
+
+    async def find_catalog_group(
+        self, principal_type: str, identifier: str
+    ) -> ProjectGroup | None:
+        return await self.session.scalar(
+            select(ProjectGroup).where(
+                ProjectGroup.principal_type == principal_type,
+                func.lower(ProjectGroup.identifier) == identifier.strip().casefold(),
+            )
+        )
+
+    async def search_catalog_groups(
+        self, principal_type: str, search: str, limit: int = 12
+    ) -> list[ProjectGroup]:
+        term = f"%{search.strip().casefold()}%"
+        statement = (
+            select(ProjectGroup)
+            .where(
+                ProjectGroup.principal_type == principal_type,
+                (func.lower(ProjectGroup.identifier).like(term))
+                | (func.lower(ProjectGroup.group_name).like(term)),
+            )
+            .order_by(ProjectGroup.group_name, ProjectGroup.identifier)
+            .limit(limit)
+        )
+        return list(await self.session.scalars(statement))
 
     async def add_project_group(self, group: ProjectGroup) -> ProjectGroup:
         self.session.add(group)
@@ -170,11 +199,5 @@ class ProjectRepository:
         await self.session.flush()
         return group
 
-    async def delete_access_group(self, group: ProjectGroup) -> None:
-        await self.session.execute(
-            delete(ProjectAccessGroup).where(
-                ProjectAccessGroup.project_id == group.project_id,
-                ProjectAccessGroup.group_id == group.group_id,
-            )
-        )
-        await self.session.delete(group)
+    async def delete_access_group(self, association: ProjectAccessGroup) -> None:
+        await self.session.delete(association)

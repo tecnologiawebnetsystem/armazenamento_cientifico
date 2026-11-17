@@ -332,6 +332,23 @@ export type ProjectAccessGroupRecord = ProjectAccessGroupInput & {
   updatedAt: string
 }
 
+export type ProjectGroupCatalogRecord = {
+  id: string
+  identifier: string
+  groupName: string
+  principalType: "group" | "role"
+}
+
+export function searchProjectGroupsCatalog(
+  search: string,
+  principalType: "group" | "role"
+) {
+  const params = new URLSearchParams({ search, principalType })
+  return request<ProjectGroupCatalogRecord[]>(
+    `/api/projects/groups/catalog?${params.toString()}`
+  )
+}
+
 export function createProject(data: {
   gruposAcesso: ProjectAccessGroupInput[]
   nome: string

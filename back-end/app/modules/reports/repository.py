@@ -105,25 +105,20 @@ class ReportRepository:
                 select(ProjectGroup.group_name)
                 .join(
                     ProjectAccessGroup,
-                    (ProjectAccessGroup.project_id == ProjectGroup.project_id)
-                    & (ProjectAccessGroup.group_id == ProjectGroup.group_id),
+                    ProjectAccessGroup.group_id == ProjectGroup.group_id,
                 )
-                .where(ProjectGroup.project_id == Project.id)
+                .where(ProjectAccessGroup.project_id == Project.id)
                 .order_by(ProjectGroup.group_name)
                 .limit(1)
                 .scalar_subquery()
                 .label("grupo"),
                 exists().where(
-                    ProjectGroup.project_id == Project.id,
-                    ProjectGroup.access_level == "leitura",
-                    ProjectAccessGroup.project_id == ProjectGroup.project_id,
-                    ProjectAccessGroup.group_id == ProjectGroup.group_id,
+                    ProjectAccessGroup.project_id == Project.id,
+                    ProjectAccessGroup.access_level == "leitura",
                 ).label("hasReadGroup"),
                 exists().where(
-                    ProjectGroup.project_id == Project.id,
-                    ProjectGroup.access_level == "escrita",
-                    ProjectAccessGroup.project_id == ProjectGroup.project_id,
-                    ProjectAccessGroup.group_id == ProjectGroup.group_id,
+                    ProjectAccessGroup.project_id == Project.id,
+                    ProjectAccessGroup.access_level == "escrita",
                 ).label("hasWriteGroup"),
             )
             .select_from(
@@ -134,16 +129,12 @@ class ReportRepository:
             .where(
                 or_(
                     ~exists().where(
-                        ProjectGroup.project_id == Project.id,
-                        ProjectGroup.access_level == "leitura",
-                        ProjectAccessGroup.project_id == ProjectGroup.project_id,
-                        ProjectAccessGroup.group_id == ProjectGroup.group_id,
+                        ProjectAccessGroup.project_id == Project.id,
+                        ProjectAccessGroup.access_level == "leitura",
                     ),
                     ~exists().where(
-                        ProjectGroup.project_id == Project.id,
-                        ProjectGroup.access_level == "escrita",
-                        ProjectAccessGroup.project_id == ProjectGroup.project_id,
-                        ProjectAccessGroup.group_id == ProjectGroup.group_id,
+                        ProjectAccessGroup.project_id == Project.id,
+                        ProjectAccessGroup.access_level == "escrita",
                     ),
                 )
             )

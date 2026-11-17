@@ -10,7 +10,7 @@ from app.api.dependencies import CurrentUser, require_capabilities
 from app.core.authorization import require_capability
 from app.core.exceptions import ConflictException
 from app.db.session import get_session
-from app.modules.projects.models import Project, ProjectGroup
+from app.modules.projects.models import Project, ProjectAccessGroup, ProjectGroup
 from app.modules.projects.repository import ProjectRepository
 from app.modules.projects.schemas import (
     AccessGroupCreate,
@@ -20,6 +20,7 @@ from app.modules.projects.schemas import (
     AccessMapOut,
     ProjectAccessGroupsOut,
     ProjectCreate,
+    ProjectGroupCatalogOut,
     ProjectMemberOut,
     ProjectOut,
     ProjectPatch,
@@ -81,18 +82,20 @@ def serialize_members(rows) -> list[ProjectMemberOut]:
     ]
 
 
-def serialize_access_group(group: ProjectGroup) -> AccessGroupOut:
+def serialize_access_group(
+    principal: ProjectGroup, association: ProjectAccessGroup
+) -> AccessGroupOut:
     return AccessGroupOut(
-        id=group.group_id,
-        projectId=group.project_id,
-        groupName=group.group_name,
-        identifier=group.identifier,
-        groupId=group.identifier,
-        principalType=group.principal_type,
-        accessLevel=group.access_level,
-        source=group.source,
-        createdAt=group.created_at,
-        updatedAt=group.updated_at,
+        id=principal.group_id,
+        projectId=association.project_id,
+        groupName=principal.group_name,
+        identifier=principal.identifier,
+        groupId=principal.identifier,
+        principalType=principal.principal_type,
+        accessLevel=association.access_level,
+        source=association.source,
+        createdAt=association.created_at,
+        updatedAt=association.updated_at,
     )
 
 
@@ -225,12 +228,12 @@ async def get_project_access_map(
     groups = [
         AccessMapGroupOut(
             nome=principal.group_name,
-            fonte=principal.source,
+            fonte=association.source,
             identificadores=[principal.identifier],
-            nivel=principal.access_level,
+            nivel=association.access_level,
             principalType=principal.principal_type,
         )
-        for principal in stored_groups
+        for principal, association in stored_groups
     ]
     gaps = []
     if not any(group.nivel == "leitura" for group in groups):
@@ -283,6 +286,25 @@ async def list_project_members(
 # ── Project Access Groups ─────────────────────────────────────────
 
 
+@router.get("/groups/catalog", response_model=list[ProjectGroupCatalogOut])
+async def search_project_groups_catalog(
+    service: Annotated[ProjectService, Depends(get_service)],
+    _: Annotated[dict, Depends(require_capabilities("access_map"))],
+    search: str = Query(min_length=2, max_length=256),
+    principal_type: str = Query(alias="principalType", pattern="^(group|role)$"),
+):
+    groups = await service.search_catalog_groups(principal_type, search)
+    return [
+        ProjectGroupCatalogOut(
+            id=group.group_id,
+            identifier=group.identifier,
+            groupName=group.group_name,
+            principalType=group.principal_type,
+        )
+        for group in groups
+    ]
+
+
 @router.get("/{project_id}/access-groups", response_model=ProjectAccessGroupsOut)
 async def list_project_access_groups(
     project_id: str,
@@ -303,7 +325,7 @@ async def list_project_access_groups(
     return ProjectAccessGroupsOut(
         projectId=project_id,
         projectName=project.name or "",
-        groups=[serialize_access_group(g) for g in groups],
+        groups=[serialize_access_group(principal, association) for principal, association in groups],
         total=len(groups),
     )
 
@@ -328,7 +350,7 @@ async def create_project_access_group(
         raise project_not_found() from error
     except ConflictException as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
-    return serialize_access_group(group)
+    return serialize_access_group(*group)
 
 
 @router.patch("/{project_id}/access-groups/{access_group_id}", response_model=AccessGroupOut)
@@ -349,7 +371,7 @@ async def update_project_access_group(
         raise HTTPException(status_code=404, detail=str(error)) from error
     except ConflictException as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
-    return serialize_access_group(group)
+    return serialize_access_group(*group)
 
 
 @router.delete("/{project_id}/access-groups/{access_group_id}", status_code=204)

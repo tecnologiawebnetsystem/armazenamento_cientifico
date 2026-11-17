@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import type { ProjectAccessGroupInput } from "@/lib/api-client"
+import { PrincipalIdentifierAutocomplete } from "@/components/projects/principal-identifier-autocomplete"
 
 const principalTypes = [
   { value: "group", label: "Grupo Entra ID" },
@@ -101,24 +102,13 @@ export function AccessGroupsEditor({
             placeholder="Ex.: ARMAZENAMENTO-PESQUISA-READ"
           />
         </Field>
-        <Field>
-          <FieldLabel htmlFor="access-group-id">
-            {principalType === "group"
-              ? "Object ID do Entra ID"
-              : "Identificador do role"}
-          </FieldLabel>
-          <Input
-            id="access-group-id"
-            value={identifier}
-            onChange={(event) => setIdentifier(event.target.value)}
-            placeholder={
-              principalType === "group"
-                ? "Object ID do grupo"
-                : "Chave ou nome estável do role"
-            }
-            maxLength={principalType === "group" ? 36 : 256}
-          />
-        </Field>
+        <PrincipalIdentifierAutocomplete
+          id="access-group-id"
+          principalType={principalType}
+          value={identifier}
+          onChange={setIdentifier}
+          onSelect={setGroupName}
+        />
         <Field>
           <FieldLabel htmlFor="access-group-level">Nível de acesso</FieldLabel>
           <Select

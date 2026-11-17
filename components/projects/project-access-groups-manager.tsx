@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { PrincipalIdentifierAutocomplete } from "@/components/projects/principal-identifier-autocomplete"
 import {
   Select,
   SelectContent,
@@ -154,25 +155,13 @@ export function ProjectAccessGroupsManager({
             required
           />
         </Field>
-        <Field>
-          <FieldLabel htmlFor="managed-group-id">
-            {principalType === "group"
-              ? "Object ID do Entra ID"
-              : "Identificador do role"}
-          </FieldLabel>
-          <Input
-            id="managed-group-id"
-            value={identifier}
-            onChange={(event) => setIdentifier(event.target.value)}
-            placeholder={
-              principalType === "group"
-                ? "Object ID do grupo"
-                : "Chave ou nome estável do role"
-            }
-            maxLength={principalType === "group" ? 36 : 256}
-            required
-          />
-        </Field>
+        <PrincipalIdentifierAutocomplete
+          id="managed-group-id"
+          principalType={principalType}
+          value={identifier}
+          onChange={setIdentifier}
+          onSelect={setGroupName}
+        />
         <Field>
           <FieldLabel htmlFor="managed-group-level">Nível</FieldLabel>
           <Select
@@ -262,7 +251,7 @@ export function ProjectAccessGroupsManager({
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">
-          Nenhum grupo ou role armazenado nesta área.
+          Nenhum grupo ou role associado a esta área.
         </p>
       )}
     </section>
