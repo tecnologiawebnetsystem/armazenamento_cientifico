@@ -57,7 +57,16 @@ def test_project_groups_normalization_keeps_access_level_on_project_groups(
     assert '"project_groups"' in source
     assert '"access_level"' in source
     assert '"project_access_groups"' in source
-    assert script.get_current_head() == "f41a08b790a1"
+    assert script.get_current_head() == "6c20df6eab13"
+
+
+def test_runtime_role_receives_project_group_permissions(script: ScriptDirectory):
+    revision = script.get_revision("6c20df6eab13")
+    source = Path(revision.path).read_text()
+
+    assert "GRANT USAGE ON SCHEMA" in source
+    assert "project_groups TO {runtime_role}" in source
+    assert "project_access_groups TO {runtime_role}" in source
 
 
 @pytest.mark.integration
