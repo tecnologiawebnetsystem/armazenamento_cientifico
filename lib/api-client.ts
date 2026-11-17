@@ -101,8 +101,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     apiUnavailableUntil = Date.now() + API_FAILURE_COOLDOWN_MS
     throw error
   }
-  if (res.status >= 500)
-    apiUnavailableUntil = Date.now() + API_FAILURE_COOLDOWN_MS
   if (!res.ok) {
     const body = (await res
       .json()

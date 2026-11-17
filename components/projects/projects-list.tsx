@@ -82,7 +82,12 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
   const currentPage = Math.max(1, Number(searchParams.get("page") ?? "1") || 1)
   const apiStatus = initialStatus === "suspenso" ? "pausado" : initialStatus
   const { projects, refresh, isLoading } = useProjects({ nome: initialSearch, status: apiStatus, area: initialArea === "todas" ? undefined : initialArea, limit: 500 })
-  const { data: inconsistencyData } = useSWR("project-inconsistencies", () => getInconsistencyReport(), { revalidateOnFocus: false })
+  const [onlyInconsistent, setOnlyInconsistent] = useState(false)
+  const { data: inconsistencyData } = useSWR(
+    onlyInconsistent ? "project-inconsistencies" : null,
+    () => getInconsistencyReport(),
+    { revalidateOnFocus: false, shouldRetryOnError: false },
+  )
   const inconsistentProjectIds = useMemo(() => new Set((inconsistencyData?.inconsistencias ?? []).map((item) => item.projetoId).filter(Boolean)), [inconsistencyData])
   const { areas: catalogAreas } = useCatalogs()
   const { user } = useSession()
@@ -92,7 +97,6 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
   const [sort, setSort] = useState<SortOption>("recentes")
   const [view, setView] = useState<ViewMode>("grade")
   const [showMeta, setShowMeta] = useState(true)
-  const [onlyInconsistent, setOnlyInconsistent] = useState(false)
   const [target, setTarget] = useState<Project | null>(null)
   const [pending, setPending] = useState(false)
 
@@ -225,7 +229,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
         onViewChange={setView}
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"><span aria-live="polite">Exibindo {visibleProjects.length} de {filtered.length} áreas de rede{onlyInconsistent ? " inconsistentes" : ""}</span><div className="flex items-center gap-3"><Button nativeButton variant="ghost" size="sm" onClick={() => { setSearch(""); setStatus("todos"); setArea("todas"); setOnlyInconsistent(false) }} disabled={!search && status === "todos" && area === "todas" && !onlyInconsistent}><XIcon data-icon="inline-start" />Limpar filtros</Button><label className="flex items-center gap-2"><Columns3Icon className="size-4" /><input type="checkbox" checked={showMeta} onChange={(event) => setShowMeta(event.target.checked)} />Mostrar detalhes</label><label className="flex items-center gap-2 font-medium text-amber-800"><input type="checkbox" checked={onlyInconsistent} onChange={(event) => { setOnlyInconsistent(event.target.checked); goToPage(1) }} />Somente inconsistentes <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[11px]">{inconsistentProjectIds.size}</span></label></div></div>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"><span aria-live="polite">Exibindo {visibleProjects.length} de {filtered.length} áreas de rede{onlyInconsistent ? " inconsistentes" : ""}</span><div className="flex items-center gap-3"><Button nativeButton variant="ghost" size="sm" onClick={() => { setSearch(""); setStatus("todos"); setArea("todas"); setOnlyInconsistent(false) }} disabled={!search && status === "todos" && area === "todas" && !onlyInconsistent}><XIcon data-icon="inline-start" />Limpar filtros</Button><label className="flex items-center gap-2"><Columns3Icon className="size-4" /><input type="checkbox" checked={showMeta} onChange={(event) => setShowMeta(event.target.checked)} />Mostrar detalhes</label><label className="flex items-center gap-2 font-medium text-amber-800"><input type="checkbox" checked={onlyInconsistent} onChange={(event) => { setOnlyInconsistent(event.target.checked); goToPage(1) }} />Somente inconsistentes</label></div></div>
 
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
