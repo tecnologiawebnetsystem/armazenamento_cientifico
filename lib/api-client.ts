@@ -400,11 +400,11 @@ export function addProjectAccessGroup(
 export function updateProjectAccessGroup(
   projectId: string,
   groupId: string,
-  accessLevel: string
+  data: Partial<ProjectAccessGroupInput>
 ) {
   return request<ProjectAccessGroupRecord>(
     `/api/projects/${projectId}/access-groups/${groupId}`,
-    { method: "PATCH", body: JSON.stringify({ accessLevel }) }
+    { method: "PATCH", body: JSON.stringify(data) }
   )
 }
 

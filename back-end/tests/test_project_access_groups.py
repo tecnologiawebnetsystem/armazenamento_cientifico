@@ -183,9 +183,17 @@ async def test_project_access_groups_crud_filter_and_project_isolation(client):
     read_group_id = read_response.json()["id"]
     update_response = await http.patch(
         f"/api/projects/{project_a}/access-groups/{read_group_id}",
-        json={"accessLevel": "administrador"},
+        json={
+            "groupName": "Role de leitura atualizado",
+            "identifier": "role-read-updated",
+            "principalType": "role",
+            "accessLevel": "administrador",
+        },
     )
     assert update_response.status_code == 200
+    assert update_response.json()["groupName"] == "Role de leitura atualizado"
+    assert update_response.json()["identifier"] == "role-read-updated"
+    assert update_response.json()["principalType"] == "role"
     assert update_response.json()["accessLevel"] == "administrador"
     assert update_response.json()["createdAt"]
     assert update_response.json()["updatedAt"]

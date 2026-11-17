@@ -92,9 +92,12 @@ class AccessMapOut(BaseModel):
 
 
 class AccessGroupPatch(BaseModel):
-    """Schema para atualizar apenas o nível de acesso de um grupo vinculado."""
+    """Campos editáveis de um principal vinculado ao projeto."""
 
-    accessLevel: AccessLevel
+    groupName: str | None = Field(default=None, min_length=1, max_length=256)
+    identifier: str | None = Field(default=None, min_length=1, max_length=256)
+    principalType: PrincipalType | None = None
+    accessLevel: AccessLevel | None = None
 
 
 class AccessGroupOut(BaseModel):
