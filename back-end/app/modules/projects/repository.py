@@ -1,9 +1,14 @@
-from sqlalchemy import String, exists, func, select
+from sqlalchemy import String, delete, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.catalogs.models import ResponsibleArea
 from app.modules.folders.models import Folder
-from app.modules.projects.models import Project, ProjectAccessGroup, ProjectMember
+from app.modules.projects.models import (
+    Project,
+    ProjectAccessGroup,
+    ProjectGroup,
+    ProjectMember,
+)
 from app.modules.users.models import User
 
 
@@ -128,21 +133,48 @@ class ProjectRepository:
 
 # ── ProjectAccessGroup ────────────────────────────────────────────
 
-    async def list_access_groups(self, project_id: str, access_level: str | None = None) -> list[ProjectAccessGroup]:
-        """Lista grupos do projeto, com filtro opcional por nível de acesso."""
-        stmt = select(ProjectAccessGroup).where(ProjectAccessGroup.project_id == project_id)
+    async def list_access_groups(
+        self, project_id: str, access_level: str | None = None
+    ) -> list[ProjectGroup]:
+        """Lista principals do projeto, com filtro opcional por nível."""
+        statement = (
+            select(ProjectGroup)
+            .join(
+                ProjectAccessGroup,
+                (ProjectAccessGroup.project_id == ProjectGroup.project_id)
+                & (ProjectAccessGroup.group_id == ProjectGroup.group_id),
+            )
+            .where(ProjectAccessGroup.project_id == project_id)
+        )
         if access_level:
-            stmt = stmt.where(ProjectAccessGroup.access_level == access_level)
-        stmt = stmt.order_by(ProjectAccessGroup.access_level, ProjectAccessGroup.group_name)
-        return list(await self.session.scalars(stmt))
+            statement = statement.where(ProjectGroup.access_level == access_level)
+        statement = statement.order_by(
+            ProjectGroup.access_level,
+            ProjectGroup.principal_type,
+            ProjectGroup.group_name,
+        )
+        return list(await self.session.scalars(statement))
 
-    async def find_access_group_by_id(self, group_id: str) -> ProjectAccessGroup | None:
-        return await self.session.scalar(select(ProjectAccessGroup).where(ProjectAccessGroup.id == group_id))
+    async def find_access_group_by_id(self, group_id: str) -> ProjectGroup | None:
+        return await self.session.scalar(
+            select(ProjectGroup).where(ProjectGroup.group_id == group_id)
+        )
+
+    async def add_project_group(self, group: ProjectGroup) -> ProjectGroup:
+        self.session.add(group)
+        await self.session.flush()
+        return group
 
     async def add_access_group(self, group: ProjectAccessGroup) -> ProjectAccessGroup:
         self.session.add(group)
         await self.session.flush()
         return group
 
-    async def delete_access_group(self, group: ProjectAccessGroup) -> None:
+    async def delete_access_group(self, group: ProjectGroup) -> None:
+        await self.session.execute(
+            delete(ProjectAccessGroup).where(
+                ProjectAccessGroup.project_id == group.project_id,
+                ProjectAccessGroup.group_id == group.group_id,
+            )
+        )
         await self.session.delete(group)

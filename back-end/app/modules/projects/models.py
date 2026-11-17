@@ -1,6 +1,15 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, String, Text
+from sqlalchemy import (
+    JSON,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    ForeignKeyConstraint,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -39,16 +48,52 @@ class ProjectMember(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
-class ProjectAccessGroup(Base):
-    """Grupo/perfil do Entra ID associado a um projeto, com nível de acesso categorizado."""
+class ProjectGroup(Base):
+    """Principal de acesso e nível atribuído dentro de um projeto."""
 
-    __tablename__ = "project_access_groups"
+    __tablename__ = "project_groups"
+    __table_args__ = (
+        CheckConstraint(
+            "principal_type IN ('group', 'role')",
+            name="ck_project_groups_principal_type",
+        ),
+        UniqueConstraint(
+            "project_id",
+            "principal_type",
+            "identifier",
+            "access_level",
+            name="uq_project_groups_project_principal_level",
+        ),
+        UniqueConstraint(
+            "project_id", "group_id", name="uq_project_groups_project_group"
+        ),
+    )
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True, nullable=False)
+    group_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    identifier: Mapped[str] = mapped_column(String(256), nullable=False)
     group_name: Mapped[str] = mapped_column(String(256), nullable=False)
-    group_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    principal_type: Mapped[str] = mapped_column(String(20), nullable=False)
     access_level: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
-    source: Mapped[str] = mapped_column(String(20), default="manual")
+    source: Mapped[str] = mapped_column(String(20), default="manual", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ProjectAccessGroup(Base):
+    """Vínculo entre um projeto e um principal normalizado."""
+
+    __tablename__ = "project_access_groups"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["project_id", "group_id"],
+            ["project_groups.project_id", "project_groups.group_id"],
+            ondelete="CASCADE",
+            name="fk_project_access_groups_project_group",
+        ),
+    )
+
+    project_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    group_id: Mapped[str] = mapped_column(String(36), primary_key=True)

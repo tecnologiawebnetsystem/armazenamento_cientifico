@@ -271,7 +271,7 @@ export interface AccessMapRow {
   projectStatus: ProjectStatus
   resourceId: string
   resourceName: string
-  resourceType: "pasta" | "arquivo" | "grupo"
+  resourceType: "pasta" | "arquivo" | "grupo" | "role"
   accessLevel: ProjectMemberRole | string
   lastViewedAt: string
 }
@@ -281,6 +281,7 @@ export interface ProjectAccessMapGroup {
   fonte: string
   identificadores: string[]
   nivel: string
+  principalType: "group" | "role"
 }
 
 export interface ProjectAccessMapResponse {

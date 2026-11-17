@@ -10,7 +10,7 @@ from app.api.dependencies import CurrentUser, require_capabilities
 from app.core.authorization import require_capability
 from app.core.exceptions import ConflictException
 from app.db.session import get_session
-from app.modules.projects.models import Project, ProjectAccessGroup
+from app.modules.projects.models import Project, ProjectGroup
 from app.modules.projects.repository import ProjectRepository
 from app.modules.projects.schemas import (
     AccessGroupCreate,
@@ -81,12 +81,14 @@ def serialize_members(rows) -> list[ProjectMemberOut]:
     ]
 
 
-def serialize_access_group(group: ProjectAccessGroup) -> AccessGroupOut:
+def serialize_access_group(group: ProjectGroup) -> AccessGroupOut:
     return AccessGroupOut(
-        id=group.id,
+        id=group.group_id,
         projectId=group.project_id,
         groupName=group.group_name,
-        groupId=group.group_id,
+        identifier=group.identifier,
+        groupId=group.identifier,
+        principalType=group.principal_type,
         accessLevel=group.access_level,
         source=group.source,
         createdAt=group.created_at,
@@ -222,30 +224,15 @@ async def get_project_access_map(
     stored_groups = await service.list_access_groups(project_id)
     groups = [
         AccessMapGroupOut(
-            nome=group.group_name,
-            fonte=group.source,
-            identificadores=[group.group_id],
-            nivel=group.access_level,
+            nome=principal.group_name,
+            fonte=principal.source,
+            identificadores=[principal.identifier],
+            nivel=principal.access_level,
+            principalType=principal.principal_type,
         )
-        for group in stored_groups
+        for principal in stored_groups
     ]
     gaps = []
-    if not any(group.nivel == "leitura" for group in groups) and project.read_group:
-        groups.extend(
-            AccessMapGroupOut(
-                nome=name.strip(), fonte="legado", identificadores=[name.strip()], nivel="leitura"
-            )
-            for name in project.read_group.split(",")
-            if name.strip()
-        )
-    if not any(group.nivel == "escrita" for group in groups) and project.write_group:
-        groups.extend(
-            AccessMapGroupOut(
-                nome=name.strip(), fonte="legado", identificadores=[name.strip()], nivel="escrita"
-            )
-            for name in project.write_group.split(",")
-            if name.strip()
-        )
     if not any(group.nivel == "leitura" for group in groups):
         gaps.append("grupo de leitura não configurado")
     if not any(group.nivel == "escrita" for group in groups):
@@ -339,6 +326,8 @@ async def create_project_access_group(
         group = await service.create_access_group(project_id, data)
     except LookupError as error:
         raise project_not_found() from error
+    except ConflictException as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
     return serialize_access_group(group)
 
 
@@ -358,6 +347,8 @@ async def update_project_access_group(
         group = await service.update_access_group(project_id, access_group_id, data)
     except LookupError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+    except ConflictException as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
     return serialize_access_group(group)
 
 
