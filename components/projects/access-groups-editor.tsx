@@ -102,6 +102,7 @@ export function AccessGroupsEditor({
           value={identifier}
           onChange={setIdentifier}
           onSelect={setGroupName}
+          required={false}
         />
         <Field>
           <FieldLabel htmlFor="access-group-name">

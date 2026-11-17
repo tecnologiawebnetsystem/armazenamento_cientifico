@@ -11,12 +11,14 @@ export function PrincipalIdentifierAutocomplete({
   value,
   onChange,
   onSelect,
+  required = true,
 }: {
   id: string
   principalType: "group" | "role"
   value: string
   onChange: (value: string) => void
   onSelect: (groupName: string) => void
+  required?: boolean
 }) {
   const query = value.trim()
   const { data } = useSWR(
@@ -50,7 +52,7 @@ export function PrincipalIdentifierAutocomplete({
         placeholder="Busque por nome ou informe o identificador"
         list={`${id}-suggestions`}
         maxLength={256}
-        required
+        required={required}
         autoComplete="off"
       />
       <datalist id={`${id}-suggestions`}>
