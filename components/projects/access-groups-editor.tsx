@@ -18,8 +18,8 @@ import type { ProjectAccessGroupInput } from "@/lib/api-client"
 import { PrincipalIdentifierAutocomplete } from "@/components/projects/principal-identifier-autocomplete"
 
 const principalTypes = [
-  { value: "group", label: "Grupo Entra ID" },
-  { value: "role", label: "Role" },
+  { value: "group", label: "Grupo do Entra ID" },
+  { value: "role", label: "Papel de identidade" },
 ] as const
 
 const accessLevels = [
@@ -78,7 +78,12 @@ export function AccessGroupsEditor({
             }
           >
             <SelectTrigger id="access-principal-type">
-              <SelectValue />
+              <SelectValue>
+                {
+                  principalTypes.find((type) => type.value === principalType)
+                    ?.label
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
@@ -93,7 +98,7 @@ export function AccessGroupsEditor({
         </Field>
         <Field>
           <FieldLabel htmlFor="access-group-name">
-            Nome do {principalType === "group" ? "grupo" : "role"}
+            Nome do {principalType === "group" ? "grupo" : "papel"}
           </FieldLabel>
           <Input
             id="access-group-name"
@@ -116,7 +121,12 @@ export function AccessGroupsEditor({
             onValueChange={(next) => setAccessLevel(next ?? "leitura")}
           >
             <SelectTrigger id="access-group-level">
-              <SelectValue />
+              <SelectValue>
+                {
+                  accessLevels.find((level) => level.value === accessLevel)
+                    ?.label
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
@@ -140,11 +150,14 @@ export function AccessGroupsEditor({
         </Button>
       </div>
       <FieldDescription>
-        Cadastre cada grupo ou role separadamente. O identificador externo
-        distingue principals com nomes semelhantes.
+        Cadastre cada grupo ou papel separadamente. O identificador externo
+        diferencia grupos e papéis com nomes semelhantes.
       </FieldDescription>
       {value.length > 0 ? (
-        <div className="flex flex-col gap-2" aria-label="Principals cadastrados">
+        <div
+          className="flex flex-col gap-2"
+          aria-label="Grupos e papéis cadastrados"
+        >
           {value.map((group) => (
             <div
               key={`${group.principalType}-${group.identifier}-${group.accessLevel}`}
@@ -160,9 +173,11 @@ export function AccessGroupsEditor({
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="outline">
-                  {principalTypes.find(
-                    (type) => type.value === group.principalType
-                  )?.label}
+                  {
+                    principalTypes.find(
+                      (type) => type.value === group.principalType
+                    )?.label
+                  }
                 </Badge>
                 <Badge variant="secondary">
                   {accessLevels.find(
@@ -183,7 +198,7 @@ export function AccessGroupsEditor({
                       )
                     )
                   }
-                  aria-label={`Remover ${group.principalType === "group" ? "grupo" : "role"} ${group.groupName}`}
+                  aria-label={`Remover ${group.principalType === "group" ? "grupo" : "papel"} ${group.groupName}`}
                 >
                   <XIcon />
                 </Button>
@@ -193,7 +208,7 @@ export function AccessGroupsEditor({
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">
-          Nenhum grupo ou role de acesso adicionado.
+          Nenhum grupo ou papel de acesso adicionado.
         </p>
       )}
     </div>

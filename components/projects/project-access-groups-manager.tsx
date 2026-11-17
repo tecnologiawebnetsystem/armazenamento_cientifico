@@ -39,7 +39,7 @@ const accessLevelLabels: Record<string, string> = {
 }
 const principalTypes = [
   { value: "group", label: "Grupo do Entra ID" },
-  { value: "role", label: "Role da aplicação" },
+  { value: "role", label: "Papel da aplicação" },
 ] as const
 
 export function ProjectAccessGroupsManager({
@@ -113,7 +113,7 @@ export function ProjectAccessGroupsManager({
       setEditingId(null)
       setDraft(null)
       await refreshGroups()
-      toast.success("Grupo ou role atualizado.")
+      toast.success("Grupo ou papel atualizado.")
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -146,10 +146,10 @@ export function ProjectAccessGroupsManager({
     >
       <div>
         <h3 id="project-access-groups-title" className="font-semibold">
-          Gerenciar grupos e roles
+          Gerenciar grupos e papéis
         </h3>
         <p className="text-sm text-muted-foreground">
-          Adicione um grupo ou role e defina o nível de acesso.
+          Adicione um grupo ou papel e defina o nível de acesso.
         </p>
       </div>
       <form
@@ -167,7 +167,12 @@ export function ProjectAccessGroupsManager({
             }
           >
             <SelectTrigger id="managed-principal-type">
-              <SelectValue />
+              <SelectValue>
+                {
+                  principalTypes.find((type) => type.value === principalType)
+                    ?.label
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
@@ -208,7 +213,9 @@ export function ProjectAccessGroupsManager({
             onValueChange={(value) => setAccessLevel(value ?? "leitura")}
           >
             <SelectTrigger id="managed-group-level">
-              <SelectValue />
+              <SelectValue>
+                {accessLevelLabels[accessLevel] ?? accessLevel}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
@@ -260,7 +267,13 @@ export function ProjectAccessGroupsManager({
                         }
                       >
                         <SelectTrigger id={`edit-type-${group.id}`}>
-                          <SelectValue />
+                          <SelectValue>
+                            {
+                              principalTypes.find(
+                                (type) => type.value === draft.principalType
+                              )?.label
+                            }
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
@@ -308,7 +321,10 @@ export function ProjectAccessGroupsManager({
                         }
                       >
                         <SelectTrigger id={`edit-level-${group.id}`}>
-                          <SelectValue />
+                          <SelectValue>
+                            {accessLevelLabels[draft.accessLevel] ??
+                              draft.accessLevel}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>

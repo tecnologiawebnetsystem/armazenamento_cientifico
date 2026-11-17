@@ -132,7 +132,7 @@ export function ProjectMembersTab({
                       </div>
                       <div className="flex shrink-0 flex-wrap justify-end gap-2">
                         <Badge variant="outline">
-                          {group.principalType === "role" ? "Role" : "Grupo"}
+                          {group.principalType === "role" ? "Papel" : "Grupo"}
                         </Badge>
                         <Badge variant="secondary">{group.nivel}</Badge>
                       </div>
