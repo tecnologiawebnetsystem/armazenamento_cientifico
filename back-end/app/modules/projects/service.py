@@ -37,15 +37,36 @@ class ProjectService:
         now = datetime.now(UTC).replace(tzinfo=None)
         area.updated_at = now
         project = Project(
-            id=str(uuid4()), name=data.nome, code=generated_code,
-            responsible_area=data.areaResponsavel, managers_ids=data.gestoresIds,
-            description=data.descricao, status=data.status,
-            participants_ids=data.participantesIds, write_group=data.grupoAdEscrita,
-            read_group=data.grupoAdLeitura, write_identity_role=data.roleIdentidadeEscrita,
-            read_identity_role=data.roleIdentidadeLeitura, snow_task_number=data.numeroTarefaSnow,
-            parent_folder=data.pastaMae, created_at=now, updated_at=now,
+            id=str(uuid4()),
+            name=data.nome,
+            code=generated_code,
+            responsible_area=data.areaResponsavel,
+            managers_ids=data.gestoresIds,
+            description=data.descricao,
+            status=data.status,
+            participants_ids=data.participantesIds,
+            write_group=data.grupoAdEscrita,
+            read_group=data.grupoAdLeitura,
+            write_identity_role=data.roleIdentidadeEscrita,
+            read_identity_role=data.roleIdentidadeLeitura,
+            snow_task_number=data.numeroTarefaSnow,
+            parent_folder=data.pastaMae,
+            created_at=now,
+            updated_at=now,
         )
         await self.repository.add(project)
+        for group_data in data.gruposAcesso:
+            project_group = ProjectAccessGroup(
+                id=str(uuid4()),
+                project_id=project.id,
+                group_name=group_data.groupName,
+                group_id=group_data.groupId,
+                access_level=group_data.accessLevel,
+                source="manual",
+                created_at=now,
+                updated_at=now,
+            )
+            await self.repository.add_access_group(project_group)
         await self.repository.commit()
         return project
 
@@ -54,10 +75,13 @@ class ProjectService:
         if not project:
             raise LookupError("Projeto não encontrado")
         values = {
-            "name": data.nome, "responsible_area": data.areaResponsavel,
+            "name": data.nome,
+            "responsible_area": data.areaResponsavel,
             "parent_folder": data.pastaMae,
-            "description": data.descricao, "status": data.status,
-            "write_group": data.grupoAdEscrita, "read_group": data.grupoAdLeitura,
+            "description": data.descricao,
+            "status": data.status,
+            "write_group": data.grupoAdEscrita,
+            "read_group": data.grupoAdLeitura,
             "write_identity_role": data.roleIdentidadeEscrita,
             "read_identity_role": data.roleIdentidadeLeitura,
         }
@@ -93,10 +117,14 @@ class ProjectService:
 
     # ── ProjectAccessGroup ───────────────────────────────────────────
 
-    async def list_access_groups(self, project_id: str, access_level: str | None = None) -> list[ProjectAccessGroup]:
+    async def list_access_groups(
+        self, project_id: str, access_level: str | None = None
+    ) -> list[ProjectAccessGroup]:
         return await self.repository.list_access_groups(project_id, access_level)
 
-    async def create_access_group(self, project_id: str, data: AccessGroupCreate) -> ProjectAccessGroup:
+    async def create_access_group(
+        self, project_id: str, data: AccessGroupCreate
+    ) -> ProjectAccessGroup:
         project = await self.repository.find_by_id(project_id)
         if not project:
             raise LookupError("Projeto não encontrado")
@@ -115,7 +143,9 @@ class ProjectService:
         await self.repository.commit()
         return group
 
-    async def update_access_group(self, project_id: str, access_group_id: str, data: AccessGroupPatch) -> ProjectAccessGroup:
+    async def update_access_group(
+        self, project_id: str, access_group_id: str, data: AccessGroupPatch
+    ) -> ProjectAccessGroup:
         group = await self.repository.find_access_group_by_id(access_group_id)
         if not group or group.project_id != project_id:
             raise LookupError("Grupo de acesso não encontrado neste projeto")

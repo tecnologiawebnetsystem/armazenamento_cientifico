@@ -6,8 +6,17 @@ from pydantic import BaseModel, Field
 ProjectStatus = Literal["ativo", "em_implantacao", "pausado", "encerrado"]
 
 
+class AccessGroupCreate(BaseModel):
+    """Schema para criar/associar um grupo a um projeto."""
+
+    groupName: str = Field(min_length=1, max_length=256)
+    groupId: str = Field(min_length=1, max_length=36)
+    accessLevel: str = Field(min_length=1, max_length=40)
+
+
 class ProjectCreate(BaseModel):
     nome: str = Field(min_length=2, max_length=200)
+    gruposAcesso: list["AccessGroupCreate"] = Field(default_factory=list)
     codigo: str | None = Field(default=None, max_length=50)
     areaResponsavel: str = Field(min_length=1, max_length=160)
     gestoresIds: list[str] = Field(default_factory=list)
@@ -76,20 +85,15 @@ class AccessMapOut(BaseModel):
     gaps: list[str] = Field(default_factory=list)
 
 
-class AccessGroupCreate(BaseModel):
-    """Schema para criar/associar um grupo a um projeto."""
-    groupName: str = Field(min_length=1, max_length=256)
-    groupId: str = Field(min_length=1, max_length=36)
-    accessLevel: str = Field(min_length=1, max_length=40)
-
-
 class AccessGroupPatch(BaseModel):
     """Schema para atualizar apenas o nível de acesso de um grupo vinculado."""
+
     accessLevel: str = Field(min_length=1, max_length=40)
 
 
 class AccessGroupOut(BaseModel):
     """Schema de saída para um grupo de acesso vinculado ao projeto."""
+
     id: str
     projectId: str
     groupName: str
@@ -102,6 +106,7 @@ class AccessGroupOut(BaseModel):
 
 class ProjectAccessGroupsOut(BaseModel):
     """Resposta paginada com grupos de acesso de um projeto."""
+
     projectId: str
     projectName: str
     groups: list[AccessGroupOut]

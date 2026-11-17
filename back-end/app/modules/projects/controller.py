@@ -34,14 +34,26 @@ def get_service(session: Annotated[AsyncSession, Depends(get_session)]) -> Proje
     return ProjectService(ProjectRepository(session))
 
 
-def serialize_project(project: Project, responsaveis: list[str] | None = None, area_nome: str | None = None, armazenamento_bytes: int = 0) -> ProjectOut:
+def serialize_project(
+    project: Project,
+    responsaveis: list[str] | None = None,
+    area_nome: str | None = None,
+    armazenamento_bytes: int = 0,
+) -> ProjectOut:
     return ProjectOut(
-        id=project.id, nome=project.name or "", codigo=project.code or "",
-        areaResponsavel=area_nome or project.responsible_area or "", descricao=project.description or "",
-        status=project.status or "ativo", gestoresIds=project.managers_ids or [],
-        responsaveis=responsaveis or [],         participantesIds=project.participants_ids or [],
-        criadoEm=project.created_at or datetime.now(UTC).replace(tzinfo=None), atualizadoEm=project.updated_at or datetime.now(UTC).replace(tzinfo=None),
-        pastaMae=project.parent_folder or "", armazenamentoUsadoMb=round(armazenamento_bytes / (1024 * 1024), 2),
+        id=project.id,
+        nome=project.name or "",
+        codigo=project.code or "",
+        areaResponsavel=area_nome or project.responsible_area or "",
+        descricao=project.description or "",
+        status=project.status or "ativo",
+        gestoresIds=project.managers_ids or [],
+        responsaveis=responsaveis or [],
+        participantesIds=project.participants_ids or [],
+        criadoEm=project.created_at or datetime.now(UTC).replace(tzinfo=None),
+        atualizadoEm=project.updated_at or datetime.now(UTC).replace(tzinfo=None),
+        pastaMae=project.parent_folder or "",
+        armazenamentoUsadoMb=round(armazenamento_bytes / (1024 * 1024), 2),
     )
 
 
@@ -59,7 +71,8 @@ def project_not_found() -> HTTPException:
 def serialize_members(rows) -> list[ProjectMemberOut]:
     return [
         ProjectMemberOut(
-            projectId=member.project_id, userId=member.user_id,
+            projectId=member.project_id,
+            userId=member.user_id,
             papel=member.role,
             adicionadoEm=member.created_at,
             user={"id": user.id, "userId": user.user_id, "perfilId": user.profile_id},
@@ -70,15 +83,21 @@ def serialize_members(rows) -> list[ProjectMemberOut]:
 
 def serialize_access_group(group: ProjectAccessGroup) -> AccessGroupOut:
     return AccessGroupOut(
-        id=group.id, projectId=group.project_id,
-        groupName=group.group_name, groupId=group.group_id,
-        accessLevel=group.access_level, source=group.source,
-        createdAt=group.created_at, updatedAt=group.updated_at,
+        id=group.id,
+        projectId=group.project_id,
+        groupName=group.group_name,
+        groupId=group.group_id,
+        accessLevel=group.access_level,
+        source=group.source,
+        createdAt=group.created_at,
+        updatedAt=group.updated_at,
     )
 
 
 @router.get("", response_model=dict)
-async def list_projects(service: Annotated[ProjectService, Depends(get_service)], user: CurrentUser):
+async def list_projects(
+    service: Annotated[ProjectService, Depends(get_service)], user: CurrentUser
+):
     role = user["role"] or "solicitante"
     projects = await service.list_projects(str(user.get("user_id") or user["id"]), str(role))
     areas = {area.id: area.name for area in await service.list_areas()}
@@ -124,7 +143,9 @@ async def update_project(
         raise project_not_found() from error
     except SQLAlchemyError as error:
         logger.exception("project_status_update_failed project_id=%s", project_id)
-        raise HTTPException(status_code=409, detail="Não foi possível atualizar a área de rede no banco de dados") from error
+        raise HTTPException(
+            status_code=409, detail="Não foi possível atualizar a área de rede no banco de dados"
+        ) from error
     return {"project": serialize_project(project)}
 
 
@@ -144,11 +165,23 @@ async def list_responsible_areas(
     _: Annotated[dict, Depends(require_capabilities("read"))],
 ):
     areas = await service.list_areas()
-    return {"areas": [{"id": area.id, "nome": area.name, "prefixo": area.prefix, "proximoCodigo": area.preview_code()} for area in areas]}
+    return {
+        "areas": [
+            {
+                "id": area.id,
+                "nome": area.name,
+                "prefixo": area.prefix,
+                "proximoCodigo": area.preview_code(),
+            }
+            for area in areas
+        ]
+    }
 
 
 @router.get("/{project_id}", response_model=dict)
-async def get_project(project_id: str, service: Annotated[ProjectService, Depends(get_service)], user: CurrentUser):
+async def get_project(
+    project_id: str, service: Annotated[ProjectService, Depends(get_service)], user: CurrentUser
+):
     project = await service.get_project(project_id)
     if not project:
         raise project_not_found()
@@ -183,22 +216,53 @@ async def get_project_access_map(
     try:
         members = serialize_members(await service.list_members(project_id))
     except (SQLAlchemyError, OSError, TimeoutError) as error:
-        raise HTTPException(status_code=502, detail="Falha ao consultar a fonte de acessos") from error
-    groups, gaps = [], []
-    if project.read_group:
-        groups.append(AccessMapGroupOut(nome=project.read_group, fonte="projeto", identificadores=[project.read_group], nivel="leitura"))
-    else:
+        raise HTTPException(
+            status_code=502, detail="Falha ao consultar a fonte de acessos"
+        ) from error
+    stored_groups = await service.list_access_groups(project_id)
+    groups = [
+        AccessMapGroupOut(
+            nome=group.group_name,
+            fonte=group.source,
+            identificadores=[group.group_id],
+            nivel=group.access_level,
+        )
+        for group in stored_groups
+    ]
+    gaps = []
+    if not any(group.nivel == "leitura" for group in groups) and project.read_group:
+        groups.extend(
+            AccessMapGroupOut(
+                nome=name.strip(), fonte="legado", identificadores=[name.strip()], nivel="leitura"
+            )
+            for name in project.read_group.split(",")
+            if name.strip()
+        )
+    if not any(group.nivel == "escrita" for group in groups) and project.write_group:
+        groups.extend(
+            AccessMapGroupOut(
+                nome=name.strip(), fonte="legado", identificadores=[name.strip()], nivel="escrita"
+            )
+            for name in project.write_group.split(",")
+            if name.strip()
+        )
+    if not any(group.nivel == "leitura" for group in groups):
         gaps.append("grupo de leitura não configurado")
-    if project.write_group:
-        groups.append(AccessMapGroupOut(nome=project.write_group, fonte="projeto", identificadores=[project.write_group], nivel="escrita"))
-    else:
+    if not any(group.nivel == "escrita" for group in groups):
         gaps.append("grupo de escrita não configurado")
     if not members:
         gaps.append("projeto sem membros vinculados")
     areas = {area.id: area.name for area in await service.list_areas()}
     return AccessMapOut(
-        project=serialize_project(project, await responsible_names(service, project), areas.get(project.responsible_area)), projectId=project.id, groups=groups,
-        members=members, source="database", consultedAt=datetime.now(UTC), gaps=gaps,
+        project=serialize_project(
+            project, await responsible_names(service, project), areas.get(project.responsible_area)
+        ),
+        projectId=project.id,
+        groups=groups,
+        members=members,
+        source="database",
+        consultedAt=datetime.now(UTC),
+        gaps=gaps,
     )
 
 
@@ -222,19 +286,24 @@ async def list_project_members(
     service: Annotated[ProjectService, Depends(get_service)],
     user: Annotated[dict, Depends(require_capabilities("access_map"))],
 ):
-    if not await service.can_view(project_id, str(user.get("user_id") or user["id"]), str(user.get("role") or "")):
+    if not await service.can_view(
+        project_id, str(user.get("user_id") or user["id"]), str(user.get("role") or "")
+    ):
         raise HTTPException(status_code=403, detail="Sem acesso a esta área de rede")
     return serialize_members(await service.list_members(project_id))
 
 
 # ── Project Access Groups ─────────────────────────────────────────
 
+
 @router.get("/{project_id}/access-groups", response_model=ProjectAccessGroupsOut)
 async def list_project_access_groups(
     project_id: str,
     service: Annotated[ProjectService, Depends(get_service)],
     user: CurrentUser,
-    access_level: str | None = Query(None, alias="nivel", description="Filtrar por nível: leitura, escrita, administrador, etc."),
+    access_level: str | None = Query(
+        None, alias="nivel", description="Filtrar por nível: leitura, escrita, administrador, etc."
+    ),
 ):
     """Lista os grupos de acesso vinculados ao projeto, com filtro opcional por nível."""
     project = await service.get_project(project_id)
@@ -245,8 +314,10 @@ async def list_project_access_groups(
         raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
     groups = await service.list_access_groups(project_id, access_level)
     return ProjectAccessGroupsOut(
-        projectId=project_id, projectName=project.name or "",
-        groups=[serialize_access_group(g) for g in groups], total=len(groups),
+        projectId=project_id,
+        projectName=project.name or "",
+        groups=[serialize_access_group(g) for g in groups],
+        total=len(groups),
     )
 
 

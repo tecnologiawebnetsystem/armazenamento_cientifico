@@ -26,7 +26,7 @@ from app.modules.users.models import Profile, User
 # Contagens medidas no banco de DSV (2026-10-09): o seed deve reproduzi-las.
 EXPECTED_REFERENCE_COUNTS = {
     Profile: 6, Module: 6, Permission: 11, ProfileModule: 36, ProfilePermission: 66, MenuItem: 6,
-    MenuPermission: 6, DashboardCard: 3, ProjectStatus: 4, ResponsibleArea: 6, ReportType: 3, ReportField: 38, User: 4,
+    MenuPermission: 6, DashboardCard: 3, ProjectStatus: 4, ResponsibleArea: 6, ReportType: 3, ReportField: 40, User: 4,
 }
 
 

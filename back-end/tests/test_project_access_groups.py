@@ -192,6 +192,28 @@ async def test_project_access_groups_crud_filter_and_project_isolation(client):
     assert delete_response.status_code == 204
 
 
+async def test_access_map_reads_groups_from_project_access_groups(client):
+    http, _user, project_ids = client
+    project_id = project_ids["a"]
+    response = await http.post(
+        f"/api/projects/{project_id}/access-groups",
+        json={
+            "groupName": "Grupo leitura principal",
+            "groupId": "entra-group-read",
+            "accessLevel": "leitura",
+        },
+    )
+    assert response.status_code == 201
+
+    access_map = await http.get(f"/api/projects/{project_id}/access-map")
+    assert access_map.status_code == 200
+    assert any(
+        group["nome"] == "Grupo leitura principal" and group["nivel"] == "leitura"
+        for group in access_map.json()["groups"]
+    )
+    assert "grupo de leitura não configurado" not in access_map.json()["gaps"]
+
+
 async def test_project_access_group_creation_requires_project_scope(client):
     http, user, project_ids = client
     user.update({"role": "solicitante"})

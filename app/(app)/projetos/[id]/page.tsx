@@ -11,7 +11,11 @@ import { useProject } from "@/hooks/use-project"
 import { useSession } from "@/hooks/use-session"
 import { PageHeader, PageLayout } from "@/components/shared/page-layout"
 
-export default function ProjetoDetalhePage({ params }: { params: Promise<{ id: string }> }) {
+export default function ProjetoDetalhePage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
   const { id } = use(params)
   const router = useRouter()
   const { user, isLoading: sessionLoading } = useSession()
@@ -33,7 +37,7 @@ export default function ProjetoDetalhePage({ params }: { params: Promise<{ id: s
     <PageLayout>
       <Link
         href="/projetos"
-        className="mb-4 inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-petrobras-green/50"
+        className="mb-4 inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-petrobras-green/50 focus-visible:outline-none"
       >
         <ArrowLeft aria-hidden="true" className="size-4" />
         Voltar para Áreas de Rede
@@ -44,7 +48,11 @@ export default function ProjetoDetalhePage({ params }: { params: Promise<{ id: s
         description={project.areaResponsavel}
         actions={<ProjectStatusBadge status={project.status} />}
       />
-      <ProjectDetailTabs projectId={id} initialProject={project} canManageMembers={false} />
+      <ProjectDetailTabs
+        projectId={id}
+        initialProject={project}
+        canManageMembers={user.role === "admin" || user.role === "gerente"}
+      />
     </PageLayout>
   )
 }

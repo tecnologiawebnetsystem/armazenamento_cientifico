@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 import app.db.models  # noqa: F401
 from app.db.base import Base
 from app.modules.catalogs.models import ReportField, ReportType
-from app.modules.projects.models import Project
+from app.modules.projects.models import Project, ProjectAccessGroup
 from app.modules.reports.repository import ReportRepository
 from app.modules.reports.service import ReportService
 
@@ -17,8 +17,14 @@ NOW = datetime.now(UTC)
 
 def project(code: str, name: str, status: str, area: str) -> Project:
     return Project(
-        id=f"id-{code}", name=name, code=code, responsible_area=area, status=status,
-        description=f"desc {code}", created_at=NOW, updated_at=NOW,
+        id=f"id-{code}",
+        name=name,
+        code=code,
+        responsible_area=area,
+        status=status,
+        description=f"desc {code}",
+        created_at=NOW,
+        updated_at=NOW,
     )
 
 
@@ -36,21 +42,79 @@ async def db():
         await connection.run_sync(Base.metadata.create_all)
     maker = async_sessionmaker(engine, expire_on_commit=False)
     async with maker() as session:
-        session.add_all([
-            ReportType(id="projetos", code="projetos", name="Projetos", description="", formats="csv", active=True),
-            ReportType(id="acessos", code="acessos", name="Acessos", description="", formats="csv", active=True),
-        ])
+        session.add_all(
+            [
+                ReportType(
+                    id="projetos",
+                    code="projetos",
+                    name="Projetos",
+                    description="",
+                    formats="csv",
+                    active=True,
+                ),
+                ReportType(
+                    id="acessos",
+                    code="acessos",
+                    name="Acessos",
+                    description="",
+                    formats="csv",
+                    active=True,
+                ),
+            ]
+        )
         await session.flush()
-        session.add_all([
-            ReportField(id="p-b", report_code="projetos", field_key="b", label="B", source_key="b", display_order=20, active=True),
-            ReportField(id="p-a", report_code="projetos", field_key="a", label="A", source_key="a", display_order=10, active=True),
-            ReportField(id="p-off", report_code="projetos", field_key="x", label="X", source_key="x", display_order=5, active=False),
-            ReportField(id="a-2", report_code="acessos", field_key="y", label="Y", source_key="y", display_order=100, active=True),
-            ReportField(id="a-1", report_code="acessos", field_key="z", label="Z", source_key="z", display_order=100, active=True),
-            project("P1", "Beta", "ativo", "Redes"),
-            project("P2", "Alfa", "ativo", "TI"),
-            project("P3", "Gama", "encerrado", "Redes"),
-        ])
+        session.add_all(
+            [
+                ReportField(
+                    id="p-b",
+                    report_code="projetos",
+                    field_key="b",
+                    label="B",
+                    source_key="b",
+                    display_order=20,
+                    active=True,
+                ),
+                ReportField(
+                    id="p-a",
+                    report_code="projetos",
+                    field_key="a",
+                    label="A",
+                    source_key="a",
+                    display_order=10,
+                    active=True,
+                ),
+                ReportField(
+                    id="p-off",
+                    report_code="projetos",
+                    field_key="x",
+                    label="X",
+                    source_key="x",
+                    display_order=5,
+                    active=False,
+                ),
+                ReportField(
+                    id="a-2",
+                    report_code="acessos",
+                    field_key="y",
+                    label="Y",
+                    source_key="y",
+                    display_order=100,
+                    active=True,
+                ),
+                ReportField(
+                    id="a-1",
+                    report_code="acessos",
+                    field_key="z",
+                    label="Z",
+                    source_key="z",
+                    display_order=100,
+                    active=True,
+                ),
+                project("P1", "Beta", "ativo", "Redes"),
+                project("P2", "Alfa", "ativo", "TI"),
+                project("P3", "Gama", "encerrado", "Redes"),
+            ]
+        )
         await session.commit()
         yield session
     await engine.dispose()
@@ -62,7 +126,15 @@ async def test_fields_returns_only_active_ordered_with_stable_ties(db):
     assert [f["id"] for f in await repo.fields("projetos")] == ["p-a", "p-b"]
     assert [f["id"] for f in await repo.fields("acessos")] == ["a-1", "a-2"]
     assert await repo.fields("inexistente") == []
-    assert set((await repo.fields("projetos"))[0]) == {"id", "report_code", "field_key", "label", "source_key", "display_order", "active"}
+    assert set((await repo.fields("projetos"))[0]) == {
+        "id",
+        "report_code",
+        "field_key",
+        "label",
+        "source_key",
+        "display_order",
+        "active",
+    }
 
 
 async def test_projects_without_scope_keep_the_frontend_contract_keys(db):
@@ -70,7 +142,18 @@ async def test_projects_without_scope_keep_the_frontend_contract_keys(db):
 
     assert [r["nome"] for r in rows] == ["Alfa", "Beta", "Gama"]
     assert set(rows[0]) == {
-        "id", "nome", "codigo", "areaResponsavel", "responsaveis", "pastaMae", "status", "descricao", "criadoEm", "atualizadoEm", "totalMapas", "totalMembros",
+        "id",
+        "nome",
+        "codigo",
+        "areaResponsavel",
+        "responsaveis",
+        "pastaMae",
+        "status",
+        "descricao",
+        "criadoEm",
+        "atualizadoEm",
+        "totalMapas",
+        "totalMembros",
     }
     assert (rows[0]["totalMapas"], rows[0]["totalMembros"]) == (0, 0)
 
@@ -79,9 +162,50 @@ async def test_projects_filter_by_status_and_area(db):
     repo = ReportRepository(db)
 
     assert [r["codigo"] for r in await repo.projects("encerrado", None, None, "x", True)] == ["P3"]
-    assert [r["codigo"] for r in await repo.projects(None, "Redes", None, "x", True)] == ["P1", "P3"]
+    assert [r["codigo"] for r in await repo.projects(None, "Redes", None, "x", True)] == [
+        "P1",
+        "P3",
+    ]
     assert [r["codigo"] for r in await repo.projects("ativo", "Redes", None, "x", True)] == ["P1"]
     assert await repo.projects("pausado", None, None, "x", True) == []
+
+
+async def test_inconsistencies_use_project_access_groups_for_level_coverage(db):
+    db.add(
+        ProjectAccessGroup(
+            id="group-read-p1",
+            project_id="id-P1",
+            group_name="Grupo de leitura",
+            group_id="entra-read-p1",
+            access_level="leitura",
+            source="manual",
+            created_at=NOW,
+            updated_at=NOW,
+        )
+    )
+    await db.commit()
+
+    repo = ReportRepository(db)
+    incomplete = await repo.inconsistencies(None, None, None, "x", all_projects=True)
+    p1 = next(row for row in incomplete if row["projetoId"] == "id-P1")
+    assert p1["tipo"] == "grupo-incompleto"
+    assert p1["grupo"] == "Grupo de leitura"
+
+    db.add(
+        ProjectAccessGroup(
+            id="group-write-p1",
+            project_id="id-P1",
+            group_name="Grupo de escrita",
+            group_id="entra-write-p1",
+            access_level="escrita",
+            source="manual",
+            created_at=NOW,
+            updated_at=NOW,
+        )
+    )
+    await db.commit()
+    complete = await repo.inconsistencies(None, None, None, "x", all_projects=True)
+    assert all(row["projetoId"] != "id-P1" for row in complete)
 
 
 async def test_by_status_counts_projects(db):

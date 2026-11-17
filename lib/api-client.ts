@@ -1,5 +1,6 @@
 import { AUDIT_ACTIONS } from "@/lib/audit"
-import type { ActivityAction,
+import type {
+  ActivityAction,
   ProjectReport,
   AccessMapResponse,
   DashboardSummary,
@@ -14,7 +15,9 @@ import type { ActivityAction,
 
 const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
 // No desenvolvimento, chamadas relativas passam pelo rewrite do Next e evitam CORS entre :3000 e :8080.
-const API_BASE_URL = (process.env.NODE_ENV === "development" ? "" : configuredApiBaseUrl || "").replace(/\/$/, "")
+const API_BASE_URL = (
+  process.env.NODE_ENV === "development" ? "" : configuredApiBaseUrl || ""
+).replace(/\/$/, "")
 const API_FAILURE_COOLDOWN_MS = 15_000
 let apiUnavailableUntil = 0
 
@@ -33,7 +36,10 @@ export class ApiError extends Error {
   }
 }
 
-async function fetchRequest(url: string, init?: RequestInit): Promise<Response> {
+async function fetchRequest(
+  url: string,
+  init?: RequestInit
+): Promise<Response> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 60_000)
 
@@ -56,7 +62,10 @@ async function fetchRequest(url: string, init?: RequestInit): Promise<Response> 
 type ApiErrorBody = { message?: string; detail?: string }
 
 export function isApiError(error: unknown, status?: number): error is ApiError {
-  return error instanceof ApiError && (status === undefined || error.status === status)
+  return (
+    error instanceof ApiError &&
+    (status === undefined || error.status === status)
+  )
 }
 
 export type ServiceNowRitmStatusUpdate = {
@@ -65,16 +74,25 @@ export type ServiceNowRitmStatusUpdate = {
   message: string
 }
 
-export async function updateServiceNowRitmStatus(ritmNumber: string, status: "Concluído") {
-  return request<ServiceNowRitmStatusUpdate>(`/api/servicenow/ritms/${encodeURIComponent(ritmNumber)}/status`, {
-    method: "PUT",
-    body: JSON.stringify({ status }),
-  })
+export async function updateServiceNowRitmStatus(
+  ritmNumber: string,
+  status: "Concluído"
+) {
+  return request<ServiceNowRitmStatusUpdate>(
+    `/api/servicenow/ritms/${encodeURIComponent(ritmNumber)}/status`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ status }),
+    }
+  )
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (Date.now() < apiUnavailableUntil) {
-    throw new ApiError(503, "A API está temporariamente indisponível. A nova tentativa será feita automaticamente em alguns segundos.")
+    throw new ApiError(
+      503,
+      "A API está temporariamente indisponível. A nova tentativa será feita automaticamente em alguns segundos."
+    )
   }
   let res: Response
   try {
@@ -83,10 +101,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     apiUnavailableUntil = Date.now() + API_FAILURE_COOLDOWN_MS
     throw error
   }
-  if (res.status >= 500) apiUnavailableUntil = Date.now() + API_FAILURE_COOLDOWN_MS
+  if (res.status >= 500)
+    apiUnavailableUntil = Date.now() + API_FAILURE_COOLDOWN_MS
   if (!res.ok) {
-    const body = (await res.json().catch(() => ({ message: res.statusText }))) as ApiErrorBody
-    throw new ApiError(res.status, body.message ?? body.detail ?? "Erro inesperado na requisição")
+    const body = (await res
+      .json()
+      .catch(() => ({ message: res.statusText }))) as ApiErrorBody
+    throw new ApiError(
+      res.status,
+      body.message ?? body.detail ?? "Erro inesperado na requisição"
+    )
   }
 
   if (res.status === 204) return undefined as T
@@ -95,14 +119,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 /** Faz download binário usando exatamente a mesma base, cookies e tratamento de erro da API. */
 export async function downloadFile(path: string): Promise<Blob> {
-  const res = await fetchRequest(`${API_BASE_URL}${path}`, { headers: { Accept: "application/octet-stream" } })
+  const res = await fetchRequest(`${API_BASE_URL}${path}`, {
+    headers: { Accept: "application/octet-stream" },
+  })
   if (!res.ok) {
     const contentType = res.headers.get("content-type") ?? ""
     let message = res.statusText || "Não foi possível gerar o arquivo"
     if (contentType.includes("application/json")) {
       const body = await res.json().catch(() => null)
       if (typeof body === "string") message = body
-      else if (body && typeof body === "object") message = body.message ?? body.detail ?? message
+      else if (body && typeof body === "object")
+        message = body.message ?? body.detail ?? message
     } else {
       const text = await res.text().catch(() => "")
       if (text.trim()) message = text.trim()
@@ -116,21 +143,44 @@ export async function downloadFile(path: string): Promise<Blob> {
 
 export async function login(email: string) {
   try {
-    const response = await request<void>("/api/auth/login", { method: "POST", body: JSON.stringify({ email }) })
-    await recordAuditEvent({ action: AUDIT_ACTIONS.LOGIN, entity: "sessao", details: { identificador: email } }).catch(() => undefined)
+    const response = await request<void>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    })
+    await recordAuditEvent({
+      action: AUDIT_ACTIONS.LOGIN,
+      entity: "sessao",
+      details: { identificador: email },
+    }).catch(() => undefined)
     return response
   } catch (error) {
-    await recordAuditEvent({ action: AUDIT_ACTIONS.LOGIN_FAILED, entity: "sessao", result: "erro", details: { identificador: email, motivo: error instanceof Error ? error.message : "Falha de autenticação" } }).catch(() => undefined)
+    await recordAuditEvent({
+      action: AUDIT_ACTIONS.LOGIN_FAILED,
+      entity: "sessao",
+      result: "erro",
+      details: {
+        identificador: email,
+        motivo:
+          error instanceof Error ? error.message : "Falha de autenticação",
+      },
+    }).catch(() => undefined)
     throw error
   }
 }
 
 export async function getProfilePhoto() {
-  return request<{ photo: string | null; status: string; reason: string | null }>("/api/auth/profile-photo")
+  return request<{
+    photo: string | null
+    status: string
+    reason: string | null
+  }>("/api/auth/profile-photo")
 }
 
 export async function logout() {
-  await recordAuditEvent({ action: AUDIT_ACTIONS.LOGOUT, entity: "sessao" }).catch(() => undefined)
+  await recordAuditEvent({
+    action: AUDIT_ACTIONS.LOGOUT,
+    entity: "sessao",
+  }).catch(() => undefined)
   return request<void>("/api/auth/logout", { method: "POST" })
 }
 
@@ -154,7 +204,12 @@ export function recordAuditEvent(event: {
 
   return request<void>("/api/audit/events", {
     method: "POST",
-    body: JSON.stringify({ entity: "interface", result: "sucesso", ...event, details }),
+    body: JSON.stringify({
+      entity: "interface",
+      result: "sucesso",
+      ...event,
+      details,
+    }),
   })
 }
 
@@ -172,35 +227,111 @@ export function getCatalogs() {
   return request<PlatformCatalogs>("/api/catalogos")
 }
 
-export type ConfigurationResource = "menus" | "modules" | "permissions" | "menu_permissions" | "profiles" | "profile_permissions" | "profile_modules" | "project_statuses" | "responsible_areas" | "report_types" | "report_fields" | "dashboard_cards"
+export type ConfigurationResource =
+  | "menus"
+  | "modules"
+  | "permissions"
+  | "menu_permissions"
+  | "profiles"
+  | "profile_permissions"
+  | "profile_modules"
+  | "project_statuses"
+  | "responsible_areas"
+  | "report_types"
+  | "report_fields"
+  | "dashboard_cards"
 export type ConfigurationRow = Record<string, unknown> & { id?: string }
-export function getConfigurations(resource: ConfigurationResource) { return request<ConfigurationRow[]>(`/api/configurations/${resource}`) }
-export function createConfiguration(resource: ConfigurationResource, data: Record<string, unknown>) { return request<ConfigurationRow>(`/api/configurations/${resource}`, { method: "POST", body: JSON.stringify(data) }) }
-export function updateConfiguration(resource: ConfigurationResource, id: string, data: Record<string, unknown>) { return request<ConfigurationRow>(`/api/configurations/${resource}/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(data) }) }
-export function deleteConfiguration(resource: ConfigurationResource, id: string) { return request<void>(`/api/configurations/${resource}/${encodeURIComponent(id)}`, { method: "DELETE" }) }
+export function getConfigurations(resource: ConfigurationResource) {
+  return request<ConfigurationRow[]>(`/api/configurations/${resource}`)
+}
+export function createConfiguration(
+  resource: ConfigurationResource,
+  data: Record<string, unknown>
+) {
+  return request<ConfigurationRow>(`/api/configurations/${resource}`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+export function updateConfiguration(
+  resource: ConfigurationResource,
+  id: string,
+  data: Record<string, unknown>
+) {
+  return request<ConfigurationRow>(
+    `/api/configurations/${resource}/${encodeURIComponent(id)}`,
+    { method: "PATCH", body: JSON.stringify(data) }
+  )
+}
+export function deleteConfiguration(
+  resource: ConfigurationResource,
+  id: string
+) {
+  return request<void>(
+    `/api/configurations/${resource}/${encodeURIComponent(id)}`,
+    { method: "DELETE" }
+  )
+}
 
 export function getResponsibleAreas() {
-  return request<{ areas: import("@/lib/types").ResponsibleArea[] }>("/api/projects/areas")
+  return request<{ areas: import("@/lib/types").ResponsibleArea[] }>(
+    "/api/projects/areas"
+  )
 }
 
 /* -------------------------------- Projects -------------------------------- */
 
-export function getProjects(params: { nome?: string; status?: string; area?: string; page?: number; limit?: number } = {}) {
+export function getProjects(
+  params: {
+    nome?: string
+    status?: string
+    area?: string
+    page?: number
+    limit?: number
+  } = {}
+) {
   const query = new URLSearchParams()
-  Object.entries(params).forEach(([key, value]) => value !== undefined && value !== "" && query.set(key, String(value)))
-  return request<{ projects: Project[]; pagination?: { page: number; limit: number; total: number; totalPages: number } }>(`/api/projects${query.size ? `?${query}` : ""}`)
+  Object.entries(params).forEach(
+    ([key, value]) =>
+      value !== undefined && value !== "" && query.set(key, String(value))
+  )
+  return request<{
+    projects: Project[]
+    pagination?: {
+      page: number
+      limit: number
+      total: number
+      totalPages: number
+    }
+  }>(`/api/projects${query.size ? `?${query}` : ""}`)
 }
 
 /** Lista minimalista de todos os projetos da plataforma (para seleção em Solicitar Acesso). */
 export function getAllProjectsDirectory() {
-  return request<{ projects: Pick<Project, "id" | "nome" | "areaResponsavel">[] }>("/api/projects?all=true")
+  return request<{
+    projects: Pick<Project, "id" | "nome" | "areaResponsavel">[]
+  }>("/api/projects?all=true")
 }
 
 export function getProject(id: string) {
   return request<{ project: Project }>(`/api/projects/${id}`)
 }
 
+export type ProjectAccessGroupInput = {
+  groupName: string
+  groupId: string
+  accessLevel: string
+}
+export type ProjectAccessGroupRecord = ProjectAccessGroupInput & {
+  id: string
+  projectId: string
+  source: string
+  createdAt: string
+  updatedAt: string
+}
+
 export function createProject(data: {
+  gruposAcesso: ProjectAccessGroupInput[]
   nome: string
   codigo?: string
   criadoEm: string
@@ -232,23 +363,85 @@ export function deleteProject(id: string) {
   return request<void>(`/api/projects/${id}`, { method: "DELETE" })
 }
 
+export function getProjectAccessGroups(projectId: string) {
+  return request<{
+    projectId: string
+    projectName: string
+    groups: ProjectAccessGroupRecord[]
+    total: number
+  }>(`/api/projects/${projectId}/access-groups`)
+}
+
+export function addProjectAccessGroup(
+  projectId: string,
+  data: ProjectAccessGroupInput
+) {
+  return request<ProjectAccessGroupRecord>(
+    `/api/projects/${projectId}/access-groups`,
+    { method: "POST", body: JSON.stringify(data) }
+  )
+}
+
+export function updateProjectAccessGroup(
+  projectId: string,
+  groupId: string,
+  accessLevel: string
+) {
+  return request<ProjectAccessGroupRecord>(
+    `/api/projects/${projectId}/access-groups/${groupId}`,
+    { method: "PATCH", body: JSON.stringify({ accessLevel }) }
+  )
+}
+
+export function deleteProjectAccessGroup(projectId: string, groupId: string) {
+  return request<void>(`/api/projects/${projectId}/access-groups/${groupId}`, {
+    method: "DELETE",
+  })
+}
+
 export function getProjectAccessMap(projectId: string) {
-  return request<{ project: Project; projectId: string; groups: Array<{ nome: string; fonte: string; identificadores: string[]; nivel: string }>; members: Array<ProjectMember & { user: User }>; source: string; consultedAt: string; gaps?: string[] }>(`/api/projects/${projectId}/access-map`)
+  return request<{
+    project: Project
+    projectId: string
+    groups: Array<{
+      nome: string
+      fonte: string
+      identificadores: string[]
+      nivel: string
+    }>
+    members: Array<ProjectMember & { user: User }>
+    source: string
+    consultedAt: string
+    gaps?: string[]
+  }>(`/api/projects/${projectId}/access-map`)
 }
 
 export async function getProjectMembers(projectId: string) {
-  const response = await request<{ members?: Array<ProjectMember & { user: User }> } | Array<ProjectMember & { user: User }>>(`/api/projects/${projectId}/members`)
-  return { members: Array.isArray(response) ? response : (response.members ?? []) }
+  const response = await request<
+    | { members?: Array<ProjectMember & { user: User }> }
+    | Array<ProjectMember & { user: User }>
+  >(`/api/projects/${projectId}/members`)
+  return {
+    members: Array.isArray(response) ? response : (response.members ?? []),
+  }
 }
 
 /* --------------------------------- Folders -------------------------------- */
 
 export function getFolders(projectId: string) {
-  return request<{ folders: FileNode[]; source: "tabela" | "rede" | "tabela-fallback" }>(`/api/folders?projectId=${encodeURIComponent(projectId)}`)
+  return request<{
+    folders: FileNode[]
+    source: "tabela" | "rede" | "tabela-fallback"
+  }>(`/api/folders?projectId=${encodeURIComponent(projectId)}`)
 }
 
 export function syncFolders(projectId: string, folders: FileNode[]) {
-  return request<{ folders: FileNode[]; inserted: number; updated: number; source: "rede" | "tabela" }>(`/api/folders/sync?projectId=${encodeURIComponent(projectId)}`, {
+  return request<{
+    folders: FileNode[]
+    inserted: number
+    updated: number
+    source: "rede" | "tabela"
+  }>(`/api/folders/sync?projectId=${encodeURIComponent(projectId)}`, {
     method: "POST",
     body: JSON.stringify({
       folders: folders
@@ -276,36 +469,76 @@ export function getDashboardSummary() {
 
 /* --------------------------------- Reports --------------------------------- */
 
-export type ConfiguredReportField = { id: string; report_code: string; field_key: string; label: string; source_key: string; display_order: number; active: boolean }
+export type ConfiguredReportField = {
+  id: string
+  report_code: string
+  field_key: string
+  label: string
+  source_key: string
+  display_order: number
+  active: boolean
+}
 
 export function getReportFields(reportCode: string) {
-  return request<{ reportCode: string; fields: ConfiguredReportField[] }>(`/api/report-fields?report_code=${encodeURIComponent(reportCode)}`)
+  return request<{ reportCode: string; fields: ConfiguredReportField[] }>(
+    `/api/report-fields?report_code=${encodeURIComponent(reportCode)}`
+  )
 }
 
 export function getAccessMap() {
   return request<AccessMapResponse>("/api/access-map")
 }
 
-export function getAccessMapExportUrl(params: { format: string; fields: string; q?: string; type?: string; level?: string; view?: string }) {
+export function getAccessMapExportUrl(params: {
+  format: string
+  fields: string
+  q?: string
+  type?: string
+  level?: string
+  view?: string
+}) {
   const query = new URLSearchParams()
-  Object.entries(params).forEach(([key, value]) => value && query.set(key, value))
+  Object.entries(params).forEach(
+    ([key, value]) => value && query.set(key, value)
+  )
   return `${API_BASE_URL}/api/access-map/export?${query.toString()}`
 }
 
-export function getInconsistencyReport(params: { area?: string; gestorId?: string; tipo?: string } = {}) {
+export function getInconsistencyReport(
+  params: { area?: string; gestorId?: string; tipo?: string } = {}
+) {
   const query = new URLSearchParams()
-  Object.entries(params).forEach(([key, value]) => value && query.set(key, value))
-  return request<import("@/lib/types").InconsistencyReport>(`/api/reports/inconsistencies${query.size ? `?${query.toString()}` : ""}`)
+  Object.entries(params).forEach(
+    ([key, value]) => value && query.set(key, value)
+  )
+  return request<import("@/lib/types").InconsistencyReport>(
+    `/api/reports/inconsistencies${query.size ? `?${query.toString()}` : ""}`
+  )
 }
 
-export function getProjectReport(params: { status?: string; area?: string; gestorId?: string } = {}) {
+export function getProjectReport(
+  params: { status?: string; area?: string; gestorId?: string } = {}
+) {
   const query = new URLSearchParams()
-  Object.entries(params).forEach(([key, value]) => value && query.set(key, value))
-  return request<ProjectReport>(`/api/reports${query.size ? `?${query.toString()}` : ""}`)
+  Object.entries(params).forEach(
+    ([key, value]) => value && query.set(key, value)
+  )
+  return request<ProjectReport>(
+    `/api/reports${query.size ? `?${query.toString()}` : ""}`
+  )
 }
 
-export function getProjectReportExportPath(params: { format: "csv" | "txt" | "pdf"; fields: string[]; status?: string; area?: string; gestorId?: string }) {
-  const query = new URLSearchParams({ format: params.format, fields: params.fields.join(",") })
+export function getProjectReportExportPath(params: {
+  format: "csv" | "txt" | "pdf"
+  fields: string[]
+  status?: string
+  area?: string
+  gestorId?: string
+}) {
+  const query = new URLSearchParams({
+    format: params.format,
+    fields: params.fields.join(","),
+  })
   if (params.status) query.set("status", params.status)
   if (params.area) query.set("area", params.area)
   if (params.gestorId) query.set("gestorId", params.gestorId)
@@ -345,10 +578,19 @@ type ApiActivityLog = {
 
 export async function getActivityLogs(params: ActivityLogQuery = {}) {
   const query = new URLSearchParams()
-  Object.entries(params).forEach(([key, value]) => value !== undefined && value !== "" && query.set(key, String(value)))
+  Object.entries(params).forEach(
+    ([key, value]) =>
+      value !== undefined && value !== "" && query.set(key, String(value))
+  )
   if (!query.has("page")) query.set("page", "1")
   if (!query.has("limit")) query.set("limit", "25")
-  const response = await request<{ items: ApiActivityLog[]; page: number; limit: number; total: number; total_pages: number }>(`/api/audit/logs?${query}`)
+  const response = await request<{
+    items: ApiActivityLog[]
+    page: number
+    limit: number
+    total: number
+    total_pages: number
+  }>(`/api/audit/logs?${query}`)
   return {
     logs: response.items.map((log) => ({
       id: log.id,
@@ -359,18 +601,26 @@ export async function getActivityLogs(params: ActivityLogQuery = {}) {
       acao: log.action ?? "evento",
       entidade: log.entity ?? "interface",
       entidadeId: log.entity_id ?? "",
-      detalhes: typeof log.details === "string" ? log.details : JSON.stringify(log.details ?? {}, null, 2),
-      resultado: log.result === "erro" ? "erro" as const : "sucesso" as const,
+      detalhes:
+        typeof log.details === "string"
+          ? log.details
+          : JSON.stringify(log.details ?? {}, null, 2),
+      resultado:
+        log.result === "erro" ? ("erro" as const) : ("sucesso" as const),
       correlacaoId: log.correlation_id,
       metodoHttp: log.http_method,
       rota: log.route,
       duracaoMs: log.duration_ms,
       ipAddress: log.ip_address,
-  projetoId: log.project_id,
-  projetoNome: log.project_name,
-  criadoEm: log.created_at,
+      projetoId: log.project_id,
+      projetoNome: log.project_name,
+      criadoEm: log.created_at,
     })),
-    pagination: { page: response.page, limit: response.limit, total: response.total, totalPages: response.total_pages },
+    pagination: {
+      page: response.page,
+      limit: response.limit,
+      total: response.total,
+      totalPages: response.total_pages,
+    },
   }
 }
-
