@@ -219,11 +219,11 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
                   id="access-groups-heading"
                   className="text-base font-semibold"
                 >
-                  Grupos e roles de acesso
+                  Grupos e papéis de acesso
                 </h2>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Associe grupos do Entra ID ou roles de identidade e defina
-                  o nível de acesso por projeto.
+                  Associe grupos do Entra ID ou papéis de identidade e defina o
+                  nível de acesso por projeto.
                 </p>
               </div>
               <AccessGroupsEditor

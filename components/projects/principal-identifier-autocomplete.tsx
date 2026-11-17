@@ -32,7 +32,7 @@ export function PrincipalIdentifierAutocomplete({
   return (
     <Field>
       <FieldLabel htmlFor={id}>
-        {principalType === "group" ? "ID do grupo (Entra ID)" : "ID da role"}
+        {principalType === "group" ? "ID do grupo (Entra ID)" : "ID do papel"}
       </FieldLabel>
       <Input
         id={id}
@@ -62,10 +62,10 @@ export function PrincipalIdentifierAutocomplete({
           />
         ))}
       </datalist>
-      <FieldDescription>
+      <FieldDescription className="sr-only">
         {selected
           ? `Encontrado: ${selected.groupName}.`
-          : "Digite para ver sugestões do catálogo."}
+          : "Digite pelo menos dois caracteres para consultar sugestões do catálogo."}
       </FieldDescription>
     </Field>
   )
