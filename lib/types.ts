@@ -13,11 +13,11 @@
  * - `auditor`      → Auditor (somente leitura + trilha de auditoria)
  * - `operador`     → Operador (acesso exclusivo às configurações)
  */
-export type Role = "admin" | "gerente" | "patrocinador" | "auditor" | "solicitante" | "operador"
+export type Role =
+  "admin" | "gerente" | "patrocinador" | "auditor" | "solicitante" | "operador"
 
 /** Papel global ou de participação dentro de um projeto. */
 export type ProjectMemberRole = Role
-
 
 export type ProjectStatus = "ativo" | "em_implantacao" | "pausado" | "encerrado"
 
@@ -126,9 +126,21 @@ export interface DashboardCardConfig {
 }
 
 export interface PlatformContext {
-  user: { id: string; email: string; nome: string; perfil_id: string; perfil_nome: string } | null
+  user: {
+    id: string
+    email: string
+    nome: string
+    perfil_id: string
+    perfil_nome: string
+  } | null
   permissions: string[]
-  modules: Array<{ id: string; nome: string; rota: string; icone: string; ordem: number }>
+  modules: Array<{
+    id: string
+    nome: string
+    rota: string
+    icone: string
+    ordem: number
+  }>
   menus: PlatformMenu[]
   dashboardCards: DashboardCardConfig[]
 }
@@ -136,12 +148,39 @@ export interface PlatformContext {
 export interface PlatformCatalogs {
   areas: ResponsibleArea[]
   perfis: Array<{ id: string; nome: string; descricao?: string }>
-  modulos: Array<{ id: string; nome: string; rota: string; icone: string; ordem: number; ativo: boolean }>
-  permissoes: Array<{ id: string; modulo_id: string; nome: string; descricao: string; ativo: boolean }>
-  statusProjetos: Array<{ id: string; codigo: string; nome: string; cor: string; ordem: number; ativo: boolean; permite_edicao: boolean }>
-  tiposRelatorios: Array<{ id: string; codigo: string; nome: string; descricao: string; formatos: string; ativo: boolean }>
+  modulos: Array<{
+    id: string
+    nome: string
+    rota: string
+    icone: string
+    ordem: number
+    ativo: boolean
+  }>
+  permissoes: Array<{
+    id: string
+    modulo_id: string
+    nome: string
+    descricao: string
+    ativo: boolean
+  }>
+  statusProjetos: Array<{
+    id: string
+    codigo: string
+    nome: string
+    cor: string
+    ordem: number
+    ativo: boolean
+    permite_edicao: boolean
+  }>
+  tiposRelatorios: Array<{
+    id: string
+    codigo: string
+    nome: string
+    descricao: string
+    formatos: string
+    ativo: boolean
+  }>
 }
-
 
 /** Ação registrada na trilha de auditoria da plataforma. */
 export type ActivityAction =
@@ -193,10 +232,10 @@ export type ActivityAction =
   | "pasta-indisponivel"
   | "erro-banco"
   | "erro-integracao"
-  | "cav4_authorization"   // ← adicionar
-  | "conceder-papel"       // ← opcional, para o futuro
-  | "revogar-papel"        // ← opcional, para o futuro
-  | string       
+  | "cav4_authorization" // ← adicionar
+  | "conceder-papel" // ← opcional, para o futuro
+  | "revogar-papel" // ← opcional, para o futuro
+  | string
 
 export interface ActivityLog {
   id: string
@@ -220,6 +259,9 @@ export interface ActivityLog {
 
 export interface AccessMapRow {
   userId: string
+  groupId?: string
+  groupName?: string
+  groupAccessLevel?: string
   userName: string
   userEmail: string
   userRole: Role
@@ -229,8 +271,8 @@ export interface AccessMapRow {
   projectStatus: ProjectStatus
   resourceId: string
   resourceName: string
-  resourceType: "pasta" | "arquivo"
-  accessLevel: ProjectMemberRole
+  resourceType: "pasta" | "arquivo" | "grupo"
+  accessLevel: ProjectMemberRole | string
   lastViewedAt: string
 }
 
@@ -269,6 +311,7 @@ export interface AccessMapResponse {
     projects: number
     folders: number
     files: number
+    groups?: number
     relationships: number
   }
   rows: AccessMapRow[]
@@ -292,7 +335,14 @@ export interface InconsistencyReport {
 }
 
 export interface ProjectReport {
-  filtros: { periodoDe?: string; periodoAte?: string; status?: ProjectStatus | "todos"; area?: string; projectId?: string; gestorId?: string }
+  filtros: {
+    periodoDe?: string
+    periodoAte?: string
+    status?: ProjectStatus | "todos"
+    area?: string
+    projectId?: string
+    gestorId?: string
+  }
   indicadores: {
     totalProjetos: number
     ativos: number
@@ -304,5 +354,10 @@ export interface ProjectReport {
   }
   porArea: { area: string; total: number }[]
   porStatus: { status: ProjectStatus; total: number }[]
-  projetos: (Project & { totalMapas: number; totalMembros: number; responsaveis?: string[]; parentFolder?: string | null })[]
+  projetos: (Project & {
+    totalMapas: number
+    totalMembros: number
+    responsaveis?: string[]
+    parentFolder?: string | null
+  })[]
 }

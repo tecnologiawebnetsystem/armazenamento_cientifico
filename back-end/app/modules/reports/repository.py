@@ -1,10 +1,10 @@
 from typing import Any
 
-from sqlalchemy import String, exists, func, or_, select
+from sqlalchemy import String, and_, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.catalogs.models import ReportField, ResponsibleArea
-from app.modules.projects.models import Project, ProjectMember
+from app.modules.projects.models import Project, ProjectAccessGroup, ProjectMember
 
 
 class ReportRepository:
@@ -20,27 +20,45 @@ class ReportRepository:
         Evita o operador @> (contains) que exige valor JSON válido e falha
         quando o parâmetro é uma string hex (ex: users.id).
         """
-        return column.cast(String).like(f'%{value}%')
+        return column.cast(String).like(f"%{value}%")
 
     # ── fields ───────────────────────────────────────────────────────
 
     async def fields(self, report_code: str) -> list[dict[str, Any]]:
         result = await self.session.execute(
             select(
-                ReportField.id, ReportField.report_code, ReportField.field_key, ReportField.label,
-                ReportField.source_key, ReportField.display_order, ReportField.active,
+                ReportField.id,
+                ReportField.report_code,
+                ReportField.field_key,
+                ReportField.label,
+                ReportField.source_key,
+                ReportField.display_order,
+                ReportField.active,
             )
             .where(ReportField.report_code == report_code, ReportField.active.is_(True))
             .order_by(ReportField.display_order, ReportField.id)
         )
         return [dict(row) for row in result.mappings().all()]
 
-    async def projects(self, status: str | None, area: str | None, gestor_id: str | None, user_id: str, all_projects: bool = False) -> list[dict[str, Any]]:
+    async def projects(
+        self,
+        status: str | None,
+        area: str | None,
+        gestor_id: str | None,
+        user_id: str,
+        all_projects: bool = False,
+    ) -> list[dict[str, Any]]:
         statement = select(
-            Project.id, Project.name.label("nome"), Project.code.label("codigo"),
-            Project.responsible_area.label("areaResponsavel"), Project.managers_ids.label("responsaveis"),
-            Project.parent_folder.label("pastaMae"), Project.status, Project.description.label("descricao"),
-            Project.created_at.label("criadoEm"), Project.updated_at.label("atualizadoEm"),
+            Project.id,
+            Project.name.label("nome"),
+            Project.code.label("codigo"),
+            Project.responsible_area.label("areaResponsavel"),
+            Project.managers_ids.label("responsaveis"),
+            Project.parent_folder.label("pastaMae"),
+            Project.status,
+            Project.description.label("descricao"),
+            Project.created_at.label("criadoEm"),
+            Project.updated_at.label("atualizadoEm"),
         )
         if status is not None:
             statement = statement.where(Project.status == status)
@@ -49,19 +67,32 @@ class ReportRepository:
         if gestor_id is not None:
             statement = statement.where(self._jsonb_like(Project.managers_ids, gestor_id))
         if not all_projects:
-            statement = statement.where(or_(
-                self._jsonb_like(Project.managers_ids, user_id),
-                self._jsonb_like(Project.participants_ids, user_id),
-                exists().where(ProjectMember.project_id == Project.id, ProjectMember.user_id == user_id),
-            ))
+            statement = statement.where(
+                or_(
+                    self._jsonb_like(Project.managers_ids, user_id),
+                    self._jsonb_like(Project.participants_ids, user_id),
+                    exists().where(
+                        ProjectMember.project_id == Project.id, ProjectMember.user_id == user_id
+                    ),
+                )
+            )
         result = await self.session.execute(statement.order_by(Project.name, Project.id))
         return [{**row, "totalMapas": 0, "totalMembros": 0} for row in result.mappings().all()]
 
     async def by_status(self) -> list[dict[str, Any]]:
-        result = await self.session.execute(select(Project.status, func.count().label("total")).group_by(Project.status))
+        result = await self.session.execute(
+            select(Project.status, func.count().label("total")).group_by(Project.status)
+        )
         return [dict(row) for row in result.mappings().all()]
 
-    async def inconsistencies(self, area: str | None, gestor_id: str | None, tipo: str | None, user_id: str, all_projects: bool = False) -> list[dict[str, Any]]:
+    async def inconsistencies(
+        self,
+        area: str | None,
+        gestor_id: str | None,
+        tipo: str | None,
+        user_id: str,
+        all_projects: bool = False,
+    ) -> list[dict[str, Any]]:
         """Relatório de inconsistências: projetos sem grupos de acesso mapeados."""
         stmt = (
             select(
@@ -74,15 +105,48 @@ class ReportRepository:
                 func.coalesce(
                     func.nullif(Project.write_group, ""),
                     func.nullif(Project.read_group, ""),
+                    select(ProjectAccessGroup.group_name)
+                    .where(ProjectAccessGroup.project_id == Project.id)
+                    .order_by(ProjectAccessGroup.group_name)
+                    .limit(1)
+                    .scalar_subquery(),
                 ).label("grupo"),
+                or_(
+                    func.nullif(Project.read_group, "").is_not(None),
+                    exists().where(
+                        ProjectAccessGroup.project_id == Project.id,
+                        ProjectAccessGroup.access_level == "leitura",
+                    ),
+                ).label("hasReadGroup"),
+                or_(
+                    func.nullif(Project.write_group, "").is_not(None),
+                    exists().where(
+                        ProjectAccessGroup.project_id == Project.id,
+                        ProjectAccessGroup.access_level == "escrita",
+                    ),
+                ).label("hasWriteGroup"),
             )
-            .select_from(Project.__table__.outerjoin(
-                ResponsibleArea, Project.responsible_area == ResponsibleArea.id
-            ))
+            .select_from(
+                Project.__table__.outerjoin(
+                    ResponsibleArea, Project.responsible_area == ResponsibleArea.id
+                )
+            )
             .where(
                 or_(
-                    func.nullif(Project.write_group, "").is_(None),
-                    func.nullif(Project.read_group, "").is_(None),
+                    and_(
+                        func.nullif(Project.read_group, "").is_(None),
+                        ~exists().where(
+                            ProjectAccessGroup.project_id == Project.id,
+                            ProjectAccessGroup.access_level == "leitura",
+                        ),
+                    ),
+                    and_(
+                        func.nullif(Project.write_group, "").is_(None),
+                        ~exists().where(
+                            ProjectAccessGroup.project_id == Project.id,
+                            ProjectAccessGroup.access_level == "escrita",
+                        ),
+                    ),
                 )
             )
         )
@@ -91,10 +155,14 @@ class ReportRepository:
         if gestor_id is not None:
             stmt = stmt.where(self._jsonb_like(Project.managers_ids, gestor_id))
         if not all_projects:
-            stmt = stmt.where(or_(
-                self._jsonb_like(Project.managers_ids, user_id),
-                exists().where(ProjectMember.project_id == Project.id, ProjectMember.user_id == user_id),
-            ))
+            stmt = stmt.where(
+                or_(
+                    self._jsonb_like(Project.managers_ids, user_id),
+                    exists().where(
+                        ProjectMember.project_id == Project.id, ProjectMember.user_id == user_id
+                    ),
+                )
+            )
         result = await self.session.execute(stmt.order_by("area", "projeto"))
         rows = []
         for row in result.mappings().all():
@@ -102,12 +170,13 @@ class ReportRepository:
             if r["projetoId"] is None:
                 r["tipo"] = "area-sem-projeto"
                 r["descricao"] = "Área cadastrada sem projeto vinculado."
-            elif not r["grupo"]:
+            elif not r["hasReadGroup"] and not r["hasWriteGroup"]:
                 r["tipo"] = "projeto-sem-grupo"
-                r["descricao"] = "Projeto sem grupo de leitura e escrita mapeado."
+                r["descricao"] = "Projeto sem grupos de leitura e escrita mapeados."
             else:
                 r["tipo"] = "grupo-incompleto"
-                r["descricao"] = "Projeto com apenas um dos grupos mapeado."
+                faltante = "leitura" if not r["hasReadGroup"] else "escrita"
+                r["descricao"] = f"Projeto sem grupo de {faltante} mapeado."
             if tipo is None or r["tipo"] == tipo:
                 rows.append(r)
         return rows

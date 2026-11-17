@@ -69,17 +69,52 @@ MODULES = [
 ]
 
 PERMISSIONS = [
-    ("administracao.configurar", "configuracoes", "Configurar administração", "Gerenciar os catálogos administrativos"),
-    ("auditoria.visualizar", "auditoria", "Visualizar auditoria", "Consultar registros de auditoria"),
+    (
+        "administracao.configurar",
+        "configuracoes",
+        "Configurar administração",
+        "Gerenciar os catálogos administrativos",
+    ),
+    (
+        "auditoria.visualizar",
+        "auditoria",
+        "Visualizar auditoria",
+        "Consultar registros de auditoria",
+    ),
     ("dashboard.visualizar", "dashboard", "Visualizar Dashboard", "Acessar o Dashboard"),
-    ("pesquisa.visualizar", "pesquisas", "Visualizar mapa de acessos", "Consultar o mapa de acessos"),
+    (
+        "pesquisa.visualizar",
+        "pesquisas",
+        "Visualizar mapa de acessos",
+        "Consultar o mapa de acessos",
+    ),
     ("projeto.criar", "projetos", "Criar área de rede", "Cadastrar uma nova área de rede"),
     ("projeto.editar", "projetos", "Editar área de rede", "Alterar dados de uma área de rede"),
     ("projeto.excluir", "projetos", "Excluir área de rede", "Excluir uma área de rede"),
-    ("projeto.status", "projetos", "Alterar status da área de rede", "Alterar o status de uma área de rede"),
-    ("projeto.visualizar", "projetos", "Visualizar área de rede", "Consultar áreas de rede autorizadas"),
-    ("relatorio.exportar", "relatorios", "Exportar relatórios", "Exportar relatórios nos formatos habilitados"),
-    ("relatorio.visualizar", "relatorios", "Visualizar relatórios", "Consultar relatórios autorizados"),
+    (
+        "projeto.status",
+        "projetos",
+        "Alterar status da área de rede",
+        "Alterar o status de uma área de rede",
+    ),
+    (
+        "projeto.visualizar",
+        "projetos",
+        "Visualizar área de rede",
+        "Consultar áreas de rede autorizadas",
+    ),
+    (
+        "relatorio.exportar",
+        "relatorios",
+        "Exportar relatórios",
+        "Exportar relatórios nos formatos habilitados",
+    ),
+    (
+        "relatorio.visualizar",
+        "relatorios",
+        "Visualizar relatórios",
+        "Consultar relatórios autorizados",
+    ),
 ]
 
 # Módulos que cada perfil enxerga; os demais ficam com can_view = False.
@@ -95,13 +130,32 @@ PROFILE_MODULES = {
 # Permissões concedidas a cada perfil; as demais ficam com allowed = False.
 PROFILE_PERMISSIONS = {
     "ADM": {
-        "auditoria.visualizar", "dashboard.visualizar", "pesquisa.visualizar", "projeto.criar", "projeto.editar",
-        "projeto.excluir", "projeto.status", "projeto.visualizar", "relatorio.exportar", "relatorio.visualizar",
+        "auditoria.visualizar",
+        "dashboard.visualizar",
+        "pesquisa.visualizar",
+        "projeto.criar",
+        "projeto.editar",
+        "projeto.excluir",
+        "projeto.status",
+        "projeto.visualizar",
+        "relatorio.exportar",
+        "relatorio.visualizar",
     },
     "AUD": {"auditoria.visualizar"},
-    "GER": {"dashboard.visualizar", "pesquisa.visualizar", "projeto.visualizar", "relatorio.exportar", "relatorio.visualizar"},
+    "GER": {
+        "dashboard.visualizar",
+        "pesquisa.visualizar",
+        "projeto.visualizar",
+        "relatorio.exportar",
+        "relatorio.visualizar",
+    },
     "OPR": {"administracao.configurar"},
-    "PAT": {"dashboard.visualizar", "pesquisa.visualizar", "projeto.visualizar", "relatorio.visualizar"},
+    "PAT": {
+        "dashboard.visualizar",
+        "pesquisa.visualizar",
+        "projeto.visualizar",
+        "relatorio.visualizar",
+    },
     "SOL": set(),
 }
 
@@ -124,9 +178,39 @@ MENU_PERMISSIONS = [
 ]
 
 DASHBOARD_CARDS = [
-    ("dashboard-projetos", "projetos", "projetos", "Projetos", "Projetos disponíveis no seu escopo.", "total_projetos", "/projetos", "ADM,GER,AUD,PAT", 10),
-    ("dashboard-pendencias", "relatorios", "pendencias", "Pendências", "Itens que precisam de atenção.", "pendencias", "/relatorios", "ADM,GER,PAT", 20),
-    ("dashboard-auditoria", "auditoria", "auditoria", "Auditoria", "Eventos recentes para acompanhamento.", "eventos_auditoria", "/logs", "ADM,AUD", 30),
+    (
+        "dashboard-projetos",
+        "projetos",
+        "projetos",
+        "Projetos",
+        "Projetos disponíveis no seu escopo.",
+        "total_projetos",
+        "/projetos",
+        "ADM,GER,AUD,PAT",
+        10,
+    ),
+    (
+        "dashboard-pendencias",
+        "relatorios",
+        "pendencias",
+        "Pendências",
+        "Itens que precisam de atenção.",
+        "pendencias",
+        "/relatorios",
+        "ADM,GER,PAT",
+        20,
+    ),
+    (
+        "dashboard-auditoria",
+        "auditoria",
+        "auditoria",
+        "Auditoria",
+        "Eventos recentes para acompanhamento.",
+        "eventos_auditoria",
+        "/logs",
+        "ADM,AUD",
+        30,
+    ),
 ]
 
 PROJECT_STATUSES = [
@@ -146,9 +230,24 @@ RESPONSIBLE_AREAS = [
 ]
 
 REPORT_TYPES = [
-    ("ACESSOS", "acessos", "Mapa de acessos", "Relatório consolidado de projetos, pastas, grupos, membros e permissões."),
-    ("AUDITORIA", "auditoria", "Logs de Auditoria", "Rastreabilidade de ações, usuários, entidades e resultados."),
-    ("PROJETOS", "projetos", "Relatório Executivo de Áreas de Rede", "Portfólio, status, áreas, gestores e indicadores das áreas de rede."),
+    (
+        "ACESSOS",
+        "acessos",
+        "Mapa de acessos",
+        "Relatório consolidado de projetos, pastas, grupos, membros e permissões.",
+    ),
+    (
+        "AUDITORIA",
+        "auditoria",
+        "Logs de Auditoria",
+        "Rastreabilidade de ações, usuários, entidades e resultados.",
+    ),
+    (
+        "PROJETOS",
+        "projetos",
+        "Relatório Executivo de Áreas de Rede",
+        "Portfólio, status, áreas, gestores e indicadores das áreas de rede.",
+    ),
 ]
 
 # (id, report_code, field_key, label, source_key, display_order)
@@ -158,16 +257,32 @@ REPORT_FIELDS = [
     ("acessos-email", "acessos", "userEmail", "E-mail", "userEmail", 30),
     ("acessos-perfil", "acessos", "userRole", "Perfil", "userRole", 40),
     ("acessos-area", "acessos", "area", "Área", "area", 50),
-    ("acessos-projeto-id", "acessos", "projectId", "Identificador da área de rede", "projectId", 60),
+    (
+        "acessos-projeto-id",
+        "acessos",
+        "projectId",
+        "Identificador da área de rede",
+        "projectId",
+        60,
+    ),
     ("acessos-projeto", "acessos", "projectName", "Área de Rede", "projectName", 70),
     ("acessos-status", "acessos", "projectStatus", "Status da área de rede", "projectStatus", 80),
     ("acessos-recurso", "acessos", "resourceName", "Recurso", "resourceName", 90),
-    ("acessos-projeto-codigo", "acessos", "projetoCodigo", "Código do área de rede", "projectCode", 100),
+    (
+        "acessos-projeto-codigo",
+        "acessos",
+        "projetoCodigo",
+        "Código do área de rede",
+        "projectCode",
+        100,
+    ),
     ("acessos-tipo", "acessos", "resourceType", "Tipo de recurso", "resourceType", 100),
     ("acessos-atualizacao", "acessos", "lastViewedAt", "Último acesso", "lastViewedAt", 110),
     ("acessos-pasta", "acessos", "pasta", "Pasta", "folderName", 110),
     ("acessos-caminho-pasta", "acessos", "caminhoPasta", "Caminho da pasta", "folderPath", 120),
     ("acessos-grupo", "acessos", "grupo", "Grupo de acesso", "groupName", 130),
+    ("acessos-grupo-id", "acessos", "grupoId", "ID do grupo", "groupId", 135),
+    ("acessos-grupo-nivel", "acessos", "grupoNivel", "Nível do grupo", "groupAccessLevel", 137),
     ("acessos-permissao", "acessos", "permissao", "Permissão", "permission", 140),
     ("acessos-membro", "acessos", "membro", "Membro", "memberName", 150),
     ("acessos-membro-email", "acessos", "membroEmail", "E-mail do membro", "memberEmail", 160),
@@ -180,7 +295,14 @@ REPORT_FIELDS = [
     ("auditoria-email", "auditoria", "userEmail", "E-mail", "userEmail", 40),
     ("auditoria-acao", "auditoria", "acao", "Ação", "acao", 50),
     ("auditoria-entidade", "auditoria", "entidade", "Entidade", "entidade", 60),
-    ("auditoria-entidade-id", "auditoria", "entidadeId", "Identificador da entidade", "entidadeId", 70),
+    (
+        "auditoria-entidade-id",
+        "auditoria",
+        "entidadeId",
+        "Identificador da entidade",
+        "entidadeId",
+        70,
+    ),
     ("auditoria-resultado", "auditoria", "resultado", "Resultado", "resultado", 80),
     ("auditoria-detalhes", "auditoria", "detalhes", "Detalhes", "detalhes", 90),
     ("projetos-codigo", "projetos", "codigo", "Código", "codigo", 10),
@@ -203,15 +325,39 @@ USERS = [
 
 # Dados fictícios, só com --sample-projects: (nome, código, área, descrição, status).
 SAMPLE_PROJECTS = [
-    ("SIGAC Modernização", "SIGAC-001", "Tecnologia", "Projeto de exemplo para testes de consulta.", "ativo"),
-    ("Governança de Dados", "GOV-002", "Governança e Compliance", "Projeto de exemplo para testes de auditoria.", "ativo"),
-    ("Migração do Acervo", "MIG-003", "Documentação", "Projeto de exemplo para testes de filtros e relatórios.", "encerrado"),
-    ("Portal de Pesquisa", "PES-004", "Pesquisa", "Projeto de exemplo para testes de status.", "pausado"),
+    (
+        "SIGAC Modernização",
+        "SIGAC-001",
+        "Tecnologia",
+        "Projeto de exemplo para testes de consulta.",
+        "ativo",
+    ),
+    (
+        "Governança de Dados",
+        "GOV-002",
+        "Governança e Compliance",
+        "Projeto de exemplo para testes de auditoria.",
+        "ativo",
+    ),
+    (
+        "Migração do Acervo",
+        "MIG-003",
+        "Documentação",
+        "Projeto de exemplo para testes de filtros e relatórios.",
+        "encerrado",
+    ),
+    (
+        "Portal de Pesquisa",
+        "PES-004",
+        "Pesquisa",
+        "Projeto de exemplo para testes de status.",
+        "pausado",
+    ),
 ]
 
 
 def load_scope(environment: str) -> str:
-    """"full" (referência e usuários de teste) ou "reference" (só referência)."""
+    """ "full" (referência e usuários de teste) ou "reference" (só referência)."""
     name = environment.lower()
     if name in FULL_LOAD_ENVIRONMENTS:
         return "full"
@@ -236,36 +382,190 @@ async def seed_reference_data(session, now: datetime) -> dict[str, int]:
         added[name] = added.get(name, 0) + int(created)
 
     for pid, name, role, description in PROFILES:
-        count("profiles", await _add_if_missing(session, Profile, pid, id=pid, name=name, role=role, description=description, created_at=now))
+        count(
+            "profiles",
+            await _add_if_missing(
+                session,
+                Profile,
+                pid,
+                id=pid,
+                name=name,
+                role=role,
+                description=description,
+                created_at=now,
+            ),
+        )
     for mid, name, route, icon, order in MODULES:
-        count("modules", await _add_if_missing(session, Module, mid, id=mid, name=name, route=route, icon=icon, display_order=order, active=True))
+        count(
+            "modules",
+            await _add_if_missing(
+                session,
+                Module,
+                mid,
+                id=mid,
+                name=name,
+                route=route,
+                icon=icon,
+                display_order=order,
+                active=True,
+            ),
+        )
     await session.flush()
 
     for pid, module_id, name, description in PERMISSIONS:
-        count("permissions", await _add_if_missing(session, Permission, pid, id=pid, module_id=module_id, name=name, description=description, active=True))
+        count(
+            "permissions",
+            await _add_if_missing(
+                session,
+                Permission,
+                pid,
+                id=pid,
+                module_id=module_id,
+                name=name,
+                description=description,
+                active=True,
+            ),
+        )
     for sid, code, name, color, order in PROJECT_STATUSES:
-        count("project_statuses", await _add_if_missing(session, ProjectStatus, sid, id=sid, code=code, name=name, color=color, display_order=order, active=True, allows_edit=True))
+        count(
+            "project_statuses",
+            await _add_if_missing(
+                session,
+                ProjectStatus,
+                sid,
+                id=sid,
+                code=code,
+                name=name,
+                color=color,
+                display_order=order,
+                active=True,
+                allows_edit=True,
+            ),
+        )
     for aid, name, prefix in RESPONSIBLE_AREAS:
-        count("responsible_areas", await _add_if_missing(session, ResponsibleArea, aid, id=aid, name=name, prefix=prefix, next_number=1, active=True, created_at=now, updated_at=now))
+        count(
+            "responsible_areas",
+            await _add_if_missing(
+                session,
+                ResponsibleArea,
+                aid,
+                id=aid,
+                name=name,
+                prefix=prefix,
+                next_number=1,
+                active=True,
+                created_at=now,
+                updated_at=now,
+            ),
+        )
     for rid, code, name, description in REPORT_TYPES:
-        count("report_types", await _add_if_missing(session, ReportType, rid, id=rid, code=code, name=name, description=description, formats="csv,txt,pdf", active=True))
+        count(
+            "report_types",
+            await _add_if_missing(
+                session,
+                ReportType,
+                rid,
+                id=rid,
+                code=code,
+                name=name,
+                description=description,
+                formats="csv,txt,pdf",
+                active=True,
+            ),
+        )
     await session.flush()
 
     for fid, report_code, field_key, label, source_key, order in REPORT_FIELDS:
-        count("report_fields", await _add_if_missing(session, ReportField, fid, id=fid, report_code=report_code, field_key=field_key, label=label, source_key=source_key, display_order=order, active=True))
+        count(
+            "report_fields",
+            await _add_if_missing(
+                session,
+                ReportField,
+                fid,
+                id=fid,
+                report_code=report_code,
+                field_key=field_key,
+                label=label,
+                source_key=source_key,
+                display_order=order,
+                active=True,
+            ),
+        )
     for mid, module_id, name, route, icon, order in MENUS:
-        count("menus", await _add_if_missing(session, MenuItem, mid, id=mid, module_id=module_id, parent_id=None, name=name, route=route, icon=icon, display_order=order, active=True))
+        count(
+            "menus",
+            await _add_if_missing(
+                session,
+                MenuItem,
+                mid,
+                id=mid,
+                module_id=module_id,
+                parent_id=None,
+                name=name,
+                route=route,
+                icon=icon,
+                display_order=order,
+                active=True,
+            ),
+        )
     for cid, module_id, key, title, description, metric, route, profiles, order in DASHBOARD_CARDS:
-        count("dashboard_cards", await _add_if_missing(session, DashboardCard, cid, id=cid, module_id=module_id, key=key, title=title, description=description, metric_key=metric, route=route, profile_ids=profiles, display_order=order, active=True))
+        count(
+            "dashboard_cards",
+            await _add_if_missing(
+                session,
+                DashboardCard,
+                cid,
+                id=cid,
+                module_id=module_id,
+                key=key,
+                title=title,
+                description=description,
+                metric_key=metric,
+                route=route,
+                profile_ids=profiles,
+                display_order=order,
+                active=True,
+            ),
+        )
     await session.flush()
 
     for menu_id, permission_id in MENU_PERMISSIONS:
-        count("menu_permissions", await _add_if_missing(session, MenuPermission, {"menu_id": menu_id, "permission_id": permission_id}, menu_id=menu_id, permission_id=permission_id, allowed=True))
+        count(
+            "menu_permissions",
+            await _add_if_missing(
+                session,
+                MenuPermission,
+                {"menu_id": menu_id, "permission_id": permission_id},
+                menu_id=menu_id,
+                permission_id=permission_id,
+                allowed=True,
+            ),
+        )
     for profile_id, *_ in PROFILES:
         for module_id, *_ in MODULES:
-            count("profile_modules", await _add_if_missing(session, ProfileModule, {"profile_id": profile_id, "module_id": module_id}, profile_id=profile_id, module_id=module_id, can_view=module_id in PROFILE_MODULES[profile_id]))
+            count(
+                "profile_modules",
+                await _add_if_missing(
+                    session,
+                    ProfileModule,
+                    {"profile_id": profile_id, "module_id": module_id},
+                    profile_id=profile_id,
+                    module_id=module_id,
+                    can_view=module_id in PROFILE_MODULES[profile_id],
+                ),
+            )
         for permission_id, *_ in PERMISSIONS:
-            count("profile_permissions", await _add_if_missing(session, ProfilePermission, {"profile_id": profile_id, "permission_id": permission_id}, profile_id=profile_id, permission_id=permission_id, allowed=permission_id in PROFILE_PERMISSIONS[profile_id]))
+            count(
+                "profile_permissions",
+                await _add_if_missing(
+                    session,
+                    ProfilePermission,
+                    {"profile_id": profile_id, "permission_id": permission_id},
+                    profile_id=profile_id,
+                    permission_id=permission_id,
+                    allowed=permission_id in PROFILE_PERMISSIONS[profile_id],
+                ),
+            )
     await session.flush()
     return added
 
@@ -275,7 +575,9 @@ async def seed_users(session, now: datetime) -> int:
     for technical_id, user_id, profile_id in USERS:
         exists = await session.scalar(select(User).where(User.user_id == user_id))
         if exists is None:
-            session.add(User(id=technical_id, user_id=user_id, profile_id=profile_id, created_at=now))
+            session.add(
+                User(id=technical_id, user_id=user_id, profile_id=profile_id, created_at=now)
+            )
             created += 1
     await session.flush()
     return created
@@ -289,20 +591,38 @@ async def seed_sample_projects(session, now: datetime) -> int:
         if code in existing_codes:
             continue
         project = Project(
-            id=str(uuid4()), name=name, code=code, responsible_area=area, managers_ids=[admin.id],
-            write_group="SIGAC-Escrita", read_group="SIGAC-Leitura", write_identity_role="administrador",
-            read_identity_role="consultor", snow_task_number=f"TASK{1000 + index}", parent_folder=f"/Projetos/{code}",
-            description=description, status=status, participants_ids=[admin.id], created_at=now, updated_at=now,
+            id=str(uuid4()),
+            name=name,
+            code=code,
+            responsible_area=area,
+            managers_ids=[admin.id],
+            write_group="SIGAC-Escrita",
+            read_group="SIGAC-Leitura",
+            write_identity_role="administrador",
+            read_identity_role="consultor",
+            snow_task_number=f"TASK{1000 + index}",
+            parent_folder=f"/Projetos/{code}",
+            description=description,
+            status=status,
+            participants_ids=[admin.id],
+            created_at=now,
+            updated_at=now,
         )
         session.add(project)
         await session.flush()
-        session.add(ProjectMember(project_id=project.id, user_id=admin.id, role="administrador", created_at=now))
+        session.add(
+            ProjectMember(
+                project_id=project.id, user_id=admin.id, role="administrador", created_at=now
+            )
+        )
         created += 1
     await session.flush()
     return created
 
 
-async def initialize_database(engine: AsyncEngine, *, sample_projects: bool = False) -> dict[str, int]:
+async def initialize_database(
+    engine: AsyncEngine, *, sample_projects: bool = False
+) -> dict[str, int]:
     scope = load_scope(settings.environment)
     if sample_projects and scope != "full":
         raise RuntimeError("Projetos de exemplo só podem ser carregados em development ou test")
@@ -328,14 +648,22 @@ async def _main(sample_projects: bool) -> None:
         added = await initialize_database(db_session.engine, sample_projects=sample_projects)
     finally:
         await db_session.dispose_engine()
-    print(f"Seed concluído (engine={settings.database_engine}, environment={settings.environment}, escopo={load_scope(settings.environment)}):")
+    print(
+        f"Seed concluído (engine={settings.database_engine}, environment={settings.environment}, escopo={load_scope(settings.environment)}):"
+    )
     for table, total in added.items():
         print(f"  {table}: {total} inserido(s)")
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Primeira carga de dados de referência de um banco novo.")
-    parser.add_argument("--sample-projects", action="store_true", help="inclui projetos fictícios (só development e test)")
+    parser = argparse.ArgumentParser(
+        description="Primeira carga de dados de referência de um banco novo."
+    )
+    parser.add_argument(
+        "--sample-projects",
+        action="store_true",
+        help="inclui projetos fictícios (só development e test)",
+    )
     parser.add_argument("--confirm", action="store_true", help="obrigatório em staging e produção")
     arguments = parser.parse_args(argv)
     try:
