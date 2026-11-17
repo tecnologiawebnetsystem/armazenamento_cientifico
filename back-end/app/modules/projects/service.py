@@ -74,12 +74,11 @@ class ProjectService:
                 if value.strip()
             )
 
-        seen: set[tuple[str, str, str]] = set()
+        seen: set[tuple[str, str]] = set()
         for group_data in principals:
             key = (
                 group_data.principalType,
                 group_data.identifier.casefold(),
-                group_data.accessLevel,
             )
             if key in seen:
                 continue
@@ -154,26 +153,30 @@ class ProjectService:
                 raise ConflictException("Este principal já está vinculado a este projeto")
 
         principal = await self.repository.find_catalog_group(
-            data.principalType, normalized_identifier
+            project_id, data.principalType, normalized_identifier
         )
         if principal is None:
             principal = ProjectGroup(
                 group_id=str(uuid4()),
+                project_id=project_id,
                 identifier=normalized_identifier,
                 group_name=data.groupName.strip(),
                 principal_type=data.principalType,
+                access_level=data.accessLevel,
+                source="manual",
                 created_at=now,
                 updated_at=now,
             )
             await self.repository.add_project_group(principal)
+        else:
+            principal.group_name = data.groupName.strip()
+            principal.access_level = data.accessLevel
+            principal.source = "manual"
+            principal.updated_at = now
 
         association = ProjectAccessGroup(
             project_id=project_id,
             group_id=principal.group_id,
-            access_level=data.accessLevel,
-            source="manual",
-            created_at=now,
-            updated_at=now,
         )
         await self.repository.add_access_group(association)
         return principal, association
@@ -196,8 +199,23 @@ class ProjectService:
         if not result:
             raise LookupError("Principal de acesso não encontrado neste projeto")
         principal, association = result
-        association.access_level = data.accessLevel
-        association.updated_at = datetime.now(UTC).replace(tzinfo=None)
+        updated_type = data.principalType or principal.principal_type
+        updated_identifier = (data.identifier or principal.identifier).strip()
+        for other, _link in await self.repository.list_access_groups(project_id):
+            if other.group_id == principal.group_id:
+                continue
+            if (
+                other.principal_type == updated_type
+                and other.identifier.casefold() == updated_identifier.casefold()
+            ):
+                raise ConflictException("Este principal já está vinculado a este projeto")
+        if data.groupName is not None:
+            principal.group_name = data.groupName.strip()
+        principal.identifier = updated_identifier
+        principal.principal_type = updated_type
+        if data.accessLevel is not None:
+            principal.access_level = data.accessLevel
+        principal.updated_at = datetime.now(UTC).replace(tzinfo=None)
         await self.repository.commit()
         return principal, association
 
@@ -205,6 +223,6 @@ class ProjectService:
         result = await self.repository.find_access_group_by_id(project_id, access_group_id)
         if not result:
             return False
-        await self.repository.delete_access_group(result[1])
+        await self.repository.delete_access_group(result[0], result[1])
         await self.repository.commit()
         return True

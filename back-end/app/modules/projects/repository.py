@@ -138,13 +138,17 @@ class ProjectRepository:
     ) -> list[tuple[ProjectGroup, ProjectAccessGroup]]:
         statement = (
             select(ProjectGroup, ProjectAccessGroup)
-            .join(ProjectAccessGroup, ProjectAccessGroup.group_id == ProjectGroup.group_id)
-            .where(ProjectAccessGroup.project_id == project_id)
+            .join(
+                ProjectAccessGroup,
+                (ProjectAccessGroup.project_id == ProjectGroup.project_id)
+                & (ProjectAccessGroup.group_id == ProjectGroup.group_id),
+            )
+            .where(ProjectGroup.project_id == project_id)
         )
         if access_level:
-            statement = statement.where(ProjectAccessGroup.access_level == access_level)
+            statement = statement.where(ProjectGroup.access_level == access_level)
         statement = statement.order_by(
-            ProjectAccessGroup.access_level,
+            ProjectGroup.access_level,
             ProjectGroup.principal_type,
             ProjectGroup.group_name,
         )
@@ -155,19 +159,24 @@ class ProjectRepository:
     ) -> tuple[ProjectGroup, ProjectAccessGroup] | None:
         result = await self.session.execute(
             select(ProjectGroup, ProjectAccessGroup)
-            .join(ProjectAccessGroup, ProjectAccessGroup.group_id == ProjectGroup.group_id)
+            .join(
+                ProjectAccessGroup,
+                (ProjectAccessGroup.project_id == ProjectGroup.project_id)
+                & (ProjectAccessGroup.group_id == ProjectGroup.group_id),
+            )
             .where(
-                ProjectAccessGroup.project_id == project_id,
-                ProjectAccessGroup.group_id == group_id,
+                ProjectGroup.project_id == project_id,
+                ProjectGroup.group_id == group_id,
             )
         )
         return result.one_or_none()
 
     async def find_catalog_group(
-        self, principal_type: str, identifier: str
+        self, project_id: str, principal_type: str, identifier: str
     ) -> ProjectGroup | None:
         return await self.session.scalar(
             select(ProjectGroup).where(
+                ProjectGroup.project_id == project_id,
                 ProjectGroup.principal_type == principal_type,
                 func.lower(ProjectGroup.identifier) == identifier.strip().casefold(),
             )
@@ -179,6 +188,11 @@ class ProjectRepository:
         term = f"%{search.strip().casefold()}%"
         statement = (
             select(ProjectGroup)
+            .join(
+                ProjectAccessGroup,
+                (ProjectAccessGroup.project_id == ProjectGroup.project_id)
+                & (ProjectAccessGroup.group_id == ProjectGroup.group_id),
+            )
             .where(
                 ProjectGroup.principal_type == principal_type,
                 (func.lower(ProjectGroup.identifier).like(term))
@@ -199,5 +213,8 @@ class ProjectRepository:
         await self.session.flush()
         return group
 
-    async def delete_access_group(self, association: ProjectAccessGroup) -> None:
+    async def delete_access_group(
+        self, principal: ProjectGroup, association: ProjectAccessGroup
+    ) -> None:
         await self.session.delete(association)
+        await self.session.delete(principal)

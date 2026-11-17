@@ -62,8 +62,8 @@ export function PrincipalIdentifierAutocomplete({
       </datalist>
       <FieldDescription>
         {selected
-          ? `Cadastro existente encontrado: ${selected.groupName}. Será reutilizado.`
-          : "Ao informar um identificador existente, o cadastro global será reutilizado; caso contrário, será criado."}
+          ? `Identificador encontrado: ${selected.groupName}. O cadastro e o nível de acesso serão próprios deste projeto.`
+          : "Sugestões mostram identificadores cadastrados em outros projetos; o cadastro será criado para este projeto."}
       </FieldDescription>
     </Field>
   )

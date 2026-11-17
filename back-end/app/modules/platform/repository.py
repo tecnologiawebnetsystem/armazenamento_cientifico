@@ -314,20 +314,24 @@ class PlatformRepository:
             (
                 await self.session.execute(
                     select(
-                        ProjectAccessGroup.project_id.label("projectId"),
+                        ProjectGroup.project_id.label("projectId"),
                         Project.name.label("projectName"),
                         Project.status.label("projectStatus"),
                         Project.responsible_area.label("area"),
                         ProjectGroup.identifier.label("groupId"),
                         ProjectGroup.group_name.label("groupName"),
                         ProjectGroup.principal_type.label("principalType"),
-                        ProjectAccessGroup.access_level.label("groupAccessLevel"),
-                        ProjectAccessGroup.access_level.label("accessLevel"),
+                        ProjectGroup.access_level.label("groupAccessLevel"),
+                        ProjectGroup.access_level.label("accessLevel"),
                     )
-                    .join(ProjectAccessGroup, ProjectAccessGroup.group_id == ProjectGroup.group_id)
-                    .join(Project, Project.id == ProjectAccessGroup.project_id)
+                    .join(Project, Project.id == ProjectGroup.project_id)
+                    .join(
+                        ProjectAccessGroup,
+                        (ProjectAccessGroup.project_id == ProjectGroup.project_id)
+                        & (ProjectAccessGroup.group_id == ProjectGroup.group_id),
+                    )
                     .order_by(
-                        Project.name, ProjectAccessGroup.access_level, ProjectGroup.group_name
+                        Project.name, ProjectGroup.access_level, ProjectGroup.group_name
                     )
                 )
             )

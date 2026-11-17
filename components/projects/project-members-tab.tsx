@@ -80,7 +80,7 @@ export function ProjectMembersTab({
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="secondary">
-              {groups.length} {groups.length === 1 ? "grupo" : "grupos"}
+              {groups.length} {groups.length === 1 ? "principal" : "principais"}
             </Badge>
             <Badge variant="secondary">
               {members.length} {members.length === 1 ? "membro" : "membros"}
@@ -106,9 +106,10 @@ export function ProjectMembersTab({
           </Empty>
         ) : isLoading ? (
           <div className="flex flex-col gap-3">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <Skeleton key={index} className="h-14 rounded-lg" />
-            ))}
+            <Skeleton className="h-14 rounded-lg" />
+            <Skeleton className="h-14 rounded-lg" />
+            <Skeleton className="h-14 rounded-lg" />
+            <Skeleton className="h-14 rounded-lg" />
           </div>
         ) : (
           <>
@@ -140,12 +141,20 @@ export function ProjectMembersTab({
                           Fonte: {group.fonte}
                         </p>
                       </div>
-                      <Badge variant="outline">{group.nivel}</Badge>
+                      <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                        <Badge variant="outline">
+                          {group.principalType === "role" ? "Role" : "Grupo"}
+                        </Badge>
+                        <Badge variant="secondary">{group.nivel}</Badge>
+                      </div>
                     </div>
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      {group.identificadores.length} identificador(es)
-                      consolidado(s)
-                    </p>
+                    <div className="mt-3 flex flex-col gap-1" aria-label={`Identificadores de ${group.nome}`}>
+                      {group.identificadores.map((identifier) => (
+                        <code key={identifier} className="break-all rounded bg-muted px-2 py-1 text-xs text-muted-foreground">
+                          {identifier}
+                        </code>
+                      ))}
+                    </div>
                   </div>
                 ))
               )}
