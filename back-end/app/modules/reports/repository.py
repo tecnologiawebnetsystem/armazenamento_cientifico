@@ -1,10 +1,10 @@
 from typing import Any
 
-from sqlalchemy import String, and_, exists, func, or_, select
+from sqlalchemy import String, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.catalogs.models import ReportField, ResponsibleArea
-from app.modules.projects.models import Project, ProjectGroup, ProjectMember
+from app.modules.projects.models import Project, ProjectAccessGroup, ProjectGroup, ProjectMember
 
 
 class ReportRepository:
@@ -103,6 +103,11 @@ class ReportRepository:
                 Project.code.label("codigo"),
                 Project.status,
                 select(ProjectGroup.group_name)
+                .join(
+                    ProjectAccessGroup,
+                    (ProjectAccessGroup.project_id == ProjectGroup.project_id)
+                    & (ProjectAccessGroup.group_id == ProjectGroup.group_id),
+                )
                 .where(ProjectGroup.project_id == Project.id)
                 .order_by(ProjectGroup.group_name)
                 .limit(1)
@@ -111,10 +116,14 @@ class ReportRepository:
                 exists().where(
                     ProjectGroup.project_id == Project.id,
                     ProjectGroup.access_level == "leitura",
+                    ProjectAccessGroup.project_id == ProjectGroup.project_id,
+                    ProjectAccessGroup.group_id == ProjectGroup.group_id,
                 ).label("hasReadGroup"),
                 exists().where(
                     ProjectGroup.project_id == Project.id,
                     ProjectGroup.access_level == "escrita",
+                    ProjectAccessGroup.project_id == ProjectGroup.project_id,
+                    ProjectAccessGroup.group_id == ProjectGroup.group_id,
                 ).label("hasWriteGroup"),
             )
             .select_from(
@@ -127,10 +136,14 @@ class ReportRepository:
                     ~exists().where(
                         ProjectGroup.project_id == Project.id,
                         ProjectGroup.access_level == "leitura",
+                        ProjectAccessGroup.project_id == ProjectGroup.project_id,
+                        ProjectAccessGroup.group_id == ProjectGroup.group_id,
                     ),
                     ~exists().where(
                         ProjectGroup.project_id == Project.id,
                         ProjectGroup.access_level == "escrita",
+                        ProjectAccessGroup.project_id == ProjectGroup.project_id,
+                        ProjectAccessGroup.group_id == ProjectGroup.group_id,
                     ),
                 )
             )

@@ -140,13 +140,13 @@ class ProjectService:
     async def _add_access_group(
         self, project_id: str, data: AccessGroupCreate, now: datetime
     ) -> ProjectGroup:
-        existing = await self.repository.list_access_groups(project_id, data.accessLevel)
+        existing = await self.repository.list_access_groups(project_id)
         if any(
             group.principal_type == data.principalType
-            and group.identifier.casefold() == data.identifier.casefold()
+            and group.identifier.strip().casefold() == data.identifier.strip().casefold()
             for group in existing
         ):
-            raise ConflictException("Este principal já está vinculado com esse nível de acesso")
+            raise ConflictException("Este principal já está vinculado a este projeto")
 
         principal = ProjectGroup(
             group_id=str(uuid4()),
@@ -182,14 +182,14 @@ class ProjectService:
         principal = await self.repository.find_access_group_by_id(access_group_id)
         if not principal or principal.project_id != project_id:
             raise LookupError("Principal de acesso não encontrado neste projeto")
-        existing = await self.repository.list_access_groups(project_id, data.accessLevel)
+        existing = await self.repository.list_access_groups(project_id)
         if any(
             group.group_id != principal.group_id
             and group.principal_type == principal.principal_type
             and group.identifier.casefold() == principal.identifier.casefold()
             for group in existing
         ):
-            raise ConflictException("Este principal já está vinculado com esse nível de acesso")
+            raise ConflictException("Este principal já está vinculado a este projeto")
         principal.access_level = data.accessLevel
         principal.updated_at = datetime.now(UTC).replace(tzinfo=None)
         await self.repository.commit()

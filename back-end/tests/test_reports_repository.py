@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 import app.db.models  # noqa: F401
 from app.db.base import Base
 from app.modules.catalogs.models import ReportField, ReportType
-from app.modules.projects.models import Project, ProjectAccessGroup
+from app.modules.projects.models import Project, ProjectAccessGroup, ProjectGroup
 from app.modules.reports.repository import ReportRepository
 from app.modules.reports.service import ReportService
 
@@ -170,20 +170,33 @@ async def test_projects_filter_by_status_and_area(db):
     assert await repo.projects("pausado", None, None, "x", True) == []
 
 
-async def test_inconsistencies_use_project_access_groups_for_level_coverage(db):
+async def _add_access_group(db, *, group_id: str, identifier: str, name: str, level: str):
     db.add(
-        ProjectAccessGroup(
-            id="group-read-p1",
+        ProjectGroup(
+            group_id=group_id,
             project_id="id-P1",
-            group_name="Grupo de leitura",
-            group_id="entra-read-p1",
-            access_level="leitura",
+            identifier=identifier,
+            group_name=name,
+            principal_type="group",
+            access_level=level,
             source="manual",
             created_at=NOW,
             updated_at=NOW,
         )
     )
+    await db.flush()
+    db.add(ProjectAccessGroup(project_id="id-P1", group_id=group_id))
     await db.commit()
+
+
+async def test_inconsistencies_use_project_access_groups_for_level_coverage(db):
+    await _add_access_group(
+        db,
+        group_id="group-read-p1",
+        identifier="entra-read-p1",
+        name="Grupo de leitura",
+        level="leitura",
+    )
 
     repo = ReportRepository(db)
     incomplete = await repo.inconsistencies(None, None, None, "x", all_projects=True)
@@ -191,19 +204,13 @@ async def test_inconsistencies_use_project_access_groups_for_level_coverage(db):
     assert p1["tipo"] == "grupo-incompleto"
     assert p1["grupo"] == "Grupo de leitura"
 
-    db.add(
-        ProjectAccessGroup(
-            id="group-write-p1",
-            project_id="id-P1",
-            group_name="Grupo de escrita",
-            group_id="entra-write-p1",
-            access_level="escrita",
-            source="manual",
-            created_at=NOW,
-            updated_at=NOW,
-        )
+    await _add_access_group(
+        db,
+        group_id="group-write-p1",
+        identifier="entra-write-p1",
+        name="Grupo de escrita",
+        level="escrita",
     )
-    await db.commit()
     complete = await repo.inconsistencies(None, None, None, "x", all_projects=True)
     assert all(row["projetoId"] != "id-P1" for row in complete)
 

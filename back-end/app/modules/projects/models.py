@@ -57,12 +57,15 @@ class ProjectGroup(Base):
             "principal_type IN ('group', 'role')",
             name="ck_project_groups_principal_type",
         ),
+        CheckConstraint(
+            "access_level IN ('leitura', 'escrita', 'administrador')",
+            name="ck_project_groups_access_level",
+        ),
         UniqueConstraint(
             "project_id",
             "principal_type",
             "identifier",
-            "access_level",
-            name="uq_project_groups_project_principal_level",
+            name="uq_project_groups_project_type_identifier",
         ),
         UniqueConstraint(
             "project_id", "group_id", name="uq_project_groups_project_group"

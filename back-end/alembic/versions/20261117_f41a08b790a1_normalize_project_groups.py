@@ -7,6 +7,7 @@ Create Date: 2026-11-17
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "f41a08b790a1"
@@ -34,6 +35,10 @@ def upgrade() -> None:
             "principal_type IN ('group', 'role')",
             name="ck_project_groups_principal_type",
         ),
+        sa.CheckConstraint(
+            "access_level IN ('leitura', 'escrita', 'administrador')",
+            name="ck_project_groups_access_level",
+        ),
         sa.ForeignKeyConstraint(
             ["project_id"], [f"{SCHEMA}.projects.id"], ondelete="CASCADE"
         ),
@@ -42,8 +47,7 @@ def upgrade() -> None:
             "project_id",
             "principal_type",
             "identifier",
-            "access_level",
-            name="uq_project_groups_project_principal_level",
+            name="uq_project_groups_project_type_identifier",
         ),
         sa.UniqueConstraint(
             "project_id", "group_id", name="uq_project_groups_project_group"
