@@ -145,7 +145,10 @@ export function ProjectAccessGroupsManager({
       aria-labelledby="project-access-groups-title"
     >
       <div>
-        <h3 id="project-access-groups-title" className="font-semibold">
+        <h3
+          id="project-access-groups-title"
+          className="font-semibold text-primary"
+        >
           Gerenciar grupos e papéis
         </h3>
         <p className="text-sm text-muted-foreground">
@@ -248,7 +251,7 @@ export function ProjectAccessGroupsManager({
             return (
               <article
                 key={group.id}
-                className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-background p-4"
+                className="flex min-w-0 flex-col gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4"
               >
                 {isEditing ? (
                   <div className="grid gap-3">
@@ -375,7 +378,7 @@ export function ProjectAccessGroupsManager({
                           {group.identifier}
                         </span>
                       </div>
-                      <Badge variant="secondary" className="shrink-0">
+                      <Badge className="shrink-0 border border-primary/15 bg-primary/10 text-primary">
                         {accessLevelLabels[group.accessLevel] ??
                           group.accessLevel}
                       </Badge>
