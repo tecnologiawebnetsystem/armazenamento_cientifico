@@ -251,7 +251,11 @@ export function ProjectAccessGroupsManager({
             return (
               <article
                 key={group.id}
-                className="flex min-w-0 flex-col gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4"
+                className={`flex min-w-0 flex-col gap-3 rounded-lg border p-4 ${
+                  group.principalType === "role"
+                    ? "border-petrobras-blue/30 bg-petrobras-blue/5"
+                    : "border-petrobras-green/30 bg-petrobras-green/5"
+                }`}
               >
                 {isEditing ? (
                   <div className="grid gap-3">
@@ -378,14 +382,29 @@ export function ProjectAccessGroupsManager({
                           {group.identifier}
                         </span>
                       </div>
-                      <Badge className="shrink-0 border border-primary/15 bg-primary/10 text-primary">
+                      <Badge
+                        className={`shrink-0 border ${
+                          group.accessLevel === "administrador"
+                            ? "border-petrobras-yellow/50 bg-petrobras-yellow/20 text-foreground"
+                            : group.accessLevel === "escrita"
+                              ? "border-petrobras-blue/25 bg-petrobras-blue/10 text-petrobras-blue"
+                              : "border-petrobras-green/25 bg-petrobras-green/10 text-petrobras-green"
+                        }`}
+                      >
                         {accessLevelLabels[group.accessLevel] ??
                           group.accessLevel}
                       </Badge>
                     </div>
                     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
                       <div className="flex flex-wrap gap-2">
-                        <Badge variant="outline">
+                        <Badge
+                          className={
+                            group.principalType === "role"
+                              ? "border-petrobras-blue/30 bg-petrobras-blue/10 text-petrobras-blue"
+                              : "border-petrobras-green/30 bg-petrobras-green/10 text-petrobras-green"
+                          }
+                          variant="outline"
+                        >
                           {
                             principalTypes.find(
                               (type) => type.value === group.principalType
