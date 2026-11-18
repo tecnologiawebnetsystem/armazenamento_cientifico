@@ -50,11 +50,11 @@ def test_every_revision_defines_upgrade_and_downgrade(script: ScriptDirectory):
 
 def test_baseline_contains_normalized_project_groups_schema(script: ScriptDirectory):
     baseline = script.get_revision("0001_production_baseline")
-    baseline_source = Path(baseline.path).read_text()
+    baseline_source = Path(baseline.path).read_text(encoding="utf-8")
     create_access_groups = Path(
         script.get_revision("fcb6e012eb9f").path
-    ).read_text()
-    normalize_groups = Path(script.get_revision("f41a08b790a1").path).read_text()
+    ).read_text(encoding="utf-8")
+    normalize_groups = Path(script.get_revision("f41a08b790a1").path).read_text(encoding="utf-8")
 
     assert '"project_groups"' in baseline_source
     assert '"principal_type"' in baseline_source
@@ -68,7 +68,7 @@ def test_project_groups_normalization_keeps_access_level_on_project_groups(
     script: ScriptDirectory,
 ):
     revision = script.get_revision("f41a08b790a1")
-    source = Path(revision.path).read_text()
+    source = Path(revision.path).read_text(encoding="utf-8")
 
     assert '"project_groups"' in source
     assert '"access_level"' in source
@@ -78,7 +78,7 @@ def test_project_groups_normalization_keeps_access_level_on_project_groups(
 
 def test_runtime_role_receives_project_group_permissions(script: ScriptDirectory):
     revision = script.get_revision("6c20df6eab13")
-    source = Path(revision.path).read_text()
+    source = Path(revision.path).read_text(encoding="utf-8")
 
     assert "GRANT USAGE ON SCHEMA" in source
     assert "project_groups TO {runtime_role}" in source
