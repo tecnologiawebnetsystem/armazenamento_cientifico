@@ -207,6 +207,16 @@ async def list_responsible_areas(
     }
 
 
+@router.get("/responsible-candidates", response_model=list[dict])
+async def search_responsible_candidates(
+    service: Annotated[ProjectService, Depends(get_service)],
+    _: Annotated[dict, Depends(require_capabilities("create"))],
+    search: str = Query(min_length=1, max_length=80),
+):
+    users = await service.search_responsible_candidates(search)
+    return [{"userId": user.user_id} for user in users]
+
+
 @router.get("/{project_id}", response_model=dict)
 async def get_project(
     project_id: str, service: Annotated[ProjectService, Depends(get_service)], user: CurrentUser

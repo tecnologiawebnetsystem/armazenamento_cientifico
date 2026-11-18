@@ -347,6 +347,15 @@ export function searchProjectGroupsCatalog(
   )
 }
 
+export type ResponsibleCandidate = { userId: string }
+
+export function searchResponsibleCandidates(search: string) {
+  const params = new URLSearchParams({ search })
+  return request<ResponsibleCandidate[]>(
+    `/api/projects/responsible-candidates?${params.toString()}`
+  )
+}
+
 export function createProject(data: {
   gruposAcesso: ProjectAccessGroupInput[]
   nome: string
