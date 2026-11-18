@@ -104,7 +104,10 @@ class ProjectRepository:
         related_tables = [
             table
             for table in reversed(Base.metadata.sorted_tables)
-            if table is not Project.__table__ and "project_id" in table.c
+            if table is not Project.__table__
+            and "project_id" in table.c
+            # Keep audit history; deleting the project sets this FK to NULL.
+            and table.name != "activity_logs"
         ]
         for table in related_tables:
             await self.session.execute(

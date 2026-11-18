@@ -1,6 +1,8 @@
 import os
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import httpx
@@ -63,6 +65,20 @@ def test_postgres_test_database_uses_asyncpg_driver(monkeypatch):
     )
 
     assert make_url(_test_database_url()).drivername == "postgresql+asyncpg"
+
+
+@pytest.mark.asyncio
+async def test_project_delete_preserves_activity_logs():
+    session = AsyncMock()
+    repository = ProjectRepository(session)
+
+    await repository.delete(SimpleNamespace(id="project-1"))
+
+    deleted_table_names = [
+        call.args[0].table.name for call in session.execute.await_args_list
+    ]
+    assert "activity_logs" not in deleted_table_names
+    session.delete.assert_awaited_once()
 
 
 @pytest_asyncio.fixture

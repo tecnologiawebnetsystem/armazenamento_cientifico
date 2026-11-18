@@ -89,7 +89,7 @@ def test_runtime_role_receives_project_delete_permissions(script: ScriptDirector
     revision = script.get_revision("9d2c4a71e6f3")
     source = Path(revision.path).read_text(encoding="utf-8")
 
-    assert '("project_members", "folders", "activity_logs")' in source
+    assert '("project_members", "folders")' in source
     assert "GRANT DELETE ON TABLE {schema}.{table} TO {runtime_role}" in source
     assert "REVOKE DELETE ON TABLE {schema}.{table} FROM {runtime_role}" in source
     assert script.get_current_head() == "9d2c4a71e6f3"
