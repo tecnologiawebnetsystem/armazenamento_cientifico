@@ -50,7 +50,7 @@ export function ProjectCard({ project, canManage = false, showMeta = true, onTog
       {/* Faixa superior com a cor da marca */}
       <span
         aria-hidden
-        className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-petrobras-green via-petrobras-green to-petrobras-yellow"
+        className={`absolute inset-x-0 top-0 h-1 ${inconsistent ? "bg-amber-500" : "bg-gradient-to-r from-petrobras-green via-petrobras-green to-petrobras-yellow"}`}
       />
 
       {/* Link que cobre o card inteiro para navegação */}
