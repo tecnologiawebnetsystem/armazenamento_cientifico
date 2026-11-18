@@ -84,7 +84,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
   const { projects, refresh, isLoading } = useProjects({ nome: initialSearch, status: apiStatus, area: initialArea === "todas" ? undefined : initialArea, limit: 500 })
   const [onlyInconsistent, setOnlyInconsistent] = useState(false)
   const { data: inconsistencyData } = useSWR(
-    onlyInconsistent ? "project-inconsistencies" : null,
+    "project-inconsistencies",
     () => getInconsistencyReport(),
     { revalidateOnFocus: false, shouldRetryOnError: false },
   )
