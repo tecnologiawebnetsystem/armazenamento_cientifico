@@ -8,6 +8,7 @@ import {
   PencilIcon,
   PlusIcon,
   Trash2Icon,
+  UserPlusIcon,
   XIcon,
 } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -197,13 +198,25 @@ export function ProjectMembersManager({
           Pessoas com acesso
         </h3>
         <p className="text-sm text-muted-foreground">
-          Consulte o perfil e gerencie os vínculos individuais desta área de
-          rede.
+          Gerencie quem tem acesso individual a esta área de rede.
         </p>
       </div>
 
       {canManage && (
-        <div className="rounded-xl border border-border bg-muted/20 p-4">
+        <div className="rounded-xl border border-petrobras-green/30 bg-petrobras-green/5 p-4 sm:p-5">
+          <div className="mb-4 flex items-start gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-petrobras-green/15 text-petrobras-green">
+              <UserPlusIcon className="size-5" aria-hidden="true" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <h4 className="text-sm font-semibold text-foreground">
+                Adicionar pessoa à área
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                Busque pelo identificador, selecione o perfil e confirme a inclusão.
+              </p>
+            </div>
+          </div>
           <Field>
             <FieldLabel htmlFor={`member-search-${projectId}`}>
               Buscar usuário pela chave de acesso
@@ -343,7 +356,7 @@ export function ProjectMembersManager({
                 onClick={() => void addMember()}
                 disabled={saving}
               >
-                <PlusIcon data-icon="inline-start" /> Adicionar
+                <PlusIcon data-icon="inline-start" /> Adicionar pessoa
               </Button>
             </div>
           )}
