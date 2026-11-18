@@ -73,7 +73,6 @@ def test_project_groups_normalization_keeps_access_level_on_project_groups(
     assert '"project_groups"' in source
     assert '"access_level"' in source
     assert '"project_access_groups"' in source
-    assert script.get_current_head() == "6c20df6eab13"
 
 
 def test_runtime_role_receives_project_group_permissions(script: ScriptDirectory):

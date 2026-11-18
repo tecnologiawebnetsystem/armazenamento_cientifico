@@ -91,7 +91,7 @@ async def client() -> AsyncIterator[tuple[httpx.AsyncClient, dict[str, object], 
         "id": "admin-1",
         "user_id": "admin-1",
         "role": "admin",
-        "permissions": ["pesquisa.visualizar", "projeto.editar"],
+        "permissions": ["pesquisa.visualizar", "projeto.editar", "projeto.excluir"],
     }
 
     async def provide_service():
