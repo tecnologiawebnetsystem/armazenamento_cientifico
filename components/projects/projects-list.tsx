@@ -17,7 +17,7 @@ import {
 import { useProjects } from "@/hooks/use-projects"
 import { useCatalogs } from "@/hooks/use-catalogs"
 import { useSession } from "@/hooks/use-session"
-import { getInconsistencyReport, recordAuditEvent, updateProject } from "@/lib/api-client"
+import { deleteProject, getInconsistencyReport, recordAuditEvent, updateProject } from "@/lib/api-client"
 import { ProjectCard } from "@/components/projects/project-card"
 import {
   ProjectFilters,
@@ -98,6 +98,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
   const [view, setView] = useState<ViewMode>("grade")
   const [showMeta, setShowMeta] = useState(true)
   const [target, setTarget] = useState<Project | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null)
   const [pending, setPending] = useState(false)
 
   useEffect(() => {
@@ -176,6 +177,27 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
       setTarget(null)
     } catch {
       toast.error("Não foi possível atualizar a área de rede.")
+    } finally {
+      setPending(false)
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    setPending(true)
+    try {
+      await deleteProject(deleteTarget.id)
+      void recordAuditEvent({
+        action: "excluir-projeto",
+        entity: "projeto",
+        entity_id: deleteTarget.id,
+        details: { projeto: deleteTarget.nome, codigo: deleteTarget.codigo },
+      }).catch(() => undefined)
+      await refresh()
+      toast.success("Área de rede e seus dados relacionados foram excluídos.")
+      setDeleteTarget(null)
+    } catch {
+      toast.error("Não foi possível excluir a área de rede. Nenhum dado foi removido.")
     } finally {
       setPending(false)
     }
@@ -268,6 +290,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
               showMeta={showMeta}
               canManage={canManage()}
               onToggleStatus={setTarget}
+              onDelete={setDeleteTarget}
               inconsistent={inconsistentProjectIds.has(project.id)}
             />
           ))}
@@ -281,6 +304,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
               showMeta={showMeta}
               canManage={canManage()}
               onToggleStatus={setTarget}
+              onDelete={setDeleteTarget}
               inconsistent={inconsistentProjectIds.has(project.id)}
               className={i > 0 ? "border-t" : ""}
             />
@@ -319,6 +343,27 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
             <AlertDialogCancel disabled={pending}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmToggle} disabled={pending}>
               {pending ? "Processando..." : target?.status === "pausado" ? "Reativar" : "Desativar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && !pending && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir permanentemente esta área de rede?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A área &quot;{deleteTarget?.nome}&quot; e todos os registros vinculados a ela em tabelas com project_id serão excluídos. Essa ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={pending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={pending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {pending ? "Excluindo..." : "Excluir permanentemente"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

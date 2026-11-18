@@ -143,6 +143,47 @@ async def client() -> AsyncIterator[tuple[httpx.AsyncClient, dict[str, object], 
         await engine.dispose()
 
 
+async def test_project_delete_removes_project_scoped_records_without_affecting_other_projects(client):
+    http, _, project_ids = client
+    project_a = project_ids["a"]
+    project_b = project_ids["b"]
+
+    member = await http.post(
+        f"/api/projects/{project_a}/members",
+        json={"userId": "member-1", "papel": "gerente"},
+    )
+    access_group = await http.post(
+        f"/api/projects/{project_a}/access-groups",
+        json={
+            "groupName": "Grupo da área A",
+            "groupId": "entra-area-a",
+            "accessLevel": "leitura",
+        },
+    )
+    other_group = await http.post(
+        f"/api/projects/{project_b}/access-groups",
+        json={
+            "groupName": "Grupo da área B",
+            "groupId": "entra-area-b",
+            "accessLevel": "leitura",
+        },
+    )
+    assert member.status_code == 201
+    assert access_group.status_code == 201
+    assert other_group.status_code == 201
+
+    deleted = await http.delete(f"/api/projects/{project_a}")
+
+    assert deleted.status_code == 204
+    assert (await http.get(f"/api/projects/{project_a}")).status_code == 404
+    assert (await http.get(f"/api/projects/{project_a}/members")).status_code == 403
+    remaining_groups = await http.get(f"/api/projects/{project_b}/access-groups")
+    assert remaining_groups.status_code == 200
+    assert [group["groupName"] for group in remaining_groups.json()["groups"]] == [
+        "Grupo da área B"
+    ]
+
+
 async def test_project_access_groups_crud_filter_and_project_isolation(client):
     http, _, project_ids = client
     project_a = project_ids["a"]

@@ -10,6 +10,7 @@ import {
   ExternalLinkIcon,
   PauseIcon,
   PlayIcon,
+  Trash2Icon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ProjectStatusBadge } from "@/components/projects/project-status-badge"
@@ -34,11 +35,12 @@ interface Props {
   canManage?: boolean
   showMeta?: boolean
   onToggleStatus?: (project: Project) => void
+  onDelete?: (project: Project) => void
   inconsistent?: boolean
   className?: string
 }
 
-export function ProjectListRow({ project, canManage = false, showMeta = true, onToggleStatus, inconsistent = false, className }: Props) {
+export function ProjectListRow({ project, canManage = false, showMeta = true, onToggleStatus, onDelete, inconsistent = false, className }: Props) {
   const membros = project.participantesIds?.length ?? 0
   const pausado = project.status === "pausado"
 
@@ -97,6 +99,11 @@ export function ProjectListRow({ project, canManage = false, showMeta = true, on
               >
                 {pausado ? <PlayIcon /> : <PauseIcon />}
                 {pausado ? "Reativar" : "Desativar"}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => onDelete?.(project)}>
+                <Trash2Icon />
+                Excluir área de rede
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
