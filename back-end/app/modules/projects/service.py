@@ -2,7 +2,12 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from app.core.exceptions import ConflictException
-from app.modules.projects.models import Project, ProjectAccessGroup, ProjectGroup
+from app.modules.projects.models import (
+    Project,
+    ProjectAccessGroup,
+    ProjectGroup,
+    ProjectMember,
+)
 from app.modules.projects.repository import ProjectRepository
 from app.modules.projects.schemas import (
     AccessGroupCreate,
@@ -126,6 +131,43 @@ class ProjectService:
     async def list_members(self, project_id: str):
         return await self.repository.list_members(project_id)
 
+    async def search_member_candidates(self, project_id: str, search: str):
+        return await self.repository.search_member_candidates(project_id, search)
+
+    async def add_member(self, project_id: str, user_id: str, role: str) -> ProjectMember:
+        if not await self.repository.find_by_id(project_id):
+            raise LookupError("Área de rede não encontrada")
+        user_data = await self.repository.find_user_with_profile(user_id)
+        if not user_data:
+            raise LookupError("Usuário não encontrado")
+        if await self.repository.find_member(project_id, user_id):
+            raise ConflictException("Este usuário já possui acesso a esta área de rede")
+        member = ProjectMember(
+            project_id=project_id,
+            user_id=user_id,
+            role=role.strip(),
+            created_at=datetime.now(UTC).replace(tzinfo=None),
+        )
+        await self.repository.add_member(member)
+        await self.repository.commit()
+        return member
+
+    async def update_member(self, project_id: str, user_id: str, role: str) -> ProjectMember:
+        member = await self.repository.find_member(project_id, user_id)
+        if not member:
+            raise LookupError("Membro não encontrado nesta área de rede")
+        member.role = role.strip()
+        await self.repository.commit()
+        return member
+
+    async def delete_member(self, project_id: str, user_id: str) -> bool:
+        member = await self.repository.find_member(project_id, user_id)
+        if not member:
+            return False
+        await self.repository.delete_member(member)
+        await self.repository.commit()
+        return True
+
     async def list_users_by_ids(self, user_ids: list[str]):
         return await self.repository.list_users_by_ids(user_ids)
 
@@ -136,9 +178,7 @@ class ProjectService:
     ) -> list[tuple[ProjectGroup, ProjectAccessGroup]]:
         return await self.repository.list_access_groups(project_id, access_level)
 
-    async def search_catalog_groups(
-        self, principal_type: str, search: str
-    ) -> list[ProjectGroup]:
+    async def search_catalog_groups(self, principal_type: str, search: str) -> list[ProjectGroup]:
         return await self.repository.search_catalog_groups(principal_type, search)
 
     async def _add_access_group(

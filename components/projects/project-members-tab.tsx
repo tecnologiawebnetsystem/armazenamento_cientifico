@@ -9,7 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -21,29 +20,7 @@ import {
 } from "@/components/ui/empty"
 import { getProjectAccessMap } from "@/lib/api-client"
 import { ProjectAccessGroupsManager } from "@/components/projects/project-access-groups-manager"
-import { roleLabel } from "@/hooks/use-permissions"
-
-function initials(nome?: string | null, userId?: string | null) {
-  const normalizedName = nome?.trim() || userId?.trim() || "Usuário"
-  const result = normalizedName
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((parte) => parte[0])
-    .join("")
-    .toUpperCase()
-
-  return result || "U"
-}
-
-function displayedRole(value: unknown) {
-  const normalized = String(value ?? "").toLowerCase()
-  if (["gestor", "gerente", "manager"].includes(normalized)) return "gerente"
-  if (["participante", "participant"].includes(normalized)) return "solicitante"
-  if (["visualizador", "viewer"].includes(normalized)) return "visualizador"
-  if (["solicitante", "requester"].includes(normalized)) return "solicitante"
-  return normalized
-}
+import { ProjectMembersManager } from "@/components/projects/project-members-manager"
 
 export function ProjectMembersTab({
   projectId,
@@ -155,71 +132,10 @@ export function ProjectMembersTab({
               </div>
             )}
             {canManage && <ProjectAccessGroupsManager projectId={projectId} />}
-            <section
-              aria-labelledby="project-members-title"
-              className="flex flex-col gap-3"
-            >
-              <h3
-                id="project-members-title"
-                className="text-base font-semibold"
-              >
-                Pessoas com acesso
-              </h3>
-              <div className="overflow-hidden rounded-xl border border-border/80 bg-background">
-                <div className="hidden grid-cols-[minmax(0,1fr)_180px] items-center gap-3 border-b bg-muted/30 px-4 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase sm:grid">
-                  <span>Pessoa</span>
-                  <span>Perfil</span>
-                </div>
-                <div className="flex flex-col divide-y divide-border">
-                  {members.length === 0 ? (
-                    <p className="px-4 py-4 text-sm text-muted-foreground">
-                      Nenhuma pessoa com acesso individual.
-                    </p>
-                  ) : (
-                    members.map((member) => (
-                      <div
-                        key={member.userId}
-                        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_180px] sm:px-4"
-                      >
-                        <div className="flex min-w-0 items-center gap-3">
-                          <Avatar className="size-9">
-                            {member.user.avatarUrl ? (
-                              <AvatarImage
-                                src={member.user.avatarUrl}
-                                alt={member.user.nome}
-                              />
-                            ) : null}
-                            <AvatarFallback>
-                              {initials(
-                                member.user.nome,
-                                member.user.userId || member.userId
-                              )}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex min-w-0 flex-col">
-                            <span className="truncate text-sm font-medium text-foreground">
-                              {member.user.nome ||
-                                member.user.userId ||
-                                member.userId}
-                            </span>
-                            <span className="truncate text-xs text-muted-foreground">
-                              {member.user.email ||
-                                `Identificador: ${member.user.userId || member.userId}`}
-                            </span>
-                          </div>
-                        </div>
-                        <Badge
-                          className="shrink-0 border-petrobras-yellow/50 bg-petrobras-yellow/15 text-foreground"
-                          variant="outline"
-                        >
-                          {roleLabel(displayedRole(member.papel))}
-                        </Badge>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </section>
+            <ProjectMembersManager
+              projectId={projectId}
+              canManage={canManage}
+            />
           </>
         )}
       </CardContent>
