@@ -131,6 +131,9 @@ class ProjectService:
     async def list_members(self, project_id: str):
         return await self.repository.list_members(project_id)
 
+    async def search_responsible_candidates(self, search: str):
+        return await self.repository.search_responsible_candidates(search)
+
     async def search_member_candidates(self, project_id: str, search: str):
         return await self.repository.search_member_candidates(project_id, search)
 

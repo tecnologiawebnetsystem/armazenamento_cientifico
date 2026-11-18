@@ -45,6 +45,7 @@ async def record_event(request: Request, payload: ActivityLogIn, user: CurrentUs
         http_method=request.method,
         route=request.url.path,
         ip_address=ip_address,
+        project_id=payload.project_id,
     )
 
 

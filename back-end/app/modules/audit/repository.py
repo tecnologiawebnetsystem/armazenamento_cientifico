@@ -23,12 +23,13 @@ class ActivityLogRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def create(self, *, user_id: str, action: str, entity: str, entity_id: str | None, details: dict[str, object], result: str, correlation_id: str | None = None, http_method: str | None = None, route: str | None = None, duration_ms: float | None = None, ip_address: str | None = None) -> ActivityLog:
+    async def create(self, *, user_id: str, action: str, entity: str, entity_id: str | None, details: dict[str, object], result: str, correlation_id: str | None = None, http_method: str | None = None, route: str | None = None, duration_ms: float | None = None, ip_address: str | None = None, project_id: str | None = None) -> ActivityLog:
         resolved_user_id = user_id if user_id and await self.session.scalar(select(User.user_id).where(User.user_id == user_id)) else None
         safe_details = mask_sensitive(details)
         if resolved_user_id is None and user_id:
             safe_details = {**safe_details, "usuario_auditoria_nao_localizado": user_id}
 
+        resolved_project_id = project_id if project_id and await self.session.scalar(select(Project.id).where(Project.id == project_id)) else None
         log = ActivityLog(
             id=str(uuid4()),
             user_id=resolved_user_id,
@@ -42,6 +43,7 @@ class ActivityLogRepository:
             route=route,
             duration_ms=duration_ms,
             ip_address=ip_address,
+            project_id=resolved_project_id,
             created_at=_database_datetime(datetime.now(UTC)),
         )
         self.session.add(log)

@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { AccessGroupsEditor } from "@/components/projects/access-groups-editor"
+import { ResponsibleUserAutocomplete } from "@/components/projects/responsible-user-autocomplete"
 import type { ProjectAccessGroupInput } from "@/lib/api-client"
 import {
   Card,
@@ -44,7 +45,9 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
     new Date().toISOString().slice(0, 10)
   )
   const [areaResponsavel, setAreaResponsavel] = useState("")
-  const [gestorProjeto, setGestorProjeto] = useState(currentUser.nome)
+  const [gestorProjeto, setGestorProjeto] = useState(
+    currentUser.chaveCav4 ?? currentUser.userId ?? ""
+  )
   const [gruposAcesso, setGruposAcesso] = useState<ProjectAccessGroupInput[]>(
     []
   )
@@ -196,20 +199,10 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
                 />
               </Field>
             </div>
-            <Field>
-              <FieldLabel htmlFor="gestor">
-                Responsável pela área de rede
-              </FieldLabel>
-              <Input
-                id="gestor"
-                value={gestorProjeto}
-                onChange={(e) => setGestorProjeto(e.target.value)}
-                placeholder="Informe o nome ou identificador do gestor"
-              />
-              <FieldDescription>
-                Campo de texto para informar o responsável.
-              </FieldDescription>
-            </Field>
+            <ResponsibleUserAutocomplete
+              value={gestorProjeto}
+              onChange={setGestorProjeto}
+            />
             <section
               className="flex flex-col gap-3 rounded-xl border border-border p-4"
               aria-labelledby="access-groups-heading"
@@ -222,8 +215,9 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
                   Grupos e papéis de acesso
                 </h2>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Associe grupos do Entra ID ou papéis de identidade e defina o
-                  nível de acesso por projeto.
+                  Opcional: você pode cadastrar a área sem grupos ou papéis e
+                  configurar esses acessos depois. Nenhum membro precisa ser
+                  vinculado durante a criação.
                 </p>
               </div>
               <AccessGroupsEditor

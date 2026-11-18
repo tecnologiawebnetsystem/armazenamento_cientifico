@@ -130,6 +130,19 @@ class ProjectRepository:
         )
         return list((await self.session.execute(statement)).all())
 
+    async def search_responsible_candidates(self, search: str, limit: int = 12) -> list[User]:
+        normalized_search = (
+            search.strip().casefold().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        )
+        term = f"%{normalized_search}%"
+        statement = (
+            select(User)
+            .where(func.lower(User.user_id).like(term, escape="\\"))
+            .order_by(User.user_id)
+            .limit(limit)
+        )
+        return list(await self.session.scalars(statement))
+
     async def search_member_candidates(
         self, project_id: str, search: str, limit: int = 12
     ) -> list[tuple[User, Profile | None]]:

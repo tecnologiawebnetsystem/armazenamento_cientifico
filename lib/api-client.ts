@@ -347,6 +347,15 @@ export function searchProjectGroupsCatalog(
   )
 }
 
+export type ResponsibleCandidate = { userId: string }
+
+export function searchResponsibleCandidates(search: string) {
+  const params = new URLSearchParams({ search })
+  return request<ResponsibleCandidate[]>(
+    `/api/projects/responsible-candidates?${params.toString()}`
+  )
+}
+
 export function createProject(data: {
   gruposAcesso: ProjectAccessGroupInput[]
   nome: string
@@ -584,6 +593,31 @@ export function getProjectReport(
   )
   return request<ProjectReport>(
     `/api/reports${query.size ? `?${query.toString()}` : ""}`
+  )
+}
+
+export type ReportGroupAssignment = {
+  id: string
+  grupo: string
+  identificador: string
+  tipo: "group" | "role"
+  nivel: "leitura" | "escrita" | "administrador"
+  projetoId: string
+  projeto: string
+  codigo: string
+  area: string
+}
+
+export function getReportGroups(params: {
+  q?: string
+  area?: string
+  principalType?: "group" | "role"
+  nivel?: "leitura" | "escrita" | "administrador"
+} = {}) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => value && query.set(key, value))
+  return request<{ total: number; grupos: ReportGroupAssignment[] }>(
+    `/api/reports/groups${query.size ? `?${query.toString()}` : ""}`
   )
 }
 
