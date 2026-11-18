@@ -192,7 +192,7 @@ async def test_project_delete_removes_project_scoped_records_without_affecting_o
 
     assert deleted.status_code == 204
     assert (await http.get(f"/api/projects/{project_a}")).status_code == 404
-    assert (await http.get(f"/api/projects/{project_a}/members")).status_code == 403
+    assert (await http.get(f"/api/projects/{project_a}/members")).status_code == 404
     remaining_groups = await http.get(f"/api/projects/{project_b}/access-groups")
     assert remaining_groups.status_code == 200
     assert [group["groupName"] for group in remaining_groups.json()["groups"]] == [

@@ -310,6 +310,8 @@ async def list_project_members(
     service: Annotated[ProjectService, Depends(get_service)],
     user: Annotated[dict, Depends(require_capabilities("access_map"))],
 ):
+    if not await service.get_project(project_id):
+        raise project_not_found()
     if not await service.can_view(
         project_id, str(user.get("user_id") or user["id"]), str(user.get("role") or "")
     ):
