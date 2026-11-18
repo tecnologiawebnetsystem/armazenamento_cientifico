@@ -1,6 +1,8 @@
-from sqlalchemy import String, exists, func, select
+from sqlalchemy import String, delete, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.base import Base
+from app.db import models as _registered_models
 from app.modules.catalogs.models import ResponsibleArea
 from app.modules.folders.models import Folder
 from app.modules.projects.models import (
@@ -99,6 +101,15 @@ class ProjectRepository:
         return project
 
     async def delete(self, project: Project) -> None:
+        related_tables = [
+            table
+            for table in reversed(Base.metadata.sorted_tables)
+            if table is not Project.__table__ and "project_id" in table.c
+        ]
+        for table in related_tables:
+            await self.session.execute(
+                delete(table).where(table.c.project_id == project.id)
+            )
         await self.session.delete(project)
 
     async def commit(self) -> None:

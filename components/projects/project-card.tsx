@@ -11,6 +11,7 @@ import {
   PauseIcon,
   PlayIcon,
   ShieldCheckIcon,
+  Trash2Icon,
 } from "lucide-react"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -35,10 +36,11 @@ interface Props {
   canManage?: boolean
   showMeta?: boolean
   onToggleStatus?: (project: Project) => void
+  onDelete?: (project: Project) => void
   inconsistent?: boolean
 }
 
-export function ProjectCard({ project, canManage = false, showMeta = true, onToggleStatus, inconsistent = false }: Props) {
+export function ProjectCard({ project, canManage = false, showMeta = true, onToggleStatus, onDelete, inconsistent = false }: Props) {
   const membros = project.participantesIds?.length ?? 0
   const gestores = project.gestoresIds?.length ?? 0
   const pausado = project.status === "pausado"
@@ -91,6 +93,11 @@ export function ProjectCard({ project, canManage = false, showMeta = true, onTog
                   >
                     {pausado ? <PlayIcon /> : <PauseIcon />}
                     {pausado ? "Reativar" : "Desativar"}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" onClick={() => onDelete?.(project)}>
+                    <Trash2Icon />
+                    Excluir área de rede
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
