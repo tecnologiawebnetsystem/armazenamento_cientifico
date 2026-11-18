@@ -93,6 +93,72 @@ class ReportRepository:
         result = await self.session.execute(statement.order_by(Project.name, Project.id))
         return [dict(row) for row in result.mappings().all()]
 
+    async def group_assignments(
+        self,
+        search: str | None,
+        area: str | None,
+        principal_type: str | None,
+        access_level: str | None,
+        user_id: str,
+        all_projects: bool = False,
+    ) -> list[dict[str, Any]]:
+        statement = (
+            select(
+                ProjectGroup.group_id.label("id"),
+                ProjectGroup.group_name.label("grupo"),
+                ProjectGroup.identifier.label("identificador"),
+                ProjectGroup.principal_type.label("tipo"),
+                ProjectGroup.access_level.label("nivel"),
+                Project.id.label("projetoId"),
+                Project.name.label("projeto"),
+                Project.code.label("codigo"),
+                func.coalesce(ResponsibleArea.name, Project.responsible_area).label("area"),
+            )
+            .select_from(ProjectGroup)
+            .join(
+                ProjectAccessGroup,
+                (ProjectAccessGroup.project_id == ProjectGroup.project_id)
+                & (ProjectAccessGroup.group_id == ProjectGroup.group_id),
+            )
+            .join(Project, Project.id == ProjectAccessGroup.project_id)
+            .outerjoin(ResponsibleArea, Project.responsible_area == ResponsibleArea.id)
+        )
+        if principal_type is not None:
+            statement = statement.where(ProjectGroup.principal_type == principal_type)
+        if access_level is not None:
+            statement = statement.where(ProjectGroup.access_level == access_level)
+        if area is not None:
+            statement = statement.where(
+                or_(ResponsibleArea.id == area, Project.responsible_area == area)
+            )
+        if search:
+            pattern = f"%{search.strip()}%"
+            statement = statement.where(
+                or_(
+                    ProjectGroup.group_name.ilike(pattern),
+                    ProjectGroup.identifier.ilike(pattern),
+                    Project.name.ilike(pattern),
+                    Project.code.ilike(pattern),
+                    Project.responsible_area.ilike(pattern),
+                    ResponsibleArea.name.ilike(pattern),
+                )
+            )
+        if not all_projects:
+            statement = statement.where(
+                or_(
+                    self._jsonb_like(Project.managers_ids, user_id),
+                    self._jsonb_like(Project.participants_ids, user_id),
+                    exists().where(
+                        ProjectMember.project_id == Project.id,
+                        ProjectMember.user_id == user_id,
+                    ),
+                )
+            )
+        result = await self.session.execute(
+            statement.order_by(ProjectGroup.group_name, Project.name, Project.code)
+        )
+        return [dict(row) for row in result.mappings().all()]
+
     async def by_status(self) -> list[dict[str, Any]]:
         result = await self.session.execute(
             select(Project.status, func.count().label("total")).group_by(Project.status)

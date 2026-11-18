@@ -596,6 +596,31 @@ export function getProjectReport(
   )
 }
 
+export type ReportGroupAssignment = {
+  id: string
+  grupo: string
+  identificador: string
+  tipo: "group" | "role"
+  nivel: "leitura" | "escrita" | "administrador"
+  projetoId: string
+  projeto: string
+  codigo: string
+  area: string
+}
+
+export function getReportGroups(params: {
+  q?: string
+  area?: string
+  principalType?: "group" | "role"
+  nivel?: "leitura" | "escrita" | "administrador"
+} = {}) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => value && query.set(key, value))
+  return request<{ total: number; grupos: ReportGroupAssignment[] }>(
+    `/api/reports/groups${query.size ? `?${query.toString()}` : ""}`
+  )
+}
+
 export function getProjectReportExportPath(params: {
   format: "csv" | "txt" | "pdf"
   fields: string[]

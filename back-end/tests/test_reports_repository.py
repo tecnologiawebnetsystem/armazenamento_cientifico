@@ -195,6 +195,42 @@ async def _add_access_group(db, *, group_id: str, identifier: str, name: str, le
     await db.commit()
 
 
+async def test_group_assignments_return_only_linked_groups_and_apply_filters(db):
+    await _add_access_group(
+        db,
+        group_id="group-read-p1",
+        identifier="entra-network-read",
+        name="Rede leitura",
+        level="leitura",
+    )
+    db.add(
+        ProjectGroup(
+            group_id="role-write-p2",
+            project_id="id-P2",
+            identifier="role-network-admin",
+            group_name="Administradores de rede",
+            principal_type="role",
+            access_level="escrita",
+            source="manual",
+            created_at=NOW,
+            updated_at=NOW,
+        )
+    )
+    await db.flush()
+    db.add(ProjectAccessGroup(project_id="id-P2", group_id="role-write-p2"))
+    await db.commit()
+
+    repo = ReportRepository(db)
+    rows = await repo.group_assignments(None, None, None, None, "x", all_projects=True)
+    assert [(row["grupo"], row["projeto"], row["area"]) for row in rows] == [
+        ("Administradores de rede", "Alfa", "TI"),
+        ("Rede leitura", "Beta", "Redes"),
+    ]
+    assert len(await repo.group_assignments("entra-network", None, None, None, "x", True)) == 1
+    assert len(await repo.group_assignments(None, "TI", "role", "escrita", "x", True)) == 1
+    assert await repo.group_assignments(None, None, "group", "escrita", "x", True) == []
+
+
 async def test_inconsistencies_ignore_unlinked_project_group_rows(db):
     db.add(
         ProjectGroup(
@@ -302,6 +338,6 @@ async def test_unscoped_projects_query_has_no_membership_filter():
     await ReportRepository(session).projects(None, None, None, user_id="u-1", all_projects=True)
 
     sql = str(session.statements[0].compile(dialect=postgresql.dialect()))
-    # Com JSON().with_variant(JSONB(), "postgresql"), sem filtro de escopo
-    # não deve ter contains nem join com project_members.
-    assert "@>" not in sql and "project_members" not in sql
+    # O subquery de totalMembros pode consultar project_members; a consulta
+    # principal não deve incluir o filtro de escopo por EXISTS/LIKE.
+    assert "@>" not in sql and "EXISTS" not in sql and " LIKE " not in sql
