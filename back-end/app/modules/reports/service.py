@@ -18,7 +18,7 @@ class ReportService:
         by_area: dict[str, int] = {}
         for row in rows:
             by_area[row.get("areaResponsavel") or "Não informada"] = by_area.get(row.get("areaResponsavel") or "Não informada", 0) + 1
-        return {"filtros": {"status": status or "todos", "area": area, "gestorId": gestor_id}, "indicadores": {"totalProjetos": len(rows), "ativos": sum(row.get("status") in ("ativo", "em_andamento") for row in rows), "suspensos": sum(row.get("status") == "suspenso" for row in rows), "concluidos": sum(row.get("status") == "concluido" for row in rows), "armazenamentoUsadoMb": 0, "totalMembros": 0, "totalMapas": 0}, "porArea": [{"area": key, "total": value} for key, value in sorted(by_area.items())], "porStatus": await self.repository.by_status(), "projetos": rows}
+        return {"filtros": {"status": status or "todos", "area": area, "gestorId": gestor_id}, "indicadores": {"totalProjetos": len(rows), "ativos": sum(row.get("status") in ("ativo", "em_andamento") for row in rows), "suspensos": sum(row.get("status") == "suspenso" for row in rows), "concluidos": sum(row.get("status") == "concluido" for row in rows), "armazenamentoUsadoMb": 0, "totalMembros": sum(row.get("totalMembros", 0) for row in rows), "totalMapas": sum(row.get("totalMapas", 0) for row in rows)}, "porArea": [{"area": key, "total": value} for key, value in sorted(by_area.items())], "porStatus": await self.repository.by_status(), "projetos": rows}
 
     async def inconsistencies(self, area: str | None, gestor_id: str | None, tipo: str | None, user: dict[str, Any]) -> dict[str, Any]:
         all_projects = has_capability(user, "all_projects")

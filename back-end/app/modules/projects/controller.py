@@ -2,7 +2,7 @@ import logging
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -72,6 +72,14 @@ def project_not_found() -> HTTPException:
     return HTTPException(status_code=404, detail="Projeto não encontrado")
 
 
+def mark_audit(request: Request, *, action: str, entity: str, entity_id: str, project_id: str, details: dict | None = None) -> None:
+    request.state.audit_action = action
+    request.state.audit_entity = entity
+    request.state.audit_entity_id = entity_id
+    request.state.audit_project_id = project_id
+    request.state.audit_details = details or {}
+
+
 def serialize_members(rows) -> list[ProjectMemberOut]:
     return [
         ProjectMemberOut(
@@ -130,6 +138,7 @@ async def list_projects(
 
 @router.post("", response_model=dict, status_code=201)
 async def create_project(
+    request: Request,
     data: ProjectCreate,
     service: Annotated[ProjectService, Depends(get_service)],
     user: CurrentUser,
@@ -141,11 +150,13 @@ async def create_project(
         raise HTTPException(status_code=409, detail=str(error)) from error
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
+    mark_audit(request, action="criar-projeto", entity="projeto", entity_id=project.id, project_id=project.id, details={"codigo": project.code, "nome": project.name, "grupos_acesso_iniciais": len(data.gruposAcesso)})
     return {"project": serialize_project(project)}
 
 
 @router.patch("/{project_id}", response_model=dict)
 async def update_project(
+    request: Request,
     project_id: str,
     data: ProjectPatch,
     service: Annotated[ProjectService, Depends(get_service)],
@@ -160,17 +171,21 @@ async def update_project(
         raise HTTPException(
             status_code=409, detail="Não foi possível atualizar a área de rede no banco de dados"
         ) from error
+    mark_audit(request, action="editar-projeto", entity="projeto", entity_id=project.id, project_id=project.id, details={"codigo": project.code, "campos": list(data.model_fields_set)})
     return {"project": serialize_project(project)}
 
 
 @router.delete("/{project_id}", status_code=204)
 async def delete_project(
+    request: Request,
     project_id: str,
     service: Annotated[ProjectService, Depends(get_service)],
     _: Annotated[dict, Depends(require_capabilities("delete"))],
 ):
-    if not await service.delete_project(project_id):
+    project = await service.get_project(project_id)
+    if not project or not await service.delete_project(project_id):
         raise project_not_found()
+    mark_audit(request, action="excluir-projeto", entity="projeto", entity_id=project_id, project_id=project_id, details={"codigo": project.code, "nome": project.name})
 
 
 @router.get("/areas", response_model=dict)
@@ -327,6 +342,7 @@ async def search_project_member_candidates(
     status_code=201,
 )
 async def add_project_member(
+    request: Request,
     project_id: str,
     data: ProjectMemberCreate,
     service: Annotated[ProjectService, Depends(get_service)],
@@ -351,7 +367,9 @@ async def add_project_member(
             detail="Este usuário já possui acesso a esta área de rede",
         ) from error
     member_rows = await service.list_members(project_id)
-    return serialize_members([row for row in member_rows if row[0].user_id == data.userId])[0]
+    member = next(row for row in member_rows if row[0].user_id == data.userId)
+    mark_audit(request, action="adicionar-membro", entity="membro_projeto", entity_id=project_id, project_id=project_id, details={"membro_id": data.userId, "papel": data.papel, "projeto": project.name})
+    return serialize_members([member])[0]
 
 
 @router.patch(
@@ -359,6 +377,7 @@ async def add_project_member(
     response_model=ProjectMemberOut,
 )
 async def update_project_member(
+    request: Request,
     project_id: str,
     member_user_id: str,
     data: ProjectMemberPatch,
@@ -377,11 +396,14 @@ async def update_project_member(
     except LookupError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     member_rows = await service.list_members(project_id)
-    return serialize_members([row for row in member_rows if row[0].user_id == member_user_id])[0]
+    member = next(row for row in member_rows if row[0].user_id == member_user_id)
+    mark_audit(request, action="atualizar-membro", entity="membro_projeto", entity_id=project_id, project_id=project_id, details={"membro_id": member_user_id, "papel_novo": data.papel, "projeto": project.name})
+    return serialize_members([member])[0]
 
 
 @router.delete("/{project_id}/members/{member_user_id}", status_code=204)
 async def remove_project_member(
+    request: Request,
     project_id: str,
     member_user_id: str,
     service: Annotated[ProjectService, Depends(get_service)],
@@ -396,6 +418,7 @@ async def remove_project_member(
         raise HTTPException(status_code=403, detail="Sem acesso a esta área de rede")
     if not await service.delete_member(project_id, member_user_id):
         raise HTTPException(status_code=404, detail="Membro não encontrado nesta área de rede")
+    mark_audit(request, action="remover-membro", entity="membro_projeto", entity_id=project_id, project_id=project_id, details={"membro_id": member_user_id, "projeto": project.name})
 
 
 # ── Project Access Groups ─────────────────────────────────────────
@@ -449,6 +472,7 @@ async def list_project_access_groups(
 
 @router.post("/{project_id}/access-groups", response_model=AccessGroupOut, status_code=201)
 async def create_project_access_group(
+    request: Request,
     project_id: str,
     data: AccessGroupCreate,
     service: Annotated[ProjectService, Depends(get_service)],
@@ -467,11 +491,13 @@ async def create_project_access_group(
         raise project_not_found() from error
     except ConflictException as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
+    mark_audit(request, action="criar-grupo", entity="grupo_acesso", entity_id=group[0].group_id, project_id=project_id, details={"nome": group[0].group_name, "identifier": group[0].identifier, "tipo": group[0].principal_type, "nivel": group[0].access_level, "projeto": project.name})
     return serialize_access_group(*group)
 
 
 @router.patch("/{project_id}/access-groups/{access_group_id}", response_model=AccessGroupOut)
 async def update_project_access_group(
+    request: Request,
     project_id: str,
     access_group_id: str,
     data: AccessGroupPatch,
@@ -493,6 +519,7 @@ async def update_project_access_group(
 
 @router.delete("/{project_id}/access-groups/{access_group_id}", status_code=204)
 async def delete_project_access_group(
+    request: Request,
     project_id: str,
     access_group_id: str,
     service: Annotated[ProjectService, Depends(get_service)],

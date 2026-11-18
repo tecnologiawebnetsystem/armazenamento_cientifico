@@ -222,8 +222,9 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
                   Grupos e papéis de acesso
                 </h2>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Associe grupos do Entra ID ou papéis de identidade e defina o
-                  nível de acesso por projeto.
+                  Opcional: você pode cadastrar a área sem grupos ou papéis e
+                  configurar esses acessos depois. Nenhum membro precisa ser
+                  vinculado durante a criação.
                 </p>
               </div>
               <AccessGroupsEditor

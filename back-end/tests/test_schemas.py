@@ -18,3 +18,14 @@ def test_project_rejects_short_name():
 def test_project_rejects_empty_responsible_area():
     with pytest.raises(ValidationError):
         ProjectCreate(nome="Projeto válido", codigo="P1", areaResponsavel="")
+
+
+def test_project_can_be_created_without_groups_roles_or_members():
+    project = ProjectCreate(
+        nome="Área sem acessos iniciais",
+        areaResponsavel="Pesquisa",
+    )
+
+    assert project.gruposAcesso == []
+    assert project.gestoresIds == []
+    assert project.participantesIds == []

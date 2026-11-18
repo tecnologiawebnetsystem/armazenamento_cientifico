@@ -4,6 +4,7 @@ from sqlalchemy import String, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.catalogs.models import ReportField, ResponsibleArea
+from app.modules.folders.models import Folder
 from app.modules.projects.models import (
     Project,
     ProjectAccessGroup,
@@ -64,6 +65,14 @@ class ReportRepository:
             Project.description.label("descricao"),
             Project.created_at.label("criadoEm"),
             Project.updated_at.label("atualizadoEm"),
+            select(func.count(Folder.id))
+            .where(Folder.project_id == Project.id, Folder.kind == "pasta")
+            .scalar_subquery()
+            .label("totalMapas"),
+            select(func.count(ProjectMember.user_id))
+            .where(ProjectMember.project_id == Project.id)
+            .scalar_subquery()
+            .label("totalMembros"),
         )
         if status is not None:
             statement = statement.where(Project.status == status)
@@ -82,7 +91,7 @@ class ReportRepository:
                 )
             )
         result = await self.session.execute(statement.order_by(Project.name, Project.id))
-        return [{**row, "totalMapas": 0, "totalMembros": 0} for row in result.mappings().all()]
+        return [dict(row) for row in result.mappings().all()]
 
     async def by_status(self) -> list[dict[str, Any]]:
         result = await self.session.execute(

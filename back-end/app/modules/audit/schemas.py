@@ -17,6 +17,7 @@ class ActivityLogIn(BaseModel):
     entity_id: str | None = Field(default=None, max_length=100)
     details: dict[str, object] = Field(default_factory=dict)
     result: str = Field(default="sucesso", max_length=30)
+    project_id: str | None = Field(default=None, max_length=36)
 
 
 class ActivityLogOut(BaseModel):
