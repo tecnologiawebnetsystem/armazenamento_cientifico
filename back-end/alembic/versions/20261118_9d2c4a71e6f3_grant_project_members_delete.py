@@ -1,4 +1,4 @@
-"""grant runtime delete access to project_members
+"""grant runtime delete access to project-owned records
 
 Revision ID: 9d2c4a71e6f3
 Revises: 6c20df6eab13
@@ -24,9 +24,13 @@ def _quoted_identifiers() -> tuple[str, str]:
 
 def upgrade() -> None:
     schema, runtime_role = _quoted_identifiers()
-    op.execute(f"GRANT DELETE ON TABLE {schema}.project_members TO {runtime_role}")
+    for table_name in ("project_members", "folders"):
+        table = op.get_context().dialect.identifier_preparer.quote(table_name)
+        op.execute(f"GRANT DELETE ON TABLE {schema}.{table} TO {runtime_role}")
 
 
 def downgrade() -> None:
     schema, runtime_role = _quoted_identifiers()
-    op.execute(f"REVOKE DELETE ON TABLE {schema}.project_members FROM {runtime_role}")
+    for table_name in ("project_members", "folders"):
+        table = op.get_context().dialect.identifier_preparer.quote(table_name)
+        op.execute(f"REVOKE DELETE ON TABLE {schema}.{table} FROM {runtime_role}")
