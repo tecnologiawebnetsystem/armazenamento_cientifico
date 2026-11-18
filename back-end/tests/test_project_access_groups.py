@@ -17,9 +17,10 @@ from app.core.config import PROJECT_ROOT
 from app.db.base import Base
 from app.main import app
 from app.modules.projects.controller import get_service
-from app.modules.projects.models import Project, ProjectAccessGroup
+from app.modules.projects.models import Project, ProjectAccessGroup, ProjectMember
 from app.modules.projects.repository import ProjectRepository
 from app.modules.projects.service import ProjectService
+from app.modules.users.models import Profile, User
 
 
 def _test_database_url() -> str:
@@ -74,7 +75,7 @@ async def client() -> AsyncIterator[tuple[httpx.AsyncClient, dict[str, object], 
         "id": "admin-1",
         "user_id": "admin-1",
         "role": "admin",
-        "permissions": ["pesquisa.visualizar"],
+        "permissions": ["pesquisa.visualizar", "projeto.editar"],
     }
 
     async def provide_service():
@@ -109,6 +110,13 @@ async def client() -> AsyncIterator[tuple[httpx.AsyncClient, dict[str, object], 
                         created_at=now,
                         updated_at=now,
                     ),
+                    Profile(id="GER", name="Responsável", role="gerente", created_at=now),
+                    User(
+                        id="member-1",
+                        user_id="ana.silva",
+                        profile_id="GER",
+                        created_at=now,
+                    ),
                 ]
             )
             await session.commit()
@@ -125,7 +133,12 @@ async def client() -> AsyncIterator[tuple[httpx.AsyncClient, dict[str, object], 
                     ProjectAccessGroup.project_id.in_(project_ids.values())
                 )
             )
+            await session.execute(
+                delete(ProjectMember).where(ProjectMember.project_id.in_(project_ids.values()))
+            )
             await session.execute(delete(Project).where(Project.id.in_(project_ids.values())))
+            await session.execute(delete(User).where(User.id == "member-1"))
+            await session.execute(delete(Profile).where(Profile.id == "GER"))
             await session.commit()
         await engine.dispose()
 
@@ -242,9 +255,7 @@ async def test_project_groups_are_scoped_to_each_project(client):
         f"/api/projects/{project_ids['a']}/access-groups",
         json={**role, "accessLevel": "escrita"},
     )
-    other_project = await http.post(
-        f"/api/projects/{project_ids['b']}/access-groups", json=role
-    )
+    other_project = await http.post(f"/api/projects/{project_ids['b']}/access-groups", json=role)
 
     assert first.status_code == 201
     assert first.json()["principalType"] == "role"
@@ -259,6 +270,64 @@ async def test_project_groups_are_scoped_to_each_project(client):
     assert catalog.status_code == 200
     assert len(catalog.json()) == 2
     assert all(item["identifier"] == "scientific-curator" for item in catalog.json())
+
+
+async def test_project_member_search_and_crud(client):
+    http, _, project_ids = client
+    project_id = project_ids["a"]
+
+    candidates = await http.get(
+        f"/api/projects/{project_id}/member-candidates", params={"search": "ana"}
+    )
+    assert candidates.status_code == 200
+    assert candidates.json() == [
+        {
+            "id": "member-1",
+            "userId": "ana.silva",
+            "perfilId": "GER",
+            "perfilNome": "Responsável",
+            "perfilRole": "gerente",
+        }
+    ]
+
+    created = await http.post(
+        f"/api/projects/{project_id}/members",
+        json={"userId": "member-1", "papel": "gerente"},
+    )
+    assert created.status_code == 201
+    assert created.json()["user"]["userId"] == "ana.silva"
+    assert created.json()["user"]["perfilRole"] == "gerente"
+    assert created.json()["papel"] == "gerente"
+
+    duplicate = await http.post(
+        f"/api/projects/{project_id}/members",
+        json={"userId": "member-1", "papel": "admin"},
+    )
+    assert duplicate.status_code == 409
+
+    listed = await http.get(f"/api/projects/{project_id}/members")
+    assert len(listed.json()) == 1
+
+    updated = await http.patch(
+        f"/api/projects/{project_id}/members/member-1", json={"papel": "admin"}
+    )
+    assert updated.status_code == 200
+    assert updated.json()["papel"] == "admin"
+    assert updated.json()["user"]["perfilRole"] == "gerente"
+
+    removed = await http.delete(f"/api/projects/{project_id}/members/member-1")
+    assert removed.status_code == 204
+    assert (await http.get(f"/api/projects/{project_id}/members")).json() == []
+    assert (
+        len(
+            (
+                await http.get(
+                    f"/api/projects/{project_id}/member-candidates", params={"search": "ana"}
+                )
+            ).json()
+        )
+        == 1
+    )
 
 
 async def test_project_access_group_creation_requires_project_scope(client):

@@ -9,7 +9,7 @@ from app.modules.projects.models import (
     ProjectGroup,
     ProjectMember,
 )
-from app.modules.users.models import User
+from app.modules.users.models import Profile, User
 
 
 class ProjectRepository:
@@ -26,8 +26,10 @@ class ProjectRepository:
         statement = select(Project).order_by(Project.updated_at.desc())
         if role not in {"admin", "patrocinador", "auditor"}:
             statement = statement.where(
-                (Project.managers_ids.cast(String).like(f'%{user_id}%'))
-                | exists().where(ProjectMember.project_id == Project.id, ProjectMember.user_id == user_id)
+                (Project.managers_ids.cast(String).like(f"%{user_id}%"))
+                | exists().where(
+                    ProjectMember.project_id == Project.id, ProjectMember.user_id == user_id
+                )
             )
 
         projects = list(await self.session.scalars(statement))
@@ -36,8 +38,9 @@ class ProjectRepository:
 
         project_ids = [project.id for project in projects]
         member_rows = await self.session.execute(
-            select(ProjectMember.project_id, ProjectMember.user_id)
-            .where(ProjectMember.project_id.in_(project_ids))
+            select(ProjectMember.project_id, ProjectMember.user_id).where(
+                ProjectMember.project_id.in_(project_ids)
+            )
         )
         members_by_project: dict[str, list[str]] = {}
         for project_id, member_id in member_rows:
@@ -66,7 +69,13 @@ class ProjectRepository:
             return False
         if user_id in (project.managers_ids or []) or user_id in (project.participants_ids or []):
             return True
-        return bool(await self.session.scalar(select(ProjectMember.project_id).where(ProjectMember.project_id == project_id, ProjectMember.user_id == user_id)))
+        return bool(
+            await self.session.scalar(
+                select(ProjectMember.project_id).where(
+                    ProjectMember.project_id == project_id, ProjectMember.user_id == user_id
+                )
+            )
+        )
 
     async def lock_active_area(self, name: str) -> ResponsibleArea | None:
         return await self.session.scalar(
@@ -76,7 +85,13 @@ class ProjectRepository:
         )
 
     async def list_active_areas(self) -> list[ResponsibleArea]:
-        return list(await self.session.scalars(select(ResponsibleArea).where(ResponsibleArea.active.is_(True)).order_by(ResponsibleArea.name)))
+        return list(
+            await self.session.scalars(
+                select(ResponsibleArea)
+                .where(ResponsibleArea.active.is_(True))
+                .order_by(ResponsibleArea.name)
+            )
+        )
 
     async def add(self, project: Project) -> Project:
         self.session.add(project)
@@ -103,35 +118,58 @@ class ProjectRepository:
         )
         return list(await self.session.scalars(statement))
 
-    async def list_members(self, project_id: str) -> list[tuple[ProjectMember, User]]:
+    async def list_members(
+        self, project_id: str
+    ) -> list[tuple[ProjectMember, User, Profile | None]]:
         statement = (
-            select(ProjectMember, User)
+            select(ProjectMember, User, Profile)
             .join(User, User.id == ProjectMember.user_id)
+            .outerjoin(Profile, Profile.id == User.profile_id)
             .where(ProjectMember.project_id == project_id)
             .order_by(User.user_id)
         )
         return list((await self.session.execute(statement)).all())
 
+    async def search_member_candidates(
+        self, project_id: str, search: str, limit: int = 12
+    ) -> list[tuple[User, Profile | None]]:
+        normalized_search = (
+            search.strip().casefold().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        )
+        term = f"%{normalized_search}%"
+        statement = (
+            select(User, Profile)
+            .outerjoin(Profile, Profile.id == User.profile_id)
+            .where(
+                func.lower(User.user_id).like(term, escape="\\"),
+                ~exists().where(
+                    ProjectMember.project_id == project_id,
+                    ProjectMember.user_id == User.id,
+                ),
+            )
+            .order_by(User.user_id)
+            .limit(limit)
+        )
+        return list((await self.session.execute(statement)).all())
 
-# TODO(verificar com a equipe de devs): `ProjectAccessRepository` e `touch` não têm referências no
-# repositório (varredura de 2026-10-14); comentados em vez de excluídos. Se voltarem, importar
-# `datetime` de datetime.
-# class ProjectAccessRepository:
-#     def __init__(self, repository: ProjectRepository):
-#         self.repository = repository
-#
-#     async def list_members(self, project_id: str) -> list[tuple[ProjectMember, User]]:
-#         return await self.repository.list_members(project_id)
-#
-#     async def commit(self) -> None:
-#         await self.repository.commit()
-#
-#
-# def touch(entity: Project | ResponsibleArea, timestamp: datetime) -> None:
-#     entity.updated_at = timestamp
+    async def find_user_with_profile(self, user_id: str) -> tuple[User, Profile | None] | None:
+        result = await self.session.execute(
+            select(User, Profile)
+            .outerjoin(Profile, Profile.id == User.profile_id)
+            .where(User.id == user_id)
+        )
+        return result.one_or_none()
 
+    async def find_member(self, project_id: str, user_id: str) -> ProjectMember | None:
+        return await self.session.get(ProjectMember, (project_id, user_id))
 
-# ── ProjectAccessGroup ────────────────────────────────────────────
+    async def add_member(self, member: ProjectMember) -> ProjectMember:
+        self.session.add(member)
+        return member
+
+    async def delete_member(self, member: ProjectMember) -> None:
+        await self.session.delete(member)
+        await self.session.flush()
 
     async def list_access_groups(
         self, project_id: str, access_level: str | None = None

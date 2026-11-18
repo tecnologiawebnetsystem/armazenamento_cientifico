@@ -6,7 +6,7 @@ import type {
   DashboardSummary,
   FileNode,
   Project,
-  ProjectMember,
+  ProjectMemberRecord,
   User,
   SessionUser,
   PlatformCatalogs,
@@ -423,7 +423,7 @@ export function getProjectAccessMap(projectId: string) {
       nivel: string
       principalType: "group" | "role"
     }>
-    members: Array<ProjectMember & { user: User }>
+    members: ProjectMemberRecord[]
     source: string
     consultedAt: string
     gaps?: string[]
@@ -432,12 +432,57 @@ export function getProjectAccessMap(projectId: string) {
 
 export async function getProjectMembers(projectId: string) {
   const response = await request<
-    | { members?: Array<ProjectMember & { user: User }> }
-    | Array<ProjectMember & { user: User }>
-  >(`/api/projects/${projectId}/members`)
+    { members?: ProjectMemberRecord[] } | ProjectMemberRecord[]
+  >(`/api/projects/${encodeURIComponent(projectId)}/members`)
   return {
     members: Array.isArray(response) ? response : (response.members ?? []),
   }
+}
+
+export type ProjectMemberCandidate = {
+  id: string
+  userId: string
+  perfilId: string | null
+  perfilNome: string | null
+  perfilRole: string | null
+}
+
+export function searchProjectMemberCandidates(
+  projectId: string,
+  search: string
+) {
+  const params = new URLSearchParams({ search })
+  return request<ProjectMemberCandidate[]>(
+    `/api/projects/${encodeURIComponent(projectId)}/member-candidates?${params}`
+  )
+}
+
+export function addProjectMember(
+  projectId: string,
+  data: { userId: string; papel: string }
+) {
+  return request<ProjectMemberRecord>(
+    `/api/projects/${encodeURIComponent(projectId)}/members`,
+    { method: "POST", body: JSON.stringify(data) }
+  )
+}
+
+export function updateProjectMember(
+  projectId: string,
+  userId: string,
+  data: { papel: string }
+) {
+  return request<ProjectMemberRecord>(
+    `/api/projects/${encodeURIComponent(projectId)}/members/${encodeURIComponent(userId)}`,
+    { method: "PATCH", body: JSON.stringify(data) }
+  )
+}
+
+export function deleteProjectMember(projectId: string, userId: string) {
+  return request<void>(
+    `/api/projects/${encodeURIComponent(projectId)}/members/${encodeURIComponent(userId)}`,
+    { method: "DELETE" }
+  )
 }
 
 /* --------------------------------- Folders -------------------------------- */

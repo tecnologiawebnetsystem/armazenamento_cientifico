@@ -8,6 +8,7 @@ ProjectStatus = Literal["ativo", "em_implantacao", "pausado", "encerrado"]
 
 PrincipalType = Literal["group", "role"]
 AccessLevel = Literal["leitura", "escrita", "administrador"]
+ProjectMemberAccessRole = Literal["admin", "administrador", "gerente", "responsavel"]
 
 
 class AccessGroupCreate(BaseModel):
@@ -48,12 +49,29 @@ class ProjectPatch(BaseModel):
     pastaMae: str | None = None
 
 
+class ProjectMemberCreate(BaseModel):
+    userId: str = Field(min_length=1, max_length=32)
+    papel: ProjectMemberAccessRole = "responsavel"
+
+
+class ProjectMemberPatch(BaseModel):
+    papel: ProjectMemberAccessRole
+
+
 class ProjectMemberOut(BaseModel):
     projectId: str
     userId: str
     papel: str | None = None
     adicionadoEm: datetime
     user: dict
+
+
+class ProjectMemberCandidateOut(BaseModel):
+    id: str
+    userId: str
+    perfilId: str | None = None
+    perfilNome: str | None = None
+    perfilRole: str | None = None
 
 
 class AccessMapGroupOut(BaseModel):

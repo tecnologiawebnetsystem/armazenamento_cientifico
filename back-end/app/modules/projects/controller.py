@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, require_capabilities
@@ -21,7 +21,10 @@ from app.modules.projects.schemas import (
     ProjectAccessGroupsOut,
     ProjectCreate,
     ProjectGroupCatalogOut,
+    ProjectMemberCandidateOut,
+    ProjectMemberCreate,
     ProjectMemberOut,
+    ProjectMemberPatch,
     ProjectOut,
     ProjectPatch,
 )
@@ -76,9 +79,15 @@ def serialize_members(rows) -> list[ProjectMemberOut]:
             userId=member.user_id,
             papel=member.role,
             adicionadoEm=member.created_at,
-            user={"id": user.id, "userId": user.user_id, "perfilId": user.profile_id},
+            user={
+                "id": user.id,
+                "userId": user.user_id,
+                "perfilId": user.profile_id,
+                "perfilNome": profile.name if profile else None,
+                "perfilRole": profile.role if profile else None,
+            },
         )
-        for member, user in rows
+        for member, user, profile in rows
     ]
 
 
@@ -283,6 +292,112 @@ async def list_project_members(
     return serialize_members(await service.list_members(project_id))
 
 
+@router.get(
+    "/{project_id}/member-candidates",
+    response_model=list[ProjectMemberCandidateOut],
+)
+async def search_project_member_candidates(
+    project_id: str,
+    service: Annotated[ProjectService, Depends(get_service)],
+    user: Annotated[dict, Depends(require_capabilities("update"))],
+    search: str = Query(min_length=2, max_length=80),
+):
+    project = await service.get_project(project_id)
+    if not project:
+        raise project_not_found()
+    if not await service.can_view(
+        project_id, str(user.get("user_id") or user["id"]), str(user.get("role") or "")
+    ):
+        raise HTTPException(status_code=403, detail="Sem acesso a esta área de rede")
+    return [
+        ProjectMemberCandidateOut(
+            id=member_user.id,
+            userId=member_user.user_id,
+            perfilId=member_user.profile_id,
+            perfilNome=profile.name if profile else None,
+            perfilRole=profile.role if profile else None,
+        )
+        for member_user, profile in await service.search_member_candidates(project_id, search)
+    ]
+
+
+@router.post(
+    "/{project_id}/members",
+    response_model=ProjectMemberOut,
+    status_code=201,
+)
+async def add_project_member(
+    project_id: str,
+    data: ProjectMemberCreate,
+    service: Annotated[ProjectService, Depends(get_service)],
+    user: Annotated[dict, Depends(require_capabilities("update"))],
+):
+    project = await service.get_project(project_id)
+    if not project:
+        raise project_not_found()
+    if not await service.can_view(
+        project_id, str(user.get("user_id") or user["id"]), str(user.get("role") or "")
+    ):
+        raise HTTPException(status_code=403, detail="Sem acesso a esta área de rede")
+    try:
+        await service.add_member(project_id, data.userId, data.papel)
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except ConflictException as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except IntegrityError as error:
+        raise HTTPException(
+            status_code=409,
+            detail="Este usuário já possui acesso a esta área de rede",
+        ) from error
+    member_rows = await service.list_members(project_id)
+    return serialize_members([row for row in member_rows if row[0].user_id == data.userId])[0]
+
+
+@router.patch(
+    "/{project_id}/members/{member_user_id}",
+    response_model=ProjectMemberOut,
+)
+async def update_project_member(
+    project_id: str,
+    member_user_id: str,
+    data: ProjectMemberPatch,
+    service: Annotated[ProjectService, Depends(get_service)],
+    user: Annotated[dict, Depends(require_capabilities("update"))],
+):
+    project = await service.get_project(project_id)
+    if not project:
+        raise project_not_found()
+    if not await service.can_view(
+        project_id, str(user.get("user_id") or user["id"]), str(user.get("role") or "")
+    ):
+        raise HTTPException(status_code=403, detail="Sem acesso a esta área de rede")
+    try:
+        await service.update_member(project_id, member_user_id, data.papel)
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    member_rows = await service.list_members(project_id)
+    return serialize_members([row for row in member_rows if row[0].user_id == member_user_id])[0]
+
+
+@router.delete("/{project_id}/members/{member_user_id}", status_code=204)
+async def remove_project_member(
+    project_id: str,
+    member_user_id: str,
+    service: Annotated[ProjectService, Depends(get_service)],
+    user: Annotated[dict, Depends(require_capabilities("update"))],
+):
+    project = await service.get_project(project_id)
+    if not project:
+        raise project_not_found()
+    if not await service.can_view(
+        project_id, str(user.get("user_id") or user["id"]), str(user.get("role") or "")
+    ):
+        raise HTTPException(status_code=403, detail="Sem acesso a esta área de rede")
+    if not await service.delete_member(project_id, member_user_id):
+        raise HTTPException(status_code=404, detail="Membro não encontrado nesta área de rede")
+
+
 # ── Project Access Groups ─────────────────────────────────────────
 
 
@@ -325,7 +440,9 @@ async def list_project_access_groups(
     return ProjectAccessGroupsOut(
         projectId=project_id,
         projectName=project.name or "",
-        groups=[serialize_access_group(principal, association) for principal, association in groups],
+        groups=[
+            serialize_access_group(principal, association) for principal, association in groups
+        ],
         total=len(groups),
     )
 

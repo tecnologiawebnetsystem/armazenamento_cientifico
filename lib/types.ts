@@ -37,6 +37,7 @@ export interface User {
   permissions?: string[]
   perfilId?: string
   perfilNome?: string
+  perfilRole?: string | null
   chaveCav4?: string | null
   criadoEm: string
 }
@@ -46,6 +47,20 @@ export interface ProjectMember {
   userId: string
   papel?: ProjectMemberRole | string | null
   adicionadoEm: string
+}
+
+export interface ProjectMemberUser {
+  id: string
+  userId: string
+  nome?: string | null
+  email?: string | null
+  perfilId?: string | null
+  perfilNome?: string | null
+  perfilRole?: string | null
+}
+
+export interface ProjectMemberRecord extends ProjectMember {
+  user: ProjectMemberUser
 }
 
 export interface Project {
@@ -288,7 +303,7 @@ export interface ProjectAccessMapResponse {
   project?: Project
   projectId: string
   groups: ProjectAccessMapGroup[]
-  members: (ProjectMember & { user: User })[]
+  members: ProjectMemberRecord[]
   source: string
   consultedAt: string
 }
