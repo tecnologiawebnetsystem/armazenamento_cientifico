@@ -353,7 +353,7 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir permanentemente esta área de rede?</AlertDialogTitle>
             <AlertDialogDescription>
-              A área &quot;{deleteTarget?.nome}&quot; e todos os registros vinculados a ela em tabelas com project_id serão excluídos. Essa ação não pode ser desfeita.
+              A área &quot;{deleteTarget?.nome}&quot; e todos os registros vinculados a ela serão excluídos. Essa ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
