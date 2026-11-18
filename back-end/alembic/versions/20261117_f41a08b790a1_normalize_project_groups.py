@@ -19,7 +19,22 @@ SCHEMA = "a25034"
 RUNTIME_ROLE = '"a25034d_aplicacao"'
 
 
+def _project_groups_already_normalized() -> bool:
+    inspector = sa.inspect(op.get_bind())
+    if not inspector.has_table("project_groups", schema=SCHEMA):
+        return False
+    if not inspector.has_table("project_access_groups", schema=SCHEMA):
+        return False
+    columns = {
+        column["name"]
+        for column in inspector.get_columns("project_access_groups", schema=SCHEMA)
+    }
+    return columns == {"project_id", "group_id"}
+
+
 def upgrade() -> None:
+    if _project_groups_already_normalized():
+        return
     op.create_table(
         "project_groups",
         sa.Column("group_id", sa.String(length=36), nullable=False),
@@ -234,6 +249,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    if _project_groups_already_normalized():
+        return
     op.execute(
         sa.text(
             f"REVOKE SELECT, INSERT, UPDATE, DELETE ON TABLE {SCHEMA}.project_groups FROM {RUNTIME_ROLE}"

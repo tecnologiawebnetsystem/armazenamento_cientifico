@@ -13,6 +13,7 @@ A carga de parâmetros é executada separadamente pelo seed idempotente.
 """
 
 from collections.abc import Sequence
+
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
@@ -124,6 +125,47 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table(
+        "project_groups",
+        sa.Column("group_id", sa.String(length=36), nullable=False),
+        sa.Column("project_id", sa.String(length=36), nullable=False),
+        sa.Column("identifier", sa.String(length=256), nullable=False),
+        sa.Column("group_name", sa.String(length=256), nullable=False),
+        sa.Column("principal_type", sa.String(length=20), nullable=False),
+        sa.Column("access_level", sa.String(length=40), nullable=False),
+        sa.Column("source", sa.String(length=20), nullable=False, server_default="manual"),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.CheckConstraint(
+            "principal_type IN ('group', 'role')",
+            name="ck_project_groups_principal_type",
+        ),
+        sa.CheckConstraint(
+            "access_level IN ('leitura', 'escrita', 'administrador')",
+            name="ck_project_groups_access_level",
+        ),
+        sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="CASCADE"),
+        sa.PrimaryKeyConstraint("group_id"),
+        sa.UniqueConstraint(
+            "project_id", "principal_type", "identifier",
+            name="uq_project_groups_project_type_identifier",
+        ),
+        sa.UniqueConstraint(
+            "project_id", "group_id", name="uq_project_groups_project_group"
+        ),
+    )
+    op.create_table(
+        "project_access_groups",
+        sa.Column("project_id", sa.String(length=36), nullable=False),
+        sa.Column("group_id", sa.String(length=36), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["project_id", "group_id"],
+            ["project_groups.project_id", "project_groups.group_id"],
+            ondelete="CASCADE",
+            name="fk_project_access_groups_project_group",
+        ),
+        sa.PrimaryKeyConstraint("project_id", "group_id"),
     )
     op.create_table(
         "permissions",
@@ -265,6 +307,8 @@ def upgrade() -> None:
     op.create_index("ix_responsible_areas_name", "responsible_areas", ["name"], unique=True)
     op.create_index("ix_responsible_areas_active", "responsible_areas", ["active"])
     op.create_index("ix_project_members_project_id", "project_members", ["project_id"])
+    op.create_index("ix_project_groups_project_id", "project_groups", ["project_id"])
+    op.create_index("ix_project_groups_access_level", "project_groups", ["access_level"])
     op.create_index("ix_folders_project_id", "folders", ["project_id"])
     op.create_index("ix_folders_parent_id", "folders", ["parent_id"])
     op.create_index("ix_folders_created_by", "folders", ["created_by"])

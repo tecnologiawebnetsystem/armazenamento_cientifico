@@ -48,6 +48,22 @@ def test_every_revision_defines_upgrade_and_downgrade(script: ScriptDirectory):
         assert callable(getattr(revision.module, "downgrade", None)), revision.revision
 
 
+def test_baseline_contains_normalized_project_groups_schema(script: ScriptDirectory):
+    baseline = script.get_revision("0001_production_baseline")
+    baseline_source = Path(baseline.path).read_text()
+    create_access_groups = Path(
+        script.get_revision("fcb6e012eb9f").path
+    ).read_text()
+    normalize_groups = Path(script.get_revision("f41a08b790a1").path).read_text()
+
+    assert '"project_groups"' in baseline_source
+    assert '"principal_type"' in baseline_source
+    assert '"access_level"' in baseline_source
+    assert '"project_access_groups"' in baseline_source
+    assert "has_table(\"project_access_groups\")" in create_access_groups
+    assert 'columns == {"project_id", "group_id"}' in normalize_groups
+
+
 def test_project_groups_normalization_keeps_access_level_on_project_groups(
     script: ScriptDirectory,
 ):
