@@ -15,7 +15,10 @@ import { PageHeader, PageLayout } from "@/components/shared/page-layout"
 import { ExportButton, ExportFieldsDialog, type ExportField } from "@/components/export-fields-dialog"
 
 type ReportExportFormat = "csv" | "txt" | "pdf"
-const csvValue = (value: string) => `"${value.replaceAll('"', '""')}"`
+const csvValue = (value: string) => {
+  const safeValue = /^[=+@\t\r-]/.test(value) ? `'${value}` : value
+  return `"${safeValue.replaceAll('"', '""')}"`
+}
 
 export default function ReportsPage() {
   const [query, setQuery] = useState("")
@@ -69,13 +72,29 @@ export default function ReportsPage() {
   const groupTotalPages = Math.max(1, Math.ceil(groupRows.length / groupPageSize))
   const visibleGroupRows = groupRows.slice((groupPage - 1) * groupPageSize, groupPage * groupPageSize)
   const exportGroupsCsv = () => {
-    const columns = ["grupo", "identificador", "tipo", "nivel", "area", "projeto", "codigo"] as const
-    const content = [columns.join(";"), ...groupRows.map((row) => columns.map((column) => csvValue(String(row[column] ?? ""))).join(";"))].join("\n")
+    const columns = [
+      { key: "grupo", label: "Grupo" },
+      { key: "identificador", label: "Identificador do grupo" },
+      { key: "tipo", label: "Tipo de principal" },
+      { key: "nivel", label: "Permissão" },
+      { key: "area", label: "Área de rede" },
+      { key: "projeto", label: "Projeto" },
+      { key: "codigo", label: "Código do projeto" },
+    ] as const
+    const rows = groupRows.map((row) => columns.map(({ key }) => {
+      const value = key === "tipo"
+        ? row.tipo === "role" ? "Role" : "Grupo"
+        : key === "nivel"
+          ? `${row.nivel.charAt(0).toUpperCase()}${row.nivel.slice(1)}`
+          : String(row[key] ?? "")
+      return csvValue(value)
+    }).join(";"))
+    const content = [columns.map(({ label }) => csvValue(label)).join(";"), ...rows].join("\r\n")
     const blob = new Blob(["\uFEFF", content], { type: "text/csv;charset=utf-8" })
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.href = url
-    link.download = "relatorio-grupos.csv"
+    link.download = "relatorio-grupos-por-area.csv"
     document.body.appendChild(link)
     link.click()
     link.remove()

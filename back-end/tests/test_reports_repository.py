@@ -218,15 +218,31 @@ async def test_group_assignments_return_only_linked_groups_and_apply_filters(db)
     )
     await db.flush()
     db.add(ProjectAccessGroup(project_id="id-P2", group_id="role-write-p2"))
+    db.add(
+        ProjectGroup(
+            group_id="group-read-p2",
+            project_id="id-P2",
+            identifier="entra-network-read",
+            group_name="Rede leitura",
+            principal_type="group",
+            access_level="leitura",
+            source="manual",
+            created_at=NOW,
+            updated_at=NOW,
+        )
+    )
+    await db.flush()
+    db.add(ProjectAccessGroup(project_id="id-P2", group_id="group-read-p2"))
     await db.commit()
 
     repo = ReportRepository(db)
     rows = await repo.group_assignments(None, None, None, None, "x", all_projects=True)
     assert [(row["grupo"], row["projeto"], row["area"]) for row in rows] == [
         ("Administradores de rede", "Alfa", "TI"),
+        ("Rede leitura", "Alfa", "TI"),
         ("Rede leitura", "Beta", "Redes"),
     ]
-    assert len(await repo.group_assignments("entra-network", None, None, None, "x", True)) == 1
+    assert len(await repo.group_assignments("entra-network", None, None, None, "x", True)) == 2
     assert len(await repo.group_assignments(None, "TI", "role", "escrita", "x", True)) == 1
     assert await repo.group_assignments(None, None, "group", "escrita", "x", True) == []
 
