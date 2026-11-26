@@ -4,7 +4,6 @@ import { useState } from "react"
 import { createPortal } from "react-dom"
 import useSWR from "swr"
 import {
-  AlertTriangleIcon,
   CheckCircle2Icon,
   FolderLockIcon,
   RefreshCwIcon,
@@ -312,20 +311,6 @@ export function ProjectFolderAccessPanel({
                   ? "Projeto sem pasta de rede cadastrada; exibindo apenas o cadastro do SIGAC."
                   : `ACL indisponível: ${data.aclMensagem ?? "sem detalhes"}`}
               </p>
-            )}
-
-            {data.alertas.length > 0 && (
-              <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
-                <p className="mb-1 flex items-center gap-2 font-medium">
-                  <AlertTriangleIcon className="size-4" aria-hidden="true" />
-                  Pontos para análise
-                </p>
-                <ul className="list-disc space-y-0.5 pl-5">
-                  {data.alertas.map((alert) => (
-                    <li key={alert}>{alert}</li>
-                  ))}
-                </ul>
-              </div>
             )}
 
             <section
