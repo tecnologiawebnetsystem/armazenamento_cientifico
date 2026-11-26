@@ -4,7 +4,6 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
-  AlertTriangleIcon,
   CheckCircle2Icon,
   ClipboardListIcon,
   Loader2Icon,
@@ -18,7 +17,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ResponsibleUserAutocomplete } from "@/components/projects/responsible-user-autocomplete"
 import {
   Card,
@@ -55,21 +53,6 @@ import {
 } from "@/lib/api-client"
 import type { SessionUser } from "@/lib/types"
 
-function getSyncFailureMessage(error: unknown) {
-  const message =
-    error instanceof ApiError
-      ? error.message
-      : error instanceof Error
-        ? error.message
-        : ""
-
-  if (!message || /internal server error/i.test(message)) {
-    return "Não sincronizado: o serviço retornou um erro interno."
-  }
-
-  return `Não sincronizado: ${message}`
-}
-
 export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
   const router = useRouter()
   const { areas, isLoading: areasLoading } = useCatalogs()
@@ -87,11 +70,10 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
   const [descricao, setDescricao] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSyncingNetwork, setIsSyncingNetwork] = useState(false)
-  const [syncingProjectName, setSyncingProjectName] = useState("")
+  const [syncingFolderName, setSyncingFolderName] = useState("")
   const [syncSummary, setSyncSummary] = useState<{
     projectId: string
     projectName: string
-    errors: Array<{ item: string; message: string }>
   } | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -108,7 +90,7 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
       return
     }
     setIsSubmitting(true)
-    setSyncingProjectName(nome.trim())
+    setSyncingFolderName(pastaMae.trim())
     setIsSyncingNetwork(true)
     try {
       const { project } = (await createProject({
@@ -133,45 +115,15 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
         },
       }).catch(() => undefined)
 
-      setSyncingProjectName(project.nome)
-      const errors: Array<{ item: string; message: string }> = []
+      setSyncingFolderName(project.pastaMae || pastaMae.trim())
 
-      try {
-        await syncFolders(project.id, [], "folders")
-      } catch (error) {
-        errors.push({ item: "Pastas", message: getSyncFailureMessage(error) })
-      }
-
-      try {
-        const groupResult = await syncProjectGroups(project.id)
-        if (!groupResult.acl) {
-          errors.push({
-            item: "Groups / Roles",
-            message: "A API não retornou o resultado da sincronização.",
-          })
-        } else if (groupResult.acl.errors.length > 0) {
-          errors.push({
-            item: "Groups / Roles",
-            message: `Sincronização parcial: ${groupResult.acl.errors.join("; ")}`,
-          })
-        }
-      } catch (error) {
-        errors.push({
-          item: "Groups / Roles",
-          message: getSyncFailureMessage(error),
-        })
-      }
-
-      try {
-        await getProjectFolderAccess(project.id)
-      } catch (error) {
-        errors.push({ item: "Membros", message: getSyncFailureMessage(error) })
-      }
+      await syncFolders(project.id, [], "folders").catch(() => undefined)
+      await syncProjectGroups(project.id).catch(() => undefined)
+      await getProjectFolderAccess(project.id).catch(() => undefined)
 
       setSyncSummary({
         projectId: project.id,
         projectName: project.nome,
-        errors,
       })
       setIsSyncingNetwork(false)
     } catch (err: unknown) {
@@ -202,12 +154,12 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
             </div>
             <DialogHeader className="gap-2">
               <DialogTitle className="text-xl tracking-tight">
-                Sincronizando área de rede
+                Sincronizando pasta de rede
               </DialogTitle>
               <DialogDescription className="leading-6" aria-live="polite">
-                Estamos sincronizando a área de rede{" "}
-                <strong>{syncingProjectName || nome.trim()}</strong>. Assim que
-                terminar, você poderá abrir a área.
+                Sincronizando apenas a pasta{" "}
+                <strong>{syncingFolderName || pastaMae.trim()}</strong>. Assim
+                que terminar, você poderá abrir a área.
               </DialogDescription>
             </DialogHeader>
           </div>
@@ -232,16 +184,6 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
               está disponível.
             </DialogDescription>
           </DialogHeader>
-
-          {(syncSummary?.errors.length ?? 0) > 0 && (
-            <Alert variant="destructive">
-              <AlertTriangleIcon aria-hidden="true" />
-              <AlertDescription>
-                Alguns dados da rede não foram sincronizados. A área foi criada;
-                abra-a para consultar os dados disponíveis.
-              </AlertDescription>
-            </Alert>
-          )}
 
           <DialogFooter>
             <Button
