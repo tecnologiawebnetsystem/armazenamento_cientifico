@@ -676,9 +676,7 @@ function AccessMapDetails({
           <div className="rounded-lg border border-petrobras-yellow/50 bg-petrobras-yellow/10 p-3">
             <p className="text-xs font-medium text-muted-foreground">Membros</p>
             <p className="mt-1 text-2xl font-semibold text-foreground">
-              {folderAccessLoading && visibleMembers.length === 0
-                ? "…"
-                : visibleMembers.length}
+              {project.totalMembrosAcesso ?? 0}
             </p>
           </div>
         </CardContent>
