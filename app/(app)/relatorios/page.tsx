@@ -28,7 +28,6 @@ export default function ReportsPage() {
   const [gestor, setGestor] = useState("")
   const [activeTab, setActiveTab] = useState<ReportTab>("areas")
   const [memberSearch, setMemberSearch] = useState("")
-  const [memberArea, setMemberArea] = useState("todas")
   const [memberPage, setMemberPage] = useState(1)
   const [groupSearch, setGroupSearch] = useState("")
   const [groupArea, setGroupArea] = useState("todas")
@@ -49,8 +48,8 @@ export default function ReportsPage() {
     }),
   )
   const { data: memberReport, isLoading: membersLoading, mutate: mutateMembers } = useSWR(
-    ["/api/reports/members", memberSearch, memberArea],
-    () => getReportMembers({ q: memberSearch || undefined, area: memberArea === "todas" ? undefined : memberArea }),
+    ["/api/reports/members", memberSearch],
+    () => getReportMembers({ q: memberSearch || undefined }),
   )
   const { data: configuredFields } = useSWR("/api/report-fields?report_code=projetos", () => getReportFields("projetos"))
   useEffect(() => {
@@ -114,21 +113,43 @@ export default function ReportsPage() {
   }
   const exportMembersCsv = () => {
     const columns = [
-      { key: "usuario", label: "Usuário" },
+      { key: "nome", label: "Nome" },
+      { key: "usuario", label: "Chave" },
+      { key: "email", label: "E-mail" },
       { key: "perfil", label: "Perfil" },
-      { key: "papel", label: "Papel no projeto" },
       { key: "area", label: "Área de rede" },
+      { key: "grupo", label: "Grupo" },
+      { key: "nivel", label: "Nível de acesso" },
       { key: "projeto", label: "Projeto" },
       { key: "codigo", label: "Código do projeto" },
-      { key: "adicionadoEm", label: "Acesso adicionado em" },
+      { key: "papel", label: "Papel SIGAC" },
+      { key: "adicionadoEm", label: "Acesso atualizado em" },
     ] as const
-    const rows = memberRows.map((row) => columns.map(({ key }) => csvValue(String(row[key] ?? ""))).join(";"))
+    const rows = memberRows.flatMap((member) => {
+      const links = member.vinculos.length ? member.vinculos : [undefined]
+      return links.map((access) => {
+        const values: Record<string, string | null | undefined> = {
+          nome: member.nome,
+          usuario: member.usuario,
+          email: member.email,
+          perfil: member.perfil,
+          area: access?.area,
+          grupo: access?.grupo,
+          nivel: access?.nivel,
+          projeto: access?.projeto,
+          codigo: access?.codigo,
+          papel: access?.papel,
+          adicionadoEm: access?.adicionadoEm,
+        }
+        return columns.map(({ key }) => csvValue(String(values[key] ?? ""))).join(";")
+      })
+    })
     const content = [columns.map(({ label }) => csvValue(label)).join(";"), ...rows].join("\r\n")
     const blob = new Blob(["\uFEFF", content], { type: "text/csv;charset=utf-8" })
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.href = url
-    link.download = "relatorio-membros-por-area.csv"
+    link.download = "relatorio-membros.csv"
     document.body.appendChild(link)
     link.click()
     link.remove()
@@ -186,14 +207,14 @@ export default function ReportsPage() {
     </Card>}
     {activeTab === "membros" && <Card className="sigac-surface overflow-hidden">
       <CardHeader className="sigac-section-header border-b border-border/70 pb-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-petrobras-green"><SlidersHorizontal className="size-4" />Membros por área de rede</div><CardTitle>Membros autorizados</CardTitle><CardDescription className="mt-1">Pessoas vinculadas diretamente às áreas de rede. Grupos e papéis permanecem no relatório separado.</CardDescription></div><Badge variant="outline" className="w-fit bg-background/70">{memberReport?.total ?? 0} membros</Badge></div>
-        <div className="grid gap-3 pt-2 md:grid-cols-2"><div className="relative"><Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" /><Input className="bg-background/80 pl-9" aria-label="Buscar membros" placeholder="Buscar usuário, perfil ou área de rede" value={memberSearch} onChange={(event) => { setMemberSearch(event.target.value); setMemberPage(1) }} /></div><select aria-label="Filtrar área de rede dos membros" className="h-9 rounded-md border border-input bg-background/80 px-3 text-sm" value={memberArea} onChange={(event) => { setMemberArea(event.target.value); setMemberPage(1) }}><option value="todas">Todas as áreas</option>{areas.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></div>
-        <div className="flex flex-wrap items-center gap-2 pt-1"><Button variant="ghost" size="sm" onClick={() => { setMemberSearch(""); setMemberArea("todas"); setMemberPage(1) }}><Filter className="mr-2 size-4" />Limpar filtros</Button><span className="text-xs text-muted-foreground">A consulta respeita as permissões de acesso às áreas de rede.</span></div>
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-petrobras-green"><SlidersHorizontal className="size-4" />Diretório completo</div><CardTitle>Todos os membros</CardTitle><CardDescription className="mt-1">Pesquise pela chave ou nome. Cada pessoa aparece uma vez, com todos os grupos, áreas e níveis de acesso associados.</CardDescription></div><Badge variant="outline" className="w-fit bg-background/70">{memberReport?.total ?? 0} membros</Badge></div>
+        <div className="relative pt-2"><Search className="absolute left-3 top-4.5 size-4 text-muted-foreground" /><Input className="bg-background/80 pl-9" aria-label="Buscar membros por chave ou nome" placeholder="Buscar pela chave ou nome do membro" value={memberSearch} onChange={(event) => { setMemberSearch(event.target.value); setMemberPage(1) }} /></div>
+        <div className="flex flex-wrap items-center gap-2 pt-1"><Button variant="ghost" size="sm" onClick={() => { setMemberSearch(""); setMemberPage(1) }}><Filter className="mr-2 size-4" />Limpar busca</Button><span className="text-xs text-muted-foreground">A busca percorre todos os membros cadastrados, sem filtrar por área de rede.</span></div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 bg-muted/20 px-6 py-3"><p className="text-sm text-muted-foreground"><strong className="text-foreground">{memberReport?.total ?? 0}</strong> {(memberReport?.total ?? 0) === 1 ? "membro encontrado" : "membros encontrados"}</p><p className="text-xs text-muted-foreground">Cada linha representa um vínculo de membro em uma área de rede</p></div>
-        {membersLoading && !memberReport ? <div className="px-6 py-10"><PetrobrasLoading label="Consultando membros autorizados..." /></div> : <><div className="overflow-x-auto"><table className="w-full text-sm"><caption className="sr-only">Membros vinculados às áreas de rede</caption><thead className="bg-muted/55 text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground"><tr><th className="px-6 py-3 font-medium">Usuário</th><th className="px-4 py-3 font-medium">Perfil</th><th className="px-4 py-3 font-medium">Papel no projeto</th><th className="px-4 py-3 font-medium">Área de rede</th><th className="px-4 py-3 font-medium">Projeto</th><th className="px-4 py-3 font-medium">Acesso adicionado</th></tr></thead><tbody className="divide-y divide-border/60">{visibleMemberRows.map((item, index) => <tr key={`${item.projetoId}-${item.id}-${index}`} className="transition-colors hover:bg-petrobras-green/5"><td className="px-6 py-4 font-semibold text-foreground">{item.usuario}</td><td className="px-4 py-4 text-muted-foreground">{item.perfil || "Não informado"}</td><td className="px-4 py-4"><Badge variant="secondary" className="capitalize">{item.papel || "Membro"}</Badge></td><td className="px-4 py-4 text-muted-foreground">{item.area || "Não informada"}</td><td className="px-4 py-4"><p className="font-medium">{item.projeto}</p><p className="font-mono text-xs text-muted-foreground">{item.codigo}</p></td><td className="px-4 py-4 text-muted-foreground">{item.adicionadoEm ? new Date(item.adicionadoEm).toLocaleDateString("pt-BR") : "—"}</td></tr>)}</tbody></table></div>{!visibleMemberRows.length && <p className="px-6 py-12 text-center text-sm text-muted-foreground">Nenhum membro encontrado para os filtros selecionados.</p>}</>}
-        <div className="flex flex-col gap-3 border-t border-border/70 px-6 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between"><span>Mostrando {visibleMemberRows.length} de {memberRows.length} vínculos de membros</span><div className="flex items-center gap-2"><Button variant="outline" size="sm" disabled={memberPage <= 1} onClick={() => setMemberPage((value) => Math.max(1, value - 1))}>Anterior</Button><span>Página {memberPage} de {memberTotalPages}</span><Button variant="outline" size="sm" disabled={memberPage >= memberTotalPages} onClick={() => setMemberPage((value) => Math.min(memberTotalPages, value + 1))}>Próxima</Button></div></div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 bg-muted/20 px-6 py-3"><p className="text-sm text-muted-foreground"><strong className="text-foreground">{memberReport?.total ?? 0}</strong> {(memberReport?.total ?? 0) === 1 ? "membro encontrado" : "membros encontrados"}</p><p className="text-xs text-muted-foreground">Uma linha por chave; os vínculos são consolidados abaixo</p></div>
+        {membersLoading && !memberReport ? <div className="px-6 py-10"><PetrobrasLoading label="Consultando diretório de membros..." /></div> : <><div className="overflow-x-auto"><table className="w-full text-sm"><caption className="sr-only">Diretório de membros e seus vínculos de acesso</caption><thead className="bg-muted/55 text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground"><tr><th className="px-6 py-3 font-medium">Membro / chave</th><th className="px-4 py-3 font-medium">E-mail</th><th className="px-4 py-3 font-medium">Perfil</th><th className="px-4 py-3 font-medium">Áreas, grupos e acessos</th></tr></thead><tbody className="divide-y divide-border/60">{visibleMemberRows.map((item) => <tr key={item.id} className="align-top transition-colors hover:bg-petrobras-green/5"><td className="min-w-52 px-6 py-4"><p className="font-semibold text-foreground">{item.nome || item.usuario}</p><p className="font-mono text-xs text-muted-foreground">{item.usuario}</p></td><td className="min-w-52 px-4 py-4 text-muted-foreground">{item.email || "E-mail não informado"}</td><td className="px-4 py-4 text-muted-foreground">{item.perfil || "Não informado"}</td><td className="min-w-80 px-4 py-3"><div className="flex flex-col gap-2">{item.vinculos.length ? item.vinculos.map((access) => <div key={`${access.projetoId}-${access.grupo}-${access.papel}`} className="rounded-md bg-muted/40 px-3 py-2"><p className="font-medium text-foreground">{access.area || "Área não informada"}{access.grupo ? ` · ${access.grupo}` : " · Acesso direto"}</p><p className="text-xs text-muted-foreground">{[access.projeto, access.codigo].filter(Boolean).join(" · ") || "Projeto não informado"}{access.nivel ? ` · Nível: ${access.nivel}` : ""}{access.papel ? ` · Papel: ${access.papel}` : ""}</p></div>) : <span className="text-muted-foreground">Nenhum vínculo de acesso informado</span>}</div></td></tr>)}</tbody></table></div>{!visibleMemberRows.length && <p className="px-6 py-12 text-center text-sm text-muted-foreground">Nenhum membro encontrado para a chave ou nome pesquisado.</p>}</>}
+        <div className="flex flex-col gap-3 border-t border-border/70 px-6 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between"><span>Mostrando {visibleMemberRows.length} de {memberRows.length} membros</span><div className="flex items-center gap-2"><Button variant="outline" size="sm" disabled={memberPage <= 1} onClick={() => setMemberPage((value) => Math.max(1, value - 1))}>Anterior</Button><span>Página {memberPage} de {memberTotalPages}</span><Button variant="outline" size="sm" disabled={memberPage >= memberTotalPages} onClick={() => setMemberPage((value) => Math.min(memberTotalPages, value + 1))}>Próxima</Button></div></div>
       </CardContent>
     </Card>}
     <ExportFieldsDialog open={exportOpen} onOpenChange={setExportOpen} title="relatório de área de rede" fields={exportFields} onConfirm={(fields, formats) => void Promise.all(formats.map((format) => downloadExport(format, fields)))} />

@@ -646,16 +646,24 @@ export function getReportGroups(
   )
 }
 
+export type ReportMemberLink = {
+  projetoId: string | null
+  projeto: string | null
+  codigo: string | null
+  area: string | null
+  grupo: string | null
+  papel: string | null
+  nivel: string | null
+  adicionadoEm: string | null
+}
+
 export type ReportMember = {
   id: string
   usuario: string
+  nome: string
+  email: string
   perfil: string | null
-  papel: string | null
-  adicionadoEm: string
-  projetoId: string
-  projeto: string
-  codigo: string
-  area: string
+  vinculos: ReportMemberLink[]
 }
 
 export function getReportMembers(params: { q?: string; area?: string } = {}) {
