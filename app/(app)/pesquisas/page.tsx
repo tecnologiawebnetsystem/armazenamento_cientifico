@@ -23,6 +23,15 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { AccessGroupCard } from "@/components/projects/access-group-card"
 import { PetrobrasLoading } from "@/components/petrobras-loading"
 import {
   ExportButton,
@@ -61,17 +70,6 @@ function formatDate(value?: string | null) {
   return Number.isNaN(date.getTime())
     ? "Não informado"
     : dateFormat.format(date)
-}
-
-function initials(name?: string | null) {
-  const safeName = name?.trim() || "Usuário"
-  return safeName
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase()
 }
 
 function accessLabel(value?: string | null) {
@@ -732,73 +730,84 @@ function AccessMapDetails({
         </Card>
       ) : accessMap ? (
         <>
-          {groups.length > 0 && (
-            <Card className="sigac-surface print-section print-groups">
-              <CardHeader className="sigac-section-header px-5 py-4">
-                <CardTitle className="text-base">Grupos de acesso</CardTitle>
-                <CardDescription>
-                  Grupos e níveis consolidados pela API de mapa de acessos.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-3 p-5 sm:grid-cols-2">
-                {groups.map((group) => (
-                  <div
-                    key={`${group.fonte}-${group.nome}`}
-                    className="rounded-lg border border-border/70 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-semibold">{group.nome}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Fonte: {group.fonte}
-                        </p>
-                      </div>
-                      <Badge>{accessLabel(group.nivel)}</Badge>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+          <Card className="sigac-surface print-section print-groups">
+            <CardHeader className="sigac-section-header px-5 py-4">
+              <CardTitle className="text-base">Grupos da integração</CardTitle>
+              <CardDescription>
+                Grupos recebidos da integração e níveis de acesso da área.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-5">
+              {groups.length === 0 ? (
+                <p className="rounded-lg bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                  Nenhum grupo recebido da integração.
+                </p>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {groups.map((group) => (
+                    <AccessGroupCard
+                      key={`${group.fonte}-${group.nome}`}
+                      group={group}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
           <Card className="sigac-surface print-section print-members">
             <CardHeader className="sigac-section-header px-5 py-4">
               <CardTitle className="text-base">Membros autorizados</CardTitle>
               <CardDescription>
-                Usuários vinculados a área de rede e seus perfis.
+                Pessoas com acesso à área de rede e seus níveis de permissão.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="divide-y divide-border">
-                {members.map((member) => (
-                  <div
-                    key={member.userId}
-                    className="flex items-center justify-between gap-3 px-5 py-4"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                        {initials(member.user?.nome)}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold">
-                          {member.user?.nome ||
-                            member.user?.userId ||
-                            member.userId ||
-                            "Usuário"}
-                        </p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {member.user?.email || "E-mail não informado"}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="outline">{accessLabel(member.papel)}</Badge>
-                  </div>
-                ))}
-                {!members.length ? (
-                  <p className="p-5 text-sm text-muted-foreground">
-                    Nenhum membro autorizado.
-                  </p>
-                ) : null}
-              </div>
+              {members.length === 0 ? (
+                <p className="p-5 text-sm text-muted-foreground">
+                  Nenhum membro autorizado.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Membro</TableHead>
+                      <TableHead>E-mail</TableHead>
+                      <TableHead>Permissão</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {members.map((member) => {
+                      const name =
+                        member.user?.nome ||
+                        member.user?.userId ||
+                        member.userId ||
+                        "Usuário"
+                      const userId = member.user?.userId || member.userId
+
+                      return (
+                        <TableRow key={member.userId}>
+                          <TableCell>
+                            <p className="font-medium">{name}</p>
+                            {userId && userId !== name && (
+                              <p className="text-xs text-muted-foreground">
+                                {userId}
+                              </p>
+                            )}
+                          </TableCell>
+                          <TableCell className="break-all">
+                            {member.user?.email || "E-mail não informado"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {accessLabel(member.papel)}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
           <Card className="sigac-surface">
