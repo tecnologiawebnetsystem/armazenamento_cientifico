@@ -4,7 +4,6 @@ import Link from "next/link"
 import {
   FolderIcon,
   UsersIcon,
-  DatabaseIcon,
   MoreVerticalIcon,
   PencilIcon,
   ExternalLinkIcon,
@@ -23,12 +22,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import type { Project } from "@/lib/types"
-
-function formatStorage(mb?: number) {
-  if (!mb) return "0 MB"
-  if (mb >= 1024) return `${(mb / 1024).toFixed(1)} GB`
-  return `${mb} MB`
-}
 
 interface Props {
   project: Project
@@ -66,10 +59,6 @@ export function ProjectListRow({ project, canManage = false, showMeta = true, on
       <div className="hidden items-center gap-1.5 text-sm text-muted-foreground sm:flex">
         <UsersIcon className="size-3.5" />
         {membros}
-      </div>
-      <div className="hidden w-24 items-center gap-1.5 text-sm text-muted-foreground md:flex">
-        <DatabaseIcon className="size-3.5" />
-        {formatStorage(project.armazenamentoUsadoMb)}
       </div>
 
       <div className="flex items-center gap-1.5">{inconsistent && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">Inconsistente</span>}<ProjectStatusBadge status={project.status} /></div>

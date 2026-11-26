@@ -4,7 +4,6 @@ import Link from "next/link"
 import {
   FolderIcon,
   UsersIcon,
-  DatabaseIcon,
   MoreVerticalIcon,
   PencilIcon,
   ExternalLinkIcon,
@@ -24,12 +23,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import type { Project } from "@/lib/types"
-
-function formatStorage(mb?: number) {
-  if (!mb) return "0 MB"
-  if (mb >= 1024) return `${(mb / 1024).toFixed(1)} GB`
-  return `${mb} MB`
-}
 
 interface Props {
   project: Project
@@ -119,10 +112,6 @@ export function ProjectCard({ project, canManage = false, showMeta = true, onTog
         <span className="flex items-center gap-1.5">
           <UsersIcon className="size-3.5" />
           {membros} {membros === 1 ? "membro" : "membros"}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <DatabaseIcon className="size-3.5" />
-          {formatStorage(project.armazenamentoUsadoMb)}
         </span>
       </CardFooter>
     </Card>
