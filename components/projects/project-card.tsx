@@ -41,7 +41,7 @@ interface Props {
 }
 
 export function ProjectCard({ project, canManage = false, showMeta = true, onToggleStatus, onDelete, inconsistent = false }: Props) {
-  const membros = project.participantesIds?.length ?? 0
+  const membros = project.totalMembrosAcesso ?? project.participantesIds?.length ?? 0
   const gestores = project.gestoresIds?.length ?? 0
   const pausado = project.status === "pausado"
 

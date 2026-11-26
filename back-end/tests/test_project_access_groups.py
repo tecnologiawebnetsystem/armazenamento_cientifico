@@ -86,6 +86,21 @@ async def test_project_delete_preserves_activity_logs():
     session.delete.assert_awaited_once()
 
 
+@pytest.mark.asyncio
+async def test_effective_member_counts_merges_sigac_and_acl_without_duplicates():
+    session = AsyncMock()
+    session.execute.side_effect = [
+        [("project-1", "user-1", "Ana.Silva")],
+        [("project-1", "ana.silva"), ("project-1", "Bruno"), ("project-1", "BRUNO")],
+    ]
+    repository = ProjectRepository(session)
+
+    counts = await repository.effective_member_counts(["project-1"])
+
+    assert counts == {"project-1": 2}
+    assert session.execute.await_count == 2
+
+
 @pytest_asyncio.fixture
 async def client() -> AsyncIterator[tuple[httpx.AsyncClient, dict[str, object], dict[str, str]]]:
     database_url = _test_database_url()

@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import useSWR from "swr"
+import useSWR, { useSWRConfig } from "swr"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { getResponsibleAreas, updateProject } from "@/lib/api-client"
@@ -27,7 +27,9 @@ export function ProjectInfoTab({
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isEditing, setIsEditing] = useState(searchParams.get("editar") === "1")
+  const [nome, setNome] = useState(project.nome)
   const [areaResponsavel, setAreaResponsavel] = useState(project.areaResponsavel)
+  const { mutate } = useSWRConfig()
   const [pastaMae, setPastaMae] = useState(project.pastaMae)
   const [descricao, setDescricao] = useState(project.descricao)
   const [status, setStatus] = useState(project.status)
@@ -46,7 +48,9 @@ export function ProjectInfoTab({
   async function handleSave() {
     setSaving(true)
     try {
-      await updateProject(project.id, { areaResponsavel, pastaMae, descricao, status })
+      const updated = await updateProject(project.id, { nome: nome.trim(), areaResponsavel, pastaMae, descricao, status })
+      setNome(updated.project.nome)
+      await mutate(["project", project.id])
       setIsEditing(false)
       router.refresh()
     } finally {
@@ -78,7 +82,7 @@ export function ProjectInfoTab({
             </CardDescription>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {isEditing ? <><Button variant="outline" onClick={() => setIsEditing(false)} disabled={saving}>Cancelar</Button><Button onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : "Salvar alterações"}</Button></> : <Button variant="outline" onClick={() => setIsEditing(true)}>Editar</Button>}
+            {isEditing ? <><Button variant="outline" onClick={() => { setNome(project.nome); setIsEditing(false) }} disabled={saving}>Cancelar</Button><Button onClick={handleSave} disabled={saving || nome.trim().length < 2 || nome.trim().length > 200}>{saving ? "Salvando..." : "Salvar alterações"}</Button></> : <Button variant="outline" onClick={() => setIsEditing(true)}>Editar</Button>}
             <div className="flex items-center gap-2 rounded-full border border-petrobras-green/30 bg-petrobras-green/10 px-3 py-1.5 text-sm font-semibold text-petrobras-green">
             <span className="size-2 rounded-full bg-petrobras-green" aria-hidden="true" />
             {statusOptions.find((option) => option.value === status)?.label ?? status}
@@ -90,7 +94,7 @@ export function ProjectInfoTab({
         <div className="grid gap-5 md:grid-cols-[minmax(0,1.4fr)_minmax(220px,0.6fr)]">
           <Field>
             <FieldLabel htmlFor="nome">Área de Rede</FieldLabel>
-            <Input id="nome" value={project.nome} disabled className="h-11 bg-muted/50" />
+            <Input id="nome" value={nome} onChange={(event) => setNome(event.target.value)} disabled={!isEditing} required minLength={2} maxLength={200} aria-invalid={isEditing && nome.trim().length < 2} className="h-11 bg-muted/50" />
           </Field>
           <Field>
             <FieldLabel htmlFor="id">Identificador</FieldLabel>

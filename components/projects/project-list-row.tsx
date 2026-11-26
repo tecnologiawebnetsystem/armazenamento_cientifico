@@ -41,7 +41,7 @@ interface Props {
 }
 
 export function ProjectListRow({ project, canManage = false, showMeta = true, onToggleStatus, onDelete, inconsistent = false, className }: Props) {
-  const membros = project.participantesIds?.length ?? 0
+  const membros = project.totalMembrosAcesso ?? project.participantesIds?.length ?? 0
   const pausado = project.status === "pausado"
 
   return (

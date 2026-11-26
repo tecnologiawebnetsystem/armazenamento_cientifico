@@ -45,6 +45,7 @@ def serialize_project(
     responsaveis: list[str] | None = None,
     area_nome: str | None = None,
     armazenamento_bytes: int = 0,
+    total_membros_acesso: int = 0,
 ) -> ProjectOut:
     return ProjectOut(
         id=project.id,
@@ -60,6 +61,7 @@ def serialize_project(
         atualizadoEm=project.updated_at or datetime.now(UTC).replace(tzinfo=None),
         pastaMae=project.parent_folder or "",
         armazenamentoUsadoMb=round(armazenamento_bytes / (1024 * 1024), 2),
+        totalMembrosAcesso=total_membros_acesso,
     )
 
 
@@ -125,13 +127,16 @@ async def list_projects(
     role = user["role"] or "solicitante"
     projects = await service.list_projects(str(user.get("user_id") or user["id"]), str(role))
     areas = {area.id: area.name for area in await service.list_areas()}
-    storage_by_project = await service.storage_by_project_ids([project.id for project in projects])
+    project_ids = [project.id for project in projects]
+    storage_by_project = await service.storage_by_project_ids(project_ids)
+    member_counts = await service.effective_member_counts(project_ids)
     return {
         "projects": [
             serialize_project(
                 project,
                 area_nome=areas.get(project.responsible_area),
                 armazenamento_bytes=storage_by_project.get(str(project.id), 0),
+                total_membros_acesso=member_counts.get(str(project.id), 0),
             )
             for project in projects
         ]

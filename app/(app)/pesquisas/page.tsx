@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import useSWR from "swr"
 import {
-  ChevronRight,
+  ChevronDown,
   Clock3,
   Folder,
   FolderOpen,
@@ -19,7 +19,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import {
   Table,
   TableBody,
@@ -224,6 +236,7 @@ async function exportAccessMap(
 
 export default function AccessMapPage() {
   const [search, setSearch] = useState("")
+  const [areaPickerOpen, setAreaPickerOpen] = useState(false)
   const [selectedProjectId, setSelectedProjectId] = useState("")
   const {
     data: projectsData,
@@ -304,6 +317,8 @@ export default function AccessMapPage() {
 
   const selectProject = (project: Project) => {
     setSelectedProjectId(project.id)
+    setSearch("")
+    setAreaPickerOpen(false)
     void recordAuditEvent({
       action: "consultar-mapa-acessos",
       entity: "projeto",
@@ -319,69 +334,125 @@ export default function AccessMapPage() {
         title="Mapa de Acessos"
         description="Pesquise uma área de rede para consultar suas pastas, grupos e membros autorizados."
       />
-      <div className="print-content-shell grid gap-6 lg:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]">
-        <Card className="sigac-surface h-fit overflow-hidden">
+      <div className="print-content-shell grid gap-6">
+        <Card className="sigac-surface overflow-visible">
           <CardHeader className="sigac-section-header px-5 py-4">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Search className="size-4 text-primary" />
-              Pesquisar área de rede
-            </CardTitle>
-            <CardDescription>
-              Selecione uma área de rede para abrir o mapa de acessos.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 p-5">
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-2.5 left-3 size-4 text-muted-foreground" />
-              <Input
-                aria-label="Pesquisar área de rede ou responsável"
-                className="pl-9"
-                placeholder="Nome, código, área ou responsável"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Search className="size-4 text-primary" />
+                  Pesquisar área de rede
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  Busque por nome, código, gerência ou responsável. O mapa será
+                  exibido abaixo, ocupando toda a largura.
+                </CardDescription>
+              </div>
+              <Badge variant="secondary">
+                {projectsLoading
+                  ? "Carregando áreas…"
+                  : `${projects.length} ${projects.length === 1 ? "área disponível" : "áreas disponíveis"}`}
+              </Badge>
             </div>
-            {projectsLoading ? (
-              <PetrobrasLoading label="Carregando área de redes..." />
-            ) : projectsError ? (
-              <p className="text-sm text-destructive">
-                Não foi possível carregar a área de rede.
+          </CardHeader>
+          <CardContent className="p-5 pt-0">
+            {projectsError ? (
+              <p className="text-sm text-destructive" role="alert">
+                Não foi possível carregar as áreas de rede. Tente atualizar a página.
               </p>
             ) : (
-              <div className="access-map-scrollbar max-h-[520px] space-y-2 overflow-y-auto pr-1">
-                {filteredProjects.map((project) => (
-                  <button
-                    type="button"
-                    key={project.id}
-                    onClick={() => selectProject(project)}
-                    className={`flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left transition-colors ${inconsistentProjectIds.has(project.id) ? "border-petrobras-yellow bg-petrobras-yellow/10 text-foreground hover:bg-petrobras-yellow/20 dark:border-petrobras-yellow/70 dark:bg-petrobras-yellow/10 dark:hover:bg-petrobras-yellow/15" : selectedProjectId === project.id ? "border-primary bg-primary/10" : "border-border/70 hover:bg-muted/50"}`}
-                  >
-                    <span className="min-w-0">
-                      <span className="flex items-center gap-2 truncate text-sm font-semibold">
-                        <span
-                          className={`size-2 shrink-0 rounded-full ${inconsistentProjectIds.has(project.id) ? "bg-amber-500" : "bg-primary"}`}
-                        />
-                        {project.nome}
+              <Popover open={areaPickerOpen} onOpenChange={setAreaPickerOpen}>
+                <PopoverTrigger
+                  render={<Button variant="outline" />}
+                  disabled={projectsLoading}
+                  aria-label={
+                    selectedProject
+                      ? `Área de rede selecionada: ${selectedProject.nome}, código ${selectedProject.codigo}. Clique para trocar.`
+                      : "Selecionar área de rede para consultar acessos"
+                  }
+                  aria-expanded={areaPickerOpen}
+                  className="h-auto min-h-12 w-full justify-start gap-3 px-3 py-2 text-left font-normal"
+                >
+                  <Search className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 flex-1">
+                    {selectedProject ? (
+                      <>
+                        <span className="block truncate text-sm font-semibold">
+                          {selectedProject.nome}
+                        </span>
+                        <span className="block truncate font-mono text-xs text-muted-foreground">
+                          {selectedProject.codigo}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">
+                        {projectsLoading
+                          ? "Carregando áreas de rede…"
+                          : "Selecione ou pesquise uma área de rede"}
                       </span>
-                      <span className="block truncate font-mono text-xs text-muted-foreground">
-                        {project.codigo}
-                      </span>
-                    </span>
-                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-                  </button>
-                ))}
-                {!filteredProjects.length ? (
-                  <p className="py-8 text-center text-sm text-muted-foreground">
-                    Nenhuma área de rede encontrada para os filtros informados.
-                  </p>
-                ) : null}
-              </div>
+                    )}
+                  </span>
+                  <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+                </PopoverTrigger>
+                <PopoverContent
+                  align="start"
+                  className="w-[min(44rem,calc(100vw-2rem))] gap-0 p-0"
+                >
+                  <Command shouldFilter={false}>
+                    <CommandInput
+                      autoFocus
+                      aria-label="Pesquisar área de rede ou responsável"
+                      placeholder="Digite nome, código, gerência ou responsável…"
+                      value={search}
+                      onValueChange={setSearch}
+                    />
+                    <CommandList className="max-h-80">
+                      <CommandEmpty>
+                        Nenhuma área de rede encontrada. Tente outro termo.
+                      </CommandEmpty>
+                      <CommandGroup heading={`${filteredProjects.length} resultados`}>
+                        {filteredProjects.map((project) => {
+                          const inconsistent = inconsistentProjectIds.has(project.id)
+                          return (
+                            <CommandItem
+                              key={project.id}
+                              value={project.id}
+                              onSelect={() => selectProject(project)}
+                              className="min-h-14 py-2"
+                            >
+                              <span
+                                className={`size-2 shrink-0 rounded-full ${inconsistent ? "bg-amber-500" : "bg-primary"}`}
+                              />
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate font-medium">
+                                  {project.nome}
+                                </span>
+                                <span className="block truncate text-xs text-muted-foreground">
+                                  {project.codigo} · {project.areaResponsavel || "Gerência não informada"}
+                                  {project.responsaveis?.length
+                                    ? ` · ${project.responsaveis.join(", ")}`
+                                    : ""}
+                                </span>
+                              </span>
+                              {inconsistent ? (
+                                <Badge className="shrink-0 border-amber-300 bg-amber-100 text-amber-800">
+                                  Inconsistente
+                                </Badge>
+                              ) : null}
+                            </CommandItem>
+                          )
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             )}
           </CardContent>
         </Card>
 
         {!selectedProject ? (
-          <Card className="sigac-surface flex min-h-[480px] items-center justify-center">
+          <Card className="sigac-surface flex min-h-[320px] items-center justify-center">
             <CardContent className="max-w-md space-y-3 text-center">
               <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <ShieldCheck className="size-7" />
@@ -390,8 +461,8 @@ export default function AccessMapPage() {
                 Selecione uma área de rede
               </h2>
               <p className="text-sm leading-6 text-muted-foreground">
-                Pesquise e selecione uma área de rede ao lado para visualizar as
-                pastas, os grupos de identidade e os membros com acesso.
+                Use o campo acima para localizar uma área. As pastas, grupos e
+                membros autorizados aparecerão aqui.
               </p>
             </CardContent>
           </Card>
