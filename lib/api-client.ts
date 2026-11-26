@@ -315,38 +315,6 @@ export function getProject(id: string) {
   return request<{ project: Project }>(`/api/projects/${id}`)
 }
 
-export type ProjectAccessGroupInput = {
-  groupName: string
-  identifier: string
-  principalType: "group" | "role"
-  accessLevel: string
-}
-export type ProjectAccessGroupRecord = ProjectAccessGroupInput & {
-  id: string
-  projectId: string
-  groupId: string
-  source: string
-  createdAt: string
-  updatedAt: string
-}
-
-export type ProjectGroupCatalogRecord = {
-  id: string
-  identifier: string
-  groupName: string
-  principalType: "group" | "role"
-}
-
-export function searchProjectGroupsCatalog(
-  search: string,
-  principalType: "group" | "role"
-) {
-  const params = new URLSearchParams({ search, principalType })
-  return request<ProjectGroupCatalogRecord[]>(
-    `/api/projects/groups/catalog?${params.toString()}`
-  )
-}
-
 export type ResponsibleCandidate = { userId: string }
 
 export function searchResponsibleCandidates(search: string) {
@@ -357,7 +325,6 @@ export function searchResponsibleCandidates(search: string) {
 }
 
 export function createProject(data: {
-  gruposAcesso: ProjectAccessGroupInput[]
   nome: string
   codigo?: string
   criadoEm: string
@@ -383,42 +350,6 @@ export function updateProject(id: string, data: Partial<Project>) {
 
 export function deleteProject(id: string) {
   return request<void>(`/api/projects/${id}`, { method: "DELETE" })
-}
-
-export function getProjectAccessGroups(projectId: string) {
-  return request<{
-    projectId: string
-    projectName: string
-    groups: ProjectAccessGroupRecord[]
-    total: number
-  }>(`/api/projects/${projectId}/access-groups`)
-}
-
-export function addProjectAccessGroup(
-  projectId: string,
-  data: ProjectAccessGroupInput
-) {
-  return request<ProjectAccessGroupRecord>(
-    `/api/projects/${projectId}/access-groups`,
-    { method: "POST", body: JSON.stringify(data) }
-  )
-}
-
-export function updateProjectAccessGroup(
-  projectId: string,
-  groupId: string,
-  data: Partial<ProjectAccessGroupInput>
-) {
-  return request<ProjectAccessGroupRecord>(
-    `/api/projects/${projectId}/access-groups/${groupId}`,
-    { method: "PATCH", body: JSON.stringify(data) }
-  )
-}
-
-export function deleteProjectAccessGroup(projectId: string, groupId: string) {
-  return request<void>(`/api/projects/${projectId}/access-groups/${groupId}`, {
-    method: "DELETE",
-  })
 }
 
 export type FolderAccessStatus =
@@ -549,34 +480,49 @@ export function getFolders(projectId: string) {
   }>(`/api/folders?projectId=${encodeURIComponent(projectId)}`)
 }
 
-export function syncFolders(projectId: string, folders: FileNode[]) {
-  return request<{
-    folders: FileNode[]
+export type FolderSyncScope = "all" | "folders" | "groups"
+
+export type FolderSyncResult = {
+  folders: FileNode[]
+  inserted: number
+  updated: number
+  source: "rede" | "tabela"
+  acl?: {
+    folder: string
+    groups: number
     inserted: number
-    updated: number
-    source: "rede" | "tabela"
-    acl?: {
-      folder: string
-      groups: number
-      inserted: number
-      skipped: number
-      errors: string[]
-      warnings?: string[]
+    skipped: number
+    errors: string[]
+    warnings?: string[]
+  } | null
+}
+
+export function syncFolders(
+  projectId: string,
+  folders: FileNode[],
+  scope: FolderSyncScope = "all"
+) {
+  return request<FolderSyncResult>(
+    `/api/folders/sync?projectId=${encodeURIComponent(projectId)}&scope=${scope}`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        folders: folders
+          .filter((folder) => folder.tipo !== "arquivo")
+          .map((folder) => ({
+            id: folder.id,
+            name: folderNameForSync(folder),
+            parent_id: folder.parentId,
+            kind: "pasta",
+            size_bytes: folder.tamanho ?? 0,
+          })),
+      }),
     }
-  }>(`/api/folders/sync?projectId=${encodeURIComponent(projectId)}`, {
-    method: "POST",
-    body: JSON.stringify({
-      folders: folders
-        .filter((folder) => folder.tipo !== "arquivo")
-        .map((folder) => ({
-          id: folder.id,
-          name: folderNameForSync(folder),
-          parent_id: folder.parentId,
-          kind: "pasta",
-          size_bytes: folder.tamanho ?? 0,
-        })),
-    }),
-  })
+  )
+}
+
+export function syncProjectGroups(projectId: string) {
+  return syncFolders(projectId, [], "groups")
 }
 
 function folderNameForSync(folder: FileNode) {
@@ -662,14 +608,18 @@ export type ReportGroupAssignment = {
   area: string
 }
 
-export function getReportGroups(params: {
-  q?: string
-  area?: string
-  principalType?: "group" | "role"
-  nivel?: "leitura" | "escrita" | "administrador"
-} = {}) {
+export function getReportGroups(
+  params: {
+    q?: string
+    area?: string
+    principalType?: "group" | "role"
+    nivel?: "leitura" | "escrita" | "administrador"
+  } = {}
+) {
   const query = new URLSearchParams()
-  Object.entries(params).forEach(([key, value]) => value && query.set(key, value))
+  Object.entries(params).forEach(
+    ([key, value]) => value && query.set(key, value)
+  )
   return request<{ total: number; grupos: ReportGroupAssignment[] }>(
     `/api/reports/groups${query.size ? `?${query.toString()}` : ""}`
   )

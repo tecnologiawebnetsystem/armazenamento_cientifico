@@ -3,6 +3,7 @@ import logging
 import os
 from datetime import UTC, datetime
 from pathlib import Path
+from time import perf_counter
 from uuid import NAMESPACE_URL, uuid5
 
 from app.core.config import get_settings
@@ -11,6 +12,10 @@ from app.modules.folders.models import Folder
 from app.modules.folders.repository import FolderRepository
 
 logger = logging.getLogger(__name__)
+
+
+class FolderSourceUnavailable(RuntimeError):
+    """A raiz de rede não pôde ser enumerada com segurança."""
 
 
 class FolderService:
@@ -31,14 +36,41 @@ class FolderService:
         project = await self.repository.find_project(project_id)
         parent_folder = (project.parent_folder if project else "").strip()
         if not parent_folder:
+            logger.warning("folders_network_root_missing project_id=%s", project_id)
             return None
+
+        started_at = perf_counter()
+        logger.info("folders_network_scan_started project_id=%s root=%r", project_id, parent_folder)
         try:
-            return await asyncio.wait_for(
+            folders = await asyncio.wait_for(
                 asyncio.to_thread(self._read_root_folders, project_id, parent_folder),
                 timeout=45,
             )
-        except Exception:  # noqa: BLE001 - compartilhamentos podem falhar sem tipo estável
-            return None
+        except TimeoutError as error:
+            logger.warning(
+                "folders_network_scan_timeout project_id=%s root=%r timeout_seconds=45 duration_ms=%.2f",
+                project_id,
+                parent_folder,
+                (perf_counter() - started_at) * 1000,
+            )
+            raise FolderSourceUnavailable("Tempo limite ao listar as pastas da área de rede.") from error
+        except Exception as error:
+            logger.exception(
+                "folders_network_scan_failed project_id=%s root=%r duration_ms=%.2f",
+                project_id,
+                parent_folder,
+                (perf_counter() - started_at) * 1000,
+            )
+            raise FolderSourceUnavailable("Não foi possível listar as pastas da área de rede.") from error
+
+        logger.info(
+            "folders_network_scan_completed project_id=%s root=%r folders=%d duration_ms=%.2f",
+            project_id,
+            parent_folder,
+            len(folders),
+            (perf_counter() - started_at) * 1000,
+        )
+        return folders
 
     async def list_project_folders_with_source(self, project_id: str) -> tuple[list[Folder], str]:
         """Exibe o cadastro local primeiro e consulta a rede apenas se estiver vazio."""
@@ -57,29 +89,43 @@ class FolderService:
     def _read_root_folders(project_id: str, parent_folder: str) -> list[Folder]:
         root = Path(parent_folder)
         if not root.is_dir():
-            return []
+            raise OSError(f"A raiz não existe ou não está acessível: {root}")
+
+        def raise_walk_error(error: OSError) -> None:
+            raise error
 
         now = datetime.now(UTC)
-        with os.scandir(root) as directory:
-            entries = sorted(
-                (entry for entry in directory if entry.is_dir(follow_symlinks=False)),
-                key=lambda entry: entry.name.casefold(),
-            )
+        folders: list[Folder] = []
+        parent_ids: dict[str, str | None] = {str(root): None}
 
-        return [
-            Folder(
-                id=str(uuid5(NAMESPACE_URL, f"{project_id}:{entry.path}")),
-                project_id=project_id,
-                parent_id=None,
-                kind="pasta",
-                name=entry.name,
-                created_by="filesystem",
-                created_at=now,
-                updated_at=now,
-                size=self._directory_size(entry.path),
-            )
-            for entry in entries
-        ]
+        for current_path, directory_names, _ in os.walk(root, onerror=raise_walk_error):
+            directory_names[:] = [
+                name
+                for name in sorted(directory_names, key=str.casefold)
+                if not (Path(current_path) / name).is_symlink()
+            ]
+            current_parent_id = parent_ids.get(current_path)
+
+            for directory_name in directory_names:
+                path = str(Path(current_path) / directory_name)
+                folder_id = str(uuid5(NAMESPACE_URL, f"{project_id}:{path}"))
+                parent_ids[path] = folder_id
+                folders.append(
+                    Folder(
+                        id=folder_id,
+                        project_id=project_id,
+                        parent_id=current_parent_id,
+                        kind="pasta",
+                        name=directory_name,
+                        created_by="filesystem",
+                        created_at=now,
+                        updated_at=now,
+                        size=FolderService._directory_size(path) if current_path == str(root) else 0,
+                    )
+                )
+
+        return folders
+
 
     @staticmethod
     def _directory_size(path: str) -> int:
@@ -98,8 +144,15 @@ class FolderService:
     async def sync_project_folders(self, project_id: str, user_id: str, folders: list[dict] | str) -> tuple[list[Folder], int, bool, dict, dict]:
         project = await self.repository.find_project(project_id)
         parent_folder = (project.parent_folder if project else "").strip()
-        if not parent_folder or not Path(parent_folder).is_dir():
-            raise ValueError(f"A pasta raiz '{parent_folder}' não existe")
+        if not parent_folder:
+            raise ValueError("O projeto não possui pasta raiz de rede cadastrada.")
+        if not Path(parent_folder).is_dir():
+            logger.error(
+                "folders_sync_root_unavailable project_id=%s root=%r",
+                project_id,
+                parent_folder,
+            )
+            raise FolderSourceUnavailable("A pasta raiz não existe ou não está acessível pelo servidor.")
 
         if not hasattr(self.repository, "reconcile"):
             return await self._sync_legacy(project_id, user_id, str(folders))
@@ -118,8 +171,7 @@ class FolderService:
                 for folder in live_folders
             ]
         else:
-            source = "tabela"
-            source_folders = folders
+            raise FolderSourceUnavailable("A consulta à pasta de rede não retornou uma lista atualizada.")
 
         existing = await self.repository.find_by_project(project_id)
         now = datetime.now(UTC)
