@@ -63,85 +63,37 @@ function levelLabel(level: string | null) {
 }
 
 function FolderAccessRow({ entry }: { entry: ProjectFolderAccessEntry }) {
-  const [open, setOpen] = useState(false)
   const status = STATUS[entry.situacao]
-  const hasMembers = entry.membros.length > 0
 
   return (
-    <>
-      <TableRow>
-        <TableCell className="max-w-72">
-          <p className="font-medium break-all">{entry.grupo}</p>
-          <div className="mt-1 flex flex-wrap gap-1">
-            {entry.acessoAmplo && (
-              <Badge variant="destructive">Acesso amplo</Badge>
-            )}
-            {entry.negado && <Badge variant="destructive">Negação</Badge>}
-            {entry.herdado && <Badge variant="outline">Herdado</Badge>}
-          </div>
-        </TableCell>
-        <TableCell className="max-w-64 text-sm break-all">
-          {entry.identificador || "—"}
-        </TableCell>
-        <TableCell className="max-w-72 font-mono text-xs break-all">
-          {entry.sid || "—"}
-        </TableCell>
-        <TableCell>{levelLabel(entry.nivelSigac)}</TableCell>
-        <TableCell>
-          {levelLabel(entry.nivelRede)}
-          {entry.direitosRede && (
-            <p className="text-xs text-muted-foreground">
-              {entry.direitosRede}
-            </p>
+    <TableRow>
+      <TableCell className="max-w-72">
+        <p className="font-medium break-all">{entry.grupo}</p>
+        <div className="mt-1 flex flex-wrap gap-1">
+          {entry.acessoAmplo && (
+            <Badge variant="destructive">Acesso amplo</Badge>
           )}
-        </TableCell>
-        <TableCell>
-          <Badge variant={status.variant}>{status.label}</Badge>
-        </TableCell>
-        <TableCell>
-          {hasMembers ? (
-            <Button
-              variant="link"
-              size="sm"
-              className="h-auto p-0"
-              aria-expanded={open}
-              onClick={() => setOpen((value) => !value)}
-            >
-              {entry.membros.length}
-              {entry.membrosTruncados ? "+" : ""} {open ? "ocultar" : "ver"}
-            </Button>
-          ) : (
-            <span className="text-sm text-muted-foreground">
-              {entry.tipo === "group" && entry.membrosFonte ? "0" : "—"}
-            </span>
-          )}
-        </TableCell>
-      </TableRow>
-      {open && (
-        <TableRow className="bg-muted/30 hover:bg-muted/30">
-          <TableCell colSpan={7}>
-            <ul className="grid gap-1 text-sm sm:grid-cols-2 lg:grid-cols-3">
-              {entry.membros.map((member) => (
-                <li key={member.login} className="truncate">
-                  <span className="font-medium">{member.login}</span>
-                  {member.nome && member.nome !== member.login && (
-                    <span className="text-muted-foreground">
-                      {" "}
-                      — {member.nome}
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-            {entry.membrosTruncados && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                Lista truncada pelo limite configurado.
-              </p>
-            )}
-          </TableCell>
-        </TableRow>
-      )}
-    </>
+          {entry.negado && <Badge variant="destructive">Negação</Badge>}
+          {entry.herdado && <Badge variant="outline">Herdado</Badge>}
+        </div>
+      </TableCell>
+      <TableCell className="max-w-64 text-sm break-all">
+        {entry.identificador || "—"}
+      </TableCell>
+      <TableCell className="max-w-72 font-mono text-xs break-all">
+        {entry.sid || "—"}
+      </TableCell>
+      <TableCell>{levelLabel(entry.nivelSigac)}</TableCell>
+      <TableCell>
+        {levelLabel(entry.nivelRede)}
+        {entry.direitosRede && (
+          <p className="text-xs text-muted-foreground">{entry.direitosRede}</p>
+        )}
+      </TableCell>
+      <TableCell>
+        <Badge variant={status.variant}>{status.label}</Badge>
+      </TableCell>
+    </TableRow>
   )
 }
 
@@ -154,6 +106,20 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
   )
 
   const [isSyncingGroups, setIsSyncingGroups] = useState(false)
+  const resolvedMembers = (data?.entries ?? []).flatMap((entry) =>
+    entry.membros.length > 0
+      ? entry.membros.map((member) => ({ ...member, entry }))
+      : entry.tipo !== "group"
+        ? [
+            {
+              login: entry.identificador || entry.grupo,
+              nome: "",
+              email: "",
+              entry,
+            },
+          ]
+        : []
+  )
   const [syncResult, setSyncResult] = useState<{
     groups: number
     inserted: number
@@ -266,35 +232,6 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
                 Compara os grupos do SIGAC com as permissões reais da pasta raiz
                 e lista os membros.
               </p>
-              <dl className="mt-3 grid gap-3 rounded-lg bg-muted/40 p-3 text-xs sm:grid-cols-3">
-                <div className="flex flex-col gap-1">
-                  <dt className="font-semibold text-foreground">
-                    Grupo / identidade
-                  </dt>
-                  <dd className="leading-relaxed text-muted-foreground">
-                    Grupo de segurança ou papel ao qual a permissão da pasta foi
-                    atribuída.
-                  </dd>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <dt className="font-semibold text-foreground">Membros</dt>
-                  <dd className="leading-relaxed text-muted-foreground">
-                    Contas de usuário encontradas dentro do grupo no diretório.
-                    A lista pode ser limitada ou indisponível para algumas
-                    identidades.
-                  </dd>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <dt className="font-semibold text-foreground">
-                    ObjectSid (SID)
-                  </dt>
-                  <dd className="leading-relaxed text-muted-foreground">
-                    Identificador de segurança do objeto no Active Directory,
-                    usado pelo Windows para reconhecer a identidade nas
-                    permissões. Não é o nome exibido.
-                  </dd>
-                </div>
-              </dl>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -381,33 +318,122 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
               </div>
             )}
 
-            {data.entries.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Nenhum acesso encontrado.
-              </p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Grupo / identidade</TableHead>
-                    <TableHead>Identificador SIGAC</TableHead>
-                    <TableHead>ObjectSid</TableHead>
-                    <TableHead>Nível SIGAC</TableHead>
-                    <TableHead>Permissão na rede</TableHead>
-                    <TableHead>Situação</TableHead>
-                    <TableHead>Membros</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.entries.map((entry) => (
-                    <FolderAccessRow
-                      key={`${entry.sid ?? ""}-${entry.identificador ?? ""}-${entry.grupo}`}
-                      entry={entry}
-                    />
-                  ))}
-                </TableBody>
-              </Table>
-            )}
+            <section
+              className="flex flex-col gap-3"
+              aria-labelledby="folder-groups-title"
+            >
+              <div>
+                <h4 id="folder-groups-title" className="text-sm font-semibold">
+                  Grupos e permissões
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  Identidades de grupo encontradas na pasta e o nível de acesso
+                  atribuído.
+                </p>
+              </div>
+              {data.entries.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhum grupo ou acesso encontrado.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Grupo / identidade</TableHead>
+                      <TableHead>Identificador SIGAC</TableHead>
+                      <TableHead>ObjectSid</TableHead>
+                      <TableHead>Nível SIGAC</TableHead>
+                      <TableHead>Permissão na rede</TableHead>
+                      <TableHead>Situação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {data.entries.map((entry) => (
+                      <FolderAccessRow
+                        key={`${entry.sid ?? ""}-${entry.identificador ?? ""}-${entry.grupo}`}
+                        entry={entry}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </section>
+
+            <section
+              className="flex flex-col gap-3"
+              aria-labelledby="folder-members-title"
+            >
+              <div>
+                <h4 id="folder-members-title" className="text-sm font-semibold">
+                  Membros e permissões
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  Pessoas identificadas nos grupos da pasta e os acessos
+                  herdados de cada grupo.
+                </p>
+              </div>
+              {resolvedMembers.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhum membro individual foi identificado nos grupos
+                  consultados.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Membro</TableHead>
+                      <TableHead>Grupo de origem</TableHead>
+                      <TableHead>Permissão</TableHead>
+                      <TableHead>Situação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {resolvedMembers.map(({ entry, ...member }, index) => (
+                      <TableRow
+                        key={`${entry.sid ?? entry.grupo}-${member.login}-${index}`}
+                      >
+                        <TableCell>
+                          <p className="font-medium">
+                            {member.nome || member.login}
+                          </p>
+                          {member.nome && member.nome !== member.login && (
+                            <p className="text-xs text-muted-foreground">
+                              {member.login}
+                            </p>
+                          )}
+                          {member.email && (
+                            <p className="text-xs text-muted-foreground">
+                              {member.email}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell className="break-all">
+                          {entry.grupo}
+                        </TableCell>
+                        <TableCell>
+                          {levelLabel(entry.nivelRede)}
+                          {entry.direitosRede && (
+                            <p className="text-xs text-muted-foreground">
+                              {entry.direitosRede}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={STATUS[entry.situacao].variant}>
+                            {STATUS[entry.situacao].label}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+              {data.entries.some((entry) => entry.membrosTruncados) && (
+                <p className="text-xs text-muted-foreground">
+                  A lista de membros está limitada pelo diretório.
+                </p>
+              )}
+            </section>
 
             {data.avisos.length > 0 && (
               <ul className="space-y-0.5 text-xs text-muted-foreground">
