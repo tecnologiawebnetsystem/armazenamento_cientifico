@@ -7,10 +7,7 @@ import {
   AlertTriangleIcon,
   CheckCircle2Icon,
   ClipboardListIcon,
-  FolderIcon,
   Loader2Icon,
-  ShieldCheckIcon,
-  UsersIcon,
 } from "lucide-react"
 import {
   Field,
@@ -48,11 +45,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useCatalogs } from "@/hooks/use-catalogs"
-import { cn } from "@/lib/utils"
 import {
   createProject,
   ApiError,
-  getFolders,
   getProjectFolderAccess,
   recordAuditEvent,
   syncFolders,
@@ -93,18 +88,9 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSyncingNetwork, setIsSyncingNetwork] = useState(false)
   const [syncingProjectName, setSyncingProjectName] = useState("")
-  const [syncStep, setSyncStep] = useState<"folders" | "groups" | "members">(
-    "folders"
-  )
-  const [syncStepErrors, setSyncStepErrors] = useState<string[]>([])
   const [syncSummary, setSyncSummary] = useState<{
     projectId: string
     projectName: string
-    folders: number | null
-    foldersInserted: number | null
-    groups: number | null
-    groupsInserted: number | null
-    members: number | null
     errors: Array<{ item: string; message: string }>
   } | null>(null)
 
@@ -122,6 +108,8 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
       return
     }
     setIsSubmitting(true)
+    setSyncingProjectName(nome.trim())
+    setIsSyncingNetwork(true)
     try {
       const { project } = (await createProject({
         nome: nome.trim(),
@@ -146,109 +134,43 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
       }).catch(() => undefined)
 
       setSyncingProjectName(project.nome)
-      setSyncStep("folders")
-      setSyncStepErrors([])
-      setIsSyncingNetwork(true)
-      let folderCount: number | null = null
-      let foldersInserted: number | null = null
-      let groupCount: number | null = null
-      let groupsInserted: number | null = null
-      let memberCount: number | null = null
       const errors: Array<{ item: string; message: string }> = []
 
       try {
-        const folderResult = await syncFolders(project.id, [], "folders")
-        folderCount = folderResult.folders.length
-        foldersInserted = folderResult.inserted
+        await syncFolders(project.id, [], "folders")
       } catch (error) {
         errors.push({ item: "Pastas", message: getSyncFailureMessage(error) })
-        setSyncStepErrors((current) => [...current, "folders"])
       }
 
-      setSyncStep("groups")
       try {
         const groupResult = await syncProjectGroups(project.id)
-        groupCount = groupResult.acl?.groups ?? null
-        groupsInserted = groupResult.acl?.inserted ?? null
         if (!groupResult.acl) {
           errors.push({
             item: "Groups / Roles",
             message: "A API não retornou o resultado da sincronização.",
           })
-          setSyncStepErrors((current) => [...current, "groups"])
         } else if (groupResult.acl.errors.length > 0) {
           errors.push({
             item: "Groups / Roles",
             message: `Sincronização parcial: ${groupResult.acl.errors.join("; ")}`,
           })
-          setSyncStepErrors((current) => [...current, "groups"])
         }
       } catch (error) {
         errors.push({
           item: "Groups / Roles",
           message: getSyncFailureMessage(error),
         })
-        setSyncStepErrors((current) => [...current, "groups"])
       }
 
-      setSyncStep("members")
       try {
-        const folderAccess = await getProjectFolderAccess(project.id)
-        groupCount = Math.max(
-          groupCount ?? 0,
-          folderAccess.entries.filter((entry) => entry.tipo === "group").length
-        )
-        memberCount = new Set(
-          folderAccess.entries
-            .flatMap((entry) => entry.membros)
-            .map((member) => member.login.trim().toLocaleLowerCase())
-            .filter(Boolean)
-        ).size
+        await getProjectFolderAccess(project.id)
       } catch (error) {
         errors.push({ item: "Membros", message: getSyncFailureMessage(error) })
-        setSyncStepErrors((current) => [...current, "members"])
-      }
-
-      const [savedFoldersResult, savedAccessResult] = await Promise.allSettled([
-        getFolders(project.id),
-        getProjectFolderAccess(project.id),
-      ])
-
-      if (savedFoldersResult.status === "fulfilled") {
-        folderCount = savedFoldersResult.value.folders.filter(
-          (folder) => folder.tipo !== "arquivo"
-        ).length
-      } else {
-        errors.push({
-          item: "Pastas no banco",
-          message: getSyncFailureMessage(savedFoldersResult.reason),
-        })
-      }
-
-      if (savedAccessResult.status === "fulfilled") {
-        const savedEntries = savedAccessResult.value.entries
-        groupCount = savedEntries.filter((entry) => entry.tipo === "group").length
-        memberCount = new Set(
-          savedEntries
-            .flatMap((entry) => entry.membros)
-            .map((member) => member.login.trim().toLocaleLowerCase())
-            .filter(Boolean)
-        ).size
-      } else {
-        errors.push({
-          item: "Grupos e membros no banco",
-          message: getSyncFailureMessage(savedAccessResult.reason),
-        })
       }
 
       setSyncSummary({
         projectId: project.id,
         projectName: project.nome,
-        folders: folderCount,
-        foldersInserted,
-        groups: groupCount,
-        groupsInserted,
-        members: memberCount,
         errors,
       })
       setIsSyncingNetwork(false)
@@ -271,161 +193,23 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
           className="overflow-hidden p-0 sm:max-w-xl"
           showCloseButton={false}
         >
-          <div className="bg-gradient-to-br from-petrobras-green/10 via-background to-petrobras-yellow/15 px-6 py-6 sm:px-8">
-            <div className="flex items-start gap-4">
-              <div className="relative flex size-12 shrink-0 items-center justify-center rounded-2xl bg-petrobras-green text-primary-foreground shadow-md shadow-petrobras-green/20">
-                <Loader2Icon
-                  className="size-6 animate-spin"
-                  aria-hidden="true"
-                />
-              </div>
-              <DialogHeader className="gap-2">
-                <DialogTitle className="text-xl tracking-tight">
-                  Preparando sua área de rede
-                </DialogTitle>
-                <DialogDescription className="leading-6">
-                  Estamos organizando os acessos de{" "}
-                  <strong>{syncingProjectName}</strong>. Isso pode levar alguns
-                  instantes.
-                </DialogDescription>
-              </DialogHeader>
-            </div>
-          </div>
-
-          <div className="px-6 pb-6 sm:px-8">
-            <div className="mb-5 flex items-center justify-between text-xs font-medium text-muted-foreground">
-              <span>Sincronização em andamento</span>
-              <span>
-                {syncStep === "folders"
-                  ? "1"
-                  : syncStep === "groups"
-                    ? "2"
-                    : "3"}{" "}
-                de 3
-              </span>
-            </div>
-            <div
-              className="mb-5 h-1.5 overflow-hidden rounded-full bg-muted"
-              aria-hidden="true"
-            >
-              <div
-                className={cn(
-                  "h-full rounded-full bg-petrobras-green transition-all duration-500",
-                  syncStep === "folders"
-                    ? "w-1/3"
-                    : syncStep === "groups"
-                      ? "w-2/3"
-                      : "w-full"
-                )}
+          <div className="flex items-start gap-4 px-6 py-8 sm:px-8">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-petrobras-green text-primary-foreground shadow-md shadow-petrobras-green/20">
+              <Loader2Icon
+                className="size-6 animate-spin"
+                aria-hidden="true"
               />
             </div>
-            <ol
-              className="flex flex-col gap-3"
-              aria-live="polite"
-              aria-label="Etapas da sincronização"
-            >
-              {[
-                {
-                  id: "folders",
-                  label: "Pastas",
-                  detail: "Lendo e registrando a estrutura de diretórios",
-                  Icon: FolderIcon,
-                },
-                {
-                  id: "groups",
-                  label: "Groups / Roles",
-                  detail: "Atualizando grupos e permissões da área",
-                  Icon: ShieldCheckIcon,
-                },
-                {
-                  id: "members",
-                  label: "Membros",
-                  detail: "Conferindo os membros vinculados à área",
-                  Icon: UsersIcon,
-                },
-              ].map(({ id, label, detail, Icon }, index) => {
-                const currentIndex =
-                  syncStep === "folders" ? 0 : syncStep === "groups" ? 1 : 2
-                const isDone = index < currentIndex
-                const isCurrent = index === currentIndex
-                const hasFailed = syncStepErrors.includes(id)
-                return (
-                  <li
-                    key={id}
-                    className={cn(
-                      "flex items-center gap-3 rounded-xl border p-3.5 transition-colors",
-                      hasFailed
-                        ? "border-destructive/40 bg-destructive/5"
-                        : isCurrent
-                          ? "border-petrobras-green/40 bg-petrobras-green/5"
-                          : "border-border/70 bg-background",
-                      !isCurrent && !isDone && "opacity-55"
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "flex size-10 shrink-0 items-center justify-center rounded-xl",
-                        hasFailed
-                          ? "bg-destructive/10 text-destructive"
-                          : isDone
-                            ? "bg-petrobras-green text-primary-foreground"
-                            : isCurrent
-                              ? "bg-petrobras-green/10 text-petrobras-green"
-                              : "bg-muted text-muted-foreground"
-                      )}
-                    >
-                      {hasFailed ? (
-                        <AlertTriangleIcon
-                          className="size-5"
-                          aria-hidden="true"
-                        />
-                      ) : isDone ? (
-                        <CheckCircle2Icon
-                          className="size-5"
-                          aria-hidden="true"
-                        />
-                      ) : isCurrent ? (
-                        <Icon className="size-5" aria-hidden="true" />
-                      ) : (
-                        <span className="text-sm font-semibold">
-                          {index + 1}
-                        </span>
-                      )}
-                    </span>
-                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="font-semibold">{label}</span>
-                      <span className="text-xs leading-5 text-muted-foreground">
-                        {hasFailed
-                          ? "Não sincronizado; as outras etapas continuam."
-                          : detail}
-                      </span>
-                    </span>
-                    <span
-                      className={cn(
-                        "shrink-0 text-xs font-medium",
-                        hasFailed ? "text-destructive" : "text-muted-foreground"
-                      )}
-                    >
-                      {hasFailed ? (
-                        "Não sincronizado"
-                      ) : isDone ? (
-                        "Concluído"
-                      ) : isCurrent ? (
-                        <Loader2Icon
-                          className="size-4 animate-spin text-petrobras-green"
-                          aria-label="Em andamento"
-                        />
-                      ) : (
-                        "Aguardando"
-                      )}
-                    </span>
-                  </li>
-                )
-              })}
-            </ol>
-            <p className="mt-4 text-center text-xs leading-5 text-muted-foreground">
-              Mantenha esta janela aberta até a conclusão.
-            </p>
+            <DialogHeader className="gap-2">
+              <DialogTitle className="text-xl tracking-tight">
+                Sincronizando área de rede
+              </DialogTitle>
+              <DialogDescription className="leading-6" aria-live="polite">
+                Estamos sincronizando a área de rede{" "}
+                <strong>{syncingProjectName || nome.trim()}</strong>. Assim que
+                terminar, você poderá abrir a área.
+              </DialogDescription>
+            </DialogHeader>
           </div>
         </DialogContent>
       </Dialog>
@@ -437,31 +221,15 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
             router.push(`/projetos/${syncSummary.projectId}`)
         }}
       >
-        <DialogContent className="sm:max-w-2xl" showCloseButton={false}>
+        <DialogContent className="sm:max-w-lg" showCloseButton={false}>
           <DialogHeader>
-            <div
-              className={cn(
-                "flex size-12 items-center justify-center rounded-full",
-                syncSummary?.errors.length
-                  ? "bg-destructive/10 text-destructive"
-                  : "bg-petrobras-green/10 text-petrobras-green"
-              )}
-            >
-              {syncSummary?.errors.length ? (
-                <AlertTriangleIcon className="size-6" aria-hidden="true" />
-              ) : (
-                <CheckCircle2Icon className="size-6" aria-hidden="true" />
-              )}
+            <div className="flex size-12 items-center justify-center rounded-full bg-petrobras-green/10 text-petrobras-green">
+              <CheckCircle2Icon className="size-6" aria-hidden="true" />
             </div>
-            <DialogTitle>
-              {syncSummary?.errors.length
-                ? "Área criada com itens não sincronizados"
-                : "Área de rede sincronizada"}
-            </DialogTitle>
+            <DialogTitle>Área de rede criada com sucesso</DialogTitle>
             <DialogDescription>
-              {syncSummary?.errors.length
-                ? `A área ${syncSummary.projectName} foi criada. As etapas seguintes continuaram, mas alguns itens não foram sincronizados.`
-                : `A primeira leitura de ${syncSummary?.projectName} foi concluída.`}
+              A área <strong>{syncSummary?.projectName}</strong> foi criada e
+              está disponível.
             </DialogDescription>
           </DialogHeader>
 
@@ -469,70 +237,11 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
             <Alert variant="destructive">
               <AlertTriangleIcon aria-hidden="true" />
               <AlertDescription>
-                <ul className="flex flex-col gap-1">
-                  {syncSummary?.errors.map(({ item, message }) => (
-                    <li key={item}>
-                      <strong>{item}:</strong> {message}
-                    </li>
-                  ))}
-                </ul>
+                Alguns dados da rede não foram sincronizados. A área foi criada;
+                abra-a para consultar os dados disponíveis.
               </AlertDescription>
             </Alert>
           )}
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="flex flex-col gap-2 rounded-xl border border-petrobras-green/20 bg-petrobras-green/5 p-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <FolderIcon
-                  className="size-4 text-petrobras-green"
-                  aria-hidden="true"
-                />
-                Pastas
-              </div>
-              <span className="text-3xl font-semibold tracking-tight tabular-nums">
-                {syncSummary?.folders ?? "—"}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {syncSummary?.foldersInserted === null ||
-                syncSummary?.foldersInserted === undefined
-                  ? "— novas"
-                  : `${syncSummary.foldersInserted} novas`}
-              </span>
-            </div>
-            <div className="flex flex-col gap-2 rounded-xl border border-petrobras-green/20 bg-petrobras-green/5 p-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <ShieldCheckIcon
-                  className="size-4 text-petrobras-green"
-                  aria-hidden="true"
-                />
-                Groups / Roles
-              </div>
-              <span className="text-3xl font-semibold tracking-tight tabular-nums">
-                {syncSummary?.groups ?? "—"}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {syncSummary?.groupsInserted === null ||
-                syncSummary?.groupsInserted === undefined
-                  ? "— novos"
-                  : `${syncSummary.groupsInserted} novos`}
-              </span>
-            </div>
-            <div className="flex flex-col gap-2 rounded-xl border border-petrobras-green/20 bg-petrobras-green/5 p-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <UsersIcon
-                  className="size-4 text-petrobras-green"
-                  aria-hidden="true"
-                />
-                Membros
-              </div>
-              <span className="text-3xl font-semibold tracking-tight tabular-nums">
-                {syncSummary?.members ?? "—"}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                pessoas encontradas nos grupos da rede
-              </span>
-            </div>
-          </div>
 
           <DialogFooter>
             <Button
