@@ -9,7 +9,7 @@ import httpx
 import pytest
 import pytest_asyncio
 from dotenv import dotenv_values
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -19,7 +19,12 @@ from app.core.config import PROJECT_ROOT
 from app.db.base import Base
 from app.main import app
 from app.modules.projects.controller import get_service
-from app.modules.projects.models import Project, ProjectAccessGroup, ProjectMember
+from app.modules.projects.models import (
+    Project,
+    ProjectAccessGroup,
+    ProjectFolderAccessMember,
+    ProjectMember,
+)
 from app.modules.projects.repository import ProjectRepository
 from app.modules.projects.service import ProjectService
 from app.modules.users.models import Profile, User
@@ -405,14 +410,13 @@ async def test_project_access_group_creation_requires_project_scope(client):
 
 async def test_project_folder_access_lists_sigac_groups_for_allowed_profiles(client, monkeypatch):
     from app.infrastructure.directory import DirectoryResolver
-    from app.modules.projects import controller
 
-    http, user, project_ids = client
     monkeypatch.setattr(
-        controller.DirectoryResolver,
+        DirectoryResolver,
         "from_settings",
-        classmethod(lambda cls, _settings: (DirectoryResolver([], member_limit=10), [])),
+        classmethod(lambda cls, _settings: pytest.fail("A leitura não deve consultar o LDAP")),
     )
+    http, user, project_ids = client
     await http.post(
         f"/api/projects/{project_ids['a']}/access-groups",
         json={"groupName": "Grupo da pasta", "groupId": "entra-pasta", "accessLevel": "escrita"},
@@ -430,3 +434,79 @@ async def test_project_folder_access_lists_sigac_groups_for_allowed_profiles(cli
     user.update({"role": "solicitante", "permissions": []})
     denied = await http.get(f"/api/projects/{project_ids['a']}/folder-access")
     assert denied.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_folder_access_snapshot_persists_members_in_database():
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+
+    now = datetime.now(UTC)
+    payload = {
+        "projectId": "project-snapshot",
+        "projectName": "Projeto snapshot",
+        "pasta": "/rede/projeto",
+        "aclStatus": "ok",
+        "aclMensagem": None,
+        "herancaBloqueada": False,
+        "proprietario": "owner",
+        "entries": [
+            {
+                "grupo": "Grupo científico",
+                "identificador": "S-1-5-21-200",
+                "sid": "S-1-5-21-200",
+                "tipo": "group",
+                "nivelSigac": "escrita",
+                "nivelRede": "escrita",
+                "direitosRede": "Modificar",
+                "negado": False,
+                "herdado": True,
+                "situacao": "conforme",
+                "acessoAmplo": False,
+                "fonteDiretorio": "ldap",
+                "membros": [
+                    {"login": "ana.silva", "nome": "Ana Silva", "email": "ana@example.com"}
+                ],
+                "membrosFonte": "ldap",
+                "membrosTruncados": False,
+            }
+        ],
+        "alertas": [],
+        "avisos": [],
+        "consultadoEm": now.isoformat(),
+    }
+
+    try:
+        async with factory() as session:
+            session.add(
+                Project(
+                    id="project-snapshot",
+                    name="Projeto snapshot",
+                    code="SNAPSHOT-1",
+                    responsible_area="TI",
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
+            await session.commit()
+            repository = ProjectRepository(session)
+            assert await repository.replace_folder_access_snapshot(
+                "project-snapshot", payload
+            ) == 1
+
+            stored = await repository.get_folder_access_snapshot("project-snapshot")
+            persisted_members = list(
+                await session.scalars(
+                    select(ProjectFolderAccessMember).where(
+                        ProjectFolderAccessMember.project_id == "project-snapshot"
+                    )
+                )
+            )
+
+            assert stored["entries"][0]["membros"] == payload["entries"][0]["membros"]
+            assert len(persisted_members) == 1
+            assert persisted_members[0].login == "ana.silva"
+    finally:
+        await engine.dispose()

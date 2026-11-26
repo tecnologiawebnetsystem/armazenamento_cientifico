@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from sqlalchemy import String, delete, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,6 +9,8 @@ from app.modules.folders.models import Folder
 from app.modules.projects.models import (
     Project,
     ProjectAccessGroup,
+    ProjectFolderAccessMember,
+    ProjectFolderAccessSnapshot,
     ProjectGroup,
     ProjectMember,
 )
@@ -196,6 +200,79 @@ class ProjectRepository:
     async def delete_member(self, member: ProjectMember) -> None:
         await self.session.delete(member)
         await self.session.flush()
+
+    async def get_folder_access_snapshot(self, project_id: str) -> dict | None:
+        snapshot = await self.session.get(ProjectFolderAccessSnapshot, project_id)
+        if snapshot is None:
+            return None
+
+        from app.modules.projects.folder_access import folder_access_entry_key
+
+        member_rows = await self.session.scalars(
+            select(ProjectFolderAccessMember).where(
+                ProjectFolderAccessMember.project_id == project_id
+            )
+        )
+        members_by_entry: dict[str, list[dict[str, str]]] = {}
+        for member in member_rows:
+            members_by_entry.setdefault(member.entry_key, []).append(
+                {"login": member.login, "nome": member.name, "email": member.email}
+            )
+
+        payload = dict(snapshot.payload)
+        payload["entries"] = [
+            {
+                **entry,
+                "membros": members_by_entry.get(folder_access_entry_key(entry), []),
+            }
+            for entry in payload.get("entries", [])
+        ]
+        return payload
+
+    async def replace_folder_access_snapshot(self, project_id: str, payload: dict) -> int:
+        from app.modules.projects.folder_access import folder_access_entry_key
+
+        stored_payload = dict(payload)
+        stored_entries = []
+        members: list[ProjectFolderAccessMember] = []
+        for entry in payload.get("entries", []):
+            stored_entry = dict(entry)
+            entry_members = stored_entry.pop("membros", [])
+            entry_key = folder_access_entry_key(stored_entry)
+            stored_entries.append(stored_entry)
+            members.extend(
+                ProjectFolderAccessMember(
+                    project_id=project_id,
+                    entry_key=entry_key,
+                    login=member["login"],
+                    name=member.get("nome", ""),
+                    email=member.get("email", ""),
+                )
+                for member in entry_members
+            )
+        stored_payload["entries"] = stored_entries
+
+        snapshot = await self.session.get(ProjectFolderAccessSnapshot, project_id)
+        if snapshot is None:
+            snapshot = ProjectFolderAccessSnapshot(
+                project_id=project_id,
+                payload=stored_payload,
+                synced_at=datetime.now(UTC),
+            )
+            self.session.add(snapshot)
+        else:
+            snapshot.payload = stored_payload
+            snapshot.synced_at = datetime.now(UTC)
+
+        await self.session.flush()
+        await self.session.execute(
+            delete(ProjectFolderAccessMember).where(
+                ProjectFolderAccessMember.project_id == project_id
+            )
+        )
+        self.session.add_all(members)
+        await self.commit()
+        return len(members)
 
     async def list_access_groups(
         self, project_id: str, access_level: str | None = None

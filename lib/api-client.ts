@@ -512,6 +512,7 @@ export type FolderSyncResult = {
     groups: number
     inserted: number
     skipped: number
+    members: number
     errors: string[]
     warnings?: string[]
   } | null

@@ -8,8 +8,12 @@ from uuid import NAMESPACE_URL, uuid5
 
 from app.core.config import get_settings
 from app.infrastructure.directory import DirectoryResolver
+from app.infrastructure.folder_acl import read_folder_acl
 from app.modules.folders.models import Folder
 from app.modules.folders.repository import FolderRepository
+from app.modules.projects.folder_access import StoredGroup, build_folder_access
+from app.modules.projects.folder_access import sync_folder_acl as discover_acl_groups
+from app.modules.projects.repository import ProjectRepository
 
 logger = logging.getLogger(__name__)
 
@@ -372,7 +376,7 @@ class FolderService:
         return await self.repository.find_user_database_id(identifiers)
 
     async def sync_folder_acl(self, project_id: str) -> dict:
-        """Lê a ACL real da pasta raiz e popula project_access_groups."""
+        """Sincroniza a ACL e os membros do diretório para o banco."""
         project = await self.repository.find_project(project_id)
         folder = (project.parent_folder if project else "").strip()
         if not folder:
@@ -381,35 +385,71 @@ class FolderService:
                 "groups": 0,
                 "inserted": 0,
                 "skipped": 0,
+                "members": 0,
                 "errors": ["Projeto sem pasta raiz cadastrada."],
             }
-
-        from app.modules.projects.folder_access import sync_folder_acl
 
         settings = get_settings()
         resolver, warnings = DirectoryResolver.from_settings(settings)
         try:
-            sync_result = sync_folder_acl(folder, project_id, resolver)
+            sync_result = await asyncio.to_thread(
+                discover_acl_groups, folder, project_id, resolver
+            )
+            if sync_result.errors and not sync_result.inserted:
+                return {
+                    "folder": folder,
+                    "groups": 0,
+                    "inserted": 0,
+                    "skipped": 0,
+                    "members": 0,
+                    "errors": sync_result.errors,
+                }
+
+            counters = await self.repository.upsert_access_groups(
+                project_id,
+                sync_result.inserted,
+                replace_network=not sync_result.errors,
+                commit_changes=False,
+            )
+            project_repository = ProjectRepository(self.repository.session)
+            stored_groups = [
+                StoredGroup(
+                    name=principal.group_name,
+                    identifier=principal.identifier,
+                    principal_type=principal.principal_type,
+                    access_level=principal.access_level,
+                )
+                for principal, _association in await project_repository.list_access_groups(
+                    project_id
+                )
+            ]
+            access_snapshot = await asyncio.wait_for(
+                asyncio.to_thread(
+                    build_folder_access,
+                    project_id=project_id,
+                    project_name=project.name or "",
+                    folder=folder,
+                    stored_groups=stored_groups,
+                    resolver=resolver,
+                    read_acl=read_folder_acl,
+                    warnings=warnings,
+                ),
+                timeout=settings.folder_access_timeout_seconds,
+            )
+            members_count = await project_repository.replace_folder_access_snapshot(
+                project_id, access_snapshot.model_dump(mode="json")
+            )
         finally:
             resolver.close()
 
-        if sync_result.errors and not sync_result.inserted:
-            return {
-                "folder": folder,
-                "groups": 0,
-                "inserted": 0,
-                "skipped": 0,
-                "errors": sync_result.errors,
-            }
-
-        counters = await self.repository.upsert_access_groups(project_id, sync_result.inserted)
         logger.info(
-            "folder_acl_sync project_id=%s folder=%s groups=%d inserted=%d skipped=%d errors=%d",
+            "folder_acl_sync project_id=%s folder=%s groups=%d inserted=%d skipped=%d members=%d errors=%d",
             project_id,
             folder,
             len(sync_result.inserted),
             counters["inserted"],
             counters.get("skipped", 0),
+            members_count,
             len(sync_result.errors),
         )
         return {
@@ -417,6 +457,7 @@ class FolderService:
             "groups": len(sync_result.inserted),
             "inserted": counters["inserted"],
             "skipped": counters.get("skipped", 0),
+            "members": members_count,
             "errors": sync_result.errors,
             "warnings": warnings,
         }

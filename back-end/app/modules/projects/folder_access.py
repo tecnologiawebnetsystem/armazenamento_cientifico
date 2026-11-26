@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -32,6 +34,17 @@ STATUS_ORDER = {
     "conforme": 4,
     "papel_aplicacao": 5,
 }
+
+
+def folder_access_entry_key(entry: dict) -> str:
+    identity = {
+        "tipo": entry.get("tipo"),
+        "identificador": (entry.get("identificador") or "").casefold(),
+        "sid": (entry.get("sid") or "").casefold(),
+        "grupo": (entry.get("grupo") or "").casefold(),
+    }
+    canonical = json.dumps(identity, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 @dataclass(frozen=True)
