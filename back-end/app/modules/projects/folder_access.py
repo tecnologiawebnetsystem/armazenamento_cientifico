@@ -157,6 +157,19 @@ def build_folder_access(
             acl = read_acl(folder)
         except FolderAclUnavailable as error:
             acl_status, acl_message = "indisponivel", str(error)
+            logger.warning(
+                "folder_access_acl_unavailable project_id=%s folder=%s reason=%s",
+                project_id,
+                folder,
+                acl_message,
+            )
+        except OSError:
+            logger.exception(
+                "folder_access_acl_read_failed project_id=%s folder=%s",
+                project_id,
+                folder,
+            )
+            acl_status, acl_message = "indisponivel", "Não foi possível ler a ACL da pasta."
 
     grants = _grants(acl, resolver) if acl else {}
     entries: list[FolderAccessEntryOut] = []
