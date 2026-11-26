@@ -58,11 +58,6 @@ function FolderAccessRow({ entry }: { entry: ProjectFolderAccessEntry }) {
       <TableRow>
         <TableCell className="max-w-72">
           <p className="font-medium break-all">{entry.grupo}</p>
-          {entry.identificador && entry.identificador !== entry.grupo && (
-            <p className="text-xs break-all text-muted-foreground">
-              {entry.identificador}
-            </p>
-          )}
           <div className="mt-1 flex flex-wrap gap-1">
             {entry.acessoAmplo && (
               <Badge variant="destructive">Acesso amplo</Badge>
@@ -70,6 +65,12 @@ function FolderAccessRow({ entry }: { entry: ProjectFolderAccessEntry }) {
             {entry.negado && <Badge variant="destructive">Negação</Badge>}
             {entry.herdado && <Badge variant="outline">Herdado</Badge>}
           </div>
+        </TableCell>
+        <TableCell className="max-w-64 break-all text-sm">
+          {entry.identificador || "—"}
+        </TableCell>
+        <TableCell className="max-w-72 break-all font-mono text-xs">
+          {entry.sid || "—"}
         </TableCell>
         <TableCell>{levelLabel(entry.nivelSigac)}</TableCell>
         <TableCell>
@@ -104,7 +105,7 @@ function FolderAccessRow({ entry }: { entry: ProjectFolderAccessEntry }) {
       </TableRow>
       {open && (
         <TableRow className="bg-muted/30 hover:bg-muted/30">
-          <TableCell colSpan={5}>
+          <TableCell colSpan={7}>
             <ul className="grid gap-1 text-sm sm:grid-cols-2 lg:grid-cols-3">
               {entry.membros.map((member) => (
                 <li key={member.login} className="truncate">
@@ -176,10 +177,31 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
             <h3 className="text-base font-semibold">
               Acessos da pasta na rede
             </h3>
-            <p className="text-sm text-muted-foreground">
-              Compara os grupos do SIGAC com as permissões reais da pasta raiz e
-              lista os membros.
-            </p>
+          <p className="text-sm text-muted-foreground">
+            Compara os grupos do SIGAC com as permissões reais da pasta raiz e
+            lista os membros.
+          </p>
+          <dl className="mt-3 grid gap-3 rounded-lg bg-muted/40 p-3 text-xs sm:grid-cols-3">
+            <div className="flex flex-col gap-1">
+              <dt className="font-semibold text-foreground">Grupo / identidade</dt>
+              <dd className="leading-relaxed text-muted-foreground">
+                Grupo de segurança ou papel ao qual a permissão da pasta foi atribuída.
+              </dd>
+            </div>
+            <div className="flex flex-col gap-1">
+              <dt className="font-semibold text-foreground">Membros</dt>
+              <dd className="leading-relaxed text-muted-foreground">
+                Contas de usuário encontradas dentro do grupo no diretório. A lista pode ser limitada ou indisponível para algumas identidades.
+              </dd>
+            </div>
+            <div className="flex flex-col gap-1">
+              <dt className="font-semibold text-foreground">ObjectSid (SID)</dt>
+              <dd className="leading-relaxed text-muted-foreground">
+                Identificador de segurança do objeto no Active Directory, usado pelo Windows para reconhecer a identidade nas permissões. Não é o nome exibido.
+              </dd>
+            </div>
+          </dl>
+
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -275,6 +297,8 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Grupo / identidade</TableHead>
+                  <TableHead>Identificador SIGAC</TableHead>
+                  <TableHead>ObjectSid</TableHead>
                   <TableHead>Nível SIGAC</TableHead>
                   <TableHead>Permissão na rede</TableHead>
                   <TableHead>Situação</TableHead>

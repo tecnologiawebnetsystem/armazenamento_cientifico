@@ -13,7 +13,12 @@ import {
 } from "lucide-react"
 import useSWR from "swr"
 import { AUDIT_ACTIONS } from "@/lib/audit"
-import { getFolders, recordAuditEvent, syncFolders } from "@/lib/api-client"
+import {
+  ApiError,
+  getFolders,
+  recordAuditEvent,
+  syncFolders,
+} from "@/lib/api-client"
 import { toast } from "sonner"
 import type { FileNode } from "@/lib/types"
 import { Badge } from "@/components/ui/badge"
@@ -98,6 +103,8 @@ export function ProjectFileExplorer({
   } | null>(null)
 
   async function handleSync() {
+    const startedAt = performance.now()
+    const syncAttemptId = crypto.randomUUID()
     setIsSyncing(true)
     await recordAuditEvent({
       action: AUDIT_ACTIONS.SYNC_STARTED,
@@ -149,6 +156,20 @@ export function ProjectFileExplorer({
             syncError instanceof Error
               ? syncError.message
               : "Falha desconhecida",
+          tipo_erro:
+            syncError instanceof Error ? syncError.name : typeof syncError,
+          status_http: syncError instanceof ApiError ? syncError.status : null,
+          api_request_id:
+            syncError instanceof ApiError ? syncError.requestId : null,
+          metodo_http:
+            syncError instanceof ApiError ? syncError.method : "POST",
+          endpoint:
+            syncError instanceof ApiError
+              ? syncError.path
+              : "/api/folders/sync",
+          escopo: "folders",
+          duracao_ms: Math.round(performance.now() - startedAt),
+          tentativa_id: syncAttemptId,
         },
       }).catch(() => undefined)
       toast.error(
