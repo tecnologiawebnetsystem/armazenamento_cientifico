@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ActivityIcon, ArrowRightIcon, DatabaseIcon, FolderKanbanIcon, MapIcon, PlusIcon, ShieldAlertIcon, UsersIcon } from "lucide-react"
+import { ActivityIcon, ArrowRightIcon, FolderKanbanIcon, MapIcon, PlusIcon, ShieldAlertIcon, UsersIcon } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { ActivityLog, Project, Role } from "@/lib/types"
@@ -9,14 +9,9 @@ interface Props {
   projects: Project[]
   totalMembros: number
   totalMapas: number
-  armazenamentoMb: number
   inconsistencias: number
   activity: ActivityLog[]
   consultedAt: string
-}
-
-function formatStorage(mb: number) {
-  return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${Math.round(mb)} MB`
 }
 
 const profileView: Record<Role, { label: string; description: string; focus: string }> = {
@@ -51,7 +46,7 @@ function activityContext(item: ActivityLog) {
   return `${item.entidade} · ${formatActivityDate(item.criadoEm)}`
 }
 
-export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, armazenamentoMb, inconsistencias, activity, consultedAt }: Props) {
+export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, inconsistencias, activity, consultedAt }: Props) {
   const view = profileView[role] ?? profileView.solicitante
   const activeProjects = projects.filter((project) => project.status === "ativo").length
   const attention = projects.filter((project) => project.status === "pausado").length
@@ -59,8 +54,7 @@ export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, a
 
   const indicators = [
     { label: "Área de rede ativos", value: activeProjects, icon: FolderKanbanIcon, href: "/projetos" },
-    { label: role === "auditor" ? "Mapas de acesso" : "Pessoas no escopo", value: role === "auditor" ? totalMapas : totalMembros, icon: role === "auditor" ? MapIcon : UsersIcon, href: role === "auditor" ? "/pesquisas" : "/projetos" },
-    { label: "Armazenamento", value: formatStorage(armazenamentoMb), icon: DatabaseIcon, href: "/projetos" },
+    { label: role === "auditor" ? "Mapas de acesso" : "Membros nas áreas", value: role === "auditor" ? totalMapas : totalMembros, icon: role === "auditor" ? MapIcon : UsersIcon, href: role === "auditor" ? "/pesquisas" : "/projetos" },
     { label: "Inconsistências", value: inconsistencias, icon: ShieldAlertIcon, href: "/relatorios" },
   ]
 
@@ -84,10 +78,9 @@ export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, a
         <span className="mr-1 text-xs font-semibold text-muted-foreground">Comece por aqui</span>
         <Link href="/projetos" className="sigac-focus-ring inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-primary/5"><FolderKanbanIcon className="size-4 text-primary" />Consultar área de rede</Link>
         {role === "admin" ? <Link href="/projetos/novo" className="sigac-focus-ring inline-flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/8 px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/15"><PlusIcon className="size-4" />Criar área de rede</Link> : null}
-        <Link href={role === "auditor" ? "/logs" : "/pesquisas"} className="sigac-focus-ring inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-primary/5"><ActivityIcon className="size-4 text-primary" />{role === "auditor" ? "Consultar auditoria" : "Consultar acessos"}</Link>
       </section>
 
-      <section aria-label="Indicadores essenciais" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section aria-label="Indicadores essenciais" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {indicators.map((item) => (
           <Link key={item.label} href={item.href} className="group">
             <Card className="sigac-surface h-full border-0 ring-1 ring-border/70 transition-all duration-300 hover:-translate-y-0.5 hover:ring-petrobras-green/50 hover:shadow-md">
