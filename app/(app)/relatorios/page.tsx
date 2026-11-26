@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import useSWR from "swr"
-import { AlertTriangle, Filter, RefreshCw, Search, SlidersHorizontal } from "lucide-react"
+import { AlertTriangle, Filter, Search, SlidersHorizontal } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -34,11 +34,11 @@ export default function ReportsPage() {
   const [groupType, setGroupType] = useState("todos")
   const [groupLevel, setGroupLevel] = useState("todos")
   const [groupPage, setGroupPage] = useState(1)
-  const { data, error, isLoading, mutate } = useSWR<ProjectReport>(["/api/reports", status, area, gestor], () => getProjectReport({ status: status === "todos" ? undefined : status, area: area === "todas" ? undefined : area, gestorId: gestor || undefined }))
+  const { data, error, isLoading } = useSWR<ProjectReport>(["/api/reports", status, area, gestor], () => getProjectReport({ status: status === "todos" ? undefined : status, area: area === "todas" ? undefined : area, gestorId: gestor || undefined }))
   const { data: catalogs } = useSWR("/api/catalogos", getCatalogs)
   const { data: responsibleAreas } = useSWR("/api/projects/areas", getResponsibleAreas)
   const { data: inconsistencies } = useSWR(["/api/reports/inconsistencies", area, gestor], () => getInconsistencyReport({ area: area === "todas" ? undefined : area, gestorId: gestor || undefined }))
-  const { data: groupReport, isLoading: groupsLoading, mutate: mutateGroups } = useSWR(
+  const { data: groupReport, isLoading: groupsLoading } = useSWR(
     ["/api/reports/groups", groupSearch, groupArea, groupType, groupLevel],
     () => getReportGroups({
       q: groupSearch || undefined,
@@ -47,7 +47,7 @@ export default function ReportsPage() {
       nivel: groupLevel === "todos" ? undefined : groupLevel as "leitura" | "escrita" | "administrador",
     }),
   )
-  const { data: memberReport, isLoading: membersLoading, mutate: mutateMembers } = useSWR(
+  const { data: memberReport, isLoading: membersLoading } = useSWR(
     ["/api/reports/members", memberSearch],
     () => getReportMembers({ q: memberSearch || undefined }),
   )
@@ -162,7 +162,7 @@ export default function ReportsPage() {
   if (isLoading) return <PageLayout><PageHeader eyebrow="Gestão e análise" title="Relatórios" description="Leitura executiva do universo autorizado." /><PetrobrasLoading label="Consolidando o portfólio autorizado..." /></PageLayout>
   if (error || !data) return <PageLayout><PageHeader title="Consultas e relatórios" /><p className="text-destructive">Não foi possível carregar o relatório.</p></PageLayout>
   return <PageLayout>
-    <PageHeader eyebrow="Inteligência do portfólio" title="Consultas e relatórios" description="Consulte áreas de rede, membros autorizados e vínculos de grupos e papéis, em relatórios separados." actions={<div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => { void mutate(); if (activeTab === "grupos") void mutateGroups(); if (activeTab === "membros") void mutateMembers() }}><RefreshCw data-icon="inline-start" />Atualizar</Button>{activeTab === "grupos" ? <ExportButton onClick={exportGroupsCsv} disabled={!groupRows.length} /> : activeTab === "membros" ? <ExportButton onClick={exportMembersCsv} disabled={!memberRows.length} /> : <ExportButton onClick={() => setExportOpen(true)} disabled={!exportFields.length} />}</div>} />
+    <PageHeader eyebrow="Inteligência do portfólio" title="Consultas e relatórios" description="Consulte áreas de rede, membros autorizados e vínculos de grupos e papéis, em relatórios separados." actions={<div className="flex flex-wrap gap-2">{activeTab === "grupos" ? <ExportButton onClick={exportGroupsCsv} disabled={!groupRows.length} /> : activeTab === "membros" ? <ExportButton onClick={exportMembersCsv} disabled={!memberRows.length} /> : <ExportButton onClick={() => setExportOpen(true)} disabled={!exportFields.length} />}</div>} />
     <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-muted/35 p-1" role="tablist" aria-label="Seções do relatório">
       <button type="button" role="tab" aria-selected={activeTab === "areas"} onClick={() => setActiveTab("areas")} className={`flex-1 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${activeTab === "areas" ? "bg-background text-petrobras-green shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Áreas de rede</button>
       <button type="button" role="tab" aria-selected={activeTab === "inconsistencias"} onClick={() => setActiveTab("inconsistencias")} className={`flex-1 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${activeTab === "inconsistencias" ? "bg-background text-amber-700 shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Inconsistências <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">{inconsistencies?.total ?? 0}</span></button>

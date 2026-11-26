@@ -214,9 +214,12 @@ class PlatformRepository:
             .all()
         ]
 
-        members_count = select(
-            func.count(func.distinct(ProjectMember.project_id))
-        ).scalar_subquery()
+        from app.modules.projects.repository import ProjectRepository
+
+        member_counts = await ProjectRepository(self.session).effective_member_counts(
+            [str(project["id"]) for project in projects]
+        )
+        total_members = sum(member_counts.values())
         folders_count = select(func.count(func.distinct(Folder.id))).scalar_subquery()
         storage_sum = select(
             func.coalesce(func.sum(Folder.size), 0) / bytes_per_mb
@@ -225,7 +228,6 @@ class PlatformRepository:
             (
                 await self.session.execute(
                     select(
-                        members_count.label("membros"),
                         folders_count.label("mapas"),
                         storage_sum.label("armazenamento"),
                     )
@@ -235,7 +237,7 @@ class PlatformRepository:
             .first()
         )
         counts = (
-            dict(counts_result) if counts_result else {"membros": 0, "mapas": 0, "armazenamento": 0}
+            dict(counts_result) if counts_result else {"mapas": 0, "armazenamento": 0}
         )
 
         from app.modules.audit.models import ActivityLog
@@ -265,7 +267,7 @@ class PlatformRepository:
 
         return {
             "projects": projects,
-            "totalMembros": counts["membros"],
+            "totalMembros": total_members,
             "totalMapas": counts["mapas"],
             "armazenamentoMb": counts["armazenamento"],
             "activity": activity,

@@ -20,8 +20,8 @@ from app.modules.catalogs.models import (
     ResponsibleArea,
 )
 from app.modules.platform.repository import PlatformRepository
-from app.modules.projects.models import Project, ProjectAccessGroup, ProjectGroup
-from app.modules.users.models import Profile
+from app.modules.projects.models import Project, ProjectAccessGroup, ProjectGroup, ProjectMember
+from app.modules.users.models import Profile, User
 
 NOW = datetime.now(UTC)
 
@@ -215,16 +215,27 @@ async def test_context_card_filter_matches_comma_separated_ids(session):
 # ── dashboard ───────────────────────────────────────────────────────
 
 
-async def test_dashboard_returns_projects_with_storage_sum(session):
-    session.add(Project(id="p1", name="Beta", code="B", responsible_area="Redes", status="ativo", description="", created_at=NOW, updated_at=NOW))
+async def test_dashboard_sums_effective_members_across_projects(session):
+    session.add_all([
+        Project(id="p1", name="Alpha", code="A", responsible_area="Redes", status="ativo", description="", created_at=NOW, updated_at=NOW),
+        Project(id="p2", name="Beta", code="B", responsible_area="Pesquisa", status="ativo", description="", created_at=NOW, updated_at=NOW),
+        User(id="u1", user_id="ana", created_at=NOW),
+        User(id="u2", user_id="bruno", created_at=NOW),
+    ])
+    await session.flush()
+    session.add_all([
+        ProjectMember(project_id="p1", user_id="u1", created_at=NOW),
+        ProjectMember(project_id="p2", user_id="u1", created_at=NOW),
+        ProjectMember(project_id="p2", user_id="u2", created_at=NOW),
+    ])
     await session.commit()
 
     result = await PlatformRepository(session).dashboard()
 
     assert set(result) == {"projects", "totalMembros", "totalMapas", "armazenamentoMb", "activity", "source", "consultedAt"}
-    assert len(result["projects"]) == 1
-    assert result["projects"][0]["nome"] == "Beta"
-    assert result["projects"][0]["areaResponsavel"] == "Redes"
+    assert result["totalMembros"] == 3
+    assert len(result["projects"]) == 2
+    assert result["projects"][0]["nome"] == "Alpha"
     assert "armazenamentoUsadoMb" in result["projects"][0]
 
 
