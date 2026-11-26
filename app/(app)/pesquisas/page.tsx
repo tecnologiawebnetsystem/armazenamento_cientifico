@@ -726,60 +726,6 @@ function AccessMapDetails({
           </div>
         </CardContent>
       </Card>
-      <Card className="sigac-surface print-section print-folders">
-        <CardHeader className="sigac-section-header px-5 py-4">
-          <CardTitle className="text-base">Pastas e permissões</CardTitle>
-          <CardDescription>
-            Recursos da área de rede a partir da pasta mãe:{" "}
-            <span className="font-mono text-xs">
-              {project.pastaMae || "Não informado"}
-            </span>
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          {foldersLoading ? (
-            <div className="p-5">
-              <PetrobrasLoading label="Carregando pastas..." />
-            </div>
-          ) : folders.length === 0 ? (
-            <p className="p-5 text-sm text-muted-foreground">
-              Nenhuma pasta encontrada para este projeto.
-            </p>
-          ) : (
-            <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
-              {folders.map((folder) => (
-                <div
-                  key={folder.id}
-                  className="grid gap-3 rounded-lg border border-border/70 bg-background/60 p-4"
-                >
-                  <div className="flex min-w-0 items-start gap-3">
-                    <FolderOpen className="mt-0.5 size-5 shrink-0 text-primary" />
-                    <div className="min-w-0">
-                      <p className="font-semibold break-words">{folder.nome}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {folder.parentId
-                          ? `Subpasta de ${folder.parentId}`
-                          : "Pasta do projeto"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {groups.map((group) => (
-                      <Badge
-                        key={`${folder.id}-${group.nome}`}
-                        variant="outline"
-                        className="max-w-full whitespace-normal break-all text-left leading-relaxed"
-                      >
-                        {group.nome}: {accessLabel(group.nivel)}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
       {accessLoading ? (
         <Card className="sigac-surface">
           <CardContent className="p-6">
