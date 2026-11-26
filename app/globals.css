@@ -227,6 +227,30 @@
     }
 }
 
+.access-map-scrollbar {
+  scrollbar-color: var(--petrobras-green) color-mix(in oklch, var(--petrobras-green) 10%, var(--background));
+  scrollbar-width: thin;
+}
+
+.access-map-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.access-map-scrollbar::-webkit-scrollbar-track {
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--petrobras-green) 10%, var(--background));
+}
+
+.access-map-scrollbar::-webkit-scrollbar-thumb {
+  border: 2px solid color-mix(in oklch, var(--petrobras-green) 10%, var(--background));
+  border-radius: 9999px;
+  background: var(--petrobras-green);
+}
+
+.access-map-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--petrobras-yellow);
+}
+
 @media print {
   body * {
     visibility: hidden !important;

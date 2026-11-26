@@ -3,13 +3,10 @@
 import { useMemo, useState } from "react"
 import useSWR from "swr"
 import {
-  CheckCircle2,
   ChevronRight,
   Clock3,
   Folder,
   FolderOpen,
-  Loader2,
-  RefreshCw,
   Search,
   ShieldCheck,
 } from "lucide-react"
@@ -46,18 +43,7 @@ import {
   getProjectFolderAccess,
   getProjects,
   recordAuditEvent,
-  syncProjectGroups,
 } from "@/lib/api-client"
-import { toast } from "sonner"
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import type { FileNode, Project, ProjectAccessMapResponse } from "@/lib/types"
 
 const dateFormat = new Intl.DateTimeFormat("pt-BR", {
@@ -362,13 +348,13 @@ export default function AccessMapPage() {
                 Não foi possível carregar a área de rede.
               </p>
             ) : (
-              <div className="max-h-[520px] space-y-2 overflow-y-auto pr-1">
+              <div className="access-map-scrollbar max-h-[520px] space-y-2 overflow-y-auto pr-1">
                 {filteredProjects.map((project) => (
                   <button
                     type="button"
                     key={project.id}
                     onClick={() => selectProject(project)}
-                    className={`flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left transition-colors ${inconsistentProjectIds.has(project.id) ? "border-amber-300 bg-amber-50/80 text-foreground hover:bg-amber-100/70 dark:border-amber-700/80 dark:bg-amber-950/35 dark:hover:bg-amber-900/45" : selectedProjectId === project.id ? "border-primary bg-primary/10" : "border-border/70 hover:bg-muted/50"}`}
+                    className={`flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left transition-colors ${inconsistentProjectIds.has(project.id) ? "border-petrobras-yellow bg-petrobras-yellow/10 text-foreground hover:bg-petrobras-yellow/20 dark:border-petrobras-yellow/70 dark:bg-petrobras-yellow/10 dark:hover:bg-petrobras-yellow/15" : selectedProjectId === project.id ? "border-primary bg-primary/10" : "border-border/70 hover:bg-muted/50"}`}
                   >
                     <span className="min-w-0">
                       <span className="flex items-center gap-2 truncate text-sm font-semibold">
@@ -509,12 +495,6 @@ function AccessMapDetails({
     )
   }, [members, folderAccessData])
   const [exportOpen, setExportOpen] = useState(false)
-  const [isSyncingGroups, setIsSyncingGroups] = useState(false)
-  const [syncResult, setSyncResult] = useState<{
-    groups: number
-    inserted: number
-    errors: number
-  } | null>(null)
   const printMap = async (fields: string[]) => {
     await recordAuditEvent({
       action: "exportar-relatorio",
@@ -532,103 +512,9 @@ function AccessMapDetails({
     }).catch(() => undefined)
     window.setTimeout(() => window.print(), 150)
   }
-  const handleSyncGroups = async () => {
-    setIsSyncingGroups(true)
-    try {
-      const result = await syncProjectGroups(project.id)
-      await retryAccess()
-      setSyncResult({
-        groups: result.acl?.groups ?? 0,
-        inserted: result.acl?.inserted ?? 0,
-        errors: result.acl?.errors.length ?? 0,
-      })
-    } catch (syncError) {
-      toast.error(
-        syncError instanceof Error
-          ? syncError.message
-          : "Não foi possível sincronizar os grupos da área de rede."
-      )
-    } finally {
-      setIsSyncingGroups(false)
-    }
-  }
-
   return (
     <div className="print-access-map space-y-6">
-      <Dialog
-        open={syncResult !== null}
-        onOpenChange={(open) => {
-          if (!open) setSyncResult(null)
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <CheckCircle2 className="size-6" aria-hidden="true" />
-            </div>
-            <DialogTitle>
-              {syncResult?.errors
-                ? "Sincronização concluída com alertas"
-                : "Grupos sincronizados"}
-            </DialogTitle>
-            <DialogDescription>
-              Confira o resumo da sincronização dos grupos da área de rede.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-3 rounded-lg border bg-muted/30 p-4 text-sm">
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-muted-foreground">Total de grupos</span>
-              <span className="font-semibold">{syncResult?.groups ?? 0}</span>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-muted-foreground">
-                Grupos sincronizados
-              </span>
-              <span className="font-semibold text-primary">
-                {syncResult?.groups ?? 0}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-muted-foreground">
-                Novos registros nesta operação
-              </span>
-              <span className="font-semibold">{syncResult?.inserted ?? 0}</span>
-            </div>
-            {(syncResult?.errors ?? 0) > 0 && (
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-muted-foreground">Falhas</span>
-                <span className="font-semibold text-destructive">
-                  {syncResult?.errors}
-                </span>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>
-              Fechar
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       <div className="flex flex-wrap items-center justify-end gap-2 print:hidden">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => void handleSyncGroups()}
-          disabled={isSyncingGroups || accessLoading}
-          aria-busy={isSyncingGroups}
-        >
-          {isSyncingGroups ? (
-            <Loader2
-              className="animate-spin"
-              data-icon="inline-start"
-              aria-hidden="true"
-            />
-          ) : (
-            <RefreshCw data-icon="inline-start" aria-hidden="true" />
-          )}
-          {isSyncingGroups ? "Sincronizando grupos..." : "Sincronizar Grupos"}
-        </Button>
         <ExportButton onClick={() => setExportOpen(true)} />
       </div>
       <ExportFieldsDialog
@@ -706,19 +592,19 @@ function AccessMapDetails({
           </div>
         </CardHeader>
         <CardContent className="grid gap-3 p-5 sm:grid-cols-3">
-          <div className="rounded-lg border border-border/70 p-3">
-            <p className="text-xs text-muted-foreground">Total de pastas</p>
-            <p className="mt-1 text-2xl font-semibold">
+          <div className="rounded-lg border border-petrobras-green/30 bg-petrobras-green/5 p-3">
+            <p className="text-xs font-medium text-muted-foreground">Total de pastas</p>
+            <p className="mt-1 text-2xl font-semibold text-petrobras-green">
               {foldersLoading ? "—" : folders.length}
             </p>
           </div>
-          <div className="rounded-lg border border-border/70 p-3">
-            <p className="text-xs text-muted-foreground">Grupos</p>
-            <p className="mt-1 text-2xl font-semibold">{groups.length}</p>
+          <div className="rounded-lg border border-petrobras-blue/25 bg-petrobras-blue/5 p-3">
+            <p className="text-xs font-medium text-muted-foreground">Grupos</p>
+            <p className="mt-1 text-2xl font-semibold text-petrobras-blue">{groups.length}</p>
           </div>
-          <div className="rounded-lg border border-border/70 p-3">
-            <p className="text-xs text-muted-foreground">Membros</p>
-            <p className="mt-1 text-2xl font-semibold">
+          <div className="rounded-lg border border-petrobras-yellow/50 bg-petrobras-yellow/10 p-3">
+            <p className="text-xs font-medium text-muted-foreground">Membros</p>
+            <p className="mt-1 text-2xl font-semibold text-foreground">
               {folderAccessLoading && visibleMembers.length === 0
                 ? "…"
                 : visibleMembers.length}
