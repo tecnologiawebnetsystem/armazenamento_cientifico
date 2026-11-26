@@ -194,19 +194,28 @@ async def test_listing_does_not_scan_network_when_database_is_empty(tmp_path: Pa
     assert source == "tabela"
 
 
-def test_live_folder_scan_returns_nested_folders_with_parent_links(tmp_path: Path):
+def test_live_folder_scan_returns_nested_folders_with_parent_links(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+):
     root = tmp_path / "root"
     nested = root / "Área A" / "Subárea B"
     nested.mkdir(parents=True)
     (root / "Área A" / "documento.txt").write_bytes(b"1234")
 
-    folders = FolderService._read_root_folders("project-1", str(root))
+    with caplog.at_level(logging.INFO):
+        folders = FolderService._read_root_folders("project-1", str(root))
+
     by_name = {folder.name: folder for folder in folders}
 
     assert set(by_name) == {"Área A", "Subárea B"}
     assert by_name["Área A"].parent_id is None
     assert by_name["Subárea B"].parent_id == by_name["Área A"].id
     assert by_name["Área A"].size == 0
+    assert "folders_network_subfolder_found project_id=project-1 relative_path='Área A'" in caplog.text
+    assert (
+        "folders_network_subfolder_found project_id=project-1 relative_path='Área A/Subárea B'"
+        in caplog.text
+    )
 
 
 @pytest.mark.asyncio

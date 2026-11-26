@@ -111,3 +111,39 @@ class ProjectAccessGroup(Base):
 
     project_id: Mapped[str] = mapped_column(String(36), primary_key=True)
     group_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+
+
+class ProjectFolderAccessSnapshot(Base):
+    """Última leitura da ACL da pasta, persistida para consulta sem acessar a rede."""
+
+    __tablename__ = "project_folder_access_snapshots"
+
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True
+    )
+    payload: Mapped[dict] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"), nullable=False
+    )
+    synced_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class ProjectFolderAccessMember(Base):
+    """Membro do diretório associado a um principal da última ACL sincronizada."""
+
+    __tablename__ = "project_folder_access_members"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["project_id"],
+            ["project_folder_access_snapshots.project_id"],
+            ondelete="CASCADE",
+        ),
+        Index("ix_project_folder_access_members_entry", "project_id", "entry_key"),
+    )
+
+    project_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    entry_key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    login: Mapped[str] = mapped_column(String(256), primary_key=True)
+    name: Mapped[str] = mapped_column(String(256), nullable=False, default="")
+    email: Mapped[str] = mapped_column(String(320), nullable=False, default="")

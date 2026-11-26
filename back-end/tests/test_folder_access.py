@@ -19,7 +19,11 @@ from app.infrastructure.folder_acl import (
     parse_security_descriptor,
     sid_to_bytes,
 )
-from app.modules.projects.folder_access import StoredGroup, build_folder_access
+from app.modules.projects.folder_access import (
+    StoredGroup,
+    build_folder_access,
+    sync_folder_acl,
+)
 
 WRITERS = "S-1-5-21-1-2-3-1001"
 READERS = "S-1-5-21-1-2-3-1002"
@@ -232,3 +236,42 @@ def test_resolver_identifies_well_known_and_unix_sids_without_directory(sid, kin
     principal = DirectoryResolver([], member_limit=10).resolve_sid(sid)
 
     assert (principal.kind, principal.broad) == (kind, broad)
+
+
+def test_sync_folder_acl_collects_root_and_every_immediate_subfolder(tmp_path, monkeypatch):
+    from app.modules.projects import folder_access
+
+    subfolders = [tmp_path / f"subfolder-{index}" for index in range(7)]
+    for subfolder in subfolders:
+        subfolder.mkdir()
+
+    identifiers = [f"S-1-5-21-1-2-3-{index}" for index in range(1001, 1009)]
+    acls = {
+        str(tmp_path): FolderAcl(
+            path=str(tmp_path),
+            owner_sid=None,
+            inheritance_blocked=False,
+            entries=[AclEntry(identifiers[0], MODIFY, True, False)],
+        )
+    }
+    for subfolder, identifier in zip(subfolders, identifiers[1:]):
+        acls[str(subfolder)] = FolderAcl(
+            path=str(subfolder),
+            owner_sid=None,
+            inheritance_blocked=False,
+            entries=[AclEntry(identifier, MODIFY, True, False)],
+        )
+
+    monkeypatch.setattr(folder_access, "read_folder_acl", lambda path: acls[str(path)])
+
+    class Resolver:
+        def resolve_sid(self, sid):
+            return DirectoryPrincipal(
+                sid=sid, name=f"GROUP-{sid.rsplit('-', 1)[-1]}", kind="group", source="ldap"
+            )
+
+    result = sync_folder_acl(str(tmp_path), "project-1", Resolver())
+
+    assert len(result.inserted) == 8
+    assert {item["identifier"] for item in result.inserted} == set(identifiers)
+    assert result.errors == []

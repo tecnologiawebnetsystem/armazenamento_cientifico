@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -32,6 +34,17 @@ STATUS_ORDER = {
     "conforme": 4,
     "papel_aplicacao": 5,
 }
+
+
+def folder_access_entry_key(entry: dict) -> str:
+    identity = {
+        "tipo": entry.get("tipo"),
+        "identificador": (entry.get("identificador") or "").casefold(),
+        "sid": (entry.get("sid") or "").casefold(),
+        "grupo": (entry.get("grupo") or "").casefold(),
+    }
+    canonical = json.dumps(identity, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -320,38 +333,33 @@ def sync_folder_acl(
         result.errors.append(f"Não foi possível ler a ACL: {error}")
         return result
 
-    # Tenta a raiz primeiro (aceita herdadas)
-    items = _collect_from_acl(root_acl, require_explicit=False)
-    domain_groups = [item for item in items if not item["identifier"].startswith("S-1-5-32-")]
-    if domain_groups:
-        result.inserted = items
-        return result
+    # Inclui os grupos herdados da raiz e as permissões explícitas de todas as
+    # subpastas imediatas; uma ACL encontrada na raiz não deve ocultar as demais.
+    result.inserted = _collect_from_acl(root_acl, require_explicit=False)
+    known_identifiers = {item["identifier"] for item in result.inserted}
 
-    # Raiz não tem grupos de domínio explícitos — tenta as subpastas nível 1
     import os
 
     try:
-        subdirs = [
-            entry.path for entry in os.scandir(folder) if entry.is_dir(follow_symlinks=False)
-        ]
-    except OSError:
-        result.errors.append(f"Não foi possível listar subpastas de {folder}")
-        # Retorna o que tiver da raiz (mesmo que só herdados)
-        result.inserted = items
+        with os.scandir(folder) as entries:
+            subdirs = [
+                entry.path
+                for entry in entries
+                if entry.is_dir(follow_symlinks=False)
+            ]
+    except OSError as error:
+        result.errors.append(f"Não foi possível listar subpastas de {folder}: {error}")
         return result
 
-    for subdir in subdirs[:5]:  # Limite de 5 subpastas para não sobrecarregar
+    for subdir in subdirs:
         try:
             sub_acl = read_folder_acl(subdir)
-        except (FolderAclUnavailable, OSError):
+        except (FolderAclUnavailable, OSError) as error:
+            result.errors.append(f"Não foi possível ler a ACL de {subdir}: {error}")
             continue
-        sub_items = _collect_from_acl(sub_acl, require_explicit=True)
-        for item in sub_items:
-            if item["identifier"] not in {i["identifier"] for i in result.inserted}:
+        for item in _collect_from_acl(sub_acl, require_explicit=True):
+            if item["identifier"] not in known_identifiers:
                 result.inserted.append(item)
-
-    if not result.inserted and items:
-        # Fallback: retorna os herdados da raiz
-        result.inserted = items
+                known_identifiers.add(item["identifier"])
 
     return result

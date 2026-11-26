@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import useSWR from "swr"
 import {
   AlertTriangleIcon,
   CheckCircle2Icon,
@@ -23,7 +24,6 @@ import {
   getProjectFolderAccess,
   syncProjectGroups,
   type FolderAccessStatus,
-  type ProjectFolderAccess,
   type ProjectFolderAccessEntry,
 } from "@/lib/api-client"
 import { toast } from "sonner"
@@ -63,96 +63,101 @@ function levelLabel(level: string | null) {
   return level ? (LEVEL_LABEL[level] ?? level) : "—"
 }
 
-function isSecurityIdentifier(value: string) {
-  return /^S-\d-\d+(?:-\d+)+$/i.test(value.trim())
-}
-
 function FolderAccessCard({ entry }: { entry: ProjectFolderAccessEntry }) {
   const status = STATUS[entry.situacao]
-  const nameIsSid = isSecurityIdentifier(entry.grupo)
   const principalLabel =
     entry.tipo === "role"
-      ? "Papel da aplicação"
+      ? "Papel"
       : entry.tipo === "group"
         ? "Grupo"
         : entry.tipo === "user"
           ? "Usuário"
           : entry.tipo === "wellknown"
-            ? "Identidade conhecida do Windows"
+            ? "Identidade Windows"
             : entry.tipo === "unix"
               ? "Identidade UNIX"
-              : "Identidade sem resolução no diretório"
+              : "Identidade não resolvida"
+  const accessBadgeClass =
+    entry.nivelRede === "administrador"
+      ? "border-primary/15 bg-primary/10 text-primary"
+      : entry.nivelRede === "escrita"
+        ? "border-accent/40 bg-accent/30 text-accent-foreground"
+        : entry.nivelRede === "leitura"
+          ? "border-secondary bg-secondary text-secondary-foreground"
+          : "border-border bg-muted text-muted-foreground"
 
   return (
-    <article className="flex min-w-0 flex-col gap-3 rounded-xl border border-border/80 bg-background p-4">
+    <article className="flex min-w-0 flex-col gap-3 rounded-xl border border-primary/15 bg-card p-4 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="font-semibold break-all text-foreground">
-            {nameIsSid ? "Nome não resolvido no diretório" : entry.grupo}
+            {entry.grupo}
           </p>
-          {nameIsSid && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              O valor abaixo é um SID (identificador de segurança), não o nome
-              do grupo.
-            </p>
-          )}
           <p className="mt-1 text-xs text-muted-foreground">
-            {principalLabel} · Fonte: {entry.fonteDiretorio}
+            Fonte: {entry.fonteDiretorio}
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
-          <Badge variant="outline">{principalLabel}</Badge>
-          <Badge variant="secondary">Rede: {levelLabel(entry.nivelRede)}</Badge>
-          <Badge variant={status.variant}>{status.label}</Badge>
+          <Badge variant="outline" className="border-primary/20 text-primary">
+            {principalLabel}
+          </Badge>
+          <Badge variant="outline" className={accessBadgeClass}>
+            {levelLabel(entry.nivelRede)}
+          </Badge>
         </div>
       </div>
-      <div className="grid gap-2 text-sm sm:grid-cols-2">
-        {entry.nivelSigac && (
-          <div>
-            <p className="text-xs text-muted-foreground">
-              Nível cadastrado no SIGAC
-            </p>
-            <p>{levelLabel(entry.nivelSigac)}</p>
-          </div>
-        )}
-        <div className="min-w-0">
-          <p className="text-xs text-muted-foreground">
-            Identificador do grupo
-          </p>
-          <code className="mt-1 block rounded-md bg-muted px-2 py-1 text-xs break-all text-muted-foreground">
-            {entry.identificador || entry.sid || "Não informado"}
-          </code>
-        </div>
-        {entry.sid &&
-          entry.identificador &&
-          entry.sid !== entry.identificador && (
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">SID da rede</p>
-              <code className="mt-1 block rounded-md bg-muted px-2 py-1 text-xs break-all text-muted-foreground">
-                {entry.sid}
-              </code>
-            </div>
+      <code className="block min-w-0 rounded-md border border-primary/10 bg-primary/5 px-3 py-2 text-xs break-all text-muted-foreground">
+        {entry.identificador || entry.sid || "Não informado"}
+      </code>
+      {(entry.nivelSigac ||
+        entry.sid !== entry.identificador ||
+        entry.direitosRede ||
+        entry.acessoAmplo ||
+        entry.negado ||
+        entry.herdado ||
+        entry.situacao !== "conforme") && (
+        <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-2">
+          {entry.nivelSigac && (
+            <Badge variant="outline">
+              SIGAC: {levelLabel(entry.nivelSigac)}
+            </Badge>
           )}
-      </div>
-      <div className="flex flex-wrap gap-1">
-        {entry.direitosRede && (
-          <Badge variant="outline">{entry.direitosRede}</Badge>
-        )}
-        {entry.acessoAmplo && <Badge variant="destructive">Acesso amplo</Badge>}
-        {entry.negado && <Badge variant="destructive">Negação explícita</Badge>}
-        {entry.herdado && <Badge variant="outline">Permissão herdada</Badge>}
-      </div>
+          {entry.sid &&
+            entry.identificador &&
+            entry.sid !== entry.identificador && (
+              <Badge variant="outline">SID: {entry.sid}</Badge>
+            )}
+          {entry.direitosRede && (
+            <Badge variant="outline">{entry.direitosRede}</Badge>
+          )}
+          {entry.acessoAmplo && (
+            <Badge variant="destructive">Acesso amplo</Badge>
+          )}
+          {entry.negado && (
+            <Badge variant="destructive">Negação explícita</Badge>
+          )}
+          {entry.herdado && <Badge variant="outline">Permissão herdada</Badge>}
+          {entry.situacao !== "conforme" && (
+            <Badge variant={status.variant}>{status.label}</Badge>
+          )}
+        </div>
+      )}
     </article>
   )
 }
 
 export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
-  const [data, setData] = useState<ProjectFolderAccess | null>(null)
-  const [folderCount, setFolderCount] = useState<number | null>(null)
-  const [folderAccessError, setFolderAccessError] = useState<string | null>(
-    null
+  const {
+    data,
+    isLoading: isLoadingFolderAccess,
+    error: folderAccessError,
+    mutate,
+  } = useSWR(
+    ["project-folder-access", projectId],
+    () => getProjectFolderAccess(projectId),
+    { revalidateOnFocus: false }
   )
-  const [isLoadingFolderAccess, setIsLoadingFolderAccess] = useState(false)
+  const [folderCount, setFolderCount] = useState<number | null>(null)
   const [isSyncingGroups, setIsSyncingGroups] = useState(false)
   const resolvedMembers = (data?.entries ?? []).flatMap((entry) =>
     entry.membros.length > 0
@@ -171,6 +176,7 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
   const [syncResult, setSyncResult] = useState<{
     groups: number | null
     inserted: number | null
+    members: number | null
     skipped: number | null
     errors: number
     aclUnavailable: boolean
@@ -178,16 +184,14 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
 
   async function handleSyncGroups() {
     setIsSyncingGroups(true)
-    setIsLoadingFolderAccess(true)
-    setData(null)
     setFolderCount(null)
     setSyncResult(null)
-    setFolderAccessError(null)
     try {
       const result = await syncProjectGroups(projectId)
       const summary = {
         groups: result.acl?.groups ?? null,
         inserted: result.acl?.inserted ?? null,
+        members: result.acl?.members ?? null,
         skipped: result.acl?.skipped ?? null,
         errors: result.acl?.errors.length ?? 0,
         aclUnavailable: result.acl == null,
@@ -197,14 +201,9 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
         getFolders(projectId),
       ])
       if (folderAccessResult.status === "fulfilled") {
-        setData(folderAccessResult.value)
+        await mutate(folderAccessResult.value, false)
       } else {
-        const folderError = folderAccessResult.reason
-        setFolderAccessError(
-          folderError instanceof Error
-            ? folderError.message
-            : "Não foi possível consultar os grupos e membros da pasta."
-        )
+        await mutate()
       }
       if (foldersResult.status === "fulfilled") {
         setFolderCount(
@@ -226,10 +225,9 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
       toast.error(
         syncError instanceof Error
           ? syncError.message
-          : "Não foi possível sincronizar os grupos da rede."
+          : "Não foi possível sincronizar os grupos e membros da rede."
       )
     } finally {
-      setIsLoadingFolderAccess(false)
       setIsSyncingGroups(false)
     }
   }
@@ -250,12 +248,12 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
             <DialogTitle>
               {(syncResult?.errors ?? 0) > 0 || syncResult?.aclUnavailable
                 ? "Sincronização concluída com alertas"
-                : "Grupos sincronizados"}
+                : "Grupos e membros sincronizados"}
             </DialogTitle>
             <DialogDescription>
               {syncResult?.aclUnavailable
-                ? "A API não retornou o detalhamento da sincronização. O total vem da consulta atual; inserções indisponíveis aparecem como traço."
-                : "A operação foi concluída. Confira o resumo dos grupos da pasta de rede."}
+                ? "A API não retornou o detalhamento da sincronização."
+                : "Os dados do LDAP e da ACL foram atualizados no banco."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 rounded-lg border bg-muted/30 p-4 text-sm">
@@ -279,7 +277,15 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
             </div>
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">
-                Novos registros nesta operação
+                Membros sincronizados
+              </span>
+              <span className="font-semibold">
+                {syncResult?.members ?? "—"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-muted-foreground">
+                Novos grupos nesta operação
               </span>
               <span className="font-semibold">
                 {syncResult?.inserted ?? "—"}
@@ -319,8 +325,8 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
                 Acessos da pasta na rede
               </h3>
               <p className="text-sm text-muted-foreground">
-                Compara os grupos do SIGAC com as permissões reais da pasta raiz
-                e lista os membros.
+                A leitura usa os dados do banco. Use Sincronizar para consultar
+                a ACL e o LDAP e atualizar os registros.
               </p>
             </div>
           </div>
@@ -335,13 +341,17 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
               className={isSyncingGroups ? "animate-spin" : ""}
               aria-hidden="true"
             />
-            {isSyncingGroups ? "Sincronizando grupos..." : "Sincronizar Grupos"}
+            {isSyncingGroups
+              ? "Sincronizando grupos e membros..."
+              : "Sincronizar grupos e membros"}
           </Button>
         </div>
 
         {folderAccessError ? (
           <p className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {folderAccessError}
+            {folderAccessError instanceof Error
+              ? folderAccessError.message
+              : "Não foi possível carregar os acessos gravados no banco."}
           </p>
         ) : isLoadingFolderAccess && !data ? (
           <div className="flex flex-col gap-2">
@@ -364,7 +374,7 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
                 </span>
               )}
               <span>
-                Consultado em{" "}
+                Última sincronização:{" "}
                 {new Date(data.consultadoEm).toLocaleString("pt-BR")}
               </span>
             </div>

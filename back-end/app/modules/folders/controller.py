@@ -101,8 +101,18 @@ async def sync_folders(
             )
             try:
                 acl_sync = await service.sync_folder_acl(project_id)
-            except Exception:
+            except Exception as error:
                 logger.exception("folder_acl_sync_failed project_id=%s", project_id)
+                acl_sync = {
+                    "folder": "",
+                    "groups": 0,
+                    "inserted": 0,
+                    "skipped": 0,
+                    "members": 0,
+                    "errors": [
+                        f"Falha inesperada ao sincronizar grupos e membros: {error}"
+                    ],
+                }
 
         acl_result = acl_sync or {}
         if scope != "groups" and not folders:

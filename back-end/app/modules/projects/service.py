@@ -181,6 +181,9 @@ class ProjectService:
     ) -> list[tuple[ProjectGroup, ProjectAccessGroup]]:
         return await self.repository.list_access_groups(project_id, access_level)
 
+    async def get_folder_access_snapshot(self, project_id: str) -> dict | None:
+        return await self.repository.get_folder_access_snapshot(project_id)
+
     async def search_catalog_groups(self, principal_type: str, search: str) -> list[ProjectGroup]:
         return await self.repository.search_catalog_groups(principal_type, search)
 

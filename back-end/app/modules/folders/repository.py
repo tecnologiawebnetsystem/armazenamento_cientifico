@@ -1,4 +1,4 @@
-from sqlalchemy import or_, select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -110,21 +110,30 @@ class FolderRepository:
             return True
         return False
 
-    async def upsert_access_groups(self, project_id: str, groups: list[dict]) -> dict[str, int]:
-        """Insere ou atualiza project_groups + project_access_groups com upsert.
-
-        Retorna contadores: inserted, updated, skipped.
-        """
+    async def upsert_access_groups(
+        self,
+        project_id: str,
+        groups: list[dict],
+        *,
+        replace_network: bool = False,
+        commit_changes: bool = True,
+    ) -> dict[str, int]:
+        """Atualiza grupos da rede e, quando a leitura foi completa, remove os obsoletos."""
         from app.modules.projects.models import ProjectAccessGroup, ProjectGroup
 
-        if not groups:
-            return {"inserted": 0, "updated": 0, "skipped": 0}
 
         inserted = 0
         updated = 0
         skipped = 0
 
         for item in groups:
+            existing_group_id = await self.session.scalar(
+                select(ProjectGroup.group_id).where(
+                    ProjectGroup.project_id == project_id,
+                    ProjectGroup.principal_type == item["principal_type"],
+                    ProjectGroup.identifier == item["identifier"],
+                )
+            )
             group_stmt = pg_insert(ProjectGroup).values(
                 group_id=item["group_id"],
                 project_id=project_id,
@@ -148,7 +157,10 @@ class FolderRepository:
             result = await self.session.execute(group_stmt)
             persisted_group_id = result.scalar_one_or_none()
             if result.rowcount and result.rowcount > 0:
-                inserted += 1
+                if existing_group_id is None:
+                    inserted += 1
+                else:
+                    updated += 1
             else:
                 skipped += 1
 
@@ -175,5 +187,28 @@ class FolderRepository:
             )
             await self.session.execute(link_stmt)
 
-        await self.session.commit()
+        if replace_network:
+            active_identifiers = {item["identifier"] for item in groups}
+            stale_statement = select(ProjectGroup.group_id).where(
+                ProjectGroup.project_id == project_id,
+                ProjectGroup.source == "rede",
+            )
+            if active_identifiers:
+                stale_statement = stale_statement.where(
+                    ProjectGroup.identifier.not_in(active_identifiers)
+                )
+            stale_ids = list(await self.session.scalars(stale_statement))
+            if stale_ids:
+                await self.session.execute(
+                    delete(ProjectAccessGroup).where(
+                        ProjectAccessGroup.project_id == project_id,
+                        ProjectAccessGroup.group_id.in_(stale_ids),
+                    )
+                )
+                await self.session.execute(
+                    delete(ProjectGroup).where(ProjectGroup.group_id.in_(stale_ids))
+                )
+
+        if commit_changes:
+            await self.session.commit()
         return {"inserted": inserted, "updated": updated, "skipped": skipped}
