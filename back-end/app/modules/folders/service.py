@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import os
 from datetime import UTC, datetime
 from pathlib import Path
 from time import perf_counter
@@ -99,62 +98,32 @@ class FolderService:
         if not root.is_dir():
             raise OSError(f"A raiz não existe ou não está acessível: {root}")
 
-        def raise_walk_error(error: OSError) -> None:
-            raise error
-
         now = datetime.now(UTC)
         folders: list[Folder] = []
-        parent_ids: dict[str, str | None] = {str(root): None}
 
-        for current_path, directory_names, _ in os.walk(root, onerror=raise_walk_error):
-            directory_names[:] = [
-                name
-                for name in sorted(directory_names, key=str.casefold)
-                if not (Path(current_path) / name).is_symlink()
-            ]
-            current_parent_id = parent_ids.get(current_path)
-
-            for directory_name in directory_names:
-                path = str(Path(current_path) / directory_name)
-                relative_path = Path(path).relative_to(root).as_posix()
-                logger.info(
-                    "folders_network_subfolder_found project_id=%s relative_path=%r",
-                    project_id,
-                    relative_path,
+        for path in sorted(root.iterdir(), key=lambda item: item.name.casefold()):
+            if path.is_symlink() or not path.is_dir():
+                continue
+            logger.info(
+                "folders_network_subfolder_found project_id=%s relative_path=%r",
+                project_id,
+                path.name,
+            )
+            folders.append(
+                Folder(
+                    id=str(uuid5(NAMESPACE_URL, f"{project_id}:{path}")),
+                    project_id=project_id,
+                    parent_id=None,
+                    kind="pasta",
+                    name=path.name,
+                    created_by="filesystem",
+                    created_at=now,
+                    updated_at=now,
+                    size=0,
                 )
-                folder_id = str(uuid5(NAMESPACE_URL, f"{project_id}:{path}"))
-                parent_ids[path] = folder_id
-                folders.append(
-                    Folder(
-                        id=folder_id,
-                        project_id=project_id,
-                        parent_id=current_parent_id,
-                        kind="pasta",
-                        name=directory_name,
-                        created_by="filesystem",
-                        created_at=now,
-                        updated_at=now,
-                        size=0,
-                    )
-                )
+            )
 
         return folders
-
-    @staticmethod
-    def _directory_size(path: str) -> int:
-        total = 0
-        try:
-            for current_path, _, file_names in os.walk(path):
-                for file_name in file_names:
-                    try:
-                        total += os.stat(
-                            os.path.join(current_path, file_name), follow_symlinks=False
-                        ).st_size
-                    except OSError:
-                        continue
-        except OSError:
-            return 0
-        return total
 
     async def sync_project_folders(
         self, project_id: str, user_id: str, folders: list[dict] | str
@@ -317,16 +286,10 @@ class FolderService:
         self, project_id: str, user_id: str, request_id: str
     ) -> tuple[list[Folder], int, bool, dict, dict]:
         existing_ids = await self.repository.existing_ids(project_id)
+        project = await self.repository.find_project(project_id)
         folders = self._read_all_folders(
-            project_id, (await self.repository.find_project(project_id)).parent_folder, user_id
+            project_id, project.parent_folder if project else "", user_id
         )
-        for folder in folders:
-            folder.size = self._directory_size(
-                str(
-                    Path((await self.repository.find_project(project_id)).parent_folder)
-                    / folder.name
-                )
-            )
         if existing_ids:
             saved = await self.repository.find_by_project(project_id)
             integrity = await self.repository.verify_project_folders(project_id)
@@ -343,27 +306,22 @@ class FolderService:
             return []
         now = datetime.now(UTC)
         folders: list[Folder] = []
-        parent_ids: dict[str, str] = {str(root): None}  # type: ignore[dict-item]
-        for current_path, directory_names, _ in os.walk(root):
-            directory_names.sort(key=str.casefold)
-            current_parent_id = parent_ids.get(current_path)
-            for directory_name in directory_names:
-                path = str(Path(current_path) / directory_name)
-                folder_id = str(uuid5(NAMESPACE_URL, f"{project_id}:{path}"))
-                parent_ids[path] = folder_id
-                folders.append(
-                    Folder(
-                        id=folder_id,
-                        project_id=project_id,
-                        parent_id=current_parent_id,
-                        kind="pasta",
-                        name=directory_name,
-                        created_by=user_id,
-                        created_at=now,
-                        updated_at=now,
-                        size=0,
-                    )
+        for path in sorted(root.iterdir(), key=lambda item: item.name.casefold()):
+            if path.is_symlink() or not path.is_dir():
+                continue
+            folders.append(
+                Folder(
+                    id=str(uuid5(NAMESPACE_URL, f"{project_id}:{path}")),
+                    project_id=project_id,
+                    parent_id=None,
+                    kind="pasta",
+                    name=path.name,
+                    created_by=user_id,
+                    created_at=now,
+                    updated_at=now,
+                    size=0,
                 )
+            )
         return folders
 
     async def can_list_project(self, project_id: str, user_id: str, role: str) -> bool:
