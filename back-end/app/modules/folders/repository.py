@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,23 +22,33 @@ class FolderRepository:
 
     async def project_exists(self, project_id: str) -> bool:
         from app.modules.projects.models import Project
-        return await self.session.scalar(select(Project.id).where(Project.id == project_id)) is not None
+
+        return (
+            await self.session.scalar(select(Project.id).where(Project.id == project_id))
+            is not None
+        )
 
     async def find_user_database_id(self, identifiers: list[str]) -> str | None:
         """Resolve o ID técnico exigido pela FK folders.created_by."""
         from app.modules.users.models import User
 
-        values = tuple(dict.fromkeys(value.strip() for value in identifiers if value and value.strip()))
+        values = tuple(
+            dict.fromkeys(value.strip() for value in identifiers if value and value.strip())
+        )
         if not values:
             return None
-        return await self.session.scalar(select(User.id).where(User.user_id.in_(values)).limit(1))
+        return await self.session.scalar(
+            select(User.id).where(or_(User.id.in_(values), User.user_id.in_(values))).limit(1)
+        )
 
     async def find_project(self, project_id: str):
         from app.modules.projects.models import Project
+
         return await self.session.scalar(select(Project).where(Project.id == project_id))
 
     async def can_view_project(self, project_id: str, user_id: str, role: str) -> bool:
         from app.modules.projects.repository import ProjectRepository
+
         return await ProjectRepository(self.session).can_view(project_id, user_id, role)
 
     # TODO(verificar com a equipe de devs): sem referências no repositório (varredura de 2026-10-14);
@@ -69,7 +79,11 @@ class FolderRepository:
 
     async def reconcile(self, folders: list[Folder], source_folders: list[dict], updated_at) -> int:
         by_id = {str(item.get("id")): item for item in source_folders if item.get("id")}
-        by_name = {str(item.get("name", "")).strip().casefold(): item for item in source_folders if item.get("name")}
+        by_name = {
+            str(item.get("name", "")).strip().casefold(): item
+            for item in source_folders
+            if item.get("name")
+        }
         updated = 0
         for folder in folders:
             source = by_id.get(str(folder.id)) or by_name.get(folder.name.strip().casefold())
@@ -151,10 +165,14 @@ class FolderRepository:
             if persisted_group_id is None:
                 continue
 
-            link_stmt = pg_insert(ProjectAccessGroup).values(
-                project_id=project_id,
-                group_id=persisted_group_id,
-            ).on_conflict_do_nothing()
+            link_stmt = (
+                pg_insert(ProjectAccessGroup)
+                .values(
+                    project_id=project_id,
+                    group_id=persisted_group_id,
+                )
+                .on_conflict_do_nothing()
+            )
             await self.session.execute(link_stmt)
 
         await self.session.commit()

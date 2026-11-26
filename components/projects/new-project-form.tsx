@@ -52,12 +52,27 @@ import { cn } from "@/lib/utils"
 import {
   createProject,
   ApiError,
-  getProjectMembers,
+  getProjectFolderAccess,
   recordAuditEvent,
   syncFolders,
   syncProjectGroups,
 } from "@/lib/api-client"
 import type { SessionUser } from "@/lib/types"
+
+function getSyncFailureMessage(error: unknown) {
+  const message =
+    error instanceof ApiError
+      ? error.message
+      : error instanceof Error
+        ? error.message
+        : ""
+
+  if (!message || /internal server error/i.test(message)) {
+    return "Não sincronizado: o serviço retornou um erro interno."
+  }
+
+  return `Não sincronizado: ${message}`
+}
 
 export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
   const router = useRouter()
@@ -65,7 +80,7 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
   const [nome, setNome] = useState("")
   const [codigo, setCodigo] = useState("")
   const [criadoEm, setCriadoEm] = useState(
-    new Date().toISOString().slice(0, 10)
+    () => new Date().toISOString().slice(0, 10)
   )
   const [areaResponsavel, setAreaResponsavel] = useState("")
   const [gestorProjeto, setGestorProjeto] = useState(
@@ -80,16 +95,16 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
   const [syncStep, setSyncStep] = useState<"folders" | "groups" | "members">(
     "folders"
   )
+  const [syncStepErrors, setSyncStepErrors] = useState<string[]>([])
   const [syncSummary, setSyncSummary] = useState<{
     projectId: string
     projectName: string
-    folders: number
-    foldersInserted: number
-    groups: number
-    groupsInserted: number
-    members: number
-    aclErrors: number
-    error?: string
+    folders: number | null
+    foldersInserted: number | null
+    groups: number | null
+    groupsInserted: number | null
+    members: number | null
+    errors: Array<{ item: string; message: string }>
   } | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -131,58 +146,73 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
 
       setSyncingProjectName(project.nome)
       setSyncStep("folders")
+      setSyncStepErrors([])
       setIsSyncingNetwork(true)
-      let folderCount = 0
-      let foldersInserted = 0
-      let groupCount = 0
-      let groupsInserted = 0
-      let memberCount = 0
-      let aclErrors = 0
+      let folderCount: number | null = null
+      let foldersInserted: number | null = null
+      let groupCount: number | null = null
+      let groupsInserted: number | null = null
+      let memberCount: number | null = null
+      const errors: Array<{ item: string; message: string }> = []
+
       try {
         const folderResult = await syncFolders(project.id, [], "folders")
         folderCount = folderResult.folders.length
         foldersInserted = folderResult.inserted
-
-        setSyncStep("groups")
-        const groupResult = await syncProjectGroups(project.id)
-        groupCount = groupResult.acl?.groups ?? 0
-        groupsInserted = groupResult.acl?.inserted ?? 0
-        aclErrors = groupResult.acl?.errors.length ?? 0
-
-        setSyncStep("members")
-        const memberResult = await getProjectMembers(project.id)
-        memberCount = memberResult.members.length
-
-        setSyncSummary({
-          projectId: project.id,
-          projectName: project.nome,
-          folders: folderCount,
-          foldersInserted,
-          groups: groupCount,
-          groupsInserted,
-          members: memberCount,
-          aclErrors,
-        })
-      } catch (syncError) {
-        setSyncSummary({
-          projectId: project.id,
-          projectName: project.nome,
-          folders: folderCount,
-          foldersInserted,
-          groups: groupCount,
-          groupsInserted,
-          members: memberCount,
-          aclErrors,
-          error:
-            syncError instanceof ApiError
-              ? syncError.message
-              : syncError instanceof Error
-                ? syncError.message
-                : "Não foi possível concluir a sincronização.",
-        })
-      } finally {
-        setIsSyncingNetwork(false)
+      } catch (error) {
+        errors.push({ item: "Pastas", message: getSyncFailureMessage(error) })
+        setSyncStepErrors((current) => [...current, "folders"])
       }
+
+      setSyncStep("groups")
+      try {
+        const groupResult = await syncProjectGroups(project.id)
+        groupCount = groupResult.acl?.groups ?? null
+        groupsInserted = groupResult.acl?.inserted ?? null
+        if (groupResult.acl?.errors.length) {
+          errors.push({
+            item: "Groups / Roles",
+            message: `Não sincronizado: ${groupResult.acl.errors.join("; ")}`,
+          })
+          setSyncStepErrors((current) => [...current, "groups"])
+        }
+      } catch (error) {
+        errors.push({
+          item: "Groups / Roles",
+          message: getSyncFailureMessage(error),
+        })
+        setSyncStepErrors((current) => [...current, "groups"])
+      }
+
+      setSyncStep("members")
+      try {
+        const folderAccess = await getProjectFolderAccess(project.id)
+        groupCount = Math.max(
+          groupCount ?? 0,
+          folderAccess.entries.filter((entry) => entry.tipo === "group").length
+        )
+        memberCount = new Set(
+          folderAccess.entries
+            .flatMap((entry) => entry.membros)
+            .map((member) => member.login.trim().toLocaleLowerCase())
+            .filter(Boolean)
+        ).size
+      } catch (error) {
+        errors.push({ item: "Membros", message: getSyncFailureMessage(error) })
+        setSyncStepErrors((current) => [...current, "members"])
+      }
+
+      setSyncSummary({
+        projectId: project.id,
+        projectName: project.nome,
+        folders: folderCount,
+        foldersInserted,
+        groups: groupCount,
+        groupsInserted,
+        members: memberCount,
+        errors,
+      })
+      setIsSyncingNetwork(false)
     } catch (err: unknown) {
       toast.error(
         err instanceof ApiError
@@ -278,28 +308,38 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
                   syncStep === "folders" ? 0 : syncStep === "groups" ? 1 : 2
                 const isDone = index < currentIndex
                 const isCurrent = index === currentIndex
+                const hasFailed = syncStepErrors.includes(id)
                 return (
                   <li
                     key={id}
                     className={cn(
                       "flex items-center gap-3 rounded-xl border p-3.5 transition-colors",
-                      isCurrent
-                        ? "border-petrobras-green/40 bg-petrobras-green/5"
-                        : "border-border/70 bg-background",
+                      hasFailed
+                        ? "border-destructive/40 bg-destructive/5"
+                        : isCurrent
+                          ? "border-petrobras-green/40 bg-petrobras-green/5"
+                          : "border-border/70 bg-background",
                       !isCurrent && !isDone && "opacity-55"
                     )}
                   >
                     <span
                       className={cn(
                         "flex size-10 shrink-0 items-center justify-center rounded-xl",
-                        isDone
-                          ? "bg-petrobras-green text-primary-foreground"
-                          : isCurrent
-                            ? "bg-petrobras-green/10 text-petrobras-green"
-                            : "bg-muted text-muted-foreground"
+                        hasFailed
+                          ? "bg-destructive/10 text-destructive"
+                          : isDone
+                            ? "bg-petrobras-green text-primary-foreground"
+                            : isCurrent
+                              ? "bg-petrobras-green/10 text-petrobras-green"
+                              : "bg-muted text-muted-foreground"
                       )}
                     >
-                      {isDone ? (
+                      {hasFailed ? (
+                        <AlertTriangleIcon
+                          className="size-5"
+                          aria-hidden="true"
+                        />
+                      ) : isDone ? (
                         <CheckCircle2Icon
                           className="size-5"
                           aria-hidden="true"
@@ -315,11 +355,20 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="font-semibold">{label}</span>
                       <span className="text-xs leading-5 text-muted-foreground">
-                        {detail}
+                        {hasFailed
+                          ? "Não sincronizado; as outras etapas continuam."
+                          : detail}
                       </span>
                     </span>
-                    <span className="shrink-0 text-xs font-medium text-muted-foreground">
-                      {isDone ? (
+                    <span
+                      className={cn(
+                        "shrink-0 text-xs font-medium",
+                        hasFailed ? "text-destructive" : "text-muted-foreground"
+                      )}
+                    >
+                      {hasFailed ? (
+                        "Não sincronizado"
+                      ) : isDone ? (
                         "Concluído"
                       ) : isCurrent ? (
                         <Loader2Icon
@@ -353,33 +402,41 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
             <div
               className={cn(
                 "flex size-12 items-center justify-center rounded-full",
-                syncSummary?.error
+                syncSummary?.errors.length
                   ? "bg-destructive/10 text-destructive"
                   : "bg-petrobras-green/10 text-petrobras-green"
               )}
             >
-              {syncSummary?.error ? (
+              {syncSummary?.errors.length ? (
                 <AlertTriangleIcon className="size-6" aria-hidden="true" />
               ) : (
                 <CheckCircle2Icon className="size-6" aria-hidden="true" />
               )}
             </div>
             <DialogTitle>
-              {syncSummary?.error
-                ? "Área criada com sincronização pendente"
+              {syncSummary?.errors.length
+                ? "Área criada com itens não sincronizados"
                 : "Área de rede sincronizada"}
             </DialogTitle>
             <DialogDescription>
-              {syncSummary?.error
-                ? `A área ${syncSummary.projectName} foi criada, mas não foi possível concluir a sincronização.`
+              {syncSummary?.errors.length
+                ? `A área ${syncSummary.projectName} foi criada. As etapas seguintes continuaram, mas alguns itens não foram sincronizados.`
                 : `A primeira leitura de ${syncSummary?.projectName} foi concluída.`}
             </DialogDescription>
           </DialogHeader>
 
-          {syncSummary?.error && (
+          {(syncSummary?.errors.length ?? 0) > 0 && (
             <Alert variant="destructive">
               <AlertTriangleIcon aria-hidden="true" />
-              <AlertDescription>{syncSummary.error}</AlertDescription>
+              <AlertDescription>
+                <ul className="flex flex-col gap-1">
+                  {syncSummary?.errors.map(({ item, message }) => (
+                    <li key={item}>
+                      <strong>{item}:</strong> {message}
+                    </li>
+                  ))}
+                </ul>
+              </AlertDescription>
             </Alert>
           )}
 
@@ -393,10 +450,13 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
                 Pastas
               </div>
               <span className="text-3xl font-semibold tracking-tight tabular-nums">
-                {syncSummary?.folders ?? 0}
+                {syncSummary?.folders ?? "—"}
               </span>
               <span className="text-xs text-muted-foreground">
-                {syncSummary?.foldersInserted ?? 0} novas
+                {syncSummary?.foldersInserted === null ||
+                syncSummary?.foldersInserted === undefined
+                  ? "— novas"
+                  : `${syncSummary.foldersInserted} novas`}
               </span>
             </div>
             <div className="flex flex-col gap-2 rounded-xl border border-petrobras-green/20 bg-petrobras-green/5 p-4">
@@ -408,10 +468,13 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
                 Groups / Roles
               </div>
               <span className="text-3xl font-semibold tracking-tight tabular-nums">
-                {syncSummary?.groups ?? 0}
+                {syncSummary?.groups ?? "—"}
               </span>
               <span className="text-xs text-muted-foreground">
-                {syncSummary?.groupsInserted ?? 0} novos
+                {syncSummary?.groupsInserted === null ||
+                syncSummary?.groupsInserted === undefined
+                  ? "— novos"
+                  : `${syncSummary.groupsInserted} novos`}
               </span>
             </div>
             <div className="flex flex-col gap-2 rounded-xl border border-petrobras-green/20 bg-petrobras-green/5 p-4">
@@ -423,23 +486,13 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
                 Membros
               </div>
               <span className="text-3xl font-semibold tracking-tight tabular-nums">
-                {syncSummary?.members ?? 0}
+                {syncSummary?.members ?? "—"}
               </span>
               <span className="text-xs text-muted-foreground">
-                vinculados à área
+                pessoas encontradas nos grupos da rede
               </span>
             </div>
           </div>
-
-          {(syncSummary?.aclErrors ?? 0) > 0 && (
-            <Alert>
-              <AlertTriangleIcon aria-hidden="true" />
-              <AlertDescription>
-                Alguns grupos não puderam ser lidos. Você pode tentar novamente
-                em Mapa de Acessos.
-              </AlertDescription>
-            </Alert>
-          )}
 
           <DialogFooter>
             <Button
