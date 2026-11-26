@@ -21,9 +21,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AccessGroupsEditor } from "@/components/projects/access-groups-editor"
 import { ResponsibleUserAutocomplete } from "@/components/projects/responsible-user-autocomplete"
-import type { ProjectAccessGroupInput } from "@/lib/api-client"
 import {
   Card,
   CardContent,
@@ -70,9 +68,6 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
   const [gestorProjeto, setGestorProjeto] = useState(
     currentUser.chaveCav4 ?? currentUser.userId ?? ""
   )
-  const [gruposAcesso, setGruposAcesso] = useState<ProjectAccessGroupInput[]>(
-    []
-  )
   const [numeroTarefaSnow, setNumeroTarefaSnow] = useState("")
   const [pastaMae, setPastaMae] = useState("")
   const [descricao, setDescricao] = useState("")
@@ -111,7 +106,6 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
         criadoEm,
         areaResponsavel: areaResponsavel.trim(),
         gestoresIds: [gestorProjeto.trim()],
-        gruposAcesso,
         numeroTarefaSnow: numeroTarefaSnow.trim(),
         pastaMae: pastaMae.trim(),
         descricao: descricao.trim(),
@@ -409,28 +403,6 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
                 value={gestorProjeto}
                 onChange={setGestorProjeto}
               />
-              <section
-                className="flex flex-col gap-3 rounded-xl border border-border p-4"
-                aria-labelledby="access-groups-heading"
-              >
-                <div>
-                  <h2
-                    id="access-groups-heading"
-                    className="text-base font-semibold"
-                  >
-                    Grupos e papéis de acesso
-                  </h2>
-                  <p className="text-sm leading-6 text-muted-foreground">
-                    Opcional: você pode cadastrar a área sem grupos ou papéis e
-                    configurar esses acessos depois. Nenhum membro precisa ser
-                    vinculado durante a criação.
-                  </p>
-                </div>
-                <AccessGroupsEditor
-                  value={gruposAcesso}
-                  onChange={setGruposAcesso}
-                />
-              </section>
               <div className="grid gap-4 md:grid-cols-2">
                 <Field>
                   <FieldLabel htmlFor="snow">

@@ -315,38 +315,6 @@ export function getProject(id: string) {
   return request<{ project: Project }>(`/api/projects/${id}`)
 }
 
-export type ProjectAccessGroupInput = {
-  groupName: string
-  identifier: string
-  principalType: "group" | "role"
-  accessLevel: string
-}
-export type ProjectAccessGroupRecord = ProjectAccessGroupInput & {
-  id: string
-  projectId: string
-  groupId: string
-  source: string
-  createdAt: string
-  updatedAt: string
-}
-
-export type ProjectGroupCatalogRecord = {
-  id: string
-  identifier: string
-  groupName: string
-  principalType: "group" | "role"
-}
-
-export function searchProjectGroupsCatalog(
-  search: string,
-  principalType: "group" | "role"
-) {
-  const params = new URLSearchParams({ search, principalType })
-  return request<ProjectGroupCatalogRecord[]>(
-    `/api/projects/groups/catalog?${params.toString()}`
-  )
-}
-
 export type ResponsibleCandidate = { userId: string }
 
 export function searchResponsibleCandidates(search: string) {
@@ -357,7 +325,6 @@ export function searchResponsibleCandidates(search: string) {
 }
 
 export function createProject(data: {
-  gruposAcesso: ProjectAccessGroupInput[]
   nome: string
   codigo?: string
   criadoEm: string
@@ -383,42 +350,6 @@ export function updateProject(id: string, data: Partial<Project>) {
 
 export function deleteProject(id: string) {
   return request<void>(`/api/projects/${id}`, { method: "DELETE" })
-}
-
-export function getProjectAccessGroups(projectId: string) {
-  return request<{
-    projectId: string
-    projectName: string
-    groups: ProjectAccessGroupRecord[]
-    total: number
-  }>(`/api/projects/${projectId}/access-groups`)
-}
-
-export function addProjectAccessGroup(
-  projectId: string,
-  data: ProjectAccessGroupInput
-) {
-  return request<ProjectAccessGroupRecord>(
-    `/api/projects/${projectId}/access-groups`,
-    { method: "POST", body: JSON.stringify(data) }
-  )
-}
-
-export function updateProjectAccessGroup(
-  projectId: string,
-  groupId: string,
-  data: Partial<ProjectAccessGroupInput>
-) {
-  return request<ProjectAccessGroupRecord>(
-    `/api/projects/${projectId}/access-groups/${groupId}`,
-    { method: "PATCH", body: JSON.stringify(data) }
-  )
-}
-
-export function deleteProjectAccessGroup(projectId: string, groupId: string) {
-  return request<void>(`/api/projects/${projectId}/access-groups/${groupId}`, {
-    method: "DELETE",
-  })
 }
 
 export type FolderAccessStatus =

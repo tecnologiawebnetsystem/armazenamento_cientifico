@@ -19,7 +19,6 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import { getProjectAccessMap } from "@/lib/api-client"
-import { ProjectAccessGroupsManager } from "@/components/projects/project-access-groups-manager"
 import { ProjectFolderAccessPanel } from "@/components/projects/project-folder-access-panel"
 import { ProjectMembersManager } from "@/components/projects/project-members-manager"
 import { useCan } from "@/hooks/use-permissions"
@@ -134,7 +133,6 @@ export function ProjectMembersTab({
                 ))}
               </div>
             )}
-            {canManage && <ProjectAccessGroupsManager projectId={projectId} />}
             {canViewFolderAccess && (
               <ProjectFolderAccessPanel projectId={projectId} />
             )}
