@@ -112,6 +112,12 @@ class FolderService:
 
             for directory_name in directory_names:
                 path = str(Path(current_path) / directory_name)
+                relative_path = Path(path).relative_to(root).as_posix()
+                logger.info(
+                    "folders_network_subfolder_found project_id=%s relative_path=%r",
+                    project_id,
+                    relative_path,
+                )
                 folder_id = str(uuid5(NAMESPACE_URL, f"{project_id}:{path}"))
                 parent_ids[path] = folder_id
                 folders.append(
