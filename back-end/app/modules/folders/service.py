@@ -61,6 +61,10 @@ class FolderService:
                 parent_folder,
                 (perf_counter() - started_at) * 1000,
             )
+            if isinstance(error, (FileNotFoundError, NotADirectoryError)):
+                raise FolderSourceUnavailable(
+                    "A pasta raiz não existe ou não está acessível pelo servidor."
+                ) from error
             raise FolderSourceUnavailable("Não foi possível listar as pastas da área de rede.") from error
 
         logger.info(
@@ -73,13 +77,9 @@ class FolderService:
         return folders
 
     async def list_project_folders_with_source(self, project_id: str) -> tuple[list[Folder], str]:
-        """Exibe o cadastro local primeiro e consulta a rede apenas se estiver vazio."""
+        """Lista o cadastro local; a leitura da rede ocorre apenas na sincronização explícita."""
         stored_folders = await self.list_folders_by_project(project_id)
-        if stored_folders:
-            return stored_folders, "tabela"
-
-        live_folders = await self.read_live_project_folders(project_id)
-        return live_folders or [], "rede"
+        return stored_folders, "tabela"
 
     async def list_project_folders(self, project_id: str) -> list[Folder]:
         folders, _source = await self.list_project_folders_with_source(project_id)
@@ -120,7 +120,7 @@ class FolderService:
                         created_by="filesystem",
                         created_at=now,
                         updated_at=now,
-                        size=FolderService._directory_size(path) if current_path == str(root) else 0,
+                        size=0,
                     )
                 )
 
@@ -146,15 +146,12 @@ class FolderService:
         parent_folder = (project.parent_folder if project else "").strip()
         if not parent_folder:
             raise ValueError("O projeto não possui pasta raiz de rede cadastrada.")
-        if not Path(parent_folder).is_dir():
-            logger.error(
-                "folders_sync_root_unavailable project_id=%s root=%r",
-                project_id,
-                parent_folder,
-            )
-            raise FolderSourceUnavailable("A pasta raiz não existe ou não está acessível pelo servidor.")
-
         if not hasattr(self.repository, "reconcile"):
+            root_exists = await asyncio.to_thread(Path(parent_folder).is_dir)
+            if not root_exists:
+                raise FolderSourceUnavailable(
+                    "A pasta raiz não existe ou não está acessível pelo servidor."
+                )
             return await self._sync_legacy(project_id, user_id, str(folders))
 
         source = "rede"
