@@ -52,6 +52,7 @@ import { cn } from "@/lib/utils"
 import {
   createProject,
   ApiError,
+  getFolders,
   getProjectFolderAccess,
   recordAuditEvent,
   syncFolders,
@@ -169,10 +170,16 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
         const groupResult = await syncProjectGroups(project.id)
         groupCount = groupResult.acl?.groups ?? null
         groupsInserted = groupResult.acl?.inserted ?? null
-        if (groupResult.acl?.errors.length) {
+        if (!groupResult.acl) {
           errors.push({
             item: "Groups / Roles",
-            message: `Não sincronizado: ${groupResult.acl.errors.join("; ")}`,
+            message: "A API não retornou o resultado da sincronização.",
+          })
+          setSyncStepErrors((current) => [...current, "groups"])
+        } else if (groupResult.acl.errors.length > 0) {
+          errors.push({
+            item: "Groups / Roles",
+            message: `Sincronização parcial: ${groupResult.acl.errors.join("; ")}`,
           })
           setSyncStepErrors((current) => [...current, "groups"])
         }
@@ -202,6 +209,38 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
         setSyncStepErrors((current) => [...current, "members"])
       }
 
+      const [savedFoldersResult, savedAccessResult] = await Promise.allSettled([
+        getFolders(project.id),
+        getProjectFolderAccess(project.id),
+      ])
+
+      if (savedFoldersResult.status === "fulfilled") {
+        folderCount = savedFoldersResult.value.folders.filter(
+          (folder) => folder.tipo !== "arquivo"
+        ).length
+      } else {
+        errors.push({
+          item: "Pastas no banco",
+          message: getSyncFailureMessage(savedFoldersResult.reason),
+        })
+      }
+
+      if (savedAccessResult.status === "fulfilled") {
+        const savedEntries = savedAccessResult.value.entries
+        groupCount = savedEntries.filter((entry) => entry.tipo === "group").length
+        memberCount = new Set(
+          savedEntries
+            .flatMap((entry) => entry.membros)
+            .map((member) => member.login.trim().toLocaleLowerCase())
+            .filter(Boolean)
+        ).size
+      } else {
+        errors.push({
+          item: "Grupos e membros no banco",
+          message: getSyncFailureMessage(savedAccessResult.reason),
+        })
+      }
+
       setSyncSummary({
         projectId: project.id,
         projectName: project.nome,
@@ -214,6 +253,7 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
       })
       setIsSyncingNetwork(false)
     } catch (err: unknown) {
+      setIsSyncingNetwork(false)
       toast.error(
         err instanceof ApiError
           ? err.message

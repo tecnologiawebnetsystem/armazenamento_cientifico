@@ -127,6 +127,13 @@ class FolderRepository:
         skipped = 0
 
         for item in groups:
+            existing_group_id = await self.session.scalar(
+                select(ProjectGroup.group_id).where(
+                    ProjectGroup.project_id == project_id,
+                    ProjectGroup.principal_type == item["principal_type"],
+                    ProjectGroup.identifier == item["identifier"],
+                )
+            )
             group_stmt = pg_insert(ProjectGroup).values(
                 group_id=item["group_id"],
                 project_id=project_id,
@@ -150,7 +157,10 @@ class FolderRepository:
             result = await self.session.execute(group_stmt)
             persisted_group_id = result.scalar_one_or_none()
             if result.rowcount and result.rowcount > 0:
-                inserted += 1
+                if existing_group_id is None:
+                    inserted += 1
+                else:
+                    updated += 1
             else:
                 skipped += 1
 
