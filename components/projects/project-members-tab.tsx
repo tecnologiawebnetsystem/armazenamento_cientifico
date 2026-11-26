@@ -20,7 +20,10 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { getProjectAccessMap } from "@/lib/api-client"
+import {
+  getProjectAccessMap,
+  getProjectFolderAccess,
+} from "@/lib/api-client"
 import { ProjectFolderAccessPanel } from "@/components/projects/project-folder-access-panel"
 import { useCan } from "@/hooks/use-permissions"
 
@@ -37,6 +40,20 @@ export function ProjectMembersTab({
   const members = data?.members ?? []
   const groups = data?.groups ?? []
   const canViewFolderAccess = useCan("pesquisa.visualizar")
+  const { data: folderAccess } = useSWR(
+    canViewFolderAccess ? ["project-folder-access", projectId] : null,
+    () => getProjectFolderAccess(projectId),
+    { revalidateOnFocus: false }
+  )
+  const memberCount = folderAccess
+    ? new Set(
+        folderAccess.entries.flatMap((entry) =>
+          entry.membros
+            .map((member) => member.login.trim().toLowerCase())
+            .filter(Boolean)
+        )
+      ).size
+    : members.length
   const [syncButtonContainer, setSyncButtonContainer] =
     useState<HTMLDivElement | null>(null)
 
@@ -53,7 +70,7 @@ export function ProjectMembersTab({
                 Acessos da área
               </CardTitle>
               <CardDescription>
-                Grupos recebidos da integração e pessoas com acesso.
+                Grupos recebidos da integração e membros com acesso.
               </CardDescription>
             </div>
           </div>
@@ -63,8 +80,8 @@ export function ProjectMembersTab({
                 {groups.length}{" "}
                 {groups.length === 1 ? "grupo/role" : "grupos/roles"}
               </Badge>
-              <Badge variant="secondary">
-                {members.length} {members.length === 1 ? "pessoa" : "pessoas"}
+              <Badge variant="secondary" aria-live="polite">
+                {folderAccess ? memberCount : "—"} membros
               </Badge>
             </div>
             {canViewFolderAccess && (
