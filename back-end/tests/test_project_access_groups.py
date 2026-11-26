@@ -401,3 +401,32 @@ async def test_project_access_group_creation_requires_project_scope(client):
     )
 
     assert response.status_code == 403
+
+
+async def test_project_folder_access_lists_sigac_groups_for_allowed_profiles(client, monkeypatch):
+    from app.infrastructure.directory import DirectoryResolver
+    from app.modules.projects import controller
+
+    http, user, project_ids = client
+    monkeypatch.setattr(
+        controller.DirectoryResolver,
+        "from_settings",
+        classmethod(lambda cls, _settings: (DirectoryResolver([], member_limit=10), [])),
+    )
+    await http.post(
+        f"/api/projects/{project_ids['a']}/access-groups",
+        json={"groupName": "Grupo da pasta", "groupId": "entra-pasta", "accessLevel": "escrita"},
+    )
+
+    response = await http.get(f"/api/projects/{project_ids['a']}/folder-access")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["aclStatus"] == "sem_pasta"
+    assert [(entry["grupo"], entry["nivelSigac"]) for entry in body["entries"]] == [
+        ("Grupo da pasta", "escrita")
+    ]
+
+    user.update({"role": "solicitante", "permissions": []})
+    denied = await http.get(f"/api/projects/{project_ids['a']}/folder-access")
+    assert denied.status_code == 403

@@ -96,6 +96,14 @@ class Settings(BaseSettings):
     entra_tenant_id: str = ""
     entra_client_id: str = ""
     entra_client_secret: str = ""
+    ad_ldap_server: str = ""
+    ad_ldap_bind_user: str = ""
+    ad_ldap_bind_password: str = ""
+    ad_ldap_bind_dn: str = ""
+    ad_ldap_base_dn: str = ""
+    ad_ldap_use_ssl: bool = False
+    folder_access_max_members: int = 500
+    folder_access_timeout_seconds: int = 45
 
     @property
     def is_sqlite(self) -> bool:

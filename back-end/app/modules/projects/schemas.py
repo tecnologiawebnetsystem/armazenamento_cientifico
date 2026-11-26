@@ -147,3 +147,48 @@ class ProjectGroupCatalogOut(BaseModel):
     identifier: str
     groupName: str
     principalType: PrincipalType
+
+
+FolderAccessStatus = Literal[
+    "conforme", "nivel_divergente", "somente_sigac", "somente_rede", "nao_verificado", "papel_aplicacao"
+]
+
+
+class FolderAccessMemberOut(BaseModel):
+    login: str
+    nome: str
+    email: str = ""
+
+
+class FolderAccessEntryOut(BaseModel):
+    """Um principal com acesso à pasta: cadastrado no SIGAC, presente na ACL ou ambos."""
+
+    grupo: str
+    identificador: str | None = None
+    sid: str | None = None
+    tipo: Literal["group", "user", "wellknown", "unix", "unknown", "role"]
+    nivelSigac: str | None = None
+    nivelRede: str | None = None
+    direitosRede: str | None = None
+    negado: bool = False
+    herdado: bool = False
+    situacao: FolderAccessStatus
+    acessoAmplo: bool = False
+    fonteDiretorio: str
+    membros: list[FolderAccessMemberOut] = Field(default_factory=list)
+    membrosFonte: str | None = None
+    membrosTruncados: bool = False
+
+
+class FolderAccessOut(BaseModel):
+    projectId: str
+    projectName: str
+    pasta: str
+    aclStatus: Literal["ok", "indisponivel", "sem_pasta"]
+    aclMensagem: str | None = None
+    herancaBloqueada: bool | None = None
+    proprietario: str | None = None
+    entries: list[FolderAccessEntryOut]
+    alertas: list[str] = Field(default_factory=list)
+    avisos: list[str] = Field(default_factory=list)
+    consultadoEm: datetime

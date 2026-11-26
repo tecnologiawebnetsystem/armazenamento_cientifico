@@ -2,7 +2,6 @@ from sqlalchemy import String, delete, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.base import Base
-from app.db import models as _registered_models
 from app.modules.catalogs.models import ResponsibleArea
 from app.modules.folders.models import Folder
 from app.modules.projects.models import (

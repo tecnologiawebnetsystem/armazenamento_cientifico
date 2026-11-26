@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.folders.models import Folder
@@ -94,3 +95,55 @@ class FolderRepository:
             await self.session.flush()
             return True
         return False
+
+    async def upsert_access_groups(self, project_id: str, groups: list[dict]) -> dict[str, int]:
+        """Insere ou atualiza project_groups + project_access_groups com upsert.
+
+        Retorna contadores: inserted, updated, skipped.
+        """
+        from app.modules.projects.models import ProjectAccessGroup, ProjectGroup
+
+        if not groups:
+            return {"inserted": 0, "updated": 0, "skipped": 0}
+
+        inserted = 0
+        updated = 0
+        skipped = 0
+
+        for item in groups:
+            group_stmt = pg_insert(ProjectGroup).values(
+                group_id=item["group_id"],
+                project_id=project_id,
+                identifier=item["identifier"],
+                group_name=item["group_name"],
+                principal_type=item["principal_type"],
+                access_level=item["access_level"],
+                source=item.get("source", "rede"),
+            )
+            group_stmt = group_stmt.on_conflict_do_update(
+                constraint="uq_project_groups_project_type_identifier",
+                set_={
+                    "group_name": group_stmt.excluded.group_name,
+                    "access_level": group_stmt.excluded.access_level,
+                    "source": group_stmt.excluded.source,
+                    "updated_at": group_stmt.excluded.updated_at,
+                },
+                where=(ProjectGroup.source == "rede"),
+            )
+            result = await self.session.execute(group_stmt)
+            # on_conflict_do_update: rowcount > 0 indica insert ou update
+            if result.rowcount and result.rowcount > 0:
+                inserted += 1
+            else:
+                # Se não atualizou (source != "rede"), conta como skipped
+                skipped += 1
+
+            # Upsert na tabela de vínculo
+            link_stmt = pg_insert(ProjectAccessGroup).values(
+                project_id=project_id,
+                group_id=item["group_id"],
+            ).on_conflict_do_nothing()
+            await self.session.execute(link_stmt)
+
+        await self.session.commit()
+        return {"inserted": inserted, "updated": updated, "skipped": skipped}

@@ -20,7 +20,9 @@ import {
 } from "@/components/ui/empty"
 import { getProjectAccessMap } from "@/lib/api-client"
 import { ProjectAccessGroupsManager } from "@/components/projects/project-access-groups-manager"
+import { ProjectFolderAccessPanel } from "@/components/projects/project-folder-access-panel"
 import { ProjectMembersManager } from "@/components/projects/project-members-manager"
+import { useCan } from "@/hooks/use-permissions"
 
 export function ProjectMembersTab({
   projectId,
@@ -35,6 +37,7 @@ export function ProjectMembersTab({
   )
   const members = data?.members ?? []
   const groups = data?.groups ?? []
+  const canViewFolderAccess = useCan("pesquisa.visualizar")
 
   return (
     <Card className="overflow-hidden border-border/80 shadow-sm">
@@ -132,6 +135,9 @@ export function ProjectMembersTab({
               </div>
             )}
             {canManage && <ProjectAccessGroupsManager projectId={projectId} />}
+            {canViewFolderAccess && (
+              <ProjectFolderAccessPanel projectId={projectId} />
+            )}
             <ProjectMembersManager
               projectId={projectId}
               canManage={canManage}

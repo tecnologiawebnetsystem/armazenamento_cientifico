@@ -1,11 +1,16 @@
 import asyncio
+import logging
 import os
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5
 
+from app.core.config import get_settings
+from app.infrastructure.directory import DirectoryResolver
 from app.modules.folders.models import Folder
 from app.modules.folders.repository import FolderRepository
+
+logger = logging.getLogger(__name__)
 
 
 class FolderService:
@@ -192,6 +197,44 @@ class FolderService:
 
     async def resolve_created_by(self, identifiers: list[str]) -> str | None:
         return await self.repository.find_user_database_id(identifiers)
+
+    async def sync_folder_acl(self, project_id: str) -> dict:
+        """Lê a ACL real da pasta raiz e popula project_access_groups."""
+        project = await self.repository.find_project(project_id)
+        folder = (project.parent_folder if project else "").strip()
+        if not folder:
+            return {"folder": "", "groups": 0, "inserted": 0, "skipped": 0, "errors": ["Projeto sem pasta raiz cadastrada."]}
+
+        from app.modules.projects.folder_access import sync_folder_acl
+
+        settings = get_settings()
+        resolver, warnings = DirectoryResolver.from_settings(settings)
+        try:
+            sync_result = sync_folder_acl(folder, project_id, resolver)
+        finally:
+            resolver.close()
+
+        if sync_result.errors and not sync_result.inserted:
+            return {"folder": folder, "groups": 0, "inserted": 0, "skipped": 0, "errors": sync_result.errors}
+
+        counters = await self.repository.upsert_access_groups(project_id, sync_result.inserted)
+        logger.info(
+            "folder_acl_sync project_id=%s folder=%s groups=%d inserted=%d skipped=%d errors=%d",
+            project_id,
+            folder,
+            len(sync_result.inserted),
+            counters["inserted"],
+            counters.get("skipped", 0),
+            len(sync_result.errors),
+        )
+        return {
+            "folder": folder,
+            "groups": len(sync_result.inserted),
+            "inserted": counters["inserted"],
+            "skipped": counters.get("skipped", 0),
+            "errors": sync_result.errors,
+            "warnings": warnings,
+        }
 
     # async def list_subfolders(self, parent_id: str) -> list[Folder]:
     #     return await self.repository.list_by_parent(parent_id)

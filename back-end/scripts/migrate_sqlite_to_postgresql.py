@@ -1,13 +1,13 @@
-from __future__ import annotations
-
 """Sincroniza o banco SQLite canônico com o PostgreSQL.
 
-python scripts/migrate_sqlite_to_postgresql.py        # somente diagnóstico
-python scripts/migrate_sqlite_to_postgresql.py --apply # aplica os dados
+uv run python scripts/migrate_sqlite_to_postgresql.py        # somente diagnóstico
+uv run python scripts/migrate_sqlite_to_postgresql.py --apply # aplica os dados
 
 O SQLite é a fonte de verdade. O modo --apply executa a sincronização em uma
 transação, sem tocar nas tabelas de autenticação gerenciadas pelo provedor.
 """
+
+from __future__ import annotations
 
 import argparse
 import asyncio
@@ -34,6 +34,7 @@ TABLE_MAP = {
     "status_projetos": "project_statuses",
     "tipos_projetos": "project_types",
     "tipos_relatorios": "report_types",
+    "configuracoes_sistema": "system_settings",
 }
 COLUMN_MAP = {
     "nome": "name", "descricao": "description", "criado_em": "created_at",
@@ -48,7 +49,7 @@ COLUMN_MAP = {
 # Dependências primeiro: a limpeza ocorre na ordem inversa para respeitar FKs.
 PREFERRED_ORDER = [
     "profiles", "users", "modules", "permissions", "profile_permissions", "profile_modules",
-    "project_statuses", "project_types", "report_types", "report_fields",
+    "project_statuses", "project_types", "system_settings", "report_types", "report_fields",
     "menus", "projects", "project_members", "folders", "access_requests", "activity_logs", "permission_matrix", "responsible_areas",
 ]
 

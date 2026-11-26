@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import UTC, datetime
 from typing import Annotated
@@ -8,8 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, require_capabilities
 from app.core.authorization import require_capability
+from app.core.config import get_settings
 from app.core.exceptions import ConflictException
 from app.db.session import get_session
+from app.infrastructure.directory import DirectoryResolver
+from app.infrastructure.folder_acl import read_folder_acl
+from app.modules.projects.folder_access import StoredGroup, build_folder_access
 from app.modules.projects.models import Project, ProjectAccessGroup, ProjectGroup
 from app.modules.projects.repository import ProjectRepository
 from app.modules.projects.schemas import (
@@ -18,6 +23,7 @@ from app.modules.projects.schemas import (
     AccessGroupPatch,
     AccessMapGroupOut,
     AccessMapOut,
+    FolderAccessOut,
     ProjectAccessGroupsOut,
     ProjectCreate,
     ProjectGroupCatalogOut,
@@ -480,6 +486,74 @@ async def list_project_access_groups(
         ],
         total=len(groups),
     )
+
+
+@router.get(
+    "/{project_id}/folder-access",
+    response_model=FolderAccessOut,
+    summary="Consultar acessos da pasta do projeto",
+    description=(
+        "Compara os grupos cadastrados no SIGAC com a ACL real da pasta raiz e lista os membros "
+        "de cada grupo no diretório (AD/Entra ID)."
+    ),
+    responses={
+        403: {"description": "Usuário sem a permissão pesquisa.visualizar ou fora do escopo do projeto."},
+        404: {"description": "Projeto inexistente."},
+        504: {"description": "A pasta ou o diretório não responderam dentro do tempo limite."},
+    },
+)
+async def get_project_folder_access(
+    request: Request,
+    project_id: str,
+    service: Annotated[ProjectService, Depends(get_service)],
+    user: Annotated[dict, Depends(require_capabilities("access_map"))],
+):
+    project = await service.get_project(project_id)
+    if not project:
+        raise project_not_found()
+    role = user.get("role") or "solicitante"
+    if not await service.can_view(project_id, str(user.get("user_id") or user["id"]), str(role)):
+        raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
+    stored_groups = [
+        StoredGroup(
+            name=principal.group_name,
+            identifier=principal.identifier,
+            principal_type=principal.principal_type,
+            access_level=principal.access_level,
+        )
+        for principal, _association in await service.list_access_groups(project_id)
+    ]
+    settings = get_settings()
+
+    def build() -> FolderAccessOut:
+        resolver, warnings = DirectoryResolver.from_settings(settings)
+        try:
+            return build_folder_access(
+                project_id=project_id,
+                project_name=project.name or "",
+                folder=(project.parent_folder or "").strip(),
+                stored_groups=stored_groups,
+                resolver=resolver,
+                read_acl=read_folder_acl,
+                warnings=warnings,
+            )
+        finally:
+            resolver.close()
+
+    try:
+        result = await asyncio.wait_for(asyncio.to_thread(build), timeout=settings.folder_access_timeout_seconds)
+    except TimeoutError as error:
+        logger.warning("folder_access_timeout project_id=%s", project_id)
+        raise HTTPException(status_code=504, detail="A pasta ou o diretório não responderam a tempo") from error
+    mark_audit(
+        request,
+        action="consultar-acessos-pasta",
+        entity="projeto",
+        entity_id=project_id,
+        project_id=project_id,
+        details={"projeto": project.name, "acl": result.aclStatus, "principais": len(result.entries), "alertas": len(result.alertas)},
+    )
+    return result
 
 
 @router.post("/{project_id}/access-groups", response_model=AccessGroupOut, status_code=201)

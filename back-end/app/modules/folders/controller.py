@@ -59,8 +59,20 @@ async def sync_folders(
         )
         source = trace.get("source", "tabela")
         updated = trace.get("updated", 0)
+
+        # Sincroniza a ACL da pasta raiz com project_access_groups
+        acl_sync: dict = {}
+        try:
+            acl_sync = await service.sync_folder_acl(project_id)
+        except Exception:
+            logger.exception("folder_acl_sync_failed project_id=%s", project_id)
+
         logger.info("folders_sync_success project_id=%s source=%s inserted=%s updated=%s total=%s", project_id, source, inserted, updated, len(folders))
-        return {"folders": folders, "inserted": inserted, "updated": updated, "existing": existing, "integrity": integrity, "trace": trace, "source": source}
+        return {
+            "folders": folders, "inserted": inserted, "updated": updated, "existing": existing,
+            "integrity": integrity, "trace": trace, "source": source,
+            "acl": acl_sync,
+        }
     except Exception:
         logger.exception("folders_sync_failed project_id=%s", project_id)
         raise

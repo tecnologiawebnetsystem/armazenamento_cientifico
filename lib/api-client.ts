@@ -421,6 +421,52 @@ export function deleteProjectAccessGroup(projectId: string, groupId: string) {
   })
 }
 
+export type FolderAccessStatus =
+  | "conforme"
+  | "nivel_divergente"
+  | "somente_sigac"
+  | "somente_rede"
+  | "nao_verificado"
+  | "papel_aplicacao"
+
+export type ProjectFolderAccessEntry = {
+  grupo: string
+  identificador: string | null
+  sid: string | null
+  tipo: string
+  nivelSigac: string | null
+  nivelRede: string | null
+  direitosRede: string | null
+  negado: boolean
+  herdado: boolean
+  situacao: FolderAccessStatus
+  acessoAmplo: boolean
+  fonteDiretorio: string
+  membros: Array<{ login: string; nome: string; email: string }>
+  membrosFonte: string | null
+  membrosTruncados: boolean
+}
+
+export type ProjectFolderAccess = {
+  projectId: string
+  projectName: string
+  pasta: string
+  aclStatus: "ok" | "indisponivel" | "sem_pasta"
+  aclMensagem: string | null
+  herancaBloqueada: boolean | null
+  proprietario: string | null
+  entries: ProjectFolderAccessEntry[]
+  alertas: string[]
+  avisos: string[]
+  consultadoEm: string
+}
+
+export function getProjectFolderAccess(projectId: string) {
+  return request<ProjectFolderAccess>(
+    `/api/projects/${projectId}/folder-access`
+  )
+}
+
 export function getProjectAccessMap(projectId: string) {
   return request<{
     project: Project
@@ -509,6 +555,14 @@ export function syncFolders(projectId: string, folders: FileNode[]) {
     inserted: number
     updated: number
     source: "rede" | "tabela"
+    acl?: {
+      folder: string
+      groups: number
+      inserted: number
+      skipped: number
+      errors: string[]
+      warnings?: string[]
+    }
   }>(`/api/folders/sync?projectId=${encodeURIComponent(projectId)}`, {
     method: "POST",
     body: JSON.stringify({

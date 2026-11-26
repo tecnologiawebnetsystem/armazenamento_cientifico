@@ -26,7 +26,7 @@ function parentId(folder: FileNode) {
 export function ProjectFileExplorer({ projectId, projectName }: { projectId: string; projectName: string }) {
   const { data, isLoading, error, mutate } = useSWR(["project-folders", projectId], () => getFolders(projectId))
   const [isSyncing, setIsSyncing] = useState(false)
-  const [syncResult, setSyncResult] = useState<{ inserted: number; updated: number; total: number; source: "rede" | "tabela"; projectName: string } | null>(null)
+  const [syncResult, setSyncResult] = useState<{ inserted: number; updated: number; total: number; source: "rede" | "tabela"; projectName: string; aclGroups?: number; aclInserted?: number } | null>(null)
 
   async function handleSync() {
     setIsSyncing(true)
@@ -43,11 +43,33 @@ export function ProjectFileExplorer({ projectId, projectName }: { projectId: str
           atualizados: result.updated,
           total: result.folders.length,
           fonte: result.source,
+          acl_grupos: result.acl?.groups ?? 0,
+          acl_inseridos: result.acl?.inserted ?? 0,
         },
       }).catch(() => undefined)
       await mutate(result, false)
+      // Invalida o cache do folder-access para o painel refletir os grupos sincronizados
+      const { mutate: globalMutate } = await import("swr")
+      await globalMutate(
+        (key: unknown) => {
+          if (!Array.isArray(key)) return false
+          return key[0] === "project-folder-access" && key[1] === projectId
+        },
+        undefined,
+        { revalidate: false },
+      )
+      // Dispara evento para o ProjectFolderAccessPanel se atualizar
+      window.dispatchEvent(new CustomEvent("folder-access-sync", { detail: { projectId } }))
       if (result.inserted > 0 || result.folders.length > 0) {
-        setSyncResult({ inserted: result.inserted, updated: result.updated, total: result.folders.length, source: result.source, projectName })
+        setSyncResult({
+          inserted: result.inserted,
+          updated: result.updated,
+          total: result.folders.length,
+          source: result.source,
+          projectName,
+          aclGroups: result.acl?.groups,
+          aclInserted: result.acl?.inserted,
+        })
       } else {
         toast.error("Nenhuma pasta foi encontrada para cadastrar.")
       }
@@ -82,6 +104,7 @@ export function ProjectFileExplorer({ projectId, projectName }: { projectId: str
               {syncResult?.inserted
                 ? `${syncResult.inserted} ${syncResult.inserted === 1 ? "pasta foi inserida" : "pastas foram inseridas"} na tabela de pastas.`
                 : `${syncResult?.updated ?? 0} registros foram processados e tiveram os dados atualizados.`}
+              {syncResult?.aclInserted != null ? ` ${syncResult.aclInserted} grupo(s) de acesso sincronizados da ACL.` : ""}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 rounded-lg border bg-muted/30 p-4 text-sm">
@@ -101,6 +124,12 @@ export function ProjectFileExplorer({ projectId, projectName }: { projectId: str
               <span className="text-muted-foreground">Registros atualizados</span>
               <span className="font-semibold">{syncResult?.updated ?? 0}</span>
             </div>
+            {syncResult?.aclGroups != null && (
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-muted-foreground">Grupos de acesso (ACL)</span>
+                <span className="font-semibold text-petrobras-green">{syncResult.aclGroups}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">Fonte da atualização</span>
               <span className="font-medium">{syncResult?.source === "rede" ? "Área de rede" : "Tabela local"}</span>
