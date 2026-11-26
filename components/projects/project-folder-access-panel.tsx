@@ -58,16 +58,6 @@ function FolderAccessRow({ entry }: { entry: ProjectFolderAccessEntry }) {
       <TableRow>
         <TableCell className="max-w-72">
           <p className="font-medium break-all">{entry.grupo}</p>
-          {entry.identificador && entry.identificador !== entry.grupo && (
-            <p className="text-xs break-all text-muted-foreground">
-              <span className="font-medium">Identificador SIGAC:</span> {entry.identificador}
-            </p>
-          )}
-          {entry.sid && (
-            <p className="text-xs break-all text-muted-foreground">
-              <span className="font-medium">ObjectSid:</span> {entry.sid}
-            </p>
-          )}
           <div className="mt-1 flex flex-wrap gap-1">
             {entry.acessoAmplo && (
               <Badge variant="destructive">Acesso amplo</Badge>
@@ -75,6 +65,12 @@ function FolderAccessRow({ entry }: { entry: ProjectFolderAccessEntry }) {
             {entry.negado && <Badge variant="destructive">Negação</Badge>}
             {entry.herdado && <Badge variant="outline">Herdado</Badge>}
           </div>
+        </TableCell>
+        <TableCell className="max-w-64 break-all text-sm">
+          {entry.identificador || "—"}
+        </TableCell>
+        <TableCell className="max-w-72 break-all font-mono text-xs">
+          {entry.sid || "—"}
         </TableCell>
         <TableCell>{levelLabel(entry.nivelSigac)}</TableCell>
         <TableCell>
@@ -109,7 +105,7 @@ function FolderAccessRow({ entry }: { entry: ProjectFolderAccessEntry }) {
       </TableRow>
       {open && (
         <TableRow className="bg-muted/30 hover:bg-muted/30">
-          <TableCell colSpan={5}>
+          <TableCell colSpan={7}>
             <ul className="grid gap-1 text-sm sm:grid-cols-2 lg:grid-cols-3">
               {entry.membros.map((member) => (
                 <li key={member.login} className="truncate">
@@ -301,6 +297,8 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Grupo / identidade</TableHead>
+                  <TableHead>Identificador SIGAC</TableHead>
+                  <TableHead>ObjectSid</TableHead>
                   <TableHead>Nível SIGAC</TableHead>
                   <TableHead>Permissão na rede</TableHead>
                   <TableHead>Situação</TableHead>
