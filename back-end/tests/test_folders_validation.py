@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from app.modules.folders.service import FolderService
+from app.modules.folders.service import FolderService, FolderSourceUnavailable
 
 
 class FakeProject:
@@ -79,7 +79,7 @@ async def test_sync_is_idempotent_after_first_insert(tmp_path: Path):
 async def test_sync_rejects_missing_parent_folder(tmp_path: Path):
     repository = FakeRepository(str(tmp_path / "does-not-exist"))
 
-    with pytest.raises(ValueError, match="não existe"):
+    with pytest.raises(FolderSourceUnavailable, match="não existe ou não está acessível"):
         await FolderService(repository).sync_project_folders("project-1", "user-1", "request-1")
 
 
@@ -120,3 +120,62 @@ async def test_listing_uses_network_only_when_database_is_empty(tmp_path: Path, 
 
 async def _async_value(value):
     return value
+
+
+def test_live_folder_scan_returns_nested_folders_with_parent_links(tmp_path: Path):
+    root = tmp_path / "root"
+    nested = root / "Área A" / "Subárea B"
+    nested.mkdir(parents=True)
+    (root / "Área A" / "documento.txt").write_bytes(b"1234")
+
+    folders = FolderService._read_root_folders("project-1", str(root))
+    by_name = {folder.name: folder for folder in folders}
+
+    assert set(by_name) == {"Área A", "Subárea B"}
+    assert by_name["Área A"].parent_id is None
+    assert by_name["Subárea B"].parent_id == by_name["Área A"].id
+    assert by_name["Área A"].size == 4
+
+
+@pytest.mark.asyncio
+async def test_live_folder_scan_logs_and_raises_on_network_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+):
+    service = FolderService(ListingRepository([], tmp_path))
+
+    def fail_scan(_project_id: str, _parent_folder: str):
+        raise PermissionError("Acesso negado à pasta de rede")
+
+    monkeypatch.setattr(FolderService, "_read_root_folders", staticmethod(fail_scan))
+
+    with pytest.raises(FolderSourceUnavailable, match="Não foi possível listar"):
+        await service.read_live_project_folders("project-1")
+
+    assert "folders_network_scan_failed" in caplog.text
+    assert str(tmp_path) in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_sync_does_not_use_stale_submitted_folders_when_network_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    class ReconcileRepository(FakeRepository):
+        async def reconcile(self, *_args, **_kwargs):
+            raise AssertionError("não deve reconciliar dados enviados anteriormente")
+
+    service = FolderService(ReconcileRepository(str(tmp_path)))
+
+    async def fail_network(_project_id: str):
+        raise FolderSourceUnavailable("Falha de leitura da rede")
+
+    monkeypatch.setattr(service, "read_live_project_folders", fail_network)
+
+    with pytest.raises(FolderSourceUnavailable, match="Falha de leitura da rede"):
+        await service.sync_project_folders(
+            "project-1",
+            "user-1",
+            [{"name": "dados antigos"}],
+        )

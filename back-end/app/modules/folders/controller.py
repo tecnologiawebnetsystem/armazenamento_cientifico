@@ -1,7 +1,7 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser
@@ -9,7 +9,7 @@ from app.db.session import get_session
 
 from .repository import FolderRepository
 from .schemas import FolderListOut, FolderSyncIn
-from .service import FolderService
+from .service import FolderService, FolderSourceUnavailable
 
 router = APIRouter(prefix="/api/folders", tags=["Folders"])
 logger = logging.getLogger(__name__)
@@ -27,7 +27,6 @@ async def sync_folders(
     project_id: str = Query(alias="projectId"),
     payload: FolderSyncIn | None = None,
 ):
-    from fastapi import HTTPException
     if not await service.project_exists(project_id):
         raise HTTPException(status_code=404, detail="Projeto não encontrado")
     role = user["role"] or "solicitante"
@@ -67,12 +66,27 @@ async def sync_folders(
         except Exception:
             logger.exception("folder_acl_sync_failed project_id=%s", project_id)
 
-        logger.info("folders_sync_success project_id=%s source=%s inserted=%s updated=%s total=%s", project_id, source, inserted, updated, len(folders))
+        logger.info(
+            "folders_sync_success project_id=%s source=%s inserted=%s updated=%s folders=%s acl_groups=%s acl_inserted=%s acl_errors=%s",
+            project_id,
+            source,
+            inserted,
+            updated,
+            len(folders),
+            acl_sync.get("groups", 0),
+            acl_sync.get("inserted", 0),
+            len(acl_sync.get("errors", [])),
+        )
+        if not folders:
+            logger.warning("folders_sync_completed_empty project_id=%s source=%s", project_id, source)
         return {
             "folders": folders, "inserted": inserted, "updated": updated, "existing": existing,
             "integrity": integrity, "trace": trace, "source": source,
             "acl": acl_sync,
         }
+    except FolderSourceUnavailable as error:
+        logger.exception("folders_sync_network_failed project_id=%s", project_id)
+        raise HTTPException(status_code=502, detail=str(error)) from error
     except Exception:
         logger.exception("folders_sync_failed project_id=%s", project_id)
         raise
@@ -84,7 +98,6 @@ async def list_folders(
     user: CurrentUser,
     project_id: str = Query(alias="projectId"),
 ):
-    from fastapi import HTTPException
     if not await service.project_exists(project_id):
         raise HTTPException(status_code=404, detail="Projeto não encontrado")
     role = user["role"] or "solicitante"
@@ -93,7 +106,7 @@ async def list_folders(
     try:
         folders, source = await service.list_project_folders_with_source(project_id)
         logger.info("folders_list_success project_id=%s source=%s total=%s", project_id, source, len(folders))
-    except Exception:  # noqa: BLE001 - qualquer falha da rede deve usar a cópia local
+    except Exception:
         folders = await service.list_folders_by_project(project_id)
         source = "tabela-fallback"
         logger.exception("folders_list_fallback project_id=%s source=%s total=%s", project_id, source, len(folders))
