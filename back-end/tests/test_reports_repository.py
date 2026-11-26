@@ -8,7 +8,14 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 import app.db.models  # noqa: F401
 from app.db.base import Base
 from app.modules.catalogs.models import ReportField, ReportType
-from app.modules.projects.models import Project, ProjectAccessGroup, ProjectGroup, ProjectMember
+from app.modules.projects.models import (
+    Project,
+    ProjectAccessGroup,
+    ProjectFolderAccessMember,
+    ProjectFolderAccessSnapshot,
+    ProjectGroup,
+    ProjectMember,
+)
 from app.modules.projects.repository import ProjectRepository
 from app.modules.reports.repository import ReportRepository
 from app.modules.reports.service import ReportService
@@ -328,6 +335,74 @@ async def test_members_report_lists_explicit_project_members_and_filters(db):
         "ana.silva"
     ]
     assert await repo.members("sem correspondência", None, "unrelated", True) == []
+
+
+async def test_members_report_lists_directory_members_once_with_all_area_links(db):
+    from app.modules.projects.folder_access import folder_access_entry_key
+
+    group_entry = {
+        "grupo": "Grupo de Pesquisa",
+        "identificador": "grupo-pesquisa",
+        "sid": "S-1-5-21-1",
+        "tipo": "group",
+        "nivelSigac": "escrita",
+    }
+    second_group = {
+        "grupo": "Grupo de Dados",
+        "identificador": "grupo-dados",
+        "sid": "S-1-5-21-2",
+        "tipo": "group",
+        "nivelSigac": "leitura",
+    }
+    db.add_all([
+        ProjectFolderAccessSnapshot(
+            project_id="id-P1",
+            payload={"entries": [group_entry]},
+            synced_at=NOW,
+        ),
+        ProjectFolderAccessSnapshot(
+            project_id="id-P3",
+            payload={"entries": [second_group]},
+            synced_at=NOW,
+        ),
+    ])
+    await db.flush()
+    db.add_all([
+        ProjectFolderAccessMember(
+            project_id="id-P1",
+            entry_key=folder_access_entry_key(group_entry),
+            login="alberto.funada",
+            name="Alberto Seiti Funada",
+            email="alberto@example.com",
+        ),
+        ProjectFolderAccessMember(
+            project_id="id-P3",
+            entry_key=folder_access_entry_key(second_group),
+            login="alberto.funada",
+            name="Alberto Seiti Funada",
+            email="alberto@example.com",
+        ),
+    ])
+    await db.commit()
+
+    report = await ReportService(ReportRepository(db)).members(
+        "Alberto", None, {"id": "unrelated", "role": "gerente"}
+    )
+
+    assert report["total"] == 1
+    assert report["membros"][0]["usuario"] == "alberto.funada"
+    assert report["membros"][0]["nome"] == "Alberto Seiti Funada"
+    assert report["membros"][0]["email"] == "alberto@example.com"
+    assert [(link["area"], link["grupo"], link["nivel"]) for link in report["membros"][0]["vinculos"]] == [
+        ("Redes", "Grupo de Dados", "leitura"),
+        ("Redes", "Grupo de Pesquisa", "escrita"),
+    ]
+
+    key_report = await ReportService(ReportRepository(db)).members(
+        "alberto.funada", None, {"id": "unrelated", "role": "gerente"}
+    )
+    assert key_report["total"] == 1
+    assert key_report["membros"][0]["usuario"] == "alberto.funada"
 
 
 async def test_members_report_scopes_rows_to_authorized_projects(db):

@@ -47,7 +47,49 @@ class ReportService:
             str(user.get("user_id") or user.get("id") or ""),
             all_projects=has_capability(user, "all_projects"),
         )
-        return {"total": len(rows), "membros": rows}
+        members: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            login = str(row.get("usuario") or "").strip()
+            if not login:
+                continue
+            key = login.casefold()
+            member = members.setdefault(key, {
+                "id": login,
+                "usuario": login,
+                "nome": row.get("nome") or login,
+                "email": row.get("email") or "",
+                "perfil": row.get("perfil"),
+                "vinculos": [],
+            })
+            if not member.get("email") and row.get("email"):
+                member["email"] = row["email"]
+            if not member.get("perfil") and row.get("perfil"):
+                member["perfil"] = row["perfil"]
+            link = {
+                "projetoId": row.get("projetoId"),
+                "projeto": row.get("projeto"),
+                "codigo": row.get("codigo"),
+                "area": row.get("area"),
+                "grupo": row.get("grupo"),
+                "papel": row.get("papel"),
+                "nivel": row.get("nivel"),
+                "adicionadoEm": row.get("adicionadoEm"),
+            }
+            link_key = (link["projetoId"], link["grupo"], link["papel"])
+            if not any(
+                (item["projetoId"], item["grupo"], item["papel"]) == link_key
+                for item in member["vinculos"]
+            ):
+                member["vinculos"].append(link)
+        result = sorted(
+            members.values(),
+            key=lambda item: (item["nome"].casefold(), item["usuario"].casefold()),
+        )
+        for member in result:
+            member["vinculos"].sort(
+                key=lambda item: ((item.get("area") or "").casefold(), (item.get("grupo") or "").casefold(), (item.get("projeto") or "").casefold())
+            )
+        return {"total": len(result), "membros": result}
 
     async def inconsistencies(self, area: str | None, gestor_id: str | None, tipo: str | None, user: dict[str, Any]) -> dict[str, Any]:
         all_projects = has_capability(user, "all_projects")
