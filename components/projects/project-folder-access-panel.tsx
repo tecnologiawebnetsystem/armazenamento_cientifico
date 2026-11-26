@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { createPortal } from "react-dom"
 import useSWR from "swr"
 import {
   AlertTriangleIcon,
@@ -24,7 +25,6 @@ import {
   getProjectFolderAccess,
   syncProjectGroups,
   type FolderAccessStatus,
-  type ProjectFolderAccessEntry,
 } from "@/lib/api-client"
 import { toast } from "sonner"
 import {
@@ -63,90 +63,13 @@ function levelLabel(level: string | null) {
   return level ? (LEVEL_LABEL[level] ?? level) : "—"
 }
 
-function FolderAccessCard({ entry }: { entry: ProjectFolderAccessEntry }) {
-  const status = STATUS[entry.situacao]
-  const principalLabel =
-    entry.tipo === "role"
-      ? "Papel"
-      : entry.tipo === "group"
-        ? "Grupo"
-        : entry.tipo === "user"
-          ? "Usuário"
-          : entry.tipo === "wellknown"
-            ? "Identidade Windows"
-            : entry.tipo === "unix"
-              ? "Identidade UNIX"
-              : "Identidade não resolvida"
-  const accessBadgeClass =
-    entry.nivelRede === "administrador"
-      ? "border-primary/15 bg-primary/10 text-primary"
-      : entry.nivelRede === "escrita"
-        ? "border-accent/40 bg-accent/30 text-accent-foreground"
-        : entry.nivelRede === "leitura"
-          ? "border-secondary bg-secondary text-secondary-foreground"
-          : "border-border bg-muted text-muted-foreground"
-
-  return (
-    <article className="flex min-w-0 flex-col gap-3 rounded-xl border border-primary/15 bg-card p-4 shadow-sm">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <p className="font-semibold break-all text-foreground">
-            {entry.grupo}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Fonte: {entry.fonteDiretorio}
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          <Badge variant="outline" className="border-primary/20 text-primary">
-            {principalLabel}
-          </Badge>
-          <Badge variant="outline" className={accessBadgeClass}>
-            {levelLabel(entry.nivelRede)}
-          </Badge>
-        </div>
-      </div>
-      <code className="block min-w-0 rounded-md border border-primary/10 bg-primary/5 px-3 py-2 text-xs break-all text-muted-foreground">
-        {entry.identificador || entry.sid || "Não informado"}
-      </code>
-      {(entry.nivelSigac ||
-        entry.sid !== entry.identificador ||
-        entry.direitosRede ||
-        entry.acessoAmplo ||
-        entry.negado ||
-        entry.herdado ||
-        entry.situacao !== "conforme") && (
-        <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-2">
-          {entry.nivelSigac && (
-            <Badge variant="outline">
-              SIGAC: {levelLabel(entry.nivelSigac)}
-            </Badge>
-          )}
-          {entry.sid &&
-            entry.identificador &&
-            entry.sid !== entry.identificador && (
-              <Badge variant="outline">SID: {entry.sid}</Badge>
-            )}
-          {entry.direitosRede && (
-            <Badge variant="outline">{entry.direitosRede}</Badge>
-          )}
-          {entry.acessoAmplo && (
-            <Badge variant="destructive">Acesso amplo</Badge>
-          )}
-          {entry.negado && (
-            <Badge variant="destructive">Negação explícita</Badge>
-          )}
-          {entry.herdado && <Badge variant="outline">Permissão herdada</Badge>}
-          {entry.situacao !== "conforme" && (
-            <Badge variant={status.variant}>{status.label}</Badge>
-          )}
-        </div>
-      )}
-    </article>
-  )
-}
-
-export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
+export function ProjectFolderAccessPanel({
+  projectId,
+  syncButtonContainer,
+}: {
+  projectId: string
+  syncButtonContainer?: HTMLElement | null
+}) {
   const {
     data,
     isLoading: isLoadingFolderAccess,
@@ -330,21 +253,25 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
               </p>
             </div>
           </div>
-          <Button
-            variant="default"
-            size="sm"
-            disabled={isSyncingGroups}
-            onClick={() => void handleSyncGroups()}
-          >
-            <RefreshCwIcon
-              data-icon="inline-start"
-              className={isSyncingGroups ? "animate-spin" : ""}
-              aria-hidden="true"
-            />
-            {isSyncingGroups
-              ? "Sincronizando grupos e membros..."
-              : "Sincronizar grupos e membros"}
-          </Button>
+          {syncButtonContainer &&
+            createPortal(
+              <Button
+                variant="default"
+                size="sm"
+                disabled={isSyncingGroups}
+                onClick={() => void handleSyncGroups()}
+              >
+                <RefreshCwIcon
+                  data-icon="inline-start"
+                  className={isSyncingGroups ? "animate-spin" : ""}
+                  aria-hidden="true"
+                />
+                {isSyncingGroups
+                  ? "Sincronizando grupos e membros..."
+                  : "Sincronizar grupos e membros"}
+              </Button>,
+              syncButtonContainer
+            )}
         </div>
 
         {folderAccessError ? (
@@ -400,35 +327,6 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
                 </ul>
               </div>
             )}
-
-            <section
-              className="flex flex-col gap-3"
-              aria-labelledby="folder-groups-title"
-            >
-              <div>
-                <h4 id="folder-groups-title" className="text-sm font-semibold">
-                  Grupos e permissões
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  Identidades de grupo encontradas na pasta e o nível de acesso
-                  atribuído.
-                </p>
-              </div>
-              {data.entries.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Nenhum grupo ou acesso encontrado.
-                </p>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {data.entries.map((entry) => (
-                    <FolderAccessCard
-                      key={`${entry.sid ?? ""}-${entry.identificador ?? ""}-${entry.grupo}`}
-                      entry={entry}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
 
             <section
               className="flex flex-col gap-3"

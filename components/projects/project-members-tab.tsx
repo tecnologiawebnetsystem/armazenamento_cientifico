@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import useSWR from "swr"
 import { ShieldCheckIcon } from "lucide-react"
 import {
@@ -35,6 +36,8 @@ export function ProjectMembersTab({
   const members = data?.members ?? []
   const groups = data?.groups ?? []
   const canViewFolderAccess = useCan("pesquisa.visualizar")
+  const [syncButtonContainer, setSyncButtonContainer] =
+    useState<HTMLDivElement | null>(null)
 
   return (
     <Card className="overflow-hidden border-border/80 shadow-sm">
@@ -53,14 +56,19 @@ export function ProjectMembersTab({
               </CardDescription>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary">
-              {groups.length}{" "}
-              {groups.length === 1 ? "grupo/role" : "grupos/roles"}
-            </Badge>
-            <Badge variant="secondary">
-              {members.length} {members.length === 1 ? "pessoa" : "pessoas"}
-            </Badge>
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">
+                {groups.length}{" "}
+                {groups.length === 1 ? "grupo/role" : "grupos/roles"}
+              </Badge>
+              <Badge variant="secondary">
+                {members.length} {members.length === 1 ? "pessoa" : "pessoas"}
+              </Badge>
+            </div>
+            {canViewFolderAccess && (
+              <div ref={setSyncButtonContainer} className="flex justify-end" />
+            )}
           </div>
         </div>
       </CardHeader>
@@ -151,7 +159,10 @@ export function ProjectMembersTab({
               </div>
             )}
             {canViewFolderAccess && (
-              <ProjectFolderAccessPanel projectId={projectId} />
+              <ProjectFolderAccessPanel
+                projectId={projectId}
+                syncButtonContainer={syncButtonContainer}
+              />
             )}
           </>
         )}
