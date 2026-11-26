@@ -63,45 +63,95 @@ function levelLabel(level: string | null) {
   return level ? (LEVEL_LABEL[level] ?? level) : "—"
 }
 
-function FolderAccessRow({ entry }: { entry: ProjectFolderAccessEntry }) {
+function isSecurityIdentifier(value: string) {
+  return /^S-\d-\d+(?:-\d+)+$/i.test(value.trim())
+}
+
+function FolderAccessCard({ entry }: { entry: ProjectFolderAccessEntry }) {
   const status = STATUS[entry.situacao]
+  const nameIsSid = isSecurityIdentifier(entry.grupo)
+  const principalLabel =
+    entry.tipo === "role"
+      ? "Papel da aplicação"
+      : entry.tipo === "group"
+        ? "Grupo"
+        : entry.tipo === "user"
+          ? "Usuário"
+          : entry.tipo === "wellknown"
+            ? "Identidade conhecida do Windows"
+            : entry.tipo === "unix"
+              ? "Identidade UNIX"
+              : "Identidade sem resolução no diretório"
 
   return (
-    <TableRow>
-      <TableCell className="max-w-72">
-        <p className="font-medium break-all">{entry.grupo}</p>
-        <div className="mt-1 flex flex-wrap gap-1">
-          {entry.acessoAmplo && (
-            <Badge variant="destructive">Acesso amplo</Badge>
+    <article className="flex min-w-0 flex-col gap-3 rounded-xl border border-border/80 bg-background p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="font-semibold break-all text-foreground">
+            {nameIsSid ? "Nome não resolvido no diretório" : entry.grupo}
+          </p>
+          {nameIsSid && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              O valor abaixo é um SID (identificador de segurança), não o nome
+              do grupo.
+            </p>
           )}
-          {entry.negado && <Badge variant="destructive">Negação</Badge>}
-          {entry.herdado && <Badge variant="outline">Herdado</Badge>}
+          <p className="mt-1 text-xs text-muted-foreground">
+            {principalLabel} · Fonte: {entry.fonteDiretorio}
+          </p>
         </div>
-      </TableCell>
-      <TableCell className="max-w-64 text-sm break-all">
-        {entry.identificador || "—"}
-      </TableCell>
-      <TableCell className="max-w-72 font-mono text-xs break-all">
-        {entry.sid || "—"}
-      </TableCell>
-      <TableCell>{levelLabel(entry.nivelSigac)}</TableCell>
-      <TableCell>
-        {levelLabel(entry.nivelRede)}
-        {entry.direitosRede && (
-          <p className="text-xs text-muted-foreground">{entry.direitosRede}</p>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Badge variant="outline">{principalLabel}</Badge>
+          <Badge variant="secondary">Rede: {levelLabel(entry.nivelRede)}</Badge>
+          <Badge variant={status.variant}>{status.label}</Badge>
+        </div>
+      </div>
+      <div className="grid gap-2 text-sm sm:grid-cols-2">
+        {entry.nivelSigac && (
+          <div>
+            <p className="text-xs text-muted-foreground">
+              Nível cadastrado no SIGAC
+            </p>
+            <p>{levelLabel(entry.nivelSigac)}</p>
+          </div>
         )}
-      </TableCell>
-      <TableCell>
-        <Badge variant={status.variant}>{status.label}</Badge>
-      </TableCell>
-    </TableRow>
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground">
+            Identificador do grupo
+          </p>
+          <code className="mt-1 block rounded-md bg-muted px-2 py-1 text-xs break-all text-muted-foreground">
+            {entry.identificador || entry.sid || "Não informado"}
+          </code>
+        </div>
+        {entry.sid &&
+          entry.identificador &&
+          entry.sid !== entry.identificador && (
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">SID da rede</p>
+              <code className="mt-1 block rounded-md bg-muted px-2 py-1 text-xs break-all text-muted-foreground">
+                {entry.sid}
+              </code>
+            </div>
+          )}
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {entry.direitosRede && (
+          <Badge variant="outline">{entry.direitosRede}</Badge>
+        )}
+        {entry.acessoAmplo && <Badge variant="destructive">Acesso amplo</Badge>}
+        {entry.negado && <Badge variant="destructive">Negação explícita</Badge>}
+        {entry.herdado && <Badge variant="outline">Permissão herdada</Badge>}
+      </div>
+    </article>
   )
 }
 
 export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
   const [data, setData] = useState<ProjectFolderAccess | null>(null)
   const [folderCount, setFolderCount] = useState<number | null>(null)
-  const [folderAccessError, setFolderAccessError] = useState<string | null>(null)
+  const [folderAccessError, setFolderAccessError] = useState<string | null>(
+    null
+  )
   const [isLoadingFolderAccess, setIsLoadingFolderAccess] = useState(false)
   const [isSyncingGroups, setIsSyncingGroups] = useState(false)
   const resolvedMembers = (data?.entries ?? []).flatMap((entry) =>
@@ -119,10 +169,11 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
         : []
   )
   const [syncResult, setSyncResult] = useState<{
-    groups: number
-    inserted: number
-    skipped: number
+    groups: number | null
+    inserted: number | null
+    skipped: number | null
     errors: number
+    aclUnavailable: boolean
   } | null>(null)
 
   async function handleSyncGroups() {
@@ -135,10 +186,11 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
     try {
       const result = await syncProjectGroups(projectId)
       const summary = {
-        groups: result.acl?.groups ?? 0,
-        inserted: result.acl?.inserted ?? 0,
-        skipped: result.acl?.skipped ?? 0,
+        groups: result.acl?.groups ?? null,
+        inserted: result.acl?.inserted ?? null,
+        skipped: result.acl?.skipped ?? null,
         errors: result.acl?.errors.length ?? 0,
+        aclUnavailable: result.acl == null,
       }
       const [folderAccessResult, foldersResult] = await Promise.allSettled([
         getProjectFolderAccess(projectId),
@@ -156,8 +208,9 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
       }
       if (foldersResult.status === "fulfilled") {
         setFolderCount(
-          foldersResult.value.folders.filter((folder) => folder.tipo !== "arquivo")
-            .length
+          foldersResult.value.folders.filter(
+            (folder) => folder.tipo !== "arquivo"
+          ).length
         )
       }
       setSyncResult({
@@ -195,13 +248,14 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
               <CheckCircle2Icon className="size-6" aria-hidden="true" />
             </div>
             <DialogTitle>
-              {(syncResult?.errors ?? 0) > 0
+              {(syncResult?.errors ?? 0) > 0 || syncResult?.aclUnavailable
                 ? "Sincronização concluída com alertas"
                 : "Grupos sincronizados"}
             </DialogTitle>
             <DialogDescription>
-              A operação foi concluída. Confira o resumo dos grupos da pasta de
-              rede.
+              {syncResult?.aclUnavailable
+                ? "A API não retornou o detalhamento da sincronização. O total vem da consulta atual; inserções indisponíveis aparecem como traço."
+                : "A operação foi concluída. Confira o resumo dos grupos da pasta de rede."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 rounded-lg border bg-muted/30 p-4 text-sm">
@@ -213,21 +267,23 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
             )}
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">Total de grupos</span>
-              <span className="font-semibold">{syncResult?.groups ?? 0}</span>
+              <span className="font-semibold">{syncResult?.groups ?? "—"}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">
                 Grupos sincronizados
               </span>
               <span className="font-semibold text-petrobras-green">
-                {syncResult?.groups ?? 0}
+                {syncResult?.groups ?? "—"}
               </span>
             </div>
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">
                 Novos registros nesta operação
               </span>
-              <span className="font-semibold">{syncResult?.inserted ?? 0}</span>
+              <span className="font-semibold">
+                {syncResult?.inserted ?? "—"}
+              </span>
             </div>
             {(syncResult?.skipped ?? 0) > 0 && (
               <div className="flex items-center justify-between gap-4">
@@ -353,26 +409,14 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
                   Nenhum grupo ou acesso encontrado.
                 </p>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Grupo / identidade</TableHead>
-                      <TableHead>Identificador SIGAC</TableHead>
-                      <TableHead>ObjectSid</TableHead>
-                      <TableHead>Nível SIGAC</TableHead>
-                      <TableHead>Permissão na rede</TableHead>
-                      <TableHead>Situação</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {data.entries.map((entry) => (
-                      <FolderAccessRow
-                        key={`${entry.sid ?? ""}-${entry.identificador ?? ""}-${entry.grupo}`}
-                        entry={entry}
-                      />
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {data.entries.map((entry) => (
+                    <FolderAccessCard
+                      key={`${entry.sid ?? ""}-${entry.identificador ?? ""}-${entry.grupo}`}
+                      entry={entry}
+                    />
+                  ))}
+                </div>
               )}
             </section>
 
@@ -405,9 +449,9 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {resolvedMembers.map(({ entry, ...member }, index) => (
+                    {resolvedMembers.map(({ entry, ...member }) => (
                       <TableRow
-                        key={`${entry.sid ?? entry.grupo}-${member.login}-${index}`}
+                        key={`${entry.sid ?? entry.grupo}-${member.login}`}
                       >
                         <TableCell>
                           <p className="font-medium">

@@ -53,22 +53,22 @@ async def sync_folders(
                 scope,
                 stage,
             )
-            # folders.created_by referencia users.id, não o ID da sessão HTTP.
-            created_by = user.get("user_id")
-            if not created_by:
-                profile_data = user.get("profile_data") or {}
-                identifiers = [
-                    str(value)
-                    for value in (
-                        user.get("user_id"),
-                        user.get("cav4_user_id"),
-                        user.get("subject"),
-                        profile_data.get("user_login"),
-                        profile_data.get("cav4_user_id"),
-                    )
-                    if value
-                ]
-                created_by = await service.resolve_created_by(identifiers)
+            # folders.created_by referencia users.id, então IDs locais e de sessão
+            # precisam ser resolvidos contra o cadastro antes da inserção.
+            profile_data = user.get("profile_data") or {}
+            identifiers = [
+                str(value)
+                for value in (
+                    user.get("user_id"),
+                    user.get("id"),
+                    user.get("cav4_user_id"),
+                    user.get("subject"),
+                    profile_data.get("user_login"),
+                    profile_data.get("cav4_user_id"),
+                )
+                if value
+            ]
+            created_by = await service.resolve_created_by(identifiers)
             if not created_by:
                 raise HTTPException(
                     status_code=401, detail="Usuário autenticado não encontrado no cadastro local"

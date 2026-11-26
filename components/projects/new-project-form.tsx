@@ -52,7 +52,7 @@ import { cn } from "@/lib/utils"
 import {
   createProject,
   ApiError,
-  getProjectMembers,
+  getProjectFolderAccess,
   recordAuditEvent,
   syncFolders,
   syncProjectGroups,
@@ -80,7 +80,7 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
   const [nome, setNome] = useState("")
   const [codigo, setCodigo] = useState("")
   const [criadoEm, setCriadoEm] = useState(
-    new Date().toISOString().slice(0, 10)
+    () => new Date().toISOString().slice(0, 10)
   )
   const [areaResponsavel, setAreaResponsavel] = useState("")
   const [gestorProjeto, setGestorProjeto] = useState(
@@ -99,11 +99,11 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
   const [syncSummary, setSyncSummary] = useState<{
     projectId: string
     projectName: string
-    folders: number
-    foldersInserted: number
-    groups: number
-    groupsInserted: number
-    members: number
+    folders: number | null
+    foldersInserted: number | null
+    groups: number | null
+    groupsInserted: number | null
+    members: number | null
     errors: Array<{ item: string; message: string }>
   } | null>(null)
 
@@ -148,11 +148,11 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
       setSyncStep("folders")
       setSyncStepErrors([])
       setIsSyncingNetwork(true)
-      let folderCount = 0
-      let foldersInserted = 0
-      let groupCount = 0
-      let groupsInserted = 0
-      let memberCount = 0
+      let folderCount: number | null = null
+      let foldersInserted: number | null = null
+      let groupCount: number | null = null
+      let groupsInserted: number | null = null
+      let memberCount: number | null = null
       const errors: Array<{ item: string; message: string }> = []
 
       try {
@@ -167,8 +167,8 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
       setSyncStep("groups")
       try {
         const groupResult = await syncProjectGroups(project.id)
-        groupCount = groupResult.acl?.groups ?? 0
-        groupsInserted = groupResult.acl?.inserted ?? 0
+        groupCount = groupResult.acl?.groups ?? null
+        groupsInserted = groupResult.acl?.inserted ?? null
         if (groupResult.acl?.errors.length) {
           errors.push({
             item: "Groups / Roles",
@@ -186,8 +186,17 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
 
       setSyncStep("members")
       try {
-        const memberResult = await getProjectMembers(project.id)
-        memberCount = memberResult.members.length
+        const folderAccess = await getProjectFolderAccess(project.id)
+        groupCount = Math.max(
+          groupCount ?? 0,
+          folderAccess.entries.filter((entry) => entry.tipo === "group").length
+        )
+        memberCount = new Set(
+          folderAccess.entries
+            .flatMap((entry) => entry.membros)
+            .map((member) => member.login.trim().toLocaleLowerCase())
+            .filter(Boolean)
+        ).size
       } catch (error) {
         errors.push({ item: "Membros", message: getSyncFailureMessage(error) })
         setSyncStepErrors((current) => [...current, "members"])
@@ -346,7 +355,9 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="font-semibold">{label}</span>
                       <span className="text-xs leading-5 text-muted-foreground">
-                        {hasFailed ? "Não sincronizado; as outras etapas continuam." : detail}
+                        {hasFailed
+                          ? "Não sincronizado; as outras etapas continuam."
+                          : detail}
                       </span>
                     </span>
                     <span
@@ -439,10 +450,13 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
                 Pastas
               </div>
               <span className="text-3xl font-semibold tracking-tight tabular-nums">
-                {syncSummary?.folders ?? 0}
+                {syncSummary?.folders ?? "—"}
               </span>
               <span className="text-xs text-muted-foreground">
-                {syncSummary?.foldersInserted ?? 0} novas
+                {syncSummary?.foldersInserted === null ||
+                syncSummary?.foldersInserted === undefined
+                  ? "— novas"
+                  : `${syncSummary.foldersInserted} novas`}
               </span>
             </div>
             <div className="flex flex-col gap-2 rounded-xl border border-petrobras-green/20 bg-petrobras-green/5 p-4">
@@ -454,10 +468,13 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
                 Groups / Roles
               </div>
               <span className="text-3xl font-semibold tracking-tight tabular-nums">
-                {syncSummary?.groups ?? 0}
+                {syncSummary?.groups ?? "—"}
               </span>
               <span className="text-xs text-muted-foreground">
-                {syncSummary?.groupsInserted ?? 0} novos
+                {syncSummary?.groupsInserted === null ||
+                syncSummary?.groupsInserted === undefined
+                  ? "— novos"
+                  : `${syncSummary.groupsInserted} novos`}
               </span>
             </div>
             <div className="flex flex-col gap-2 rounded-xl border border-petrobras-green/20 bg-petrobras-green/5 p-4">
@@ -469,10 +486,10 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
                 Membros
               </div>
               <span className="text-3xl font-semibold tracking-tight tabular-nums">
-                {syncSummary?.members ?? 0}
+                {syncSummary?.members ?? "—"}
               </span>
               <span className="text-xs text-muted-foreground">
-                vinculados à área
+                pessoas encontradas nos grupos da rede
               </span>
             </div>
           </div>

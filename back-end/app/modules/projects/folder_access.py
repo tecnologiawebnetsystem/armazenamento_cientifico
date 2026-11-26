@@ -64,7 +64,9 @@ def _grants(acl: FolderAcl, resolver: DirectoryResolver) -> dict[str, NetworkGra
     return grants
 
 
-def _match(stored: StoredGroup, grants: dict[str, NetworkGrant], resolver: DirectoryResolver) -> tuple[NetworkGrant | None, DirectoryPrincipal | None]:
+def _match(
+    stored: StoredGroup, grants: dict[str, NetworkGrant], resolver: DirectoryResolver
+) -> tuple[NetworkGrant | None, DirectoryPrincipal | None]:
     keys = {stored.identifier.casefold(), stored.name.casefold()}
     for grant in grants.values():
         if not grant.matched and keys & grant.principal.aliases():
@@ -72,7 +74,12 @@ def _match(stored: StoredGroup, grants: dict[str, NetworkGrant], resolver: Direc
     principal = resolver.resolve_name(stored.identifier) or (
         resolver.resolve_name(stored.name) if stored.name != stored.identifier else None
     )
-    if principal and principal.sid and principal.sid in grants and not grants[principal.sid].matched:
+    if (
+        principal
+        and principal.sid
+        and principal.sid in grants
+        and not grants[principal.sid].matched
+    ):
         return grants[principal.sid], grants[principal.sid].principal
     return None, principal
 
@@ -80,7 +87,10 @@ def _match(stored: StoredGroup, grants: dict[str, NetworkGrant], resolver: Direc
 def _members(principal: DirectoryPrincipal | None) -> list[FolderAccessMemberOut]:
     if not principal:
         return []
-    return [FolderAccessMemberOut(login=member.login, nome=member.name, email=member.email) for member in principal.members]
+    return [
+        FolderAccessMemberOut(login=member.login, nome=member.name, email=member.email)
+        for member in principal.members
+    ]
 
 
 def _entry(
@@ -90,9 +100,15 @@ def _entry(
     grant: NetworkGrant | None,
     situacao: str,
 ) -> FolderAccessEntryOut:
-    kind = "role" if stored and stored.principal_type == "role" else (principal.kind if principal else "unknown")
+    kind = (
+        "role"
+        if stored and stored.principal_type == "role"
+        else (principal.kind if principal else "unknown")
+    )
     return FolderAccessEntryOut(
-        grupo=(principal.name if principal and grant else None) or (stored.name if stored else "") or (principal.name if principal else ""),
+        grupo=(principal.display_name or principal.name if principal and grant else None)
+        or (stored.name if stored else "")
+        or ((principal.display_name or principal.name) if principal else ""),
         identificador=stored.identifier if stored else None,
         sid=principal.sid if principal else None,
         tipo=kind,
@@ -118,7 +134,9 @@ def _alerts(entries: list[FolderAccessEntryOut]) -> list[str]:
         if entry.negado:
             alerts.append(f"'{entry.grupo}' possui uma regra de negação explícita na pasta.")
         if entry.tipo == "user" and entry.nivelRede:
-            alerts.append(f"O usuário '{entry.grupo}' tem permissão direta na pasta, fora de grupo.")
+            alerts.append(
+                f"O usuário '{entry.grupo}' tem permissão direta na pasta, fora de grupo."
+            )
         if entry.tipo == "group" and entry.membrosFonte and not entry.membros:
             alerts.append(f"O grupo '{entry.grupo}' não tem membros.")
     counters = {
@@ -127,14 +145,22 @@ def _alerts(entries: list[FolderAccessEntryOut]) -> list[str]:
         "somente_sigac": "{n} grupo(s) cadastrado(s) no SIGAC sem permissão na pasta.",
     }
     for status, message in counters.items():
-        total = sum(1 for entry in entries if entry.situacao == status and entry.tipo not in {"wellknown", "unix"})
+        total = sum(
+            1
+            for entry in entries
+            if entry.situacao == status and entry.tipo not in {"wellknown", "unix"}
+        )
         if total:
             alerts.append(message.format(n=total))
     unresolved = sum(1 for entry in entries if entry.tipo == "unknown" and entry.sid)
     if unresolved:
-        alerts.append(f"{unresolved} identidade(s) da ACL não foram encontradas no diretório (SID sem nome).")
+        alerts.append(
+            f"{unresolved} identidade(s) da ACL não foram encontradas no diretório (SID sem nome)."
+        )
     if any(entry.tipo == "unix" for entry in entries):
-        alerts.append("A pasta usa permissões UNIX do storage; os grupos reais precisam ser consultados pela equipe de storage.")
+        alerts.append(
+            "A pasta usa permissões UNIX do storage; os grupos reais precisam ser consultados pela equipe de storage."
+        )
     return alerts
 
 
@@ -175,12 +201,18 @@ def build_folder_access(
     entries: list[FolderAccessEntryOut] = []
     for stored in stored_groups:
         if stored.principal_type == "role":
-            entries.append(_entry(principal=None, stored=stored, grant=None, situacao="papel_aplicacao"))
+            entries.append(
+                _entry(principal=None, stored=stored, grant=None, situacao="papel_aplicacao")
+            )
             continue
         grant, principal = _match(stored, grants, resolver)
         if grant:
             grant.matched = True
-            situacao = "conforme" if access_level(grant.allow_mask) == stored.access_level else "nivel_divergente"
+            situacao = (
+                "conforme"
+                if access_level(grant.allow_mask) == stored.access_level
+                else "nivel_divergente"
+            )
         else:
             situacao = "somente_sigac" if acl else "nao_verificado"
         if principal:
@@ -191,7 +223,9 @@ def build_folder_access(
         if grant.matched:
             continue
         resolver.load_members(grant.principal)
-        entries.append(_entry(principal=grant.principal, stored=None, grant=grant, situacao="somente_rede"))
+        entries.append(
+            _entry(principal=grant.principal, stored=None, grant=grant, situacao="somente_rede")
+        )
 
     entries.sort(key=lambda entry: (STATUS_ORDER[entry.situacao], entry.grupo.casefold()))
     return FolderAccessOut(
@@ -263,16 +297,18 @@ def sync_folder_acl(
             level = _acl_level(grant.allow_mask, grant.deny_mask)
             identifier = principal.sid or principal.name
             group_id = str(uuid4())
-            group_name = principal.name or identifier
-            items.append({
-                "group_id": group_id,
-                "group_name": group_name,
-                "identifier": identifier,
-                "principal_type": "group",
-                "access_level": level,
-                "source": "rede",
-                "project_id": project_id,
-            })
+            group_name = principal.display_name or principal.name or identifier
+            items.append(
+                {
+                    "group_id": group_id,
+                    "group_name": group_name,
+                    "identifier": identifier,
+                    "principal_type": "group",
+                    "access_level": level,
+                    "source": "rede",
+                    "project_id": project_id,
+                }
+            )
         return items
 
     try:
@@ -293,10 +329,10 @@ def sync_folder_acl(
 
     # Raiz não tem grupos de domínio explícitos — tenta as subpastas nível 1
     import os
+
     try:
         subdirs = [
-            entry.path for entry in os.scandir(folder)
-            if entry.is_dir(follow_symlinks=False)
+            entry.path for entry in os.scandir(folder) if entry.is_dir(follow_symlinks=False)
         ]
     except OSError:
         result.errors.append(f"Não foi possível listar subpastas de {folder}")

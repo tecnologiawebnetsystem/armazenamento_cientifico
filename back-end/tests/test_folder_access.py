@@ -41,7 +41,9 @@ def test_parse_security_descriptor_reads_owner_dacl_and_skips_inherit_only_aces(
     ]
     dacl = struct.pack("<BBHHH", 2, 0, 8 + sum(map(len, aces)), len(aces), 0) + b"".join(aces)
     header_size = 20
-    descriptor = struct.pack("<BBHIIII", 1, 0, 0x8000 | 0x1000, header_size, 0, 0, header_size + len(owner))
+    descriptor = struct.pack(
+        "<BBHIIII", 1, 0, 0x8000 | 0x1000, header_size, 0, 0, header_size + len(owner)
+    )
     acl = parse_security_descriptor(descriptor + owner + dacl)
 
     assert acl.owner_sid == "S-1-5-32-544"
@@ -57,9 +59,15 @@ class FakeDirectory:
 
     def __init__(self):
         self.groups = {
-            WRITERS: DirectoryPrincipal(sid=WRITERS, name="GL_PROJ_W", kind="group", source="ldap", dn="CN=W"),
-            READERS: DirectoryPrincipal(sid=READERS, name="GL_PROJ_R", kind="group", source="ldap", dn="CN=R"),
-            DIRECT_USER: DirectoryPrincipal(sid=DIRECT_USER, name="ABC1", kind="user", source="ldap"),
+            WRITERS: DirectoryPrincipal(
+                sid=WRITERS, name="GL_PROJ_W", kind="group", source="ldap", dn="CN=W"
+            ),
+            READERS: DirectoryPrincipal(
+                sid=READERS, name="GL_PROJ_R", kind="group", source="ldap", dn="CN=R"
+            ),
+            DIRECT_USER: DirectoryPrincipal(
+                sid=DIRECT_USER, name="ABC1", kind="user", source="ldap"
+            ),
         }
         self.members = {"CN=W": [DirectoryMember("FEZ6", "Fulano", "f@x")], "CN=R": []}
 
@@ -114,7 +122,10 @@ def test_build_folder_access_compares_sigac_with_folder_acl_and_flags_risks():
     assert result.aclStatus == "ok"
     assert result.proprietario == "BUILTIN\\Administradores"
     assert by_name["GL_PROJ_W"].situacao == "nivel_divergente"
-    assert (by_name["GL_PROJ_W"].nivelSigac, by_name["GL_PROJ_W"].nivelRede) == ("leitura", "escrita")
+    assert (by_name["GL_PROJ_W"].nivelSigac, by_name["GL_PROJ_W"].nivelRede) == (
+        "leitura",
+        "escrita",
+    )
     assert [member.login for member in by_name["GL_PROJ_W"].membros] == ["FEZ6"]
     assert by_name["GL_PROJ_R"].situacao == "conforme"
     assert by_name["GL_PROJ_R"].identificador == "sigac-readers-alias"
@@ -128,6 +139,36 @@ def test_build_folder_access_compares_sigac_with_folder_acl_and_flags_risks():
     assert any("'ABC1' tem permissão direta" in alert for alert in result.alertas)
     assert any("'GL_PROJ_R' não tem membros" in alert for alert in result.alertas)
     assert any("1 identidade(s)" in alert for alert in result.alertas)
+
+
+def test_build_folder_access_prefers_directory_display_name_for_cards():
+    named_principal = DirectoryPrincipal(
+        sid=WRITERS,
+        name="GL_PROJ_W",
+        display_name="Grupo de Escrita do Projeto",
+        kind="group",
+        source="ldap",
+    )
+
+    class NamedDirectory(FakeDirectory):
+        def by_sid(self, sid):
+            return named_principal if sid == WRITERS else None
+
+    result = build_folder_access(
+        project_id="p1",
+        project_name="Projeto",
+        folder="//srv/proj",
+        stored_groups=[StoredGroup("Nome antigo", "GL_PROJ_W", "group", "escrita")],
+        resolver=DirectoryResolver([NamedDirectory()], member_limit=10),
+        read_acl=lambda _path: FolderAcl(
+            path="//srv/proj",
+            owner_sid=None,
+            inheritance_blocked=False,
+            entries=[AclEntry(WRITERS, MODIFY, True, False)],
+        ),
+    )
+
+    assert result.entries[0].grupo == "Grupo de Escrita do Projeto"
 
 
 def test_build_folder_access_keeps_sigac_groups_when_acl_is_unavailable():
@@ -145,7 +186,9 @@ def test_build_folder_access_keeps_sigac_groups_when_acl_is_unavailable():
 
     assert result.aclStatus == "indisponivel"
     assert result.aclMensagem == "Sem acesso à ACL"
-    assert [(entry.grupo, entry.situacao) for entry in result.entries] == [("Leitores", "nao_verificado")]
+    assert [(entry.grupo, entry.situacao) for entry in result.entries] == [
+        ("Leitores", "nao_verificado")
+    ]
 
 
 def test_ldap_members_use_direct_then_nested_and_respect_limit():
@@ -157,12 +200,19 @@ def test_ldap_members_use_direct_then_nested_and_respect_limit():
         if "memberOf:1.2.840.113556.1.4.1941:" not in search_filter:
             return
         for login in ("AAA1", "BBB2", "CCC3"):
-            yield {"type": "searchResEntry", "attributes": {"sAMAccountName": login, "displayName": login, "mail": []}}
+            yield {
+                "type": "searchResEntry",
+                "attributes": {"sAMAccountName": login, "displayName": login, "mail": []},
+            }
 
     directory = LdapDirectory.__new__(LdapDirectory)
     directory.base_dn = "DC=x"
-    directory.connection = SimpleNamespace(extend=SimpleNamespace(standard=SimpleNamespace(paged_search=paged_search)))
-    principal = DirectoryPrincipal(sid=WRITERS, name="GL_PROJ_W", kind="group", source="ldap", dn="CN=GL_PROJ_W,DC=x")
+    directory.connection = SimpleNamespace(
+        extend=SimpleNamespace(standard=SimpleNamespace(paged_search=paged_search))
+    )
+    principal = DirectoryPrincipal(
+        sid=WRITERS, name="GL_PROJ_W", kind="group", source="ldap", dn="CN=GL_PROJ_W,DC=x"
+    )
 
     assert directory.load_members(principal, limit=2) is True
     assert "memberOf:1.2.840.113556.1.4.1941:=CN=GL_PROJ_W,DC=x" in calls[1]
@@ -172,7 +222,11 @@ def test_ldap_members_use_direct_then_nested_and_respect_limit():
 
 @pytest.mark.parametrize(
     ("sid", "kind", "broad"),
-    [("S-1-5-11", "wellknown", True), ("S-1-5-21-1-2-3-513", "wellknown", True), ("S-1-6-5001-0", "unix", False)],
+    [
+        ("S-1-5-11", "wellknown", True),
+        ("S-1-5-21-1-2-3-513", "wellknown", True),
+        ("S-1-6-5001-0", "unix", False),
+    ],
 )
 def test_resolver_identifies_well_known_and_unix_sids_without_directory(sid, kind, broad):
     principal = DirectoryResolver([], member_limit=10).resolve_sid(sid)

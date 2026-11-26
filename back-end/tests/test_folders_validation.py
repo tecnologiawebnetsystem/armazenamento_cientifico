@@ -251,6 +251,7 @@ async def test_folder_sync_failure_logs_stage_and_traceback(caplog: pytest.LogCa
             payload=None,
         )
 
+    service.resolve_created_by.assert_awaited_once_with(["user-1", "session-id"])
     assert "folders_sync_failed" in caplog.text
     assert "stage=sync_network_folders" in caplog.text
     assert "scope=folders" in caplog.text
