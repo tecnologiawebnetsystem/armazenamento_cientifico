@@ -9,6 +9,7 @@ import {
   ClipboardListIcon,
   FolderIcon,
   Loader2Icon,
+  ShieldCheckIcon,
   UsersIcon,
 } from "lucide-react"
 import {
@@ -51,8 +52,10 @@ import { cn } from "@/lib/utils"
 import {
   createProject,
   ApiError,
+  getProjectMembers,
   recordAuditEvent,
   syncFolders,
+  syncProjectGroups,
 } from "@/lib/api-client"
 import type { SessionUser } from "@/lib/types"
 
@@ -74,6 +77,9 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSyncingNetwork, setIsSyncingNetwork] = useState(false)
   const [syncingProjectName, setSyncingProjectName] = useState("")
+  const [syncStep, setSyncStep] = useState<"folders" | "groups" | "members">(
+    "folders"
+  )
   const [syncSummary, setSyncSummary] = useState<{
     projectId: string
     projectName: string
@@ -81,6 +87,7 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
     foldersInserted: number
     groups: number
     groupsInserted: number
+    members: number
     aclErrors: number
     error?: string
   } | null>(null)
@@ -123,27 +130,49 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
       }).catch(() => undefined)
 
       setSyncingProjectName(project.nome)
+      setSyncStep("folders")
       setIsSyncingNetwork(true)
+      let folderCount = 0
+      let foldersInserted = 0
+      let groupCount = 0
+      let groupsInserted = 0
+      let memberCount = 0
+      let aclErrors = 0
       try {
-        const result = await syncFolders(project.id, [], "all")
+        const folderResult = await syncFolders(project.id, [], "folders")
+        folderCount = folderResult.folders.length
+        foldersInserted = folderResult.inserted
+
+        setSyncStep("groups")
+        const groupResult = await syncProjectGroups(project.id)
+        groupCount = groupResult.acl?.groups ?? 0
+        groupsInserted = groupResult.acl?.inserted ?? 0
+        aclErrors = groupResult.acl?.errors.length ?? 0
+
+        setSyncStep("members")
+        const memberResult = await getProjectMembers(project.id)
+        memberCount = memberResult.members.length
+
         setSyncSummary({
           projectId: project.id,
           projectName: project.nome,
-          folders: result.folders.length,
-          foldersInserted: result.inserted,
-          groups: result.acl?.groups ?? 0,
-          groupsInserted: result.acl?.inserted ?? 0,
-          aclErrors: result.acl?.errors.length ?? 0,
+          folders: folderCount,
+          foldersInserted,
+          groups: groupCount,
+          groupsInserted,
+          members: memberCount,
+          aclErrors,
         })
       } catch (syncError) {
         setSyncSummary({
           projectId: project.id,
           projectName: project.nome,
-          folders: 0,
-          foldersInserted: 0,
-          groups: 0,
-          groupsInserted: 0,
-          aclErrors: 0,
+          folders: folderCount,
+          foldersInserted,
+          groups: groupCount,
+          groupsInserted,
+          members: memberCount,
+          aclErrors,
           error:
             syncError instanceof ApiError
               ? syncError.message
@@ -168,46 +197,145 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
   return (
     <>
       <Dialog open={isSyncingNetwork} onOpenChange={() => undefined}>
-        <DialogContent className="sm:max-w-md" showCloseButton={false}>
-          <div className="flex items-start gap-4">
-            <div className="relative flex size-12 shrink-0 items-center justify-center rounded-2xl bg-petrobras-green/10 text-petrobras-green">
-              <div className="absolute inset-0 animate-pulse rounded-2xl bg-petrobras-green/10" />
-              <Loader2Icon
-                className="relative size-6 animate-spin"
-                aria-hidden="true"
-              />
+        <DialogContent
+          className="overflow-hidden p-0 sm:max-w-xl"
+          showCloseButton={false}
+        >
+          <div className="bg-gradient-to-br from-petrobras-green/10 via-background to-petrobras-yellow/15 px-6 py-6 sm:px-8">
+            <div className="flex items-start gap-4">
+              <div className="relative flex size-12 shrink-0 items-center justify-center rounded-2xl bg-petrobras-green text-primary-foreground shadow-md shadow-petrobras-green/20">
+                <Loader2Icon
+                  className="size-6 animate-spin"
+                  aria-hidden="true"
+                />
+              </div>
+              <DialogHeader className="gap-2">
+                <DialogTitle className="text-xl tracking-tight">
+                  Preparando sua área de rede
+                </DialogTitle>
+                <DialogDescription className="leading-6">
+                  Estamos organizando os acessos de{" "}
+                  <strong>{syncingProjectName}</strong>. Isso pode levar alguns
+                  instantes.
+                </DialogDescription>
+              </DialogHeader>
             </div>
-            <DialogHeader className="gap-2">
-              <DialogTitle className="text-lg">
-                Atualizando a área de rede
-              </DialogTitle>
-              <DialogDescription className="leading-6">
-                Estamos lendo a estrutura de{" "}
-                <strong>{syncingProjectName}</strong> e sincronizando pastas e
-                grupos de acesso. Avisaremos assim que estiver tudo pronto.
-              </DialogDescription>
-            </DialogHeader>
           </div>
-          <div className="rounded-xl border bg-muted/30 p-4">
-            <div className="mb-3 flex items-center gap-2 text-sm font-medium">
-              <span
-                className="size-2 animate-pulse rounded-full bg-petrobras-green"
-                aria-hidden="true"
-              />
-              Mapeando pastas e conferindo permissões
+
+          <div className="px-6 pb-6 sm:px-8">
+            <div className="mb-5 flex items-center justify-between text-xs font-medium text-muted-foreground">
+              <span>Sincronização em andamento</span>
+              <span>
+                {syncStep === "folders"
+                  ? "1"
+                  : syncStep === "groups"
+                    ? "2"
+                    : "3"}{" "}
+                de 3
+              </span>
             </div>
             <div
-              className="h-1.5 overflow-hidden rounded-full bg-muted"
+              className="mb-5 h-1.5 overflow-hidden rounded-full bg-muted"
               aria-hidden="true"
             >
-              <div className="h-full w-2/3 animate-pulse rounded-full bg-petrobras-green" />
+              <div
+                className={cn(
+                  "h-full rounded-full bg-petrobras-green transition-all duration-500",
+                  syncStep === "folders"
+                    ? "w-1/3"
+                    : syncStep === "groups"
+                      ? "w-2/3"
+                      : "w-full"
+                )}
+              />
             </div>
-            <p
-              className="mt-3 text-xs leading-5 text-muted-foreground"
+            <ol
+              className="flex flex-col gap-3"
               aria-live="polite"
+              aria-label="Etapas da sincronização"
             >
-              A primeira leitura pode levar alguns instantes. Mantenha esta tela
-              aberta.
+              {[
+                {
+                  id: "folders",
+                  label: "Pastas",
+                  detail: "Lendo e registrando a estrutura de diretórios",
+                  Icon: FolderIcon,
+                },
+                {
+                  id: "groups",
+                  label: "Groups / Roles",
+                  detail: "Atualizando grupos e permissões da área",
+                  Icon: ShieldCheckIcon,
+                },
+                {
+                  id: "members",
+                  label: "Membros",
+                  detail: "Conferindo os membros vinculados à área",
+                  Icon: UsersIcon,
+                },
+              ].map(({ id, label, detail, Icon }, index) => {
+                const currentIndex =
+                  syncStep === "folders" ? 0 : syncStep === "groups" ? 1 : 2
+                const isDone = index < currentIndex
+                const isCurrent = index === currentIndex
+                return (
+                  <li
+                    key={id}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl border p-3.5 transition-colors",
+                      isCurrent
+                        ? "border-petrobras-green/40 bg-petrobras-green/5"
+                        : "border-border/70 bg-background",
+                      !isCurrent && !isDone && "opacity-55"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex size-10 shrink-0 items-center justify-center rounded-xl",
+                        isDone
+                          ? "bg-petrobras-green text-primary-foreground"
+                          : isCurrent
+                            ? "bg-petrobras-green/10 text-petrobras-green"
+                            : "bg-muted text-muted-foreground"
+                      )}
+                    >
+                      {isDone ? (
+                        <CheckCircle2Icon
+                          className="size-5"
+                          aria-hidden="true"
+                        />
+                      ) : isCurrent ? (
+                        <Icon className="size-5" aria-hidden="true" />
+                      ) : (
+                        <span className="text-sm font-semibold">
+                          {index + 1}
+                        </span>
+                      )}
+                    </span>
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="font-semibold">{label}</span>
+                      <span className="text-xs leading-5 text-muted-foreground">
+                        {detail}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-xs font-medium text-muted-foreground">
+                      {isDone ? (
+                        "Concluído"
+                      ) : isCurrent ? (
+                        <Loader2Icon
+                          className="size-4 animate-spin text-petrobras-green"
+                          aria-label="Em andamento"
+                        />
+                      ) : (
+                        "Aguardando"
+                      )}
+                    </span>
+                  </li>
+                )
+              })}
+            </ol>
+            <p className="mt-4 text-center text-xs leading-5 text-muted-foreground">
+              Mantenha esta janela aberta até a conclusão.
             </p>
           </div>
         </DialogContent>
@@ -220,7 +348,7 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
             router.push(`/projetos/${syncSummary.projectId}`)
         }}
       >
-        <DialogContent className="sm:max-w-md" showCloseButton={false}>
+        <DialogContent className="sm:max-w-2xl" showCloseButton={false}>
           <DialogHeader>
             <div
               className={cn(
@@ -255,29 +383,50 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
             </Alert>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-2 rounded-xl border bg-muted/20 p-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="flex flex-col gap-2 rounded-xl border border-petrobras-green/20 bg-petrobras-green/5 p-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <FolderIcon className="size-4" aria-hidden="true" />
-                Pastas sincronizadas
+                <FolderIcon
+                  className="size-4 text-petrobras-green"
+                  aria-hidden="true"
+                />
+                Pastas
               </div>
-              <span className="text-3xl font-semibold tracking-tight">
+              <span className="text-3xl font-semibold tracking-tight tabular-nums">
                 {syncSummary?.folders ?? 0}
               </span>
               <span className="text-xs text-muted-foreground">
-                {syncSummary?.foldersInserted ?? 0} novas nesta operação
+                {syncSummary?.foldersInserted ?? 0} novas
               </span>
             </div>
-            <div className="flex flex-col gap-2 rounded-xl border bg-muted/20 p-4">
+            <div className="flex flex-col gap-2 rounded-xl border border-petrobras-green/20 bg-petrobras-green/5 p-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <UsersIcon className="size-4" aria-hidden="true" />
-                Grupos sincronizados
+                <ShieldCheckIcon
+                  className="size-4 text-petrobras-green"
+                  aria-hidden="true"
+                />
+                Groups / Roles
               </div>
-              <span className="text-3xl font-semibold tracking-tight">
+              <span className="text-3xl font-semibold tracking-tight tabular-nums">
                 {syncSummary?.groups ?? 0}
               </span>
               <span className="text-xs text-muted-foreground">
-                {syncSummary?.groupsInserted ?? 0} novos nesta operação
+                {syncSummary?.groupsInserted ?? 0} novos
+              </span>
+            </div>
+            <div className="flex flex-col gap-2 rounded-xl border border-petrobras-green/20 bg-petrobras-green/5 p-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <UsersIcon
+                  className="size-4 text-petrobras-green"
+                  aria-hidden="true"
+                />
+                Membros
+              </div>
+              <span className="text-3xl font-semibold tracking-tight tabular-nums">
+                {syncSummary?.members ?? 0}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                vinculados à área
               </span>
             </div>
           </div>
