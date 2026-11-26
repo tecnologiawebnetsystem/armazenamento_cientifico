@@ -43,6 +43,7 @@ import {
   getFolders,
   getInconsistencyReport,
   getProjectAccessMap,
+  getProjectFolderAccess,
   getProjects,
   recordAuditEvent,
   syncProjectGroups,
@@ -287,6 +288,14 @@ export default function AccessMapPage() {
     selectedProjectId ? ["access-map-folders", selectedProjectId] : null,
     () => getFolders(selectedProjectId)
   )
+  const {
+    data: folderAccessData,
+    isLoading: folderAccessLoading,
+  } = useSWR(
+    selectedProjectId ? ["access-map-folder-access", selectedProjectId] : null,
+    () => getProjectFolderAccess(selectedProjectId),
+    { revalidateOnFocus: false }
+  )
   const folders = (foldersData?.folders ?? [])
     .map((item) => {
       const raw = item as FileNode & {
@@ -407,6 +416,8 @@ export default function AccessMapPage() {
             accessMap={accessMap}
             accessError={accessError}
             accessLoading={accessLoading}
+            folderAccessData={folderAccessData}
+            folderAccessLoading={folderAccessLoading}
             folders={folders}
             foldersLoading={foldersLoading}
             retryAccess={retryAccess}
@@ -423,6 +434,8 @@ function AccessMapDetails({
   accessMap,
   accessError,
   accessLoading,
+  folderAccessData,
+  folderAccessLoading,
   folders,
   foldersLoading,
   retryAccess,
@@ -432,12 +445,69 @@ function AccessMapDetails({
   accessMap?: ProjectAccessMapResponse
   accessError?: Error
   accessLoading: boolean
+  folderAccessData?: Awaited<ReturnType<typeof getProjectFolderAccess>>
+  folderAccessLoading: boolean
   folders: FileNode[]
   foldersLoading: boolean
   retryAccess: () => void
 }) {
   const groups = accessMap?.groups ?? []
   const members = accessMap?.members ?? []
+  const visibleMembers = useMemo(() => {
+    const byLogin = new Map<
+      string,
+      { userId: string; name: string; email: string; permissions: string[] }
+    >()
+
+    members.forEach((member) => {
+      const userId = member.user?.userId || member.userId
+      const key = userId.trim().toLocaleLowerCase("pt-BR")
+      if (!key) return
+      byLogin.set(key, {
+        userId,
+        name: member.user?.nome || userId,
+        email: member.user?.email || "",
+        permissions: member.papel ? [accessLabel(member.papel)] : [],
+      })
+    })
+
+    ;(folderAccessData?.entries ?? []).forEach((entry) => {
+      const entryMembers =
+        entry.membros.length > 0
+          ? entry.membros
+          : entry.tipo !== "group"
+            ? [{ login: entry.identificador || entry.grupo, nome: "", email: "" }]
+            : []
+
+      entryMembers.forEach((member) => {
+        const userId = member.login.trim()
+        const key = userId.toLocaleLowerCase("pt-BR")
+        if (!key) return
+        const existing = byLogin.get(key)
+        const permission = accessLabel(entry.nivelRede || entry.nivelSigac)
+        if (existing) {
+          if (!existing.name || existing.name === existing.userId) {
+            existing.name = member.nome || existing.name
+          }
+          if (!existing.email) existing.email = member.email
+          if (!existing.permissions.includes(permission)) {
+            existing.permissions.push(permission)
+          }
+        } else {
+          byLogin.set(key, {
+            userId,
+            name: member.nome || userId,
+            email: member.email,
+            permissions: permission === "Não informado" ? [] : [permission],
+          })
+        }
+      })
+    })
+
+    return Array.from(byLogin.values()).sort((a, b) =>
+      a.name.localeCompare(b.name, "pt-BR")
+    )
+  }, [members, folderAccessData])
   const [exportOpen, setExportOpen] = useState(false)
   const [isSyncingGroups, setIsSyncingGroups] = useState(false)
   const [syncResult, setSyncResult] = useState<{
@@ -649,7 +719,9 @@ function AccessMapDetails({
           <div className="rounded-lg border border-border/70 p-3">
             <p className="text-xs text-muted-foreground">Membros</p>
             <p className="mt-1 text-2xl font-semibold">
-              {members.length ?? "—"}
+              {folderAccessLoading && visibleMembers.length === 0
+                ? "…"
+                : visibleMembers.length}
             </p>
           </div>
         </CardContent>
@@ -696,6 +768,7 @@ function AccessMapDetails({
                       <Badge
                         key={`${folder.id}-${group.nome}`}
                         variant="outline"
+                        className="max-w-full whitespace-normal break-all text-left leading-relaxed"
                       >
                         {group.nome}: {accessLabel(group.nivel)}
                       </Badge>
@@ -756,15 +829,24 @@ function AccessMapDetails({
           </Card>
           <Card className="sigac-surface print-section print-members">
             <CardHeader className="sigac-section-header px-5 py-4">
-              <CardTitle className="text-base">Membros autorizados</CardTitle>
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle className="text-base">Membros autorizados</CardTitle>
+                <Badge variant="secondary">
+                  {folderAccessLoading && visibleMembers.length === 0
+                    ? "Consultando…"
+                    : `${visibleMembers.length} ${visibleMembers.length === 1 ? "membro" : "membros"}`}
+                </Badge>
+              </div>
               <CardDescription>
-                Pessoas com acesso à área de rede e seus níveis de permissão.
+                Nome, chave corporativa e permissões identificadas na área de rede.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              {members.length === 0 ? (
-                <p className="p-5 text-sm text-muted-foreground">
-                  Nenhum membro autorizado.
+              {visibleMembers.length === 0 ? (
+                <p className="p-5 text-sm text-muted-foreground" aria-live="polite">
+                  {folderAccessLoading
+                    ? "Consultando membros e permissões da área de rede…"
+                    : "Nenhum membro autorizado foi encontrado."}
                 </p>
               ) : (
                 <Table>
@@ -772,39 +854,40 @@ function AccessMapDetails({
                     <TableRow>
                       <TableHead>Membro</TableHead>
                       <TableHead>E-mail</TableHead>
-                      <TableHead>Permissão</TableHead>
+                      <TableHead>Permissões</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {members.map((member) => {
-                      const name =
-                        member.user?.nome ||
-                        member.user?.userId ||
-                        member.userId ||
-                        "Usuário"
-                      const userId = member.user?.userId || member.userId
-
-                      return (
-                        <TableRow key={member.userId}>
-                          <TableCell>
-                            <p className="font-medium">{name}</p>
-                            {userId && userId !== name && (
-                              <p className="text-xs text-muted-foreground">
-                                {userId}
-                              </p>
-                            )}
-                          </TableCell>
-                          <TableCell className="break-all">
-                            {member.user?.email || "E-mail não informado"}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {accessLabel(member.papel)}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
+                    {visibleMembers.map((member) => (
+                      <TableRow key={member.userId}>
+                        <TableCell className="min-w-48">
+                          <p className="font-medium">{member.name}</p>
+                          {member.userId !== member.name && (
+                            <p className="break-all font-mono text-xs text-muted-foreground">
+                              {member.userId}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell className="break-all">
+                          {member.email || "E-mail não informado"}
+                        </TableCell>
+                        <TableCell>
+                          {member.permissions.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {member.permissions.map((permission) => (
+                                <Badge key={permission} variant="outline">
+                                  {permission}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              Não informado
+                            </span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               )}

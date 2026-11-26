@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import {
   CheckCircle2Icon,
   ClipboardListIcon,
+  FolderOpenIcon,
   Loader2Icon,
 } from "lucide-react"
 import {
@@ -142,26 +143,42 @@ export function NewProjectForm({ currentUser }: { currentUser: SessionUser }) {
     <>
       <Dialog open={isSyncingNetwork} onOpenChange={() => undefined}>
         <DialogContent
-          className="overflow-hidden p-0 sm:max-w-xl"
+          className="overflow-hidden rounded-2xl border-border/80 p-0 shadow-2xl sm:max-w-2xl"
           showCloseButton={false}
         >
-          <div className="flex items-start gap-4 px-6 py-8 sm:px-8">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-petrobras-green text-primary-foreground shadow-md shadow-petrobras-green/20">
-              <Loader2Icon
-                className="size-6 animate-spin"
-                aria-hidden="true"
-              />
+          <div className="h-1.5 bg-gradient-to-r from-petrobras-green via-petrobras-green to-petrobras-yellow" />
+          <div className="flex items-start gap-5 px-6 py-7 sm:gap-6 sm:px-8 sm:py-9">
+            <div className="relative flex size-14 shrink-0 items-center justify-center rounded-2xl bg-petrobras-green/10 text-petrobras-green ring-1 ring-petrobras-green/15 sm:size-16">
+              <FolderOpenIcon className="size-7" aria-hidden="true" />
+              <span className="absolute -right-1 -bottom-1 flex size-7 items-center justify-center rounded-full border-2 border-card bg-petrobras-green text-primary-foreground shadow-sm">
+                <Loader2Icon className="size-4 animate-spin" aria-hidden="true" />
+              </span>
             </div>
-            <DialogHeader className="gap-2">
-              <DialogTitle className="text-xl tracking-tight">
-                Sincronizando pasta de rede
-              </DialogTitle>
-              <DialogDescription className="leading-6" aria-live="polite">
-                Sincronizando apenas a pasta{" "}
-                <strong>{syncingFolderName || pastaMae.trim()}</strong>. Assim
-                que terminar, você poderá abrir a área.
-              </DialogDescription>
-            </DialogHeader>
+            <div className="min-w-0 flex-1">
+              <DialogHeader className="gap-2 text-left">
+                <span className="w-fit rounded-full bg-petrobras-green/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-petrobras-green">
+                  Sincronização em andamento
+                </span>
+                <DialogTitle className="text-xl font-semibold tracking-tight sm:text-2xl">
+                  Preparando sua área de rede
+                </DialogTitle>
+                <DialogDescription className="text-sm leading-6 sm:text-base">
+                  Estamos sincronizando somente esta pasta. Assim que o processo terminar, a área ficará disponível para acesso.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="mt-5 rounded-xl border border-border/70 bg-muted/35 p-3.5 sm:mt-6 sm:p-4">
+                <p className="mb-1.5 text-xs font-medium text-muted-foreground">Pasta em sincronização</p>
+                <p className="break-all font-mono text-xs leading-5 text-foreground sm:text-sm">
+                  {syncingFolderName || pastaMae.trim()}
+                </p>
+              </div>
+              <div className="mt-5" role="progressbar" aria-label="Sincronizando pasta de rede" aria-valuetext="Em andamento">
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                  <span className="sigac-sync-progress block h-full w-2/5 rounded-full bg-petrobras-green" />
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground" aria-live="polite">Aguarde enquanto verificamos os arquivos e permissões.</p>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
