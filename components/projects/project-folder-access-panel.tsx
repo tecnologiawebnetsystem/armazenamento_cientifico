@@ -8,7 +8,6 @@ import {
   FolderLockIcon,
   RefreshCwIcon,
 } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -23,7 +22,6 @@ import {
   getFolders,
   getProjectFolderAccess,
   syncProjectGroups,
-  type FolderAccessStatus,
 } from "@/lib/api-client"
 import { toast } from "sonner"
 import {
@@ -35,21 +33,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-
-const STATUS: Record<
-  FolderAccessStatus,
-  {
-    label: string
-    variant: "default" | "secondary" | "outline" | "destructive"
-  }
-> = {
-  conforme: { label: "Conforme", variant: "default" },
-  nivel_divergente: { label: "Nível divergente", variant: "destructive" },
-  somente_rede: { label: "Só na rede", variant: "destructive" },
-  somente_sigac: { label: "Só no SIGAC", variant: "secondary" },
-  nao_verificado: { label: "Não verificado", variant: "outline" },
-  papel_aplicacao: { label: "Papel da aplicação", variant: "outline" },
-}
 
 const LEVEL_LABEL: Record<string, string> = {
   leitura: "Leitura",
@@ -338,7 +321,6 @@ export function ProjectFolderAccessPanel({
                       <TableHead>Membro</TableHead>
                       <TableHead>Grupo de origem</TableHead>
                       <TableHead>Permissão</TableHead>
-                      <TableHead>Situação</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -371,11 +353,6 @@ export function ProjectFolderAccessPanel({
                               {entry.direitosRede}
                             </p>
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={STATUS[entry.situacao].variant}>
-                            {STATUS[entry.situacao].label}
-                          </Badge>
                         </TableCell>
                       </TableRow>
                     ))}

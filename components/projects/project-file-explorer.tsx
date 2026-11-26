@@ -24,7 +24,6 @@ import type { FileNode } from "@/lib/types"
 import { Badge } from "@/components/ui/badge"
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -316,28 +315,7 @@ export function ProjectFileExplorer({
                 <Badge variant="secondary">
                   {folders.length} {folders.length === 1 ? "pasta" : "pastas"}
                 </Badge>
-                <Badge variant="outline">Somente leitura</Badge>
-                {data?.source === "tabela" ||
-                data?.source === "tabela-fallback" ? (
-                  <Badge
-                    className="border-petrobras-yellow/50 bg-petrobras-yellow/15 text-xs font-semibold text-foreground"
-                    variant="outline"
-                  >
-                    <DatabaseIcon
-                      className="size-3.5"
-                      data-icon="inline-start"
-                    />
-                    Banco de dados
-                  </Badge>
-                ) : (
-                  <Badge className="text-xs" variant="outline">
-                    <FoldersIcon
-                      className="size-3.5"
-                      data-icon="inline-start"
-                    />
-                    Área de rede
-                  </Badge>
-                )}
+
               </div>
               <Button
                 type="button"
@@ -359,7 +337,6 @@ export function ProjectFileExplorer({
               </Button>
             </div>
           </div>
-          <CardAction className="sr-only">Somente leitura</CardAction>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
