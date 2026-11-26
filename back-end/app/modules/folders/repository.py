@@ -130,18 +130,30 @@ class FolderRepository:
                 },
                 where=(ProjectGroup.source == "rede"),
             )
+            group_stmt = group_stmt.returning(ProjectGroup.group_id)
             result = await self.session.execute(group_stmt)
-            # on_conflict_do_update: rowcount > 0 indica insert ou update
+            persisted_group_id = result.scalar_one_or_none()
             if result.rowcount and result.rowcount > 0:
                 inserted += 1
             else:
-                # Se não atualizou (source != "rede"), conta como skipped
                 skipped += 1
 
-            # Upsert na tabela de vínculo
+            # Um conflito de identificador pode manter um group_id antigo, sobretudo
+            # para grupos manuais. O vínculo deve usar sempre o ID realmente persistido.
+            if persisted_group_id is None:
+                persisted_group_id = await self.session.scalar(
+                    select(ProjectGroup.group_id).where(
+                        ProjectGroup.project_id == project_id,
+                        ProjectGroup.principal_type == item["principal_type"],
+                        ProjectGroup.identifier == item["identifier"],
+                    )
+                )
+            if persisted_group_id is None:
+                continue
+
             link_stmt = pg_insert(ProjectAccessGroup).values(
                 project_id=project_id,
-                group_id=item["group_id"],
+                group_id=persisted_group_id,
             ).on_conflict_do_nothing()
             await self.session.execute(link_stmt)
 

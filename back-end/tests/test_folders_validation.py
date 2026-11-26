@@ -1,7 +1,11 @@
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
+from sqlalchemy.dialects import postgresql
 
+from app.modules.folders.repository import FolderRepository
 from app.modules.folders.service import FolderService, FolderSourceUnavailable
 
 
@@ -81,6 +85,64 @@ async def test_sync_rejects_missing_parent_folder(tmp_path: Path):
 
     with pytest.raises(FolderSourceUnavailable, match="não existe ou não está acessível"):
         await FolderService(repository).sync_project_folders("project-1", "user-1", "request-1")
+
+
+class ReconcileRepository(FakeRepository):
+    async def reconcile(self, _folders, _source_folders, _updated_at):
+        return len(_folders)
+
+    async def create_many(self, folders):
+        self.saved.extend(folders)
+        return folders
+
+
+@pytest.mark.asyncio
+async def test_sync_adds_new_nested_folders_when_project_already_has_folders(tmp_path: Path):
+    root = tmp_path / "root"
+    (root / "Área existente").mkdir(parents=True)
+    (root / "Área nova" / "Subárea nova").mkdir(parents=True)
+    scanned = FolderService._read_root_folders("project-1", str(root))
+    repository = ReconcileRepository(str(root))
+    repository.saved = [next(folder for folder in scanned if folder.name == "Área existente")]
+
+    folders, inserted, existing, integrity, trace = await FolderService(repository).sync_project_folders(
+        "project-1", "user-1", []
+    )
+
+    assert existing is True
+    assert inserted == 2
+    assert {folder.name for folder in folders} == {"Área existente", "Área nova", "Subárea nova"}
+    assert integrity["total"] == 3
+    assert integrity["invalid_parents"] == 0
+    assert trace["updated"] == 1
+
+
+@pytest.mark.asyncio
+async def test_acl_link_uses_persisted_group_id_on_identifier_conflict():
+    upsert_result = SimpleNamespace(rowcount=1, scalar_one_or_none=lambda: "persisted-group-id")
+    session = SimpleNamespace(
+        execute=AsyncMock(side_effect=[upsert_result, None]),
+        commit=AsyncMock(),
+        scalar=AsyncMock(),
+    )
+
+    await FolderRepository(session).upsert_access_groups(
+        "project-1",
+        [
+            {
+                "group_id": "new-random-group-id",
+                "identifier": "S-1-5-21-123-456-789-1001",
+                "group_name": "Grupo AD",
+                "principal_type": "group",
+                "access_level": "leitura",
+                "source": "rede",
+            }
+        ],
+    )
+
+    link_statement = session.execute.await_args_list[1].args[0]
+    assert link_statement.compile(dialect=postgresql.dialect()).params["group_id"] == "persisted-group-id"
+    session.commit.assert_awaited_once()
 
 
 class ListingRepository:

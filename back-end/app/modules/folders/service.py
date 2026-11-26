@@ -170,11 +170,42 @@ class FolderService:
         else:
             raise FolderSourceUnavailable("A consulta à pasta de rede não retornou uma lista atualizada.")
 
-        existing = await self.repository.find_by_project(project_id)
+        existing = list(await self.repository.find_by_project(project_id))
         now = datetime.now(UTC)
         if existing:
             updated = await self.repository.reconcile(existing, source_folders, now)
-            return existing, 0, True, {"total": len(existing), "invalid_parents": 0, "invalid_kinds": 0}, {"source": source, "updated": updated}
+            existing_ids = {str(folder.id) for folder in existing}
+            missing_folders = [
+                Folder(
+                    id=item["id"],
+                    project_id=project_id,
+                    parent_id=item.get("parent_id"),
+                    kind="pasta",
+                    name=item["name"].strip(),
+                    created_by=user_id,
+                    created_at=now,
+                    updated_at=now,
+                    size=int(item.get("size_bytes") or 0),
+                )
+                for item in source_folders
+                if item.get("id") not in existing_ids and item.get("name", "").strip()
+            ]
+            created = await self.repository.create_many(missing_folders) if missing_folders else []
+            all_folders = [*existing, *created]
+            integrity = {
+                "total": len(all_folders),
+                "invalid_parents": sum(
+                    1 for folder in all_folders
+                    if folder.parent_id and str(folder.parent_id) not in {
+                        str(item.id) for item in all_folders
+                    }
+                ),
+                "invalid_kinds": sum(1 for folder in all_folders if folder.kind not in {"pasta", "folder"}),
+            }
+            return all_folders, len(created), True, integrity, {
+                "source": source,
+                "updated": updated,
+            }
 
         to_create = [
             Folder(
