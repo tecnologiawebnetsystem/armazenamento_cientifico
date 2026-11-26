@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from datetime import UTC, datetime
+from time import perf_counter
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -524,6 +525,14 @@ async def get_project_folder_access(
         for principal, _association in await service.list_access_groups(project_id)
     ]
     settings = get_settings()
+    folder = (project.parent_folder or "").strip()
+    started_at = perf_counter()
+    logger.info(
+        "folder_access_started project_id=%s folder=%s configured_groups=%d",
+        project_id,
+        folder or "<não cadastrada>",
+        len(stored_groups),
+    )
 
     def build() -> FolderAccessOut:
         resolver, warnings = DirectoryResolver.from_settings(settings)
@@ -531,7 +540,7 @@ async def get_project_folder_access(
             return build_folder_access(
                 project_id=project_id,
                 project_name=project.name or "",
-                folder=(project.parent_folder or "").strip(),
+                folder=folder,
                 stored_groups=stored_groups,
                 resolver=resolver,
                 read_acl=read_folder_acl,
@@ -543,8 +552,45 @@ async def get_project_folder_access(
     try:
         result = await asyncio.wait_for(asyncio.to_thread(build), timeout=settings.folder_access_timeout_seconds)
     except TimeoutError as error:
-        logger.warning("folder_access_timeout project_id=%s", project_id)
+        logger.warning(
+            "folder_access_timeout project_id=%s folder=%s timeout_seconds=%s duration_ms=%.2f",
+            project_id,
+            folder or "<não cadastrada>",
+            settings.folder_access_timeout_seconds,
+            (perf_counter() - started_at) * 1000,
+        )
         raise HTTPException(status_code=504, detail="A pasta ou o diretório não responderam a tempo") from error
+    except Exception:
+        logger.exception(
+            "folder_access_failed project_id=%s folder=%s duration_ms=%.2f",
+            project_id,
+            folder or "<não cadastrada>",
+            (perf_counter() - started_at) * 1000,
+        )
+        raise
+
+    if result.aclStatus == "ok":
+        logger.info(
+            "folder_access_completed project_id=%s folder=%s acl_status=%s entries=%d alerts=%d warnings=%d duration_ms=%.2f",
+            project_id,
+            folder,
+            result.aclStatus,
+            len(result.entries),
+            len(result.alertas),
+            len(result.avisos),
+            (perf_counter() - started_at) * 1000,
+        )
+    else:
+        logger.warning(
+            "folder_access_completed project_id=%s folder=%s acl_status=%s acl_message=%s entries=%d warnings=%d duration_ms=%.2f",
+            project_id,
+            folder or "<não cadastrada>",
+            result.aclStatus,
+            result.aclMensagem or "",
+            len(result.entries),
+            len(result.avisos),
+            (perf_counter() - started_at) * 1000,
+        )
     mark_audit(
         request,
         action="consultar-acessos-pasta",
