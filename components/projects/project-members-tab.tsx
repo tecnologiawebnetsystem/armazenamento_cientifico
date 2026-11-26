@@ -20,12 +20,10 @@ import {
 } from "@/components/ui/empty"
 import { getProjectAccessMap } from "@/lib/api-client"
 import { ProjectFolderAccessPanel } from "@/components/projects/project-folder-access-panel"
-import { ProjectMembersManager } from "@/components/projects/project-members-manager"
 import { useCan } from "@/hooks/use-permissions"
 
 export function ProjectMembersTab({
   projectId,
-  canManage = false,
 }: {
   projectId: string
   canManage?: boolean
@@ -136,10 +134,6 @@ export function ProjectMembersTab({
             {canViewFolderAccess && (
               <ProjectFolderAccessPanel projectId={projectId} />
             )}
-            <ProjectMembersManager
-              projectId={projectId}
-              canManage={canManage}
-            />
           </>
         )}
       </CardContent>

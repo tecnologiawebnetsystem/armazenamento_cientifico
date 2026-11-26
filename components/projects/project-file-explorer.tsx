@@ -250,13 +250,21 @@ export function ProjectFileExplorer({
             <div className="flex items-center justify-between gap-4">
               <span className="flex items-center gap-2 text-muted-foreground">
                 <DatabaseIcon className="size-4" aria-hidden="true" />
-                Registros encontrados
+                Total de pastas
               </span>
               <span className="font-semibold">{syncResult?.total ?? 0}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">
-                Inseridos nesta operação
+                Pastas sincronizadas
+              </span>
+              <span className="font-semibold text-petrobras-green">
+                {(syncResult?.inserted ?? 0) + (syncResult?.updated ?? 0)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-muted-foreground">
+                Inseridas nesta operação
               </span>
               <span className="font-semibold text-petrobras-green">
                 {syncResult?.inserted ?? 0}

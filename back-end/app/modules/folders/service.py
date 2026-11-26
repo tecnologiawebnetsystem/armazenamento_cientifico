@@ -53,7 +53,9 @@ class FolderService:
                 parent_folder,
                 (perf_counter() - started_at) * 1000,
             )
-            raise FolderSourceUnavailable("Tempo limite ao listar as pastas da área de rede.") from error
+            raise FolderSourceUnavailable(
+                "Tempo limite ao listar as pastas da área de rede."
+            ) from error
         except Exception as error:
             logger.exception(
                 "folders_network_scan_failed project_id=%s root=%r duration_ms=%.2f",
@@ -65,7 +67,9 @@ class FolderService:
                 raise FolderSourceUnavailable(
                     "A pasta raiz não existe ou não está acessível pelo servidor."
                 ) from error
-            raise FolderSourceUnavailable("Não foi possível listar as pastas da área de rede.") from error
+            raise FolderSourceUnavailable(
+                "Não foi possível listar as pastas da área de rede."
+            ) from error
 
         logger.info(
             "folders_network_scan_completed project_id=%s root=%r folders=%d duration_ms=%.2f",
@@ -126,7 +130,6 @@ class FolderService:
 
         return folders
 
-
     @staticmethod
     def _directory_size(path: str) -> int:
         total = 0
@@ -134,14 +137,18 @@ class FolderService:
             for current_path, _, file_names in os.walk(path):
                 for file_name in file_names:
                     try:
-                        total += os.stat(os.path.join(current_path, file_name), follow_symlinks=False).st_size
+                        total += os.stat(
+                            os.path.join(current_path, file_name), follow_symlinks=False
+                        ).st_size
                     except OSError:
                         continue
         except OSError:
             return 0
         return total
 
-    async def sync_project_folders(self, project_id: str, user_id: str, folders: list[dict] | str) -> tuple[list[Folder], int, bool, dict, dict]:
+    async def sync_project_folders(
+        self, project_id: str, user_id: str, folders: list[dict] | str
+    ) -> tuple[list[Folder], int, bool, dict, dict]:
         project = await self.repository.find_project(project_id)
         parent_folder = (project.parent_folder if project else "").strip()
         if not parent_folder:
@@ -157,6 +164,11 @@ class FolderService:
         source = "rede"
         live_folders = await self.read_live_project_folders(project_id)
         if live_folders is not None:
+            logger.info(
+                "folders_sync_stage project_id=%s stage=network_scan_complete folders=%d",
+                project_id,
+                len(live_folders),
+            )
             source_folders = [
                 {
                     "id": folder.id,
@@ -168,13 +180,85 @@ class FolderService:
                 for folder in live_folders
             ]
         else:
-            raise FolderSourceUnavailable("A consulta à pasta de rede não retornou uma lista atualizada.")
+            raise FolderSourceUnavailable(
+                "A consulta à pasta de rede não retornou uma lista atualizada."
+            )
 
-        existing = await self.repository.find_by_project(project_id)
+        logger.info(
+            "folders_sync_stage project_id=%s stage=load_existing_folders incoming=%d",
+            project_id,
+            len(source_folders),
+        )
+        existing = list(await self.repository.find_by_project(project_id))
+        logger.info(
+            "folders_sync_stage project_id=%s stage=existing_folders_loaded total=%d",
+            project_id,
+            len(existing),
+        )
         now = datetime.now(UTC)
         if existing:
+            logger.info(
+                "folders_sync_stage project_id=%s stage=reconcile_existing_folders existing=%d incoming=%d",
+                project_id,
+                len(existing),
+                len(source_folders),
+            )
             updated = await self.repository.reconcile(existing, source_folders, now)
-            return existing, 0, True, {"total": len(existing), "invalid_parents": 0, "invalid_kinds": 0}, {"source": source, "updated": updated}
+            logger.info(
+                "folders_sync_stage project_id=%s stage=existing_folders_reconciled updated=%d",
+                project_id,
+                updated,
+            )
+            existing_ids = {str(folder.id) for folder in existing}
+            missing_folders = [
+                Folder(
+                    id=item["id"],
+                    project_id=project_id,
+                    parent_id=item.get("parent_id"),
+                    kind="pasta",
+                    name=item["name"].strip(),
+                    created_by=user_id,
+                    created_at=now,
+                    updated_at=now,
+                    size=int(item.get("size_bytes") or 0),
+                )
+                for item in source_folders
+                if item.get("id") not in existing_ids and item.get("name", "").strip()
+            ]
+            logger.info(
+                "folders_sync_stage project_id=%s stage=insert_missing_folders count=%d",
+                project_id,
+                len(missing_folders),
+            )
+            created = await self.repository.create_many(missing_folders) if missing_folders else []
+            logger.info(
+                "folders_sync_stage project_id=%s stage=missing_folders_inserted count=%d",
+                project_id,
+                len(created),
+            )
+            all_folders = [*existing, *created]
+            integrity = {
+                "total": len(all_folders),
+                "invalid_parents": sum(
+                    1
+                    for folder in all_folders
+                    if folder.parent_id
+                    and str(folder.parent_id) not in {str(item.id) for item in all_folders}
+                ),
+                "invalid_kinds": sum(
+                    1 for folder in all_folders if folder.kind not in {"pasta", "folder"}
+                ),
+            }
+            return (
+                all_folders,
+                len(created),
+                True,
+                integrity,
+                {
+                    "source": source,
+                    "updated": updated,
+                },
+            )
 
         to_create = [
             Folder(
@@ -192,15 +276,47 @@ class FolderService:
             if item.get("name", "").strip()
         ]
         if not to_create:
-            return [], 0, False, {"total": 0, "invalid_parents": 0, "invalid_kinds": 0}, {"source": source, "updated": 0}
+            logger.info("folders_sync_stage project_id=%s stage=no_folders_to_insert", project_id)
+            return (
+                [],
+                0,
+                False,
+                {"total": 0, "invalid_parents": 0, "invalid_kinds": 0},
+                {"source": source, "updated": 0},
+            )
+        logger.info(
+            "folders_sync_stage project_id=%s stage=insert_initial_folders count=%d",
+            project_id,
+            len(to_create),
+        )
         created = await self.repository.create_many(to_create)
-        return created, len(created), False, {"total": len(created), "invalid_parents": 0, "invalid_kinds": 0}, {"source": source, "updated": 0}
+        logger.info(
+            "folders_sync_stage project_id=%s stage=initial_folders_inserted count=%d",
+            project_id,
+            len(created),
+        )
+        return (
+            created,
+            len(created),
+            False,
+            {"total": len(created), "invalid_parents": 0, "invalid_kinds": 0},
+            {"source": source, "updated": 0},
+        )
 
-    async def _sync_legacy(self, project_id: str, user_id: str, request_id: str) -> tuple[list[Folder], int, bool, dict, dict]:
+    async def _sync_legacy(
+        self, project_id: str, user_id: str, request_id: str
+    ) -> tuple[list[Folder], int, bool, dict, dict]:
         existing_ids = await self.repository.existing_ids(project_id)
-        folders = self._read_all_folders(project_id, (await self.repository.find_project(project_id)).parent_folder, user_id)
+        folders = self._read_all_folders(
+            project_id, (await self.repository.find_project(project_id)).parent_folder, user_id
+        )
         for folder in folders:
-            folder.size = self._directory_size(str(Path((await self.repository.find_project(project_id)).parent_folder) / folder.name))
+            folder.size = self._directory_size(
+                str(
+                    Path((await self.repository.find_project(project_id)).parent_folder)
+                    / folder.name
+                )
+            )
         if existing_ids:
             saved = await self.repository.find_by_project(project_id)
             integrity = await self.repository.verify_project_folders(project_id)
@@ -225,17 +341,19 @@ class FolderService:
                 path = str(Path(current_path) / directory_name)
                 folder_id = str(uuid5(NAMESPACE_URL, f"{project_id}:{path}"))
                 parent_ids[path] = folder_id
-                folders.append(Folder(
-                    id=folder_id,
-                    project_id=project_id,
-                    parent_id=current_parent_id,
-                    kind="pasta",
-                    name=directory_name,
-                    created_by=user_id,
-                    created_at=now,
-                    updated_at=now,
-                    size=0,
-                ))
+                folders.append(
+                    Folder(
+                        id=folder_id,
+                        project_id=project_id,
+                        parent_id=current_parent_id,
+                        kind="pasta",
+                        name=directory_name,
+                        created_by=user_id,
+                        created_at=now,
+                        updated_at=now,
+                        size=0,
+                    )
+                )
         return folders
 
     async def can_list_project(self, project_id: str, user_id: str, role: str) -> bool:
@@ -252,7 +370,13 @@ class FolderService:
         project = await self.repository.find_project(project_id)
         folder = (project.parent_folder if project else "").strip()
         if not folder:
-            return {"folder": "", "groups": 0, "inserted": 0, "skipped": 0, "errors": ["Projeto sem pasta raiz cadastrada."]}
+            return {
+                "folder": "",
+                "groups": 0,
+                "inserted": 0,
+                "skipped": 0,
+                "errors": ["Projeto sem pasta raiz cadastrada."],
+            }
 
         from app.modules.projects.folder_access import sync_folder_acl
 
@@ -264,7 +388,13 @@ class FolderService:
             resolver.close()
 
         if sync_result.errors and not sync_result.inserted:
-            return {"folder": folder, "groups": 0, "inserted": 0, "skipped": 0, "errors": sync_result.errors}
+            return {
+                "folder": folder,
+                "groups": 0,
+                "inserted": 0,
+                "skipped": 0,
+                "errors": sync_result.errors,
+            }
 
         counters = await self.repository.upsert_access_groups(project_id, sync_result.inserted)
         logger.info(
