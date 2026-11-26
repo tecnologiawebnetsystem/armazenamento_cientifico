@@ -60,13 +60,14 @@ async def test_sync_persists_tree_and_returns_integrity(tmp_path: Path):
         repository
     ).sync_project_folders("project-1", "user-1", "request-1")
 
-    assert inserted == 2
+    assert inserted == 1
     assert existing is False
-    assert len(folders) == integrity["total"] == 2
+    assert len(folders) == integrity["total"] == 1
+    assert {folder.name for folder in folders} == {"A"}
     assert integrity["invalid_parents"] == 0
     assert integrity["invalid_kinds"] == 0
     assert repository.committed_request_id == "request-1"
-    assert any(folder.size == 4 for folder in folders)
+    assert all(folder.size == 0 for folder in folders)
 
 
 @pytest.mark.asyncio
@@ -118,9 +119,9 @@ async def test_sync_adds_new_nested_folders_when_project_already_has_folders(tmp
     ).sync_project_folders("project-1", "user-1", [])
 
     assert existing is True
-    assert inserted == 2
-    assert {folder.name for folder in folders} == {"Área existente", "Área nova", "Subárea nova"}
-    assert integrity["total"] == 3
+    assert inserted == 1
+    assert {folder.name for folder in folders} == {"Área existente", "Área nova"}
+    assert integrity["total"] == 2
     assert integrity["invalid_parents"] == 0
     assert trace["updated"] == 1
 
@@ -194,7 +195,7 @@ async def test_listing_does_not_scan_network_when_database_is_empty(tmp_path: Pa
     assert source == "tabela"
 
 
-def test_live_folder_scan_returns_nested_folders_with_parent_links(
+def test_live_folder_scan_returns_only_direct_subfolders(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ):
     root = tmp_path / "root"
@@ -205,17 +206,11 @@ def test_live_folder_scan_returns_nested_folders_with_parent_links(
     with caplog.at_level(logging.INFO):
         folders = FolderService._read_root_folders("project-1", str(root))
 
-    by_name = {folder.name: folder for folder in folders}
-
-    assert set(by_name) == {"Área A", "Subárea B"}
-    assert by_name["Área A"].parent_id is None
-    assert by_name["Subárea B"].parent_id == by_name["Área A"].id
-    assert by_name["Área A"].size == 0
+    assert [folder.name for folder in folders] == ["Área A"]
+    assert folders[0].parent_id is None
+    assert folders[0].size == 0
     assert "folders_network_subfolder_found project_id=project-1 relative_path='Área A'" in caplog.text
-    assert (
-        "folders_network_subfolder_found project_id=project-1 relative_path='Área A/Subárea B'"
-        in caplog.text
-    )
+    assert "Área A/Subárea B" not in caplog.text
 
 
 @pytest.mark.asyncio
