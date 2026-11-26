@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import useSWR from "swr"
 import {
   AlertTriangleIcon,
   CheckCircle2Icon,
@@ -23,6 +22,7 @@ import {
   getProjectFolderAccess,
   syncProjectGroups,
   type FolderAccessStatus,
+  type ProjectFolderAccess,
   type ProjectFolderAccessEntry,
 } from "@/lib/api-client"
 import { toast } from "sonner"
@@ -98,13 +98,9 @@ function FolderAccessRow({ entry }: { entry: ProjectFolderAccessEntry }) {
 }
 
 export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
-  const [enabled, setEnabled] = useState(false)
-  const { data, error, isValidating, mutate } = useSWR(
-    enabled ? ["project-folder-access", projectId] : null,
-    () => getProjectFolderAccess(projectId),
-    { revalidateOnFocus: false }
-  )
-
+  const [data, setData] = useState<ProjectFolderAccess | null>(null)
+  const [folderAccessError, setFolderAccessError] = useState<string | null>(null)
+  const [isLoadingFolderAccess, setIsLoadingFolderAccess] = useState(false)
   const [isSyncingGroups, setIsSyncingGroups] = useState(false)
   const resolvedMembers = (data?.entries ?? []).flatMap((entry) =>
     entry.membros.length > 0
@@ -129,19 +125,33 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
 
   async function handleSyncGroups() {
     setIsSyncingGroups(true)
+    setIsLoadingFolderAccess(true)
+    setData(null)
+    setSyncResult(null)
+    setFolderAccessError(null)
     try {
       const result = await syncProjectGroups(projectId)
-      if (enabled) {
-        await mutate()
-      } else {
-        setEnabled(true)
-      }
-      setSyncResult({
+      const summary = {
         groups: result.acl?.groups ?? 0,
         inserted: result.acl?.inserted ?? 0,
         skipped: result.acl?.skipped ?? 0,
         errors: result.acl?.errors.length ?? 0,
-      })
+      }
+      try {
+        const folderData = await getProjectFolderAccess(projectId)
+        setData(folderData)
+        setSyncResult({
+          ...summary,
+          groups: folderData.entries.filter((entry) => entry.tipo === "group").length,
+        })
+      } catch (folderError) {
+        setFolderAccessError(
+          folderError instanceof Error
+            ? folderError.message
+            : "Não foi possível consultar os grupos e membros da pasta."
+        )
+        setSyncResult(summary)
+      }
     } catch (syncError) {
       toast.error(
         syncError instanceof Error
@@ -149,6 +159,7 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
           : "Não foi possível sincronizar os grupos da rede."
       )
     } finally {
+      setIsLoadingFolderAccess(false)
       setIsSyncingGroups(false)
     }
   }
@@ -234,43 +245,26 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="default"
-              size="sm"
-              disabled={isValidating || isSyncingGroups}
-              onClick={() => void handleSyncGroups()}
-            >
-              <RefreshCwIcon
-                data-icon="inline-start"
-                className={isSyncingGroups ? "animate-spin" : ""}
-                aria-hidden="true"
-              />
-              Sincronizar Grupos
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={isValidating || isSyncingGroups}
-              onClick={() => (enabled ? mutate() : setEnabled(true))}
-            >
-              <RefreshCwIcon
-                data-icon="inline-start"
-                className={isValidating ? "animate-spin" : ""}
-                aria-hidden="true"
-              />
-              {data ? "Atualizar consulta" : "Consultar pasta"}
-            </Button>
-          </div>
+          <Button
+            variant="default"
+            size="sm"
+            disabled={isSyncingGroups}
+            onClick={() => void handleSyncGroups()}
+          >
+            <RefreshCwIcon
+              data-icon="inline-start"
+              className={isSyncingGroups ? "animate-spin" : ""}
+              aria-hidden="true"
+            />
+            {isSyncingGroups ? "Sincronizando grupos..." : "Sincronizar Grupos"}
+          </Button>
         </div>
 
-        {error ? (
+        {folderAccessError ? (
           <p className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {error instanceof Error
-              ? error.message
-              : "Não foi possível consultar a pasta."}
+            {folderAccessError}
           </p>
-        ) : isValidating && !data ? (
+        ) : isLoadingFolderAccess && !data ? (
           <div className="flex flex-col gap-2">
             <Skeleton className="h-10 rounded-lg" />
             <Skeleton className="h-10 rounded-lg" />
