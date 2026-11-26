@@ -63,85 +63,85 @@ function levelLabel(level: string | null) {
   return level ? (LEVEL_LABEL[level] ?? level) : "—"
 }
 
-function isSecurityIdentifier(value: string) {
-  return /^S-\d-\d+(?:-\d+)+$/i.test(value.trim())
-}
-
 function FolderAccessCard({ entry }: { entry: ProjectFolderAccessEntry }) {
   const status = STATUS[entry.situacao]
-  const nameIsSid = isSecurityIdentifier(entry.grupo)
   const principalLabel =
     entry.tipo === "role"
-      ? "Papel da aplicação"
+      ? "Papel"
       : entry.tipo === "group"
         ? "Grupo"
         : entry.tipo === "user"
           ? "Usuário"
           : entry.tipo === "wellknown"
-            ? "Identidade conhecida do Windows"
+            ? "Identidade Windows"
             : entry.tipo === "unix"
               ? "Identidade UNIX"
-              : "Identidade sem resolução no diretório"
+              : "Identidade não resolvida"
+  const accessBadgeClass =
+    entry.nivelRede === "administrador"
+      ? "border-primary/15 bg-primary/10 text-primary"
+      : entry.nivelRede === "escrita"
+        ? "border-accent/40 bg-accent/30 text-accent-foreground"
+        : entry.nivelRede === "leitura"
+          ? "border-secondary bg-secondary text-secondary-foreground"
+          : "border-border bg-muted text-muted-foreground"
 
   return (
-    <article className="flex min-w-0 flex-col gap-3 rounded-xl border border-border/80 bg-background p-4">
+    <article className="flex min-w-0 flex-col gap-3 rounded-xl border border-primary/15 bg-card p-4 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="font-semibold break-all text-foreground">
-            {nameIsSid ? "Nome não resolvido no diretório" : entry.grupo}
+            {entry.grupo}
           </p>
-          {nameIsSid && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              O valor abaixo é um SID (identificador de segurança), não o nome
-              do grupo.
-            </p>
-          )}
           <p className="mt-1 text-xs text-muted-foreground">
-            {principalLabel} · Fonte: {entry.fonteDiretorio}
+            Fonte: {entry.fonteDiretorio}
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
-          <Badge variant="outline">{principalLabel}</Badge>
-          <Badge variant="secondary">Rede: {levelLabel(entry.nivelRede)}</Badge>
-          <Badge variant={status.variant}>{status.label}</Badge>
+          <Badge variant="outline" className="border-primary/20 text-primary">
+            {principalLabel}
+          </Badge>
+          <Badge variant="outline" className={accessBadgeClass}>
+            {levelLabel(entry.nivelRede)}
+          </Badge>
         </div>
       </div>
-      <div className="grid gap-2 text-sm sm:grid-cols-2">
-        {entry.nivelSigac && (
-          <div>
-            <p className="text-xs text-muted-foreground">
-              Nível cadastrado no SIGAC
-            </p>
-            <p>{levelLabel(entry.nivelSigac)}</p>
-          </div>
-        )}
-        <div className="min-w-0">
-          <p className="text-xs text-muted-foreground">
-            Identificador do grupo
-          </p>
-          <code className="mt-1 block rounded-md bg-muted px-2 py-1 text-xs break-all text-muted-foreground">
-            {entry.identificador || entry.sid || "Não informado"}
-          </code>
-        </div>
-        {entry.sid &&
-          entry.identificador &&
-          entry.sid !== entry.identificador && (
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">SID da rede</p>
-              <code className="mt-1 block rounded-md bg-muted px-2 py-1 text-xs break-all text-muted-foreground">
-                {entry.sid}
-              </code>
-            </div>
+      <code className="block min-w-0 rounded-md border border-primary/10 bg-primary/5 px-3 py-2 text-xs break-all text-muted-foreground">
+        {entry.identificador || entry.sid || "Não informado"}
+      </code>
+      {(entry.nivelSigac ||
+        entry.sid !== entry.identificador ||
+        entry.direitosRede ||
+        entry.acessoAmplo ||
+        entry.negado ||
+        entry.herdado ||
+        entry.situacao !== "conforme") && (
+        <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-2">
+          {entry.nivelSigac && (
+            <Badge variant="outline">
+              SIGAC: {levelLabel(entry.nivelSigac)}
+            </Badge>
           )}
-      </div>
-      <div className="flex flex-wrap gap-1">
-        {entry.direitosRede && (
-          <Badge variant="outline">{entry.direitosRede}</Badge>
-        )}
-        {entry.acessoAmplo && <Badge variant="destructive">Acesso amplo</Badge>}
-        {entry.negado && <Badge variant="destructive">Negação explícita</Badge>}
-        {entry.herdado && <Badge variant="outline">Permissão herdada</Badge>}
-      </div>
+          {entry.sid &&
+            entry.identificador &&
+            entry.sid !== entry.identificador && (
+              <Badge variant="outline">SID: {entry.sid}</Badge>
+            )}
+          {entry.direitosRede && (
+            <Badge variant="outline">{entry.direitosRede}</Badge>
+          )}
+          {entry.acessoAmplo && (
+            <Badge variant="destructive">Acesso amplo</Badge>
+          )}
+          {entry.negado && (
+            <Badge variant="destructive">Negação explícita</Badge>
+          )}
+          {entry.herdado && <Badge variant="outline">Permissão herdada</Badge>}
+          {entry.situacao !== "conforme" && (
+            <Badge variant={status.variant}>{status.label}</Badge>
+          )}
+        </div>
+      )}
     </article>
   )
 }
