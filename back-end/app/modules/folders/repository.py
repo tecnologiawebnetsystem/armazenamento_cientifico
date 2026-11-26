@@ -156,7 +156,7 @@ class FolderRepository:
             group_stmt = group_stmt.returning(ProjectGroup.group_id)
             result = await self.session.execute(group_stmt)
             persisted_group_id = result.scalar_one_or_none()
-            if result.rowcount and result.rowcount > 0:
+            if persisted_group_id is not None:
                 if existing_group_id is None:
                     inserted += 1
                 else:
