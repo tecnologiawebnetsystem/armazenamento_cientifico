@@ -639,7 +639,7 @@ function AccessMapDetails({
         </CardHeader>
         <CardContent className="grid gap-3 p-5 sm:grid-cols-3">
           <div className="rounded-lg border border-border/70 p-3">
-            <p className="text-xs text-muted-foreground">Pastas</p>
+            <p className="text-xs text-muted-foreground">Total de pastas</p>
             <p className="mt-1 text-2xl font-semibold">
               {foldersLoading ? "—" : folders.length}
             </p>
