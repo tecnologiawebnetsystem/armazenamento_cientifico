@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
+  getFolders,
   getProjectFolderAccess,
   syncProjectGroups,
   type FolderAccessStatus,
@@ -99,6 +100,7 @@ function FolderAccessRow({ entry }: { entry: ProjectFolderAccessEntry }) {
 
 export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
   const [data, setData] = useState<ProjectFolderAccess | null>(null)
+  const [folderCount, setFolderCount] = useState<number | null>(null)
   const [folderAccessError, setFolderAccessError] = useState<string | null>(null)
   const [isLoadingFolderAccess, setIsLoadingFolderAccess] = useState(false)
   const [isSyncingGroups, setIsSyncingGroups] = useState(false)
@@ -127,6 +129,7 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
     setIsSyncingGroups(true)
     setIsLoadingFolderAccess(true)
     setData(null)
+    setFolderCount(null)
     setSyncResult(null)
     setFolderAccessError(null)
     try {
@@ -137,21 +140,35 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
         skipped: result.acl?.skipped ?? 0,
         errors: result.acl?.errors.length ?? 0,
       }
-      try {
-        const folderData = await getProjectFolderAccess(projectId)
-        setData(folderData)
-        setSyncResult({
-          ...summary,
-          groups: folderData.entries.filter((entry) => entry.tipo === "group").length,
-        })
-      } catch (folderError) {
+      const [folderAccessResult, foldersResult] = await Promise.allSettled([
+        getProjectFolderAccess(projectId),
+        getFolders(projectId),
+      ])
+      if (folderAccessResult.status === "fulfilled") {
+        setData(folderAccessResult.value)
+      } else {
+        const folderError = folderAccessResult.reason
         setFolderAccessError(
           folderError instanceof Error
             ? folderError.message
             : "Não foi possível consultar os grupos e membros da pasta."
         )
-        setSyncResult(summary)
       }
+      if (foldersResult.status === "fulfilled") {
+        setFolderCount(
+          foldersResult.value.folders.filter((folder) => folder.tipo !== "arquivo")
+            .length
+        )
+      }
+      setSyncResult({
+        ...summary,
+        groups:
+          folderAccessResult.status === "fulfilled"
+            ? folderAccessResult.value.entries.filter(
+                (entry) => entry.tipo === "group"
+              ).length
+            : summary.groups,
+      })
     } catch (syncError) {
       toast.error(
         syncError instanceof Error
@@ -188,6 +205,12 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 rounded-lg border bg-muted/30 p-4 text-sm">
+            {folderCount !== null && (
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-muted-foreground">Total de pastas</span>
+                <span className="font-semibold">{folderCount}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">Total de grupos</span>
               <span className="font-semibold">{syncResult?.groups ?? 0}</span>
