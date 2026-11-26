@@ -11,6 +11,7 @@ from app.modules.projects.models import (
     ProjectGroup,
     ProjectMember,
 )
+from app.modules.users.models import Profile, User
 
 
 class ReportRepository:
@@ -156,6 +157,67 @@ class ReportRepository:
             )
         result = await self.session.execute(
             statement.order_by(ProjectGroup.group_name, Project.name, Project.code)
+        )
+        return [dict(row) for row in result.mappings().all()]
+
+    async def members(
+        self,
+        search: str | None,
+        area: str | None,
+        user_id: str,
+        all_projects: bool = False,
+    ) -> list[dict[str, Any]]:
+        statement = (
+            select(
+                ProjectMember.user_id.label("id"),
+                User.user_id.label("usuario"),
+                Profile.name.label("perfil"),
+                ProjectMember.role.label("papel"),
+                ProjectMember.created_at.label("adicionadoEm"),
+                Project.id.label("projetoId"),
+                Project.name.label("projeto"),
+                Project.code.label("codigo"),
+                func.coalesce(ResponsibleArea.name, Project.responsible_area).label("area"),
+            )
+            .select_from(ProjectMember)
+            .join(Project, Project.id == ProjectMember.project_id)
+            .join(User, User.id == ProjectMember.user_id)
+            .outerjoin(Profile, Profile.id == User.profile_id)
+            .outerjoin(ResponsibleArea, Project.responsible_area == ResponsibleArea.id)
+        )
+        if area is not None:
+            statement = statement.where(
+                or_(ResponsibleArea.id == area, Project.responsible_area == area)
+            )
+        if search:
+            pattern = f"%{search.strip()}%"
+            statement = statement.where(
+                or_(
+                    User.user_id.ilike(pattern),
+                    Profile.name.ilike(pattern),
+                    Project.name.ilike(pattern),
+                    Project.code.ilike(pattern),
+                    Project.responsible_area.ilike(pattern),
+                    ResponsibleArea.name.ilike(pattern),
+                )
+            )
+        if not all_projects:
+            statement = statement.where(
+                or_(
+                    self._jsonb_like(Project.managers_ids, user_id),
+                    self._jsonb_like(Project.participants_ids, user_id),
+                    exists(
+                        select(ProjectMember.project_id)
+                        .where(
+                            ProjectMember.project_id == Project.id,
+                            ProjectMember.user_id == user_id,
+                        )
+                        .correlate(Project)
+                    ),
+                )
+            )
+        result = await self.session.execute(
+            statement.order_by("area", Project.name, User.user_id)
         )
         return [dict(row) for row in result.mappings().all()]
 

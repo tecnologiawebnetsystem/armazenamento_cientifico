@@ -349,19 +349,23 @@ export function ProjectsList({ canCreate }: { canCreate: boolean }) {
       </AlertDialog>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && !pending && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir permanentemente esta área de rede?</AlertDialogTitle>
-            <AlertDialogDescription>
+        <AlertDialogContent className="gap-5 border-petrobras-green/15 bg-card shadow-xl sm:max-w-lg">
+          <AlertDialogHeader className="gap-2">
+            <AlertDialogTitle className="text-lg font-semibold text-foreground">
+              Excluir permanentemente esta área de rede?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="leading-relaxed">
               A área &quot;{deleteTarget?.nome}&quot; e todos os registros vinculados a ela serão excluídos. Essa ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={pending}>Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="border-border/70 bg-muted/30">
+            <AlertDialogCancel disabled={pending} className="border-petrobras-green/30 hover:bg-petrobras-green/5">
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               disabled={pending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-petrobras-green text-primary-foreground hover:bg-petrobras-green/90 focus-visible:ring-petrobras-yellow"
             >
               {pending ? "Excluindo..." : "Excluir permanentemente"}
             </AlertDialogAction>

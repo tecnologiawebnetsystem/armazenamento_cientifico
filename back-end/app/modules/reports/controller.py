@@ -48,6 +48,16 @@ async def report_groups(
     return await service.group_assignments(q, area, principalType, nivel, user)
 
 
+@router.get("/reports/members")
+async def report_members(
+    service: Annotated[ReportService, Depends(get_service)],
+    user: Annotated[dict, Depends(require_capabilities("reports"))],
+    q: str | None = Query(default=None, max_length=256),
+    area: str | None = None,
+):
+    return await service.members(q, area, user)
+
+
 @router.get("/reports/inconsistencies")
 async def report_inconsistencies(service: Annotated[ReportService, Depends(get_service)], user: Annotated[dict, Depends(require_capabilities("reports"))], area: str | None = None, gestorId: str | None = None, tipo: str | None = None):
     return await service.inconsistencies(area, gestorId, tipo, user)

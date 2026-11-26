@@ -8,10 +8,11 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 import app.db.models  # noqa: F401
 from app.db.base import Base
 from app.modules.catalogs.models import ReportField, ReportType
-from app.modules.projects.models import Project, ProjectAccessGroup, ProjectGroup
+from app.modules.projects.models import Project, ProjectAccessGroup, ProjectGroup, ProjectMember
 from app.modules.projects.repository import ProjectRepository
 from app.modules.reports.repository import ReportRepository
 from app.modules.reports.service import ReportService
+from app.modules.users.models import Profile, User
 
 NOW = datetime.now(UTC)
 
@@ -296,6 +297,58 @@ async def test_inconsistencies_use_project_access_groups_for_level_coverage(db):
     )
     complete = await repo.inconsistencies(None, None, None, "x", all_projects=True)
     assert all(row["projetoId"] != "id-P1" for row in complete)
+
+
+async def test_members_report_lists_explicit_project_members_and_filters(db):
+    db.add(Profile(id="profile-1", name="Pesquisador", role="solicitante", description="", created_at=NOW))
+    db.add(User(id="user-1", user_id="ana.silva", profile_id="profile-1", created_at=NOW))
+    db.add(User(id="user-2", user_id="bruno.souza", profile_id=None, created_at=NOW))
+    await db.flush()
+    db.add_all(
+        [
+            ProjectMember(project_id="id-P1", user_id="user-1", role="gerente", created_at=NOW),
+            ProjectMember(project_id="id-P2", user_id="user-2", role="auditor", created_at=NOW),
+        ]
+    )
+    await db.commit()
+
+    repo = ReportRepository(db)
+    rows = await repo.members(None, None, "unrelated", all_projects=True)
+
+    assert [(row["usuario"], row["projeto"], row["area"]) for row in rows] == [
+        ("ana.silva", "Beta", "Redes"),
+        ("bruno.souza", "Alfa", "TI"),
+    ]
+    assert rows[0]["perfil"] == "Pesquisador"
+    assert rows[0]["papel"] == "gerente"
+    assert [row["usuario"] for row in await repo.members("bruno", None, "unrelated", True)] == [
+        "bruno.souza"
+    ]
+    assert [row["usuario"] for row in await repo.members(None, "Redes", "unrelated", True)] == [
+        "ana.silva"
+    ]
+    assert await repo.members("sem correspondência", None, "unrelated", True) == []
+
+
+async def test_members_report_scopes_rows_to_authorized_projects(db):
+    db.add_all(
+        [
+            User(id="user-1", user_id="ana.silva", profile_id=None, created_at=NOW),
+            User(id="user-2", user_id="bruno.souza", profile_id=None, created_at=NOW),
+        ]
+    )
+    await db.flush()
+    db.add_all(
+        [
+            ProjectMember(project_id="id-P1", user_id="user-1", role="gerente", created_at=NOW),
+            ProjectMember(project_id="id-P2", user_id="user-2", role="auditor", created_at=NOW),
+        ]
+    )
+    await db.commit()
+
+    rows = await ReportRepository(db).members(None, None, "user-1", all_projects=False)
+
+    assert [row["usuario"] for row in rows] == ["ana.silva"]
 
 
 async def test_by_status_counts_projects(db):

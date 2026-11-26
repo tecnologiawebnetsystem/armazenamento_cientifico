@@ -8,13 +8,14 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { AUDIT_ACTIONS } from "@/lib/audit"
-import { downloadFile, getCatalogs, getInconsistencyReport, getProjectReport, getProjectReportExportPath, getReportFields, getReportGroups, getResponsibleAreas, recordAuditEvent } from "@/lib/api-client"
+import { downloadFile, getCatalogs, getInconsistencyReport, getProjectReport, getProjectReportExportPath, getReportFields, getReportGroups, getReportMembers, getResponsibleAreas, recordAuditEvent } from "@/lib/api-client"
 import type { ProjectReport } from "@/lib/types"
 import { PetrobrasLoading } from "@/components/petrobras-loading"
 import { PageHeader, PageLayout } from "@/components/shared/page-layout"
 import { ExportButton, ExportFieldsDialog, type ExportField } from "@/components/export-fields-dialog"
 
 type ReportExportFormat = "csv" | "txt" | "pdf"
+type ReportTab = "areas" | "inconsistencias" | "grupos" | "membros"
 const csvValue = (value: string) => {
   const safeValue = /^[=+@\t\r-]/.test(value) ? `'${value}` : value
   return `"${safeValue.replaceAll('"', '""')}"`
@@ -25,7 +26,10 @@ export default function ReportsPage() {
   const [status, setStatus] = useState("todos")
   const [area, setArea] = useState("todas")
   const [gestor, setGestor] = useState("")
-  const [activeTab, setActiveTab] = useState<"areas" | "inconsistencias" | "grupos">("areas")
+  const [activeTab, setActiveTab] = useState<ReportTab>("areas")
+  const [memberSearch, setMemberSearch] = useState("")
+  const [memberArea, setMemberArea] = useState("todas")
+  const [memberPage, setMemberPage] = useState(1)
   const [groupSearch, setGroupSearch] = useState("")
   const [groupArea, setGroupArea] = useState("todas")
   const [groupType, setGroupType] = useState("todos")
@@ -43,6 +47,10 @@ export default function ReportsPage() {
       principalType: groupType === "todos" ? undefined : groupType as "group" | "role",
       nivel: groupLevel === "todos" ? undefined : groupLevel as "leitura" | "escrita" | "administrador",
     }),
+  )
+  const { data: memberReport, isLoading: membersLoading, mutate: mutateMembers } = useSWR(
+    ["/api/reports/members", memberSearch, memberArea],
+    () => getReportMembers({ q: memberSearch || undefined, area: memberArea === "todas" ? undefined : memberArea }),
   )
   const { data: configuredFields } = useSWR("/api/report-fields?report_code=projetos", () => getReportFields("projetos"))
   useEffect(() => {
@@ -71,6 +79,10 @@ export default function ReportsPage() {
   const groupPageSize = 10
   const groupTotalPages = Math.max(1, Math.ceil(groupRows.length / groupPageSize))
   const visibleGroupRows = groupRows.slice((groupPage - 1) * groupPageSize, groupPage * groupPageSize)
+  const memberRows = memberReport?.membros ?? []
+  const memberPageSize = 10
+  const memberTotalPages = Math.max(1, Math.ceil(memberRows.length / memberPageSize))
+  const visibleMemberRows = memberRows.slice((memberPage - 1) * memberPageSize, memberPage * memberPageSize)
   const exportGroupsCsv = () => {
     const columns = [
       { key: "grupo", label: "Grupo" },
@@ -100,6 +112,28 @@ export default function ReportsPage() {
     link.remove()
     URL.revokeObjectURL(url)
   }
+  const exportMembersCsv = () => {
+    const columns = [
+      { key: "usuario", label: "Usuário" },
+      { key: "perfil", label: "Perfil" },
+      { key: "papel", label: "Papel no projeto" },
+      { key: "area", label: "Área de rede" },
+      { key: "projeto", label: "Projeto" },
+      { key: "codigo", label: "Código do projeto" },
+      { key: "adicionadoEm", label: "Acesso adicionado em" },
+    ] as const
+    const rows = memberRows.map((row) => columns.map(({ key }) => csvValue(String(row[key] ?? ""))).join(";"))
+    const content = [columns.map(({ label }) => csvValue(label)).join(";"), ...rows].join("\r\n")
+    const blob = new Blob(["\uFEFF", content], { type: "text/csv;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = "relatorio-membros-por-area.csv"
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  }
   const clearFilters = () => { setQuery(""); setStatus("todos"); setArea("todas"); setGestor(""); setPage(1) }
   const downloadExport = async (format: ReportExportFormat, fields: string[]) => {
     const path = getProjectReportExportPath({ format, fields, status: status === "todos" ? undefined : status, area: area === "todas" ? undefined : area, gestorId: gestor || undefined })
@@ -109,11 +143,12 @@ export default function ReportsPage() {
   if (isLoading) return <PageLayout><PageHeader eyebrow="Gestão e análise" title="Relatórios" description="Leitura executiva do universo autorizado." /><PetrobrasLoading label="Consolidando o portfólio autorizado..." /></PageLayout>
   if (error || !data) return <PageLayout><PageHeader title="Consultas e relatórios" /><p className="text-destructive">Não foi possível carregar o relatório.</p></PageLayout>
   return <PageLayout>
-    <PageHeader eyebrow="Inteligência do portfólio" title="Consultas e relatórios" description="Consulte áreas de rede, grupos e roles vinculados. Aplique filtros e exporte os resultados para análise." actions={<div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => { void mutate(); if (activeTab === "grupos") void mutateGroups() }}><RefreshCw data-icon="inline-start" />Atualizar</Button>{activeTab === "grupos" ? <ExportButton onClick={exportGroupsCsv} disabled={!groupRows.length} /> : <ExportButton onClick={() => setExportOpen(true)} disabled={!exportFields.length} />}</div>} />
+    <PageHeader eyebrow="Inteligência do portfólio" title="Consultas e relatórios" description="Consulte áreas de rede, membros autorizados e vínculos de grupos e papéis, em relatórios separados." actions={<div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => { void mutate(); if (activeTab === "grupos") void mutateGroups(); if (activeTab === "membros") void mutateMembers() }}><RefreshCw data-icon="inline-start" />Atualizar</Button>{activeTab === "grupos" ? <ExportButton onClick={exportGroupsCsv} disabled={!groupRows.length} /> : activeTab === "membros" ? <ExportButton onClick={exportMembersCsv} disabled={!memberRows.length} /> : <ExportButton onClick={() => setExportOpen(true)} disabled={!exportFields.length} />}</div>} />
     <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-muted/35 p-1" role="tablist" aria-label="Seções do relatório">
       <button type="button" role="tab" aria-selected={activeTab === "areas"} onClick={() => setActiveTab("areas")} className={`flex-1 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${activeTab === "areas" ? "bg-background text-petrobras-green shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Áreas de rede</button>
       <button type="button" role="tab" aria-selected={activeTab === "inconsistencias"} onClick={() => setActiveTab("inconsistencias")} className={`flex-1 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${activeTab === "inconsistencias" ? "bg-background text-amber-700 shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Inconsistências <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">{inconsistencies?.total ?? 0}</span></button>
       <button type="button" role="tab" aria-selected={activeTab === "grupos"} onClick={() => setActiveTab("grupos")} className={`flex-1 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${activeTab === "grupos" ? "bg-background text-petrobras-green shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Grupos / Papéis <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{groupReport?.total ?? 0}</span></button>
+      <button type="button" role="tab" aria-selected={activeTab === "membros"} onClick={() => setActiveTab("membros")} className={`flex-1 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${activeTab === "membros" ? "bg-background text-petrobras-green shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Membros <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{memberReport?.total ?? 0}</span></button>
     </div>
     {activeTab === "areas" && <Card className="sigac-surface overflow-hidden">
       <CardHeader className="sigac-section-header border-b border-border/70 pb-5">
@@ -147,6 +182,18 @@ export default function ReportsPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 bg-muted/20 px-6 py-3"><p className="text-sm text-muted-foreground"><strong className="text-foreground">{groupReport?.total ?? 0}</strong> {(groupReport?.total ?? 0) === 1 ? "associação encontrada" : "associações encontradas"}</p><p className="text-xs text-muted-foreground">Cada linha representa um grupo vinculado a uma área de rede</p></div>
         {groupsLoading && !groupReport ? <div className="px-6 py-10"><PetrobrasLoading label="Consultando grupos associados..." /></div> : <><div className="overflow-x-auto"><table className="w-full text-sm"><caption className="sr-only">Grupos e roles vinculados às áreas de rede</caption><thead className="bg-muted/55 text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground"><tr><th className="px-6 py-3 font-medium">Grupo / role</th><th className="px-4 py-3 font-medium">Identificador</th><th className="px-4 py-3 font-medium">Tipo</th><th className="px-4 py-3 font-medium">Nível</th><th className="px-4 py-3 font-medium">Área de rede</th></tr></thead><tbody className="divide-y divide-border/60">{visibleGroupRows.map((item) => <tr key={`${item.projetoId}-${item.id}`} className="transition-colors hover:bg-petrobras-green/5"><td className="px-6 py-4"><p className="font-semibold text-foreground">{item.grupo}</p><p className="text-xs text-muted-foreground">{item.projeto} · {item.codigo}</p></td><td className="px-4 py-4 font-mono text-xs text-muted-foreground">{item.identificador}</td><td className="px-4 py-4"><Badge variant="outline">{item.tipo === "role" ? "Role" : "Grupo"}</Badge></td><td className="px-4 py-4"><Badge variant="secondary" className="capitalize">{item.nivel}</Badge></td><td className="px-4 py-4 text-muted-foreground">{item.area || "Não informada"}</td></tr>)}</tbody></table></div>{!visibleGroupRows.length && <p className="px-6 py-12 text-center text-sm text-muted-foreground">Nenhum grupo encontrado para os filtros selecionados.</p>}</>}
         <div className="flex flex-col gap-3 border-t border-border/70 px-6 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between"><span>Mostrando {visibleGroupRows.length} de {groupRows.length} associações</span><div className="flex items-center gap-2"><Button variant="outline" size="sm" disabled={groupPage <= 1} onClick={() => setGroupPage((value) => Math.max(1, value - 1))}>Anterior</Button><span>Página {groupPage} de {groupTotalPages}</span><Button variant="outline" size="sm" disabled={groupPage >= groupTotalPages} onClick={() => setGroupPage((value) => Math.min(groupTotalPages, value + 1))}>Próxima</Button></div></div>
+      </CardContent>
+    </Card>}
+    {activeTab === "membros" && <Card className="sigac-surface overflow-hidden">
+      <CardHeader className="sigac-section-header border-b border-border/70 pb-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-petrobras-green"><SlidersHorizontal className="size-4" />Membros por área de rede</div><CardTitle>Membros autorizados</CardTitle><CardDescription className="mt-1">Pessoas vinculadas diretamente às áreas de rede. Grupos e papéis permanecem no relatório separado.</CardDescription></div><Badge variant="outline" className="w-fit bg-background/70">{memberReport?.total ?? 0} membros</Badge></div>
+        <div className="grid gap-3 pt-2 md:grid-cols-2"><div className="relative"><Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" /><Input className="bg-background/80 pl-9" aria-label="Buscar membros" placeholder="Buscar usuário, perfil ou área de rede" value={memberSearch} onChange={(event) => { setMemberSearch(event.target.value); setMemberPage(1) }} /></div><select aria-label="Filtrar área de rede dos membros" className="h-9 rounded-md border border-input bg-background/80 px-3 text-sm" value={memberArea} onChange={(event) => { setMemberArea(event.target.value); setMemberPage(1) }}><option value="todas">Todas as áreas</option>{areas.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></div>
+        <div className="flex flex-wrap items-center gap-2 pt-1"><Button variant="ghost" size="sm" onClick={() => { setMemberSearch(""); setMemberArea("todas"); setMemberPage(1) }}><Filter className="mr-2 size-4" />Limpar filtros</Button><span className="text-xs text-muted-foreground">A consulta respeita as permissões de acesso às áreas de rede.</span></div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 bg-muted/20 px-6 py-3"><p className="text-sm text-muted-foreground"><strong className="text-foreground">{memberReport?.total ?? 0}</strong> {(memberReport?.total ?? 0) === 1 ? "membro encontrado" : "membros encontrados"}</p><p className="text-xs text-muted-foreground">Cada linha representa um vínculo de membro em uma área de rede</p></div>
+        {membersLoading && !memberReport ? <div className="px-6 py-10"><PetrobrasLoading label="Consultando membros autorizados..." /></div> : <><div className="overflow-x-auto"><table className="w-full text-sm"><caption className="sr-only">Membros vinculados às áreas de rede</caption><thead className="bg-muted/55 text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground"><tr><th className="px-6 py-3 font-medium">Usuário</th><th className="px-4 py-3 font-medium">Perfil</th><th className="px-4 py-3 font-medium">Papel no projeto</th><th className="px-4 py-3 font-medium">Área de rede</th><th className="px-4 py-3 font-medium">Projeto</th><th className="px-4 py-3 font-medium">Acesso adicionado</th></tr></thead><tbody className="divide-y divide-border/60">{visibleMemberRows.map((item, index) => <tr key={`${item.projetoId}-${item.id}-${index}`} className="transition-colors hover:bg-petrobras-green/5"><td className="px-6 py-4 font-semibold text-foreground">{item.usuario}</td><td className="px-4 py-4 text-muted-foreground">{item.perfil || "Não informado"}</td><td className="px-4 py-4"><Badge variant="secondary" className="capitalize">{item.papel || "Membro"}</Badge></td><td className="px-4 py-4 text-muted-foreground">{item.area || "Não informada"}</td><td className="px-4 py-4"><p className="font-medium">{item.projeto}</p><p className="font-mono text-xs text-muted-foreground">{item.codigo}</p></td><td className="px-4 py-4 text-muted-foreground">{item.adicionadoEm ? new Date(item.adicionadoEm).toLocaleDateString("pt-BR") : "—"}</td></tr>)}</tbody></table></div>{!visibleMemberRows.length && <p className="px-6 py-12 text-center text-sm text-muted-foreground">Nenhum membro encontrado para os filtros selecionados.</p>}</>}
+        <div className="flex flex-col gap-3 border-t border-border/70 px-6 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between"><span>Mostrando {visibleMemberRows.length} de {memberRows.length} vínculos de membros</span><div className="flex items-center gap-2"><Button variant="outline" size="sm" disabled={memberPage <= 1} onClick={() => setMemberPage((value) => Math.max(1, value - 1))}>Anterior</Button><span>Página {memberPage} de {memberTotalPages}</span><Button variant="outline" size="sm" disabled={memberPage >= memberTotalPages} onClick={() => setMemberPage((value) => Math.min(memberTotalPages, value + 1))}>Próxima</Button></div></div>
       </CardContent>
     </Card>}
     <ExportFieldsDialog open={exportOpen} onOpenChange={setExportOpen} title="relatório de área de rede" fields={exportFields} onConfirm={(fields, formats) => void Promise.all(formats.map((format) => downloadExport(format, fields)))} />
