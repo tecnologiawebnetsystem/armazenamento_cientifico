@@ -116,16 +116,8 @@ export function ProjectMembersTab({
                             {nameIsSid ? "Nome não resolvido" : "Nome do grupo"}
                           </p>
                           <p className="mt-1 font-semibold break-all text-foreground">
-                            {nameIsSid
-                              ? "Grupo sem nome no diretório"
-                              : group.nome}
+                            {group.nome.trim()}
                           </p>
-                          {nameIsSid && (
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              O SID abaixo é um identificador de segurança, não
-                              o nome do grupo.
-                            </p>
-                          )}
                           <p className="mt-1 text-xs text-muted-foreground">
                             Fonte: {group.fonte}
                           </p>
