@@ -646,6 +646,26 @@ export function getReportGroups(
   )
 }
 
+export type ReportMember = {
+  id: string
+  usuario: string
+  perfil: string | null
+  papel: string | null
+  adicionadoEm: string
+  projetoId: string
+  projeto: string
+  codigo: string
+  area: string
+}
+
+export function getReportMembers(params: { q?: string; area?: string } = {}) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => value && query.set(key, value))
+  return request<{ total: number; membros: ReportMember[] }>(
+    `/api/reports/members${query.size ? `?${query.toString()}` : ""}`
+  )
+}
+
 export function getProjectReportExportPath(params: {
   format: "csv" | "txt" | "pdf"
   fields: string[]

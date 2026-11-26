@@ -38,6 +38,17 @@ class ReportService:
         )
         return {"total": len(rows), "grupos": rows}
 
+    async def members(
+        self, search: str | None, area: str | None, user: dict[str, Any]
+    ) -> dict[str, Any]:
+        rows = await self.repository.members(
+            search,
+            area,
+            str(user.get("user_id") or user.get("id") or ""),
+            all_projects=has_capability(user, "all_projects"),
+        )
+        return {"total": len(rows), "membros": rows}
+
     async def inconsistencies(self, area: str | None, gestor_id: str | None, tipo: str | None, user: dict[str, Any]) -> dict[str, Any]:
         all_projects = has_capability(user, "all_projects")
         rows = await self.repository.inconsistencies(area, gestor_id, tipo, str(user.get("user_id") or user.get("id") or ""), all_projects)
