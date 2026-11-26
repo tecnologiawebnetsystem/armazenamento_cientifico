@@ -127,15 +127,15 @@ async def test_sync_adds_new_nested_folders_when_project_already_has_folders(tmp
 
 
 @pytest.mark.asyncio
-async def test_acl_link_uses_persisted_group_id_on_identifier_conflict():
-    upsert_result = SimpleNamespace(rowcount=1, scalar_one_or_none=lambda: "persisted-group-id")
+async def test_acl_upsert_uses_returned_group_id_without_result_rowcount():
+    upsert_result = SimpleNamespace(scalar_one_or_none=lambda: "persisted-group-id")
     session = SimpleNamespace(
         execute=AsyncMock(side_effect=[upsert_result, None]),
         commit=AsyncMock(),
-        scalar=AsyncMock(),
+        scalar=AsyncMock(return_value=None),
     )
 
-    await FolderRepository(session).upsert_access_groups(
+    counters = await FolderRepository(session).upsert_access_groups(
         "project-1",
         [
             {
@@ -149,6 +149,7 @@ async def test_acl_link_uses_persisted_group_id_on_identifier_conflict():
         ],
     )
 
+    assert counters == {"inserted": 1, "updated": 0, "skipped": 0}
     link_statement = session.execute.await_args_list[1].args[0]
     assert (
         link_statement.compile(dialect=postgresql.dialect()).params["group_id"]
