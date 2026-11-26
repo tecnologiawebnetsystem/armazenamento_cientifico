@@ -549,34 +549,49 @@ export function getFolders(projectId: string) {
   }>(`/api/folders?projectId=${encodeURIComponent(projectId)}`)
 }
 
-export function syncFolders(projectId: string, folders: FileNode[]) {
-  return request<{
-    folders: FileNode[]
+export type FolderSyncScope = "all" | "folders" | "groups"
+
+export type FolderSyncResult = {
+  folders: FileNode[]
+  inserted: number
+  updated: number
+  source: "rede" | "tabela"
+  acl?: {
+    folder: string
+    groups: number
     inserted: number
-    updated: number
-    source: "rede" | "tabela"
-    acl?: {
-      folder: string
-      groups: number
-      inserted: number
-      skipped: number
-      errors: string[]
-      warnings?: string[]
+    skipped: number
+    errors: string[]
+    warnings?: string[]
+  } | null
+}
+
+export function syncFolders(
+  projectId: string,
+  folders: FileNode[],
+  scope: FolderSyncScope = "all"
+) {
+  return request<FolderSyncResult>(
+    `/api/folders/sync?projectId=${encodeURIComponent(projectId)}&scope=${scope}`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        folders: folders
+          .filter((folder) => folder.tipo !== "arquivo")
+          .map((folder) => ({
+            id: folder.id,
+            name: folderNameForSync(folder),
+            parent_id: folder.parentId,
+            kind: "pasta",
+            size_bytes: folder.tamanho ?? 0,
+          })),
+      }),
     }
-  }>(`/api/folders/sync?projectId=${encodeURIComponent(projectId)}`, {
-    method: "POST",
-    body: JSON.stringify({
-      folders: folders
-        .filter((folder) => folder.tipo !== "arquivo")
-        .map((folder) => ({
-          id: folder.id,
-          name: folderNameForSync(folder),
-          parent_id: folder.parentId,
-          kind: "pasta",
-          size_bytes: folder.tamanho ?? 0,
-        })),
-    }),
-  })
+  )
+}
+
+export function syncProjectGroups(projectId: string) {
+  return syncFolders(projectId, [], "groups")
 }
 
 function folderNameForSync(folder: FileNode) {
@@ -662,14 +677,18 @@ export type ReportGroupAssignment = {
   area: string
 }
 
-export function getReportGroups(params: {
-  q?: string
-  area?: string
-  principalType?: "group" | "role"
-  nivel?: "leitura" | "escrita" | "administrador"
-} = {}) {
+export function getReportGroups(
+  params: {
+    q?: string
+    area?: string
+    principalType?: "group" | "role"
+    nivel?: "leitura" | "escrita" | "administrador"
+  } = {}
+) {
   const query = new URLSearchParams()
-  Object.entries(params).forEach(([key, value]) => value && query.set(key, value))
+  Object.entries(params).forEach(
+    ([key, value]) => value && query.set(key, value)
+  )
   return request<{ total: number; grupos: ReportGroupAssignment[] }>(
     `/api/reports/groups${query.size ? `?${query.toString()}` : ""}`
   )

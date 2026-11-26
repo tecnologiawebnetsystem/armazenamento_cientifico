@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useState } from "react"
 import useSWR from "swr"
 import { AlertTriangleIcon, FolderLockIcon, RefreshCwIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -16,13 +16,18 @@ import {
 } from "@/components/ui/table"
 import {
   getProjectFolderAccess,
+  syncProjectGroups,
   type FolderAccessStatus,
   type ProjectFolderAccessEntry,
 } from "@/lib/api-client"
+import { toast } from "sonner"
 
 const STATUS: Record<
   FolderAccessStatus,
-  { label: string; variant: "default" | "secondary" | "outline" | "destructive" }
+  {
+    label: string
+    variant: "default" | "secondary" | "outline" | "destructive"
+  }
 > = {
   conforme: { label: "Conforme", variant: "default" },
   nivel_divergente: { label: "Nível divergente", variant: "destructive" },
@@ -59,7 +64,9 @@ function FolderAccessRow({ entry }: { entry: ProjectFolderAccessEntry }) {
             </p>
           )}
           <div className="mt-1 flex flex-wrap gap-1">
-            {entry.acessoAmplo && <Badge variant="destructive">Acesso amplo</Badge>}
+            {entry.acessoAmplo && (
+              <Badge variant="destructive">Acesso amplo</Badge>
+            )}
             {entry.negado && <Badge variant="destructive">Negação</Badge>}
             {entry.herdado && <Badge variant="outline">Herdado</Badge>}
           </div>
@@ -68,7 +75,9 @@ function FolderAccessRow({ entry }: { entry: ProjectFolderAccessEntry }) {
         <TableCell>
           {levelLabel(entry.nivelRede)}
           {entry.direitosRede && (
-            <p className="text-xs text-muted-foreground">{entry.direitosRede}</p>
+            <p className="text-xs text-muted-foreground">
+              {entry.direitosRede}
+            </p>
           )}
         </TableCell>
         <TableCell>
@@ -84,8 +93,7 @@ function FolderAccessRow({ entry }: { entry: ProjectFolderAccessEntry }) {
               onClick={() => setOpen((value) => !value)}
             >
               {entry.membros.length}
-              {entry.membrosTruncados ? "+" : ""}{" "}
-              {open ? "ocultar" : "ver"}
+              {entry.membrosTruncados ? "+" : ""} {open ? "ocultar" : "ver"}
             </Button>
           ) : (
             <span className="text-sm text-muted-foreground">
@@ -102,7 +110,10 @@ function FolderAccessRow({ entry }: { entry: ProjectFolderAccessEntry }) {
                 <li key={member.login} className="truncate">
                   <span className="font-medium">{member.login}</span>
                   {member.nome && member.nome !== member.login && (
-                    <span className="text-muted-foreground"> — {member.nome}</span>
+                    <span className="text-muted-foreground">
+                      {" "}
+                      — {member.nome}
+                    </span>
                   )}
                 </li>
               ))}
@@ -127,47 +138,85 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
     { revalidateOnFocus: false }
   )
 
-  // Escuta o evento disparado pelo ProjectFileExplorer após sync de ACL
-  const handleSyncEvent = useCallback(
-    (event: Event) => {
-      const detail = (event as CustomEvent).detail as { projectId: string } | undefined
-      if (detail?.projectId === projectId && enabled) {
-        mutate()
+  const [isSyncingGroups, setIsSyncingGroups] = useState(false)
+
+  async function handleSyncGroups() {
+    setIsSyncingGroups(true)
+    try {
+      const result = await syncProjectGroups(projectId)
+      if (enabled) {
+        await mutate()
+      } else {
+        setEnabled(true)
       }
-    },
-    [projectId, enabled, mutate],
-  )
-  useEffect(() => {
-    window.addEventListener("folder-access-sync", handleSyncEvent)
-    return () => window.removeEventListener("folder-access-sync", handleSyncEvent)
-  }, [handleSyncEvent])
+      const count = result.acl?.groups ?? 0
+      toast.success(
+        `${count} ${count === 1 ? "grupo sincronizado" : "grupos sincronizados"}.`
+      )
+    } catch (syncError) {
+      toast.error(
+        syncError instanceof Error
+          ? syncError.message
+          : "Não foi possível sincronizar os grupos da rede."
+      )
+    } finally {
+      setIsSyncingGroups(false)
+    }
+  }
 
   return (
     <section className="space-y-3 rounded-xl border border-border/80 p-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-2">
-          <FolderLockIcon className="mt-0.5 size-4 text-muted-foreground" aria-hidden="true" />
+          <FolderLockIcon
+            className="mt-0.5 size-4 text-muted-foreground"
+            aria-hidden="true"
+          />
           <div>
-            <h3 className="text-base font-semibold">Acessos da pasta na rede</h3>
+            <h3 className="text-base font-semibold">
+              Acessos da pasta na rede
+            </h3>
             <p className="text-sm text-muted-foreground">
-              Compara os grupos do SIGAC com as permissões reais da pasta raiz e lista os membros.
+              Compara os grupos do SIGAC com as permissões reais da pasta raiz e
+              lista os membros.
             </p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isValidating}
-          onClick={() => (enabled ? mutate() : setEnabled(true))}
-        >
-          <RefreshCwIcon className={isValidating ? "animate-spin" : ""} aria-hidden="true" />
-          {data ? "Atualizar" : "Consultar pasta"}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            disabled={isValidating || isSyncingGroups}
+            onClick={() => void handleSyncGroups()}
+          >
+            <RefreshCwIcon
+              data-icon="inline-start"
+              className={isSyncingGroups ? "animate-spin" : ""}
+              aria-hidden="true"
+            />
+            Sincronizar Grupos
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isValidating || isSyncingGroups}
+            onClick={() => (enabled ? mutate() : setEnabled(true))}
+          >
+            <RefreshCwIcon
+              data-icon="inline-start"
+              className={isValidating ? "animate-spin" : ""}
+              aria-hidden="true"
+            />
+            {data ? "Atualizar consulta" : "Consultar pasta"}
+          </Button>
+        </div>
       </div>
 
       {error ? (
         <p className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {error instanceof Error ? error.message : "Não foi possível consultar a pasta."}
+          {error instanceof Error
+            ? error.message
+            : "Não foi possível consultar a pasta."}
         </p>
       ) : isValidating && !data ? (
         <div className="flex flex-col gap-2">
@@ -178,12 +227,21 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
       ) : data ? (
         <>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            <span className="break-all">Pasta: {data.pasta || "não informada"}</span>
-            {data.proprietario && <span>Proprietário: {data.proprietario}</span>}
-            {data.herancaBloqueada !== null && (
-              <span>Herança: {data.herancaBloqueada ? "bloqueada" : "ativa"}</span>
+            <span className="break-all">
+              Pasta: {data.pasta || "não informada"}
+            </span>
+            {data.proprietario && (
+              <span>Proprietário: {data.proprietario}</span>
             )}
-            <span>Consultado em {new Date(data.consultadoEm).toLocaleString("pt-BR")}</span>
+            {data.herancaBloqueada !== null && (
+              <span>
+                Herança: {data.herancaBloqueada ? "bloqueada" : "ativa"}
+              </span>
+            )}
+            <span>
+              Consultado em{" "}
+              {new Date(data.consultadoEm).toLocaleString("pt-BR")}
+            </span>
           </div>
 
           {data.aclStatus !== "ok" && (
@@ -209,7 +267,9 @@ export function ProjectFolderAccessPanel({ projectId }: { projectId: string }) {
           )}
 
           {data.entries.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum acesso encontrado.</p>
+            <p className="text-sm text-muted-foreground">
+              Nenhum acesso encontrado.
+            </p>
           ) : (
             <Table>
               <TableHeader>

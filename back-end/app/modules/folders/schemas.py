@@ -42,3 +42,12 @@ class FolderListOut(BaseModel):
     source: str = "tabela"
 
     model_config = {"from_attributes": True}
+
+
+class FolderSyncOut(FolderListOut):
+    inserted: int = 0
+    updated: int = 0
+    existing: bool = False
+    integrity: dict[str, int] = Field(default_factory=dict)
+    trace: dict[str, str | int] = Field(default_factory=dict)
+    acl: dict[str, object] | None = None
