@@ -33,6 +33,7 @@ async def sync_folders(
     role = user["role"] or "solicitante"
     if not await service.can_list_project(project_id, str(user["id"]), role):
         raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
+    logger.info("folders_sync_started project_id=%s scope=%s", project_id, scope)
     try:
         if scope == "groups":
             folders = []
@@ -97,10 +98,20 @@ async def sync_folders(
             "acl": acl_sync,
         }
     except FolderSourceUnavailable as error:
-        logger.exception("folders_sync_network_failed project_id=%s", project_id)
+        logger.exception(
+            "folders_sync_network_failed project_id=%s scope=%s error_type=%s",
+            project_id,
+            scope,
+            type(error).__name__,
+        )
         raise HTTPException(status_code=502, detail=str(error)) from error
-    except Exception:
-        logger.exception("folders_sync_failed project_id=%s", project_id)
+    except Exception as error:
+        logger.exception(
+            "folders_sync_failed project_id=%s scope=%s error_type=%s",
+            project_id,
+            scope,
+            type(error).__name__,
+        )
         raise
 
 
