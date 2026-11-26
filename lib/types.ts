@@ -94,6 +94,7 @@ export interface Project {
   atualizadoEm: string
   /** Preenchido pela API a partir de ProjectMember. */
   participantesIds?: string[]
+  totalMembrosAcesso?: number
   armazenamentoUsadoMb?: number
 }
 

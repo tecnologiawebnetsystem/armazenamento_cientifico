@@ -66,6 +66,42 @@ class ProjectRepository:
         )
         return {str(project_id): int(total or 0) for project_id, total in rows}
 
+    async def effective_member_counts(self, project_ids: list[str]) -> dict[str, int]:
+        if not project_ids:
+            return {}
+
+        sigac_rows = await self.session.execute(
+            select(ProjectMember.project_id, User.id, User.user_id)
+            .join(User, User.id == ProjectMember.user_id)
+            .where(ProjectMember.project_id.in_(project_ids))
+        )
+        acl_rows = await self.session.execute(
+            select(ProjectFolderAccessMember.project_id, ProjectFolderAccessMember.login)
+            .where(ProjectFolderAccessMember.project_id.in_(project_ids))
+        )
+
+        identities_by_project: dict[str, set[str]] = {}
+        sigac_identity_by_login: dict[tuple[str, str], str] = {}
+        for project_id, user_id, login in sigac_rows:
+            project_key = str(project_id)
+            identity = f"sigac:{user_id}"
+            identities_by_project.setdefault(project_key, set()).add(identity)
+            normalized_login = (login or "").strip().casefold()
+            if normalized_login:
+                sigac_identity_by_login[(project_key, normalized_login)] = identity
+
+        for project_id, login in acl_rows:
+            project_key = str(project_id)
+            normalized_login = (login or "").strip().casefold()
+            if not normalized_login:
+                continue
+            identity = sigac_identity_by_login.get(
+                (project_key, normalized_login), f"directory:{normalized_login}"
+            )
+            identities_by_project.setdefault(project_key, set()).add(identity)
+
+        return {project_id: len(identities) for project_id, identities in identities_by_project.items()}
+
     async def can_view(self, project_id: str, user_id: str, role: str) -> bool:
         if role in {"admin", "patrocinador", "auditor"}:
             return True
