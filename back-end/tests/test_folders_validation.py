@@ -107,19 +107,18 @@ async def test_listing_prefers_database_folders(tmp_path: Path):
 
 
 @pytest.mark.asyncio
-async def test_listing_uses_network_only_when_database_is_empty(tmp_path: Path, monkeypatch):
+async def test_listing_does_not_scan_network_when_database_is_empty(tmp_path: Path, monkeypatch):
     service = FolderService(ListingRepository([], tmp_path))
-    network_folders = [object()]
-    monkeypatch.setattr(service, "read_live_project_folders", lambda _project_id: _async_value(network_folders))
+
+    async def fail_if_network_is_scanned(_project_id: str):
+        raise AssertionError("a listagem não deve varrer a rede")
+
+    monkeypatch.setattr(service, "read_live_project_folders", fail_if_network_is_scanned)
 
     folders, source = await service.list_project_folders_with_source("project-1")
 
-    assert folders is network_folders
-    assert source == "rede"
-
-
-async def _async_value(value):
-    return value
+    assert folders == []
+    assert source == "tabela"
 
 
 def test_live_folder_scan_returns_nested_folders_with_parent_links(tmp_path: Path):
@@ -134,7 +133,7 @@ def test_live_folder_scan_returns_nested_folders_with_parent_links(tmp_path: Pat
     assert set(by_name) == {"Área A", "Subárea B"}
     assert by_name["Área A"].parent_id is None
     assert by_name["Subárea B"].parent_id == by_name["Área A"].id
-    assert by_name["Área A"].size == 4
+    assert by_name["Área A"].size == 0
 
 
 @pytest.mark.asyncio

@@ -325,7 +325,7 @@ export function ProjectFileExplorer({
                   ) : (
                     <RefreshCwIcon data-icon="inline-start" />
                   )}
-                  Sincronizar pastas
+                  {isSyncing ? "Lendo área de rede..." : "Sincronizar pastas"}
                 </>
               </Button>
             </div>
