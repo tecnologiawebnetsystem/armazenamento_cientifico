@@ -27,23 +27,58 @@ function formatActivityDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value))
 }
 
+function activityDetails(item: ActivityLog): Record<string, unknown> {
+  try {
+    const details: unknown = JSON.parse(item.detalhes)
+    return details && typeof details === "object" && !Array.isArray(details)
+      ? details as Record<string, unknown>
+      : {}
+  } catch {
+    return {}
+  }
+}
+
+function activityPageLabel(route: string) {
+  const pathname = route.split(/[?#]/, 1)[0]
+  const labels: Record<string, string> = {
+    "/": "Página inicial",
+    "/dashboard": "Painel inicial",
+    "/projetos": "Áreas de rede",
+    "/relatorios": "Relatórios",
+    "/pesquisas": "Mapas de acesso",
+    "/logs": "Auditoria",
+  }
+
+  if (labels[pathname]) return labels[pathname]
+  if (/^\/projetos\/[^/]+$/.test(pathname)) return "Detalhes da área de rede"
+  return "Página da plataforma"
+}
+
 function activityLabel(item: ActivityLog) {
   const labels: Record<string, string> = {
     login: "Sessão iniciada",
     logout: "Sessão encerrada",
-    "criar-projeto": "Projeto criado",
-    "editar-projeto": "Projeto atualizado",
-    "excluir-projeto": "Projeto removido",
-    "consultar-mapa-acessos": "Mapa de acessos consultado",
-    "exportar-logs": "Logs exportados",
+    "criar-projeto": "Área de rede criada",
+    "editar-projeto": "Área de rede atualizada",
+    "excluir-projeto": "Área de rede removida",
+    "consultar-mapa-acessos": "Consultou um mapa de acessos",
+    "exportar-logs": "Exportou os registros de auditoria",
   }
 
-  return labels[item.acao] ?? (item.detalhes || "Atividade registrada")
+  if (item.acao === "visualizar_pagina") {
+    const route = typeof activityDetails(item).rota === "string" ? activityDetails(item).rota as string : item.rota ?? ""
+    return `Acessou ${route ? activityPageLabel(route) : "a plataforma"}`
+  }
+
+  return labels[item.acao] ?? "Atividade registrada"
 }
 
 function activityContext(item: ActivityLog) {
-  if (item.rota) return `${item.entidade} · ${item.rota}`
-  return `${item.entidade} · ${formatActivityDate(item.criadoEm)}`
+  const route = typeof activityDetails(item).rota === "string" ? activityDetails(item).rota as string : item.rota ?? ""
+  const context = item.acao === "visualizar_pagina" && route
+    ? activityPageLabel(route)
+    : item.projetoNome || item.entidade.replaceAll("_", " ")
+  return `${context} · ${formatActivityDate(item.criadoEm)}`
 }
 
 export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, inconsistencias, activity, consultedAt }: Props) {
@@ -122,7 +157,7 @@ export function ExecutiveDashboard({ role, projects, totalMembros, totalMapas, i
         <Card className="sigac-surface border-0 ring-1 ring-border/70">
           <CardContent className="flex flex-col gap-5 p-5 sm:p-6">
             <div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold tracking-[0.16em] text-primary uppercase">Rastreabilidade</p><h2 className="mt-1 font-heading text-lg font-semibold">Atividade recente</h2><p className="mt-1 text-sm text-muted-foreground">Últimos eventos registrados na plataforma.</p></div><span className="flex size-9 items-center justify-center rounded-lg bg-muted/60 text-primary"><ActivityIcon className="size-4" /></span></div>
-            {activity.length ? <div className="relative flex flex-col gap-0 pl-5 before:absolute before:bottom-4 before:left-[5px] before:top-4 before:w-px before:bg-petrobras-green/20">{activity.slice(0, 5).map((item) => <div key={item.id} className="relative flex items-start justify-between gap-4 border-b border-border/60 py-4 first:pt-1 last:border-b-0 last:pb-1"><span className="absolute -left-[1.28rem] top-5 flex size-3 items-center justify-center rounded-full border-2 border-card bg-petrobras-green shadow-[0_0_0_3px] shadow-petrobras-green/10" /><div className="min-w-0"><p className="truncate text-sm font-semibold text-foreground">{activityLabel(item)}</p><p className="mt-1 truncate text-xs text-muted-foreground">{activityContext(item)} · {formatActivityDate(item.criadoEm)}</p></div><Badge variant={item.resultado === "erro" ? "destructive" : "outline"} className="shrink-0 rounded-full border-petrobras-green/25 px-3 text-petrobras-green">{item.resultado === "erro" ? "Erro" : "Sucesso"}</Badge></div>)}</div> : <p className="rounded-lg bg-muted/40 p-4 text-sm text-muted-foreground">Ainda não há atividade registrada.</p>}
+            {activity.length ? <div className="relative flex flex-col gap-0 pl-5 before:absolute before:bottom-4 before:left-[5px] before:top-4 before:w-px before:bg-petrobras-green/20">{activity.slice(0, 5).map((item) => <div key={item.id} className="relative flex items-start justify-between gap-4 border-b border-border/60 py-4 first:pt-1 last:border-b-0 last:pb-1"><span className="absolute -left-[1.28rem] top-5 flex size-3 items-center justify-center rounded-full border-2 border-card bg-petrobras-green shadow-[0_0_0_3px] shadow-petrobras-green/10" /><div className="min-w-0"><p className="truncate text-sm font-semibold text-foreground">{activityLabel(item)}</p><p className="mt-1 truncate text-xs text-muted-foreground">{activityContext(item)}</p></div><Badge variant={item.resultado === "erro" ? "destructive" : "outline"} className="shrink-0 rounded-full border-petrobras-green/25 px-3 text-petrobras-green">{item.resultado === "erro" ? "Falhou" : "Concluído"}</Badge></div>)}</div> : <p className="rounded-lg bg-muted/40 p-4 text-sm text-muted-foreground">Ainda não há atividade registrada.</p>}
           </CardContent>
         </Card>
       </section>
