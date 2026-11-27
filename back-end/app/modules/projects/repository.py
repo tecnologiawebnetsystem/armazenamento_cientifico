@@ -140,12 +140,16 @@ class ProjectRepository:
                         identities_by_project.setdefault(project_key, set()).add(identity)
                         unique_identities.add(identity)
 
-                if entry.get("tipo") != "unknown":
+                if members:
                     continue
-                sid = str(entry.get("sid") or "").strip().casefold()
-                if not sid:
+                if entry.get("tipo") == "group":
                     continue
-                identity = f"sid:{sid}"
+                principal = str(
+                    entry.get("identificador") or entry.get("sid") or entry.get("grupo") or ""
+                ).strip().casefold()
+                if not principal:
+                    continue
+                identity = f"directory:{principal}"
                 identities_by_project.setdefault(project_key, set()).add(identity)
                 unique_identities.add(identity)
 
