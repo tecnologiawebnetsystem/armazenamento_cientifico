@@ -2,7 +2,7 @@ import logging
 from time import perf_counter
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser
@@ -23,6 +23,7 @@ def get_service(session: Session) -> FolderService:
 
 @router.post("/sync", response_model=FolderSyncOut)
 async def sync_folders(
+    request: Request,
     service: Annotated[FolderService, Depends(get_service)],
     user: CurrentUser,
     project_id: str = Query(alias="projectId"),
@@ -34,6 +35,11 @@ async def sync_folders(
     role = user["role"] or "solicitante"
     if not await service.can_list_project(project_id, str(user["id"]), role):
         raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
+    request.state.audit_action = "sincronizacao-inicio"
+    request.state.audit_entity = "projeto"
+    request.state.audit_entity_id = project_id
+    request.state.audit_project_id = project_id
+    request.state.audit_details = {"escopo": scope}
     started_at = perf_counter()
     stage = "prepare_sync"
     logger.info("folders_sync_started project_id=%s scope=%s", project_id, scope)
@@ -134,6 +140,16 @@ async def sync_folders(
             len(acl_result.get("errors", [])),
             duration_ms,
         )
+        request.state.audit_action = "sincronizacao-sucesso"
+        request.state.audit_details = {
+            "escopo": scope,
+            "pastas": len(folders),
+            "novasPastas": inserted,
+            "grupos": acl_result.get("groups", 0),
+            "membros": acl_result.get("members", 0),
+            "errosAcl": len(acl_result.get("errors", [])),
+            "origem": source,
+        }
         return {
             "folders": folders,
             "inserted": inserted,
@@ -145,6 +161,8 @@ async def sync_folders(
             "acl": acl_sync,
         }
     except HTTPException as error:
+        request.state.audit_action = "sincronizacao-falha"
+        request.state.audit_details = {"escopo": scope, "etapa": stage, "statusCode": error.status_code}
         logger.warning(
             "folders_sync_rejected project_id=%s scope=%s stage=%s status_code=%s duration_ms=%.2f",
             project_id,
@@ -155,6 +173,8 @@ async def sync_folders(
         )
         raise
     except FolderSourceUnavailable as error:
+        request.state.audit_action = "sincronizacao-falha"
+        request.state.audit_details = {"escopo": scope, "etapa": stage, "erro": type(error).__name__}
         logger.exception(
             "folders_sync_network_failed project_id=%s scope=%s stage=%s error_type=%s duration_ms=%.2f",
             project_id,
@@ -165,6 +185,8 @@ async def sync_folders(
         )
         raise HTTPException(status_code=502, detail=str(error)) from error
     except Exception as error:
+        request.state.audit_action = "sincronizacao-falha"
+        request.state.audit_details = {"escopo": scope, "etapa": stage, "erro": type(error).__name__}
         logger.exception(
             "folders_sync_failed project_id=%s scope=%s stage=%s error_type=%s duration_ms=%.2f",
             project_id,

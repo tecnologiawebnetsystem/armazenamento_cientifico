@@ -206,6 +206,7 @@ export function recordAuditEvent(event: {
   action: ActivityAction
   entity?: string
   entity_id?: string
+  project_id?: string
   details?: Record<string, unknown>
   result?: string
 }) {
