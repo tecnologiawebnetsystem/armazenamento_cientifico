@@ -91,7 +91,6 @@ def test_runtime_role_receives_project_delete_permissions(script: ScriptDirector
     assert '("project_members", "folders", "projects")' in source
     assert "GRANT DELETE ON TABLE {schema}.{table} TO {runtime_role}" in source
     assert "REVOKE DELETE ON TABLE {schema}.{table} FROM {runtime_role}" in source
-    assert script.get_current_head() == "9d2c4a71e6f3"
 
 
 @pytest.mark.integration

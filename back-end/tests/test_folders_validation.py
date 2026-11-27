@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from fastapi import Request
 from sqlalchemy.dialects import postgresql
 
 from app.modules.folders.controller import sync_folders
@@ -244,11 +245,13 @@ async def test_folder_sync_failure_logs_stage_and_traceback(caplog: pytest.LogCa
     )
     user = {"id": "session-id", "user_id": "user-1", "role": "admin"}
 
+    request = Request({"type": "http", "state": {}})
     with (
         caplog.at_level(logging.ERROR),
         pytest.raises(RuntimeError, match="repository unavailable"),
     ):
         await sync_folders(
+            request=request,
             service=service,
             user=user,
             project_id="project-1",

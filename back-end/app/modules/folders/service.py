@@ -43,7 +43,7 @@ class FolderService:
             return None
 
         started_at = perf_counter()
-        logger.info("folders_network_scan_started project_id=%s root=%r", project_id, parent_folder)
+        logger.info("folders_network_scan_started project_id=%s root=%s", project_id, parent_folder)
         try:
             folders = await asyncio.wait_for(
                 asyncio.to_thread(self._read_root_folders, project_id, parent_folder),
@@ -51,7 +51,7 @@ class FolderService:
             )
         except TimeoutError as error:
             logger.warning(
-                "folders_network_scan_timeout project_id=%s root=%r timeout_seconds=45 duration_ms=%.2f",
+                "folders_network_scan_timeout project_id=%s root=%s timeout_seconds=45 duration_ms=%.2f",
                 project_id,
                 parent_folder,
                 (perf_counter() - started_at) * 1000,
@@ -61,7 +61,7 @@ class FolderService:
             ) from error
         except Exception as error:
             logger.exception(
-                "folders_network_scan_failed project_id=%s root=%r duration_ms=%.2f",
+                "folders_network_scan_failed project_id=%s root=%s duration_ms=%.2f",
                 project_id,
                 parent_folder,
                 (perf_counter() - started_at) * 1000,
@@ -75,7 +75,7 @@ class FolderService:
             ) from error
 
         logger.info(
-            "folders_network_scan_completed project_id=%s root=%r folders=%d duration_ms=%.2f",
+            "folders_network_scan_completed project_id=%s root=%s folders=%d duration_ms=%.2f",
             project_id,
             parent_folder,
             len(folders),
