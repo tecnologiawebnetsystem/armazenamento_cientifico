@@ -325,7 +325,7 @@ class ReportRepository:
                     ProjectAccessGroup.project_id == Project.id,
                     ProjectAccessGroup.project_id == ProjectGroup.project_id,
                     ProjectAccessGroup.group_id == ProjectGroup.group_id,
-                    ProjectGroup.access_level == "escrita",
+                    ProjectGroup.access_level.in_(("escrita", "administrador")),
                 ).label("hasWriteGroup"),
             )
             .select_from(
@@ -345,7 +345,7 @@ class ReportRepository:
                         ProjectAccessGroup.project_id == Project.id,
                         ProjectAccessGroup.project_id == ProjectGroup.project_id,
                         ProjectAccessGroup.group_id == ProjectGroup.group_id,
-                        ProjectGroup.access_level == "escrita",
+                        ProjectGroup.access_level.in_(("escrita", "administrador")),
                     ),
                 )
             )
