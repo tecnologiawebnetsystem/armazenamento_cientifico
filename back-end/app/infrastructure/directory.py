@@ -356,17 +356,47 @@ class DirectoryResolver:
 
     def _lookup(self, key: str, finder: str, value: str) -> DirectoryPrincipal | None:
         if key in self._cache:
-            return self._cache[key]
+            cached = self._cache[key]
+            logger.info(
+                "folder_access_directory_lookup_cached finder=%s result=%s",
+                finder,
+                "encontrado" if cached else "nao_encontrado",
+            )
+            return cached
+        logger.info(
+            "folder_access_directory_lookup_started finder=%s value=%r backends=%s",
+            finder,
+            value,
+            ",".join(backend.name for backend in self.backends) or "nenhum",
+        )
         principal = None
         for backend in self.backends:
             try:
                 principal = getattr(backend, finder)(value)
             except Exception as error:  # noqa: BLE001
-                logger.warning("folder_access_lookup_failed backend=%s error=%s", backend.name, type(error).__name__)
+                logger.warning(
+                    "folder_access_directory_lookup_failed finder=%s backend=%s error_type=%s",
+                    finder,
+                    backend.name,
+                    type(error).__name__,
+                )
                 continue
+            logger.info(
+                "folder_access_directory_lookup_backend_result finder=%s backend=%s found=%s",
+                finder,
+                backend.name,
+                principal is not None,
+            )
             if principal:
                 break
         self._cache[key] = principal
+        logger.info(
+            "folder_access_directory_lookup_completed finder=%s found=%s source=%s kind=%s",
+            finder,
+            principal is not None,
+            principal.source if principal else "none",
+            principal.kind if principal else "unknown",
+        )
         return principal
 
     def resolve_sid(self, sid: str) -> DirectoryPrincipal:
@@ -383,16 +413,70 @@ class DirectoryResolver:
         return self._lookup(f"name:{identifier.casefold()}", "by_name", identifier)
 
     def load_members(self, principal: DirectoryPrincipal) -> None:
-        if principal.kind != "group" or principal.members_source:
+        if principal.kind != "group":
+            logger.info(
+                "folder_access_members_skipped reason=principal_not_group kind=%s source=%s",
+                principal.kind,
+                principal.source,
+            )
+            return
+        if principal.members_source:
+            logger.info(
+                "folder_access_members_skipped reason=already_loaded sid=%s source=%s count=%d",
+                principal.sid or "-",
+                principal.members_source,
+                len(principal.members),
+            )
             return
         # Tenta primeiro o backend que encontrou o grupo; os demais servem de complemento.
         ordered = sorted(self.backends, key=lambda backend: backend.name != principal.source)
+        logger.info(
+            "folder_access_members_load_started group_sid=%s group_name=%r group_source=%s backends=%s limit=%d",
+            principal.sid or "-",
+            principal.display_name or principal.name or "-",
+            principal.source,
+            ",".join(backend.name for backend in ordered) or "nenhum",
+            self.member_limit,
+        )
         for backend in ordered:
+            logger.info(
+                "folder_access_members_backend_started group_sid=%s backend=%s",
+                principal.sid or "-",
+                backend.name,
+            )
             try:
-                if backend.load_members(principal, self.member_limit):
+                loaded = backend.load_members(principal, self.member_limit)
+                logger.info(
+                    "folder_access_members_backend_completed group_sid=%s backend=%s loaded=%s members=%d truncated=%s",
+                    principal.sid or "-",
+                    backend.name,
+                    loaded,
+                    len(principal.members),
+                    principal.members_truncated,
+                )
+                if loaded:
+                    logger.info(
+                        "folder_access_members_load_completed group_sid=%s status=%s source=%s members=%d truncated=%s",
+                        principal.sid or "-",
+                        "com_membros" if principal.members else "vazio",
+                        principal.members_source or backend.name,
+                        len(principal.members),
+                        principal.members_truncated,
+                    )
                     return
-            except Exception as error:  # noqa: BLE001
-                logger.warning("folder_access_members_failed backend=%s error=%s", backend.name, type(error).__name__)
+            except Exception as error:
+                logger.exception(
+                    "folder_access_members_backend_failed group_sid=%s backend=%s error_type=%s",
+                    principal.sid or "-",
+                    backend.name,
+                    type(error).__name__,
+                )
+        logger.warning(
+            "folder_access_members_load_completed group_sid=%s status=%s attempted_backends=%d",
+            principal.sid or "-",
+            "sem_membros_ou_nao_resolvido",
+            len(ordered),
+        )
 
     def close(self) -> None:
         for backend in self.backends:
