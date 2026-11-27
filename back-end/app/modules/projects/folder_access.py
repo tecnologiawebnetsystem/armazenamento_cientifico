@@ -286,14 +286,28 @@ def sync_folder_acl(
     Grupos UNIX, well-known e usuários são ignorados.
     """
     result = AclSyncResult(inserted=[], existing=[], errors=[])
+    logger.info(
+        "folder_acl_groups_discovery_started project_id=%s folder_configured=%s",
+        project_id,
+        bool(folder.strip()),
+    )
 
     if not folder.strip():
         result.errors.append("Projeto sem pasta raiz cadastrada.")
         return result
 
-    def _collect_from_acl(acl: FolderAcl, require_explicit: bool) -> list[dict]:
+    def _collect_from_acl(
+        acl: FolderAcl, require_explicit: bool, scope: str
+    ) -> list[dict]:
         items: list[dict] = []
         grants = _grants(acl, resolver)
+        logger.info(
+            "folder_acl_entries_read project_id=%s scope=%s entries=%d principals=%d",
+            project_id,
+            scope,
+            len(acl.entries),
+            len(grants),
+        )
         seen: set[str] = set()
         for grant in grants.values():
             principal = grant.principal
@@ -311,6 +325,17 @@ def sync_folder_acl(
             identifier = principal.sid or principal.name
             group_id = str(uuid4())
             group_name = principal.display_name or principal.name or identifier
+            logger.info(
+                "folder_acl_group_discovered project_id=%s scope=%s sid=%s principal_name=%r principal_source=%s access_level=%s inherited=%s deny_present=%s",
+                project_id,
+                scope,
+                principal.sid or "-",
+                principal.display_name or principal.name or "-",
+                principal.source,
+                level,
+                grant.inherited,
+                bool(grant.deny_mask),
+            )
             items.append(
                 {
                     "group_id": group_id,
@@ -324,6 +349,7 @@ def sync_folder_acl(
             )
         return items
 
+    logger.info("folder_acl_root_read_started project_id=%s", project_id)
     try:
         root_acl = read_folder_acl(folder)
     except FolderAclUnavailable as error:
@@ -335,7 +361,12 @@ def sync_folder_acl(
 
     # Inclui os grupos herdados da raiz e as permissões explícitas de todas as
     # subpastas imediatas; uma ACL encontrada na raiz não deve ocultar as demais.
-    result.inserted = _collect_from_acl(root_acl, require_explicit=False)
+    logger.info(
+        "folder_acl_root_read_completed project_id=%s entries=%d",
+        project_id,
+        len(root_acl.entries),
+    )
+    result.inserted = _collect_from_acl(root_acl, require_explicit=False, scope="raiz")
     known_identifiers = {item["identifier"] for item in result.inserted}
 
     import os
@@ -349,17 +380,43 @@ def sync_folder_acl(
             ]
     except OSError as error:
         result.errors.append(f"Não foi possível listar subpastas de {folder}: {error}")
+        logger.warning(
+            "folder_acl_subfolders_list_failed project_id=%s error_type=%s",
+            project_id,
+            type(error).__name__,
+        )
         return result
 
+    logger.info(
+        "folder_acl_subfolders_listed project_id=%s subfolders=%d",
+        project_id,
+        len(subdirs),
+    )
     for subdir in subdirs:
         try:
             sub_acl = read_folder_acl(subdir)
         except (FolderAclUnavailable, OSError) as error:
             result.errors.append(f"Não foi possível ler a ACL de {subdir}: {error}")
+            logger.warning(
+                "folder_acl_subfolder_read_failed project_id=%s error_type=%s",
+                project_id,
+                type(error).__name__,
+            )
             continue
-        for item in _collect_from_acl(sub_acl, require_explicit=True):
+        logger.info(
+            "folder_acl_subfolder_read_completed project_id=%s entries=%d",
+            project_id,
+            len(sub_acl.entries),
+        )
+        for item in _collect_from_acl(sub_acl, require_explicit=True, scope="subpasta"):
             if item["identifier"] not in known_identifiers:
                 result.inserted.append(item)
                 known_identifiers.add(item["identifier"])
 
+    logger.info(
+        "folder_acl_groups_discovery_completed project_id=%s groups=%d errors=%d",
+        project_id,
+        len(result.inserted),
+        len(result.errors),
+    )
     return result

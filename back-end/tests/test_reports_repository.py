@@ -297,6 +297,16 @@ async def test_inconsistencies_use_project_access_groups_for_level_coverage(db):
 
     await _add_access_group(
         db,
+        group_id="group-admin-p1",
+        identifier="entra-admin-p1",
+        name="Grupo administrador",
+        level="administrador",
+    )
+    complete_with_admin = await repo.inconsistencies(None, None, None, "x", all_projects=True)
+    assert all(row["projetoId"] != "id-P1" for row in complete_with_admin)
+
+    await _add_access_group(
+        db,
         group_id="group-write-p1",
         identifier="entra-write-p1",
         name="Grupo de escrita",

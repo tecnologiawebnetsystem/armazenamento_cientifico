@@ -349,9 +349,29 @@ class FolderService:
 
         settings = get_settings()
         resolver, warnings = DirectoryResolver.from_settings(settings)
+        logger.info(
+            "folder_acl_sync_started project_id=%s folder=%r directory_backends=%s member_limit=%d configuration_warnings=%d",
+            project_id,
+            folder,
+            ",".join(backend.name for backend in resolver.backends) or "nenhum",
+            settings.folder_access_max_members,
+            len(warnings),
+        )
+        if warnings:
+            logger.warning(
+                "folder_acl_directory_configuration_warnings project_id=%s warnings=%r",
+                project_id,
+                warnings,
+            )
         try:
             sync_result = await asyncio.to_thread(
                 discover_acl_groups, folder, project_id, resolver
+            )
+            logger.info(
+                "folder_acl_sync_groups_discovered project_id=%s groups=%d errors=%d",
+                project_id,
+                len(sync_result.inserted),
+                len(sync_result.errors),
             )
             if sync_result.errors and not sync_result.inserted:
                 return {
@@ -381,6 +401,11 @@ class FolderService:
                     project_id
                 )
             ]
+            logger.info(
+                "folder_access_snapshot_build_started project_id=%s registered_groups=%d",
+                project_id,
+                len(stored_groups),
+            )
             access_snapshot = await asyncio.wait_for(
                 asyncio.to_thread(
                     build_folder_access,
@@ -394,8 +419,24 @@ class FolderService:
                 ),
                 timeout=settings.folder_access_timeout_seconds,
             )
+            logger.info(
+                "folder_access_snapshot_build_completed project_id=%s acl_status=%s entries=%d groups=%d members=%d unresolved=%d alerts=%d warnings=%d",
+                project_id,
+                access_snapshot.aclStatus,
+                len(access_snapshot.entries),
+                sum(1 for entry in access_snapshot.entries if entry.tipo == "group"),
+                sum(len(entry.membros) for entry in access_snapshot.entries),
+                sum(1 for entry in access_snapshot.entries if entry.tipo == "unknown"),
+                len(access_snapshot.alertas),
+                len(access_snapshot.avisos),
+            )
             members_count = await project_repository.replace_folder_access_snapshot(
                 project_id, access_snapshot.model_dump(mode="json")
+            )
+            logger.info(
+                "folder_access_snapshot_saved project_id=%s member_rows=%d",
+                project_id,
+                members_count,
             )
         finally:
             resolver.close()
