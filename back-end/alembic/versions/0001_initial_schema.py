@@ -127,6 +127,33 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
+        "project_folder_access_snapshots",
+        sa.Column("project_id", sa.String(length=36), nullable=False),
+        sa.Column("payload", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column(
+            "synced_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="CASCADE"),
+        sa.PrimaryKeyConstraint("project_id"),
+    )
+    op.create_table(
+        "project_folder_access_members",
+        sa.Column("project_id", sa.String(length=36), nullable=False),
+        sa.Column("entry_key", sa.String(length=64), nullable=False),
+        sa.Column("login", sa.String(length=256), nullable=False),
+        sa.Column("name", sa.String(length=256), nullable=False, server_default=""),
+        sa.Column("email", sa.String(length=320), nullable=False, server_default=""),
+        sa.ForeignKeyConstraint(
+            ["project_id"],
+            ["project_folder_access_snapshots.project_id"],
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("project_id", "entry_key", "login"),
+    )
+    op.create_table(
         "project_groups",
         sa.Column("group_id", sa.String(length=36), nullable=False),
         sa.Column("project_id", sa.String(length=36), nullable=False),
@@ -307,6 +334,11 @@ def upgrade() -> None:
     op.create_index("ix_responsible_areas_name", "responsible_areas", ["name"], unique=True)
     op.create_index("ix_responsible_areas_active", "responsible_areas", ["active"])
     op.create_index("ix_project_members_project_id", "project_members", ["project_id"])
+    op.create_index(
+        "ix_project_folder_access_members_entry",
+        "project_folder_access_members",
+        ["project_id", "entry_key"],
+    )
     op.create_index("ix_project_groups_project_id", "project_groups", ["project_id"])
     op.create_index("ix_project_groups_access_level", "project_groups", ["access_level"])
     op.create_index("ix_folders_project_id", "folders", ["project_id"])
