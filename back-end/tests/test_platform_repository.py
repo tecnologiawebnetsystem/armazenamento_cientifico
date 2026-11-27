@@ -236,7 +236,10 @@ async def test_dashboard_counts_unique_members_across_projects(session):
         ProjectMember(project_id="p2", user_id="u2", created_at=NOW),
         ProjectFolderAccessSnapshot(
             project_id="p1",
-            payload={"entries": [{"tipo": "unknown", "sid": "S-1-5-21-2038298172-1297133386-11111-5145051"}]},
+            payload={"entries": [
+                {"tipo": "unknown", "sid": "S-1-5-21-2038298172-1297133386-11111-5145051"},
+                {"tipo": "group", "membros": [{"login": "diana"}]},
+            ]},
             synced_at=NOW,
         ),
         ProjectFolderAccessSnapshot(
@@ -279,7 +282,7 @@ async def test_dashboard_counts_unique_members_across_projects(session):
     result = await PlatformRepository(session).dashboard()
 
     assert set(result) == {"projects", "totalMembros", "totalMapas", "armazenamentoMb", "activity", "source", "consultedAt"}
-    assert result["totalMembros"] == 5
+    assert result["totalMembros"] == 6
     assert len(result["projects"]) == 2
     assert result["projects"][0]["nome"] == "Alpha"
     assert "armazenamentoUsadoMb" in result["projects"][0]

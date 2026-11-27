@@ -118,7 +118,29 @@ class ProjectRepository:
             if not isinstance(entries, list):
                 continue
             for entry in entries:
-                if not isinstance(entry, dict) or entry.get("tipo") != "unknown":
+                if not isinstance(entry, dict):
+                    continue
+
+                members = entry.get("membros", [])
+                if isinstance(members, list):
+                    for member in members:
+                        if not isinstance(member, dict):
+                            continue
+                        normalized_login = str(member.get("login") or "").strip().casefold()
+                        if not normalized_login:
+                            continue
+                        matching_sigac_identities = sigac_identity_by_login.get(
+                            normalized_login, set()
+                        )
+                        identity = (
+                            next(iter(matching_sigac_identities))
+                            if len(matching_sigac_identities) == 1
+                            else f"directory:{normalized_login}"
+                        )
+                        identities_by_project.setdefault(project_key, set()).add(identity)
+                        unique_identities.add(identity)
+
+                if entry.get("tipo") != "unknown":
                     continue
                 sid = str(entry.get("sid") or "").strip().casefold()
                 if not sid:
