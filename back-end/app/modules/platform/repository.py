@@ -216,10 +216,9 @@ class PlatformRepository:
 
         from app.modules.projects.repository import ProjectRepository
 
-        member_counts = await ProjectRepository(self.session).effective_member_counts(
-            [str(project["id"]) for project in projects]
-        )
-        total_members = sum(member_counts.values())
+        _member_counts, total_members = await ProjectRepository(
+            self.session
+        ).effective_member_summary([str(project["id"]) for project in projects])
         folders_count = select(func.count(func.distinct(Folder.id))).scalar_subquery()
         storage_sum = select(
             func.coalesce(func.sum(Folder.size), 0) / bytes_per_mb

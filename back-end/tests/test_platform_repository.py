@@ -20,7 +20,14 @@ from app.modules.catalogs.models import (
     ResponsibleArea,
 )
 from app.modules.platform.repository import PlatformRepository
-from app.modules.projects.models import Project, ProjectAccessGroup, ProjectGroup, ProjectMember
+from app.modules.projects.models import (
+    Project,
+    ProjectAccessGroup,
+    ProjectFolderAccessMember,
+    ProjectFolderAccessSnapshot,
+    ProjectGroup,
+    ProjectMember,
+)
 from app.modules.users.models import Profile, User
 
 NOW = datetime.now(UTC)
@@ -215,7 +222,7 @@ async def test_context_card_filter_matches_comma_separated_ids(session):
 # ── dashboard ───────────────────────────────────────────────────────
 
 
-async def test_dashboard_sums_effective_members_across_projects(session):
+async def test_dashboard_counts_unique_members_across_projects(session):
     session.add_all([
         Project(id="p1", name="Alpha", code="A", responsible_area="Redes", status="ativo", description="", created_at=NOW, updated_at=NOW),
         Project(id="p2", name="Beta", code="B", responsible_area="Pesquisa", status="ativo", description="", created_at=NOW, updated_at=NOW),
@@ -227,7 +234,35 @@ async def test_dashboard_sums_effective_members_across_projects(session):
         ProjectMember(project_id="p1", user_id="u1", created_at=NOW),
         ProjectMember(project_id="p2", user_id="u1", created_at=NOW),
         ProjectMember(project_id="p2", user_id="u2", created_at=NOW),
+        ProjectFolderAccessSnapshot(project_id="p1", payload={}, synced_at=NOW),
+        ProjectFolderAccessSnapshot(project_id="p2", payload={}, synced_at=NOW),
     ])
+    await session.flush()
+    session.add_all(
+        [
+            ProjectFolderAccessMember(
+                project_id="p2",
+                entry_key="entry-ana",
+                login="ANA",
+                name="Ana",
+                email="ana@example.com",
+            ),
+            ProjectFolderAccessMember(
+                project_id="p1",
+                entry_key="entry-carol",
+                login="carol",
+                name="Carol",
+                email="carol@example.com",
+            ),
+            ProjectFolderAccessMember(
+                project_id="p2",
+                entry_key="entry-carol",
+                login="CAROL",
+                name="Carol",
+                email="carol@example.com",
+            ),
+        ]
+    )
     await session.commit()
 
     result = await PlatformRepository(session).dashboard()

@@ -66,9 +66,11 @@ class ProjectRepository:
         )
         return {str(project_id): int(total or 0) for project_id, total in rows}
 
-    async def effective_member_counts(self, project_ids: list[str]) -> dict[str, int]:
+    async def effective_member_summary(
+        self, project_ids: list[str]
+    ) -> tuple[dict[str, int], int]:
         if not project_ids:
-            return {}
+            return {}, 0
 
         sigac_rows = await self.session.execute(
             select(ProjectMember.project_id, User.id, User.user_id)
@@ -81,26 +83,40 @@ class ProjectRepository:
         )
 
         identities_by_project: dict[str, set[str]] = {}
-        sigac_identity_by_login: dict[tuple[str, str], str] = {}
+        unique_identities: set[str] = set()
+        sigac_identity_by_login: dict[str, set[str]] = {}
         for project_id, user_id, login in sigac_rows:
             project_key = str(project_id)
             identity = f"sigac:{user_id}"
             identities_by_project.setdefault(project_key, set()).add(identity)
+            unique_identities.add(identity)
             normalized_login = (login or "").strip().casefold()
             if normalized_login:
-                sigac_identity_by_login[(project_key, normalized_login)] = identity
+                sigac_identity_by_login.setdefault(normalized_login, set()).add(identity)
 
         for project_id, login in acl_rows:
             project_key = str(project_id)
             normalized_login = (login or "").strip().casefold()
             if not normalized_login:
                 continue
-            identity = sigac_identity_by_login.get(
-                (project_key, normalized_login), f"directory:{normalized_login}"
+            matching_sigac_identities = sigac_identity_by_login.get(normalized_login, set())
+            identity = (
+                next(iter(matching_sigac_identities))
+                if len(matching_sigac_identities) == 1
+                else f"directory:{normalized_login}"
             )
             identities_by_project.setdefault(project_key, set()).add(identity)
+            unique_identities.add(identity)
 
-        return {project_id: len(identities) for project_id, identities in identities_by_project.items()}
+        counts = {
+            project_id: len(identities)
+            for project_id, identities in identities_by_project.items()
+        }
+        return counts, len(unique_identities)
+
+    async def effective_member_counts(self, project_ids: list[str]) -> dict[str, int]:
+        counts, _unique_total = await self.effective_member_summary(project_ids)
+        return counts
 
     async def can_view(self, project_id: str, user_id: str, role: str) -> bool:
         if role in {"admin", "patrocinador", "auditor"}:
