@@ -195,6 +195,49 @@ def test_build_folder_access_keeps_sigac_groups_when_acl_is_unavailable():
     ]
 
 
+def test_graph_members_resolve_ldap_group_by_sid_when_entra_id_is_missing(monkeypatch):
+    from app.infrastructure.directory import GraphDirectory
+
+    directory = GraphDirectory.__new__(GraphDirectory)
+    directory.base_url = "https://graph.microsoft.com/v1.0"
+    directory.headers = {}
+    directory.client = SimpleNamespace(
+        get=lambda *_args, **_kwargs: SimpleNamespace(
+            raise_for_status=lambda: None,
+            json=lambda: {
+                "value": [
+                    {
+                        "displayName": "Fulano",
+                        "onPremisesSamAccountName": "FEZ6",
+                        "mail": "f@x",
+                    }
+                ]
+            },
+        )
+    )
+    monkeypatch.setattr(
+        directory,
+        "by_sid",
+        lambda sid: DirectoryPrincipal(
+            sid=sid,
+            name="GL_PROJ_W",
+            kind="group",
+            source="graph",
+            entra_id="entra-group-id",
+        ),
+    )
+    principal = DirectoryPrincipal(
+        sid=WRITERS, name="GL_PROJ_W", kind="group", source="ldap", dn="CN=W"
+    )
+
+    assert directory.load_members(principal, limit=10) is True
+    assert principal.entra_id == "entra-group-id"
+    assert [(member.login, member.email) for member in principal.members] == [
+        ("FEZ6", "f@x")
+    ]
+    assert principal.members_source == "graph"
+
+
 def test_ldap_members_use_direct_then_nested_and_respect_limit():
     calls = []
 

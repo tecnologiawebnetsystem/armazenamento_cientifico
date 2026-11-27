@@ -270,8 +270,15 @@ class GraphDirectory:
         return self._find("group", f"displayName eq '{value}' or onPremisesSamAccountName eq '{value}'")
 
     def load_members(self, principal: DirectoryPrincipal, limit: int) -> bool:
-        if principal.kind != "group" or not principal.entra_id:
+        if principal.kind != "group":
             return False
+        if not principal.entra_id:
+            resolved = self.by_sid(principal.sid) if principal.sid else None
+            resolved = resolved or self.by_name(principal.name)
+            if not resolved or not resolved.entra_id:
+                return False
+            principal.entra_id = resolved.entra_id
+            principal.display_name = principal.display_name or resolved.display_name
         url: str | None = f"{self.base_url}/groups/{principal.entra_id}/transitiveMembers/microsoft.graph.user"
         params: dict | None = {"$select": "displayName,onPremisesSamAccountName,mail,userPrincipalName", "$top": "999"}
         members: list[DirectoryMember] = []
