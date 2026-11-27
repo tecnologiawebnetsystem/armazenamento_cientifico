@@ -11,7 +11,6 @@ services:
       - .env
     volumes:
       - .:/app
-      - ${FOLDER_NETWORK_HOST_MOUNT:-/mnt/cientifico}:${FOLDER_NETWORK_MOUNT_ROOT:-/mnt/cientifico}:ro
     environment:
       ENV: development
       UVICORN_RELOAD: "true"

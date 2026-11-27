@@ -104,8 +104,6 @@ class Settings(BaseSettings):
     ad_ldap_use_ssl: bool = False
     folder_access_max_members: int = 500
     folder_access_timeout_seconds: int = 45
-    folder_network_mount_root: str = ""
-    folder_network_unc_prefix: str = r"\\dfs.petrobras.biz\cientifico"
 
     @property
     def is_sqlite(self) -> bool:

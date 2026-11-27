@@ -153,41 +153,8 @@ def _read_cifs_xattr(path: str) -> bytes:
         ) from error
 
 
-def resolve_network_path(path: str, mount_root: str | None = None, unc_prefix: str | None = None) -> str:
-    """Mapeia um caminho UNC para a raiz CIFS montada no host/container Linux."""
-    if not path:
-        return path
-
-    if mount_root is None or unc_prefix is None:
-        from app.core.config import get_settings
-
-        settings = get_settings()
-        mount_root = mount_root if mount_root is not None else settings.folder_network_mount_root
-        unc_prefix = unc_prefix if unc_prefix is not None else settings.folder_network_unc_prefix
-
-    normalized_path = path.replace("/", "\\").rstrip("\\")
-    normalized_prefix = (unc_prefix or "").replace("/", "\\").rstrip("\\")
-    if not mount_root or not normalized_prefix:
-        return path
-
-    path_key = normalized_path.casefold()
-    prefix_key = normalized_prefix.casefold()
-    if path_key != prefix_key and not path_key.startswith(prefix_key + "\\"):
-        return path
-
-    relative_path = normalized_path[len(normalized_prefix) :].lstrip("\\")
-    mount_path = os.path.abspath(mount_root)
-    resolved = os.path.abspath(
-        os.path.join(mount_path, *relative_path.split("\\")) if relative_path else mount_path
-    )
-    if os.path.commonpath((mount_path, resolved)) != mount_path:
-        raise FolderAclUnavailable("O caminho UNC está fora da raiz CIFS configurada")
-    return resolved
-
-
 def read_folder_acl(path: str) -> FolderAcl:
-    resolved_path = resolve_network_path(path)
-    if not resolved_path or not os.path.isdir(resolved_path):
+    if not path or not os.path.isdir(path):
         raise FolderAclUnavailable("Pasta raiz inexistente ou inacessível pelo servidor")
-    data = _read_windows(resolved_path) if sys.platform == "win32" else _read_cifs_xattr(resolved_path)
+    data = _read_windows(path) if sys.platform == "win32" else _read_cifs_xattr(path)
     return parse_security_descriptor(data, path)

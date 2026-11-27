@@ -17,7 +17,6 @@ from app.infrastructure.folder_acl import (
     FolderAcl,
     FolderAclUnavailable,
     parse_security_descriptor,
-    resolve_network_path,
     sid_to_bytes,
 )
 from app.modules.projects.folder_access import (
@@ -319,21 +318,3 @@ def test_sync_folder_acl_collects_root_and_every_immediate_subfolder(tmp_path, m
     assert len(result.inserted) == 8
     assert {item["identifier"] for item in result.inserted} == set(identifiers)
     assert result.errors == []
-
-
-def test_resolve_network_path_maps_unc_relative_to_cifs_mount(tmp_path):
-    assert resolve_network_path(
-        r"\\dfs.petrobras.biz\cientifico\cenpes\labs\lfr",
-        mount_root=str(tmp_path),
-        unc_prefix=r"\\dfs.petrobras.biz\cientifico",
-    ) == str(tmp_path / "cenpes" / "labs" / "lfr")
-
-
-def test_resolve_network_path_does_not_match_a_different_unc_share(tmp_path):
-    path = r"\\dfs.petrobras.biz\outro-share\cenpes"
-
-    assert resolve_network_path(
-        path,
-        mount_root=str(tmp_path),
-        unc_prefix=r"\\dfs.petrobras.biz\cientifico",
-    ) == path
