@@ -15,6 +15,7 @@ from app.infrastructure.folder_acl import (
     FolderAclUnavailable,
     access_level,
     read_folder_acl,
+    resolve_network_path,
     rights_label,
 )
 from app.modules.projects.schemas import (
@@ -371,8 +372,9 @@ def sync_folder_acl(
 
     import os
 
+    local_folder = resolve_network_path(folder)
     try:
-        with os.scandir(folder) as entries:
+        with os.scandir(local_folder) as entries:
             subdirs = [
                 entry.path
                 for entry in entries

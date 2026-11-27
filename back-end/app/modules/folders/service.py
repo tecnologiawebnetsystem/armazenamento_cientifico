@@ -7,7 +7,7 @@ from uuid import NAMESPACE_URL, uuid5
 
 from app.core.config import get_settings
 from app.infrastructure.directory import DirectoryResolver
-from app.infrastructure.folder_acl import read_folder_acl
+from app.infrastructure.folder_acl import read_folder_acl, resolve_network_path
 from app.modules.folders.models import Folder
 from app.modules.folders.repository import FolderRepository
 from app.modules.projects.folder_access import StoredGroup, build_folder_access
@@ -94,7 +94,7 @@ class FolderService:
 
     @staticmethod
     def _read_root_folders(project_id: str, parent_folder: str) -> list[Folder]:
-        root = Path(parent_folder)
+        root = Path(resolve_network_path(parent_folder))
         if not root.is_dir():
             raise OSError(f"A raiz não existe ou não está acessível: {root}")
 
@@ -109,9 +109,10 @@ class FolderService:
                 project_id,
                 path.name,
             )
+            network_path = parent_folder.rstrip("\\/") + "\\" + path.name
             folders.append(
                 Folder(
-                    id=str(uuid5(NAMESPACE_URL, f"{project_id}:{path}")),
+                    id=str(uuid5(NAMESPACE_URL, f"{project_id}:{network_path}")),
                     project_id=project_id,
                     parent_id=None,
                     kind="pasta",
@@ -133,7 +134,9 @@ class FolderService:
         if not parent_folder:
             raise ValueError("O projeto não possui pasta raiz de rede cadastrada.")
         if not hasattr(self.repository, "reconcile"):
-            root_exists = await asyncio.to_thread(Path(parent_folder).is_dir)
+            root_exists = await asyncio.to_thread(
+                Path(resolve_network_path(parent_folder)).is_dir
+            )
             if not root_exists:
                 raise FolderSourceUnavailable(
                     "A pasta raiz não existe ou não está acessível pelo servidor."
@@ -189,6 +192,7 @@ class FolderService:
                 updated,
             )
             existing_ids = {str(folder.id) for folder in existing}
+            existing_names = {folder.name.strip().casefold() for folder in existing}
             missing_folders = [
                 Folder(
                     id=item["id"],
@@ -202,7 +206,9 @@ class FolderService:
                     size=int(item.get("size_bytes") or 0),
                 )
                 for item in source_folders
-                if item.get("id") not in existing_ids and item.get("name", "").strip()
+                if item.get("id") not in existing_ids
+                and item.get("name", "").strip()
+                and item["name"].strip().casefold() not in existing_names
             ]
             logger.info(
                 "folders_sync_stage project_id=%s stage=insert_missing_folders count=%d",
@@ -301,7 +307,7 @@ class FolderService:
 
     @staticmethod
     def _read_all_folders(project_id: str, parent_folder: str, user_id: str) -> list[Folder]:
-        root = Path(parent_folder)
+        root = Path(resolve_network_path(parent_folder))
         if not root.is_dir():
             return []
         now = datetime.now(UTC)
@@ -309,9 +315,10 @@ class FolderService:
         for path in sorted(root.iterdir(), key=lambda item: item.name.casefold()):
             if path.is_symlink() or not path.is_dir():
                 continue
+            network_path = parent_folder.rstrip("\\/") + "\\" + path.name
             folders.append(
                 Folder(
-                    id=str(uuid5(NAMESPACE_URL, f"{project_id}:{path}")),
+                    id=str(uuid5(NAMESPACE_URL, f"{project_id}:{network_path}")),
                     project_id=project_id,
                     parent_id=None,
                     kind="pasta",
