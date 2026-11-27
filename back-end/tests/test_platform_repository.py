@@ -239,6 +239,8 @@ async def test_dashboard_counts_unique_members_across_projects(session):
             payload={"entries": [
                 {"tipo": "unknown", "sid": "S-1-5-21-2038298172-1297133386-11111-5145051"},
                 {"tipo": "group", "membros": [{"login": "diana"}]},
+                {"tipo": "wellknown", "sid": "S-1-5-32-544", "grupo": "BUILTIN\\Administradores"},
+                {"tipo": "user", "identificador": "sistema", "grupo": "SISTEMA"},
             ]},
             synced_at=NOW,
         ),
@@ -282,7 +284,7 @@ async def test_dashboard_counts_unique_members_across_projects(session):
     result = await PlatformRepository(session).dashboard()
 
     assert set(result) == {"projects", "totalMembros", "totalMapas", "armazenamentoMb", "activity", "source", "consultedAt"}
-    assert result["totalMembros"] == 6
+    assert result["totalMembros"] == 8
     assert len(result["projects"]) == 2
     assert result["projects"][0]["nome"] == "Alpha"
     assert "armazenamentoUsadoMb" in result["projects"][0]
