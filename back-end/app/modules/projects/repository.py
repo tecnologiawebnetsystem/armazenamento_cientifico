@@ -81,6 +81,10 @@ class ProjectRepository:
             select(ProjectFolderAccessMember.project_id, ProjectFolderAccessMember.login)
             .where(ProjectFolderAccessMember.project_id.in_(project_ids))
         )
+        snapshot_rows = await self.session.execute(
+            select(ProjectFolderAccessSnapshot.project_id, ProjectFolderAccessSnapshot.payload)
+            .where(ProjectFolderAccessSnapshot.project_id.in_(project_ids))
+        )
 
         identities_by_project: dict[str, set[str]] = {}
         unique_identities: set[str] = set()
@@ -107,6 +111,21 @@ class ProjectRepository:
             )
             identities_by_project.setdefault(project_key, set()).add(identity)
             unique_identities.add(identity)
+
+        for project_id, payload in snapshot_rows:
+            project_key = str(project_id)
+            entries = payload.get("entries", []) if isinstance(payload, dict) else []
+            if not isinstance(entries, list):
+                continue
+            for entry in entries:
+                if not isinstance(entry, dict) or entry.get("tipo") != "unknown":
+                    continue
+                sid = str(entry.get("sid") or "").strip().casefold()
+                if not sid:
+                    continue
+                identity = f"sid:{sid}"
+                identities_by_project.setdefault(project_key, set()).add(identity)
+                unique_identities.add(identity)
 
         counts = {
             project_id: len(identities)

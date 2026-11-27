@@ -226,7 +226,10 @@ async def search_responsible_candidates(
 
 @router.get("/{project_id}", response_model=dict)
 async def get_project(
-    project_id: str, service: Annotated[ProjectService, Depends(get_service)], user: CurrentUser
+    request: Request,
+    project_id: str,
+    service: Annotated[ProjectService, Depends(get_service)],
+    user: CurrentUser,
 ):
     project = await service.get_project(project_id)
     if not project:
@@ -234,6 +237,14 @@ async def get_project(
     role = user["role"] or "solicitante"
     if not await service.can_view(project_id, str(user.get("user_id") or user["id"]), str(role)):
         raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
+    mark_audit(
+        request,
+        action="consultar-area-rede",
+        entity="projeto",
+        entity_id=project_id,
+        project_id=project_id,
+        details={"codigo": project.code, "nome": project.name},
+    )
     return {"project": serialize_project(project)}
 
 
@@ -249,6 +260,7 @@ async def get_project(
     },
 )
 async def get_project_access_map(
+    request: Request,
     project_id: str,
     service: Annotated[ProjectService, Depends(get_service)],
     user: Annotated[dict, Depends(require_capabilities("access_map"))],
@@ -284,6 +296,14 @@ async def get_project_access_map(
     if not members:
         gaps.append("projeto sem membros vinculados")
     areas = {area.id: area.name for area in await service.list_areas()}
+    mark_audit(
+        request,
+        action="consultar-mapa-acessos",
+        entity="projeto",
+        entity_id=project_id,
+        project_id=project_id,
+        details={"grupos": len(groups), "membros": len(members)},
+    )
     return AccessMapOut(
         project=serialize_project(
             project, await responsible_names(service, project), areas.get(project.responsible_area)
@@ -313,6 +333,7 @@ async def get_project_access_map(
 
 @router.get("/{project_id}/members", response_model=list[ProjectMemberOut])
 async def list_project_members(
+    request: Request,
     project_id: str,
     service: Annotated[ProjectService, Depends(get_service)],
     user: Annotated[dict, Depends(require_capabilities("access_map"))],
@@ -323,7 +344,16 @@ async def list_project_members(
         project_id, str(user.get("user_id") or user["id"]), str(user.get("role") or "")
     ):
         raise HTTPException(status_code=403, detail="Sem acesso a esta área de rede")
-    return serialize_members(await service.list_members(project_id))
+    members = serialize_members(await service.list_members(project_id))
+    mark_audit(
+        request,
+        action="consultar-membros-projeto",
+        entity="projeto",
+        entity_id=project_id,
+        project_id=project_id,
+        details={"quantidade": len(members)},
+    )
+    return members
 
 
 @router.get(
@@ -464,6 +494,7 @@ async def search_project_groups_catalog(
 
 @router.get("/{project_id}/access-groups", response_model=ProjectAccessGroupsOut)
 async def list_project_access_groups(
+    request: Request,
     project_id: str,
     service: Annotated[ProjectService, Depends(get_service)],
     user: CurrentUser,
@@ -479,6 +510,14 @@ async def list_project_access_groups(
     if not await service.can_view(project_id, str(user.get("user_id") or user["id"]), str(role)):
         raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
     groups = await service.list_access_groups(project_id, access_level)
+    mark_audit(
+        request,
+        action="consultar-grupos-projeto",
+        entity="projeto",
+        entity_id=project_id,
+        project_id=project_id,
+        details={"quantidade": len(groups), "nivel": access_level},
+    )
     return ProjectAccessGroupsOut(
         projectId=project_id,
         projectName=project.name or "",

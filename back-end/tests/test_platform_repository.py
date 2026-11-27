@@ -234,8 +234,19 @@ async def test_dashboard_counts_unique_members_across_projects(session):
         ProjectMember(project_id="p1", user_id="u1", created_at=NOW),
         ProjectMember(project_id="p2", user_id="u1", created_at=NOW),
         ProjectMember(project_id="p2", user_id="u2", created_at=NOW),
-        ProjectFolderAccessSnapshot(project_id="p1", payload={}, synced_at=NOW),
-        ProjectFolderAccessSnapshot(project_id="p2", payload={}, synced_at=NOW),
+        ProjectFolderAccessSnapshot(
+            project_id="p1",
+            payload={"entries": [{"tipo": "unknown", "sid": "S-1-5-21-2038298172-1297133386-11111-5145051"}]},
+            synced_at=NOW,
+        ),
+        ProjectFolderAccessSnapshot(
+            project_id="p2",
+            payload={"entries": [
+                {"tipo": "unknown", "sid": "s-1-5-21-2038298172-1297133386-11111-5145051"},
+                {"tipo": "unknown", "sid": "S-1-5-21-2038298172-1297133386-11111-7630"},
+            ]},
+            synced_at=NOW,
+        ),
     ])
     await session.flush()
     session.add_all(
@@ -268,7 +279,7 @@ async def test_dashboard_counts_unique_members_across_projects(session):
     result = await PlatformRepository(session).dashboard()
 
     assert set(result) == {"projects", "totalMembros", "totalMapas", "armazenamentoMb", "activity", "source", "consultedAt"}
-    assert result["totalMembros"] == 3
+    assert result["totalMembros"] == 5
     assert len(result["projects"]) == 2
     assert result["projects"][0]["nome"] == "Alpha"
     assert "armazenamentoUsadoMb" in result["projects"][0]

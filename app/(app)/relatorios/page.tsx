@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import useSWR from "swr"
 import { AlertTriangle, Filter, Search, SlidersHorizontal } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -19,6 +19,23 @@ type ReportTab = "areas" | "inconsistencias" | "grupos" | "membros"
 const csvValue = (value: string) => {
   const safeValue = /^[=+@\t\r-]/.test(value) ? `'${value}` : value
   return `"${safeValue.replaceAll('"', '""')}"`
+}
+
+async function recordReportAudit(
+  action: (typeof AUDIT_ACTIONS)["REPORT_GENERATED"] | (typeof AUDIT_ACTIONS)["REPORT_EXPORTED"],
+  report: string,
+  projectIds: (string | null | undefined)[],
+  details: Record<string, unknown>,
+) {
+  const uniqueProjectIds = [...new Set(projectIds.filter((id): id is string => Boolean(id)))]
+  const targets: (string | undefined)[] = uniqueProjectIds.length ? uniqueProjectIds : [undefined]
+  await Promise.all(targets.map((projectId) => recordAuditEvent({
+    action,
+    entity: projectId ? "projeto" : `relatorio_${report}`,
+    entity_id: projectId ?? report,
+    project_id: projectId,
+    details: { relatorio: report, ...details },
+  }).catch(() => undefined)))
 }
 
 export default function ReportsPage() {
@@ -52,9 +69,42 @@ export default function ReportsPage() {
     () => getReportMembers({ q: memberSearch || undefined }),
   )
   const { data: configuredFields } = useSWR("/api/report-fields?report_code=projetos", () => getReportFields("projetos"))
+  const loggedReportQueries = useRef(new Set<string>())
   useEffect(() => {
-    void recordAuditEvent({ action: AUDIT_ACTIONS.REPORT_GENERATED, entity: "relatorio_projetos", entity_id: "projetos", details: { rota: "/relatorios" } }).catch(() => undefined)
-  }, [])
+    const report = activeTab
+    let projectIds: (string | null | undefined)[] = []
+    let details: Record<string, unknown> = {}
+    let loaded = false
+
+    if (activeTab === "areas" && data) {
+      projectIds = data.projetos.filter((project) => {
+        const text = `${project.nome} ${project.codigo} ${project.areaResponsavel} ${(project.responsaveis ?? []).join(" ")}`.toLowerCase()
+        return text.includes(query.toLowerCase())
+      }).map((project) => project.id)
+      details = { busca: query, status, area, gestor: gestor || null, resultados: projectIds.length }
+      loaded = true
+    } else if (activeTab === "inconsistencias" && inconsistencies) {
+      projectIds = inconsistencies.inconsistencias.map((item) => item.projetoId)
+      details = { area, gestor: gestor || null, resultados: inconsistencies.total }
+      loaded = true
+    } else if (activeTab === "grupos" && groupReport) {
+      projectIds = groupReport.grupos.map((item) => item.projetoId)
+      details = { busca: groupSearch, area: groupArea, tipo: groupType, nivel: groupLevel, resultados: groupReport.total }
+      loaded = true
+    } else if (activeTab === "membros" && memberReport) {
+      projectIds = memberReport.membros.flatMap((member) => member.vinculos.map((link) => link.projetoId))
+      details = { busca: memberSearch, resultados: memberReport.total }
+      loaded = true
+    } else {
+      return
+    }
+
+    if (!loaded) return
+    const fingerprint = JSON.stringify([report, projectIds, details])
+    if (loggedReportQueries.current.has(fingerprint)) return
+    loggedReportQueries.current.add(fingerprint)
+    void recordReportAudit(AUDIT_ACTIONS.REPORT_GENERATED, report, projectIds, details)
+  }, [activeTab, data, inconsistencies, groupReport, memberReport, query, status, area, gestor, groupSearch, groupArea, groupType, groupLevel, memberSearch])
   const [sortAsc, setSortAsc] = useState(true)
   const [page, setPage] = useState(1)
   const [exportOpen, setExportOpen] = useState(false)
@@ -110,6 +160,7 @@ export default function ReportsPage() {
     link.click()
     link.remove()
     URL.revokeObjectURL(url)
+    void recordReportAudit(AUDIT_ACTIONS.REPORT_EXPORTED, "grupos", groupRows.map((row) => row.projetoId), { formato: "csv", resultados: groupRows.length, busca: groupSearch, area: groupArea, tipo: groupType, nivel: groupLevel })
   }
   const exportMembersCsv = () => {
     const columns = [
@@ -152,17 +203,42 @@ export default function ReportsPage() {
     link.click()
     link.remove()
     URL.revokeObjectURL(url)
+    void recordReportAudit(AUDIT_ACTIONS.REPORT_EXPORTED, "membros", memberRows.flatMap((member) => member.vinculos.map((link) => link.projetoId)), { formato: "csv", resultados: memberRows.length, busca: memberSearch })
+  }
+  const exportInconsistenciesCsv = () => {
+    const rows = inconsistencies?.inconsistencias ?? []
+    const columns = [
+      { key: "area", label: "Área" },
+      { key: "projeto", label: "Área de rede" },
+      { key: "codigo", label: "Código" },
+      { key: "grupo", label: "Grupo" },
+      { key: "tipo", label: "Tipo" },
+      { key: "descricao", label: "Orientação" },
+    ] as const
+    const content = [
+      columns.map(({ label }) => csvValue(label)).join(";"),
+      ...rows.map((row) => columns.map(({ key }) => csvValue(String(row[key] ?? ""))).join(";")),
+    ].join("\r\n")
+    const url = URL.createObjectURL(new Blob(["\uFEFF", content], { type: "text/csv;charset=utf-8" }))
+    const link = document.createElement("a")
+    link.href = url
+    link.download = "relatorio-inconsistencias.csv"
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+    void recordReportAudit(AUDIT_ACTIONS.REPORT_EXPORTED, "inconsistencias", rows.map((row) => row.projetoId), { formato: "csv", resultados: rows.length, area, gestor: gestor || null })
   }
   const clearFilters = () => { setQuery(""); setStatus("todos"); setArea("todas"); setGestor(""); setPage(1) }
   const downloadExport = async (format: ReportExportFormat, fields: string[]) => {
     const path = getProjectReportExportPath({ format, fields, status: status === "todos" ? undefined : status, area: area === "todas" ? undefined : area, gestorId: gestor || undefined })
     const blob = await downloadFile(path); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `relatorio-projetos.${format}`; document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url)
-    await recordAuditEvent({ action: AUDIT_ACTIONS.REPORT_EXPORTED, entity: "relatorio_projetos", entity_id: `projetos.${format}`, details: { formato: format, filtros: { status, area, gestorId: gestor || null }, campos: fields } }).catch(() => undefined)
+    await recordReportAudit(AUDIT_ACTIONS.REPORT_EXPORTED, "areas", data?.projetos.map((project) => project.id) ?? [], { formato: format, filtros: { status, area, gestorId: gestor || null }, campos: fields })
   }
   if (isLoading) return <PageLayout><PageHeader eyebrow="Gestão e análise" title="Relatórios" description="Leitura executiva do universo autorizado." /><PetrobrasLoading label="Consolidando o portfólio autorizado..." /></PageLayout>
   if (error || !data) return <PageLayout><PageHeader title="Consultas e relatórios" /><p className="text-destructive">Não foi possível carregar o relatório.</p></PageLayout>
   return <PageLayout>
-    <PageHeader eyebrow="Inteligência do portfólio" title="Consultas e relatórios" description="Consulte áreas de rede, membros autorizados e vínculos de grupos e papéis, em relatórios separados." actions={<div className="flex flex-wrap gap-2">{activeTab === "grupos" ? <ExportButton onClick={exportGroupsCsv} disabled={!groupRows.length} /> : activeTab === "membros" ? <ExportButton onClick={exportMembersCsv} disabled={!memberRows.length} /> : <ExportButton onClick={() => setExportOpen(true)} disabled={!exportFields.length} />}</div>} />
+    <PageHeader eyebrow="Inteligência do portfólio" title="Consultas e relatórios" description="Consulte áreas de rede, membros autorizados e vínculos de grupos e papéis, em relatórios separados." actions={<div className="flex flex-wrap gap-2">{activeTab === "grupos" ? <ExportButton onClick={exportGroupsCsv} disabled={!groupRows.length} /> : activeTab === "membros" ? <ExportButton onClick={exportMembersCsv} disabled={!memberRows.length} /> : activeTab === "inconsistencias" ? <ExportButton onClick={exportInconsistenciesCsv} disabled={!inconsistencies?.total} /> : <ExportButton onClick={() => setExportOpen(true)} disabled={!exportFields.length} />}</div>} />
     <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-muted/35 p-1" role="tablist" aria-label="Seções do relatório">
       <button type="button" role="tab" aria-selected={activeTab === "areas"} onClick={() => setActiveTab("areas")} className={`flex-1 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${activeTab === "areas" ? "bg-background text-petrobras-green shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Áreas de rede</button>
       <button type="button" role="tab" aria-selected={activeTab === "inconsistencias"} onClick={() => setActiveTab("inconsistencias")} className={`flex-1 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${activeTab === "inconsistencias" ? "bg-background text-amber-700 shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Inconsistências <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">{inconsistencies?.total ?? 0}</span></button>
